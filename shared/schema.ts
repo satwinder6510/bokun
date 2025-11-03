@@ -15,6 +15,16 @@ export const bokunProductSchema = z.object({
     id: z.number(),
     title: z.string(),
   }).optional(),
+  keyPhoto: z.object({
+    originalUrl: z.string().optional(),
+    description: z.string().optional(),
+    height: z.string().optional(),
+    width: z.string().optional(),
+    derived: z.array(z.object({
+      name: z.string().optional(),
+      url: z.string().optional(),
+    })).optional(),
+  }).optional(),
 });
 
 export const bokunProductDetailsSchema = z.object({

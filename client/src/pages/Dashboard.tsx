@@ -8,7 +8,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { ProductDetailsModal } from "@/components/ProductDetailsModal";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { apiRequest } from "@/lib/queryClient";
-import type { ConnectionStatus, BokunProductSearchResponse } from "@shared/schema";
+import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
 import { Activity, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -109,6 +109,12 @@ export default function Dashboard() {
 
   const selectedProduct = productsData?.items?.find(p => p.id === selectedProductId);
 
+  // Fetch full product details for rates information
+  const { data: productDetails } = useQuery<BokunProductDetails>({
+    queryKey: ["/api/bokun/product", selectedProductId],
+    enabled: !!selectedProductId,
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -180,6 +186,7 @@ export default function Dashboard() {
               <AvailabilityChecker
                 productId={selectedProductId}
                 productTitle={selectedProduct.title}
+                rates={productDetails?.rates}
               />
             </div>
           )}

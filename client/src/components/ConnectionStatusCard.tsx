@@ -33,7 +33,7 @@ export function ConnectionStatusCard({ status, isLoading, onTest }: ConnectionSt
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">API Endpoint</span>
             <code className="font-mono text-xs bg-muted px-2 py-1 rounded">
-              api.bokuntest.com
+              {import.meta.env.BOKUN_API_BASE || "api.bokun.com"}
             </code>
           </div>
           

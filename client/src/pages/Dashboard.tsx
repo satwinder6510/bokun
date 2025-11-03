@@ -26,10 +26,10 @@ export default function Dashboard() {
     enabled: false,
   });
 
-  const testConnectionMutation = useMutation({
+  const testConnectionMutation = useMutation<ConnectionStatus>({
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/bokun/test-connection", {});
-      return response;
+      return response as ConnectionStatus;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/bokun/test-connection"], data);
@@ -62,13 +62,13 @@ export default function Dashboard() {
     },
   });
 
-  const fetchProductsMutation = useMutation({
+  const fetchProductsMutation = useMutation<BokunProductSearchResponse>({
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/bokun/products", {
         page: 1,
         pageSize: 20,
       });
-      return response;
+      return response as BokunProductSearchResponse;
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/bokun/products"], data);
@@ -179,9 +179,15 @@ export default function Dashboard() {
       <footer className="border-t mt-12">
         <div className="container px-6 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>
-              Testing environment: <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded">api.bokuntest.com</code>
-            </p>
+            <div className="flex flex-col items-center md:items-start gap-2">
+              <p>
+                API Endpoint: <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{import.meta.env.BOKUN_API_BASE || "api.bokun.com"}</code>
+              </p>
+              <p className="text-xs">
+                💡 If you see "Invalid API key" errors, your credentials may be for a different environment. 
+                Set <code className="font-mono bg-muted px-1 rounded">BOKUN_API_BASE</code> to switch between production and test.
+              </p>
+            </div>
             <div className="flex items-center gap-4">
               <a
                 href="https://docs.bokun.io"

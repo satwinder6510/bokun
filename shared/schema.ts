@@ -41,10 +41,18 @@ export const bokunProductDetailsSchema = z.object({
     description: z.string().optional(),
     height: z.string().optional(),
     width: z.string().optional(),
+    derived: z.array(z.object({
+      name: z.string().optional(),
+      url: z.string().optional(),
+    })).optional(),
   }).optional(),
   photos: z.array(z.object({
     originalUrl: z.string().optional(),
     description: z.string().optional(),
+    derived: z.array(z.object({
+      name: z.string().optional(),
+      url: z.string().optional(),
+    })).optional(),
   })).optional(),
   difficultyLevel: z.string().optional(),
   reviewRating: z.number().optional(),

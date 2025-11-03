@@ -226,39 +226,6 @@ export function ProductDetailsModal({
                   </div>
                 )}
 
-                {product.bookableExtras && product.bookableExtras.length > 0 && (
-                  <div className="pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-3">Additional Options & Pricing</h4>
-                    <div className="space-y-2">
-                      {product.bookableExtras.map((extra) => (
-                        <div key={extra.id} className="border rounded-lg p-3 bg-card">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">{extra.title}</div>
-                              {extra.information && (
-                                <div className="text-xs text-muted-foreground mt-1">{extra.information}</div>
-                              )}
-                              {extra.pricingTypeLabel && (
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  Pricing: {extra.pricingTypeLabel}
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-right shrink-0">
-                              {extra.free || extra.included ? (
-                                <Badge variant="secondary" className="text-xs">
-                                  {extra.free ? "Free" : "Included"}
-                                </Badge>
-                              ) : extra.price !== undefined && (
-                                <div className="font-semibold text-primary">£{extra.price.toFixed(2)}</div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
 
                 <div className="pt-4 border-t">
                   <h4 className="text-sm font-medium mb-2">Technical Details</h4>
@@ -282,6 +249,7 @@ export function ProductDetailsModal({
                       productId={productId!}
                       productTitle={product.title}
                       rates={product.rates}
+                      bookableExtras={product.bookableExtras}
                     />
                   ) : (
                     <div className="text-center py-8 text-muted-foreground">

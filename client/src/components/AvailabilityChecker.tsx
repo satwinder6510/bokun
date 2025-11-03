@@ -22,10 +22,22 @@ interface Rate {
   maxPerBooking?: number;
 }
 
+interface BookableExtra {
+  id?: number;
+  title?: string;
+  information?: string;
+  price?: number;
+  pricingType?: string;
+  pricingTypeLabel?: string;
+  included?: boolean;
+  free?: boolean;
+}
+
 interface AvailabilityCheckerProps {
   productId: string;
   productTitle: string;
   rates?: Rate[];
+  bookableExtras?: BookableExtra[];
 }
 
 interface AvailabilityData {
@@ -55,7 +67,7 @@ interface AvailabilityData {
   }>;
 }
 
-export function AvailabilityChecker({ productId, productTitle, rates }: AvailabilityCheckerProps) {
+export function AvailabilityChecker({ productId, productTitle, rates, bookableExtras }: AvailabilityCheckerProps) {
   const { toast } = useToast();
   const [departureDate, setDepartureDate] = useState<Date>();
   const [selectedRate, setSelectedRate] = useState<string>("");
@@ -409,6 +421,38 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                                   </div>
                                 );
                               })}
+                          </div>
+                        </div>
+                      )}
+
+                      {bookableExtras && bookableExtras.length > 0 && (
+                        <div className="space-y-2 pt-2 border-t">
+                          <div className="text-xs font-medium text-muted-foreground">Additional Options & Pricing:</div>
+                          <div className="space-y-1.5">
+                            {bookableExtras.map((extra) => (
+                              <div key={extra.id} className="flex items-start justify-between gap-2 text-xs bg-muted/30 rounded p-2">
+                                <div className="flex-1">
+                                  <div className="font-medium">{extra.title}</div>
+                                  {extra.information && (
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">{extra.information}</div>
+                                  )}
+                                  {extra.pricingTypeLabel && (
+                                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                                      {extra.pricingTypeLabel}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  {extra.free || extra.included ? (
+                                    <Badge variant="secondary" className="text-[10px] h-5">
+                                      {extra.free ? "Free" : "Included"}
+                                    </Badge>
+                                  ) : extra.price !== undefined && (
+                                    <div className="font-semibold text-primary">£{extra.price.toFixed(2)}</div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}

@@ -3,10 +3,16 @@ import { z } from "zod";
 export const bokunProductSchema = z.object({
   id: z.string(),
   title: z.string(),
-  productCategory: z.string().optional(),
   excerpt: z.string().optional(),
-  description: z.string().optional(),
+  summary: z.string().optional(),
+  activityCategories: z.array(z.string()).optional(),
   flags: z.array(z.string()).optional(),
+  price: z.number().optional(),
+  durationText: z.string().optional(),
+  vendor: z.object({
+    id: z.number(),
+    title: z.string(),
+  }).optional(),
 });
 
 export const bokunProductSearchResponseSchema = z.object({

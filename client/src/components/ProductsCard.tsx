@@ -38,9 +38,9 @@ export function ProductsCard({ products, isLoading, onFetch, totalCount }: Produ
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h4 className="font-medium text-sm leading-snug">{product.title}</h4>
-                    {product.productCategory && (
+                    {product.activityCategories && product.activityCategories.length > 0 && (
                       <Badge variant="outline" className="text-xs shrink-0">
-                        {product.productCategory}
+                        {product.activityCategories[0].replace(/_/g, ' ')}
                       </Badge>
                     )}
                   </div>
@@ -49,10 +49,15 @@ export function ProductsCard({ products, isLoading, onFetch, totalCount }: Produ
                       {product.excerpt}
                     </p>
                   )}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-2">
                     <code className="font-mono text-xs text-muted-foreground">
                       ID: {product.id}
                     </code>
+                    {product.price && (
+                      <span className="text-xs font-medium text-primary">
+                        ${product.price.toFixed(2)}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

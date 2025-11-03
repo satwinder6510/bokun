@@ -75,7 +75,7 @@ export default function Dashboard() {
       setLastResponse(data);
       toast({
         title: "Products Loaded",
-        description: `Found ${data.totalCount || 0} products`,
+        description: `Found ${data.totalHits || 0} products (showing ${data.results?.length || 0})`,
       });
     },
     onError: (error: any) => {
@@ -159,7 +159,7 @@ export default function Dashboard() {
             <div className="lg:col-span-2">
               <ProductsCard
                 products={productsData?.results || []}
-                totalCount={productsData?.totalCount}
+                totalCount={productsData?.totalHits}
                 isLoading={fetchProductsMutation.isPending}
                 onFetch={handleFetchProducts}
               />

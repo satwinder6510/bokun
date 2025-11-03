@@ -20,7 +20,7 @@ export function ProductsCard({ products, isLoading, onFetch, totalCount }: Produ
           <Package className="h-5 w-5 text-primary" />
           Available Products
         </CardTitle>
-        {totalCount !== undefined && (
+        {totalCount !== undefined && totalCount > 0 && (
           <Badge variant="secondary" className="font-mono text-xs">
             {totalCount} total
           </Badge>

@@ -10,9 +10,8 @@ export const bokunProductSchema = z.object({
 });
 
 export const bokunProductSearchResponseSchema = z.object({
-  totalCount: z.number(),
-  page: z.number(),
-  pageSize: z.number(),
+  totalHits: z.number(),
+  tookInMillis: z.number().optional(),
   results: z.array(bokunProductSchema),
 });
 

@@ -76,8 +76,8 @@ export function ProductDetailsModal({
                 <TabsTrigger value="availability" data-testid="tab-availability">Check Availability</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="flex-1 min-h-0 overflow-hidden">
-                <ScrollArea className="h-full pr-4">
+              <TabsContent value="details" className="flex-1 min-h-0">
+                <div className="h-full overflow-y-auto pr-4">
                   <div className="space-y-6 pb-4">
                 {product.keyPhoto?.originalUrl && (
                   <div className="rounded-lg overflow-hidden border">
@@ -274,11 +274,11 @@ export function ProductDetailsModal({
                   </div>
                 </div>
                   </div>
-                </ScrollArea>
+                </div>
               </TabsContent>
 
-              <TabsContent value="availability" className="flex-1 min-h-0 overflow-hidden">
-                <ScrollArea className="h-full pr-4">
+              <TabsContent value="availability" className="flex-1 min-h-0">
+                <div className="h-full overflow-y-auto pr-4">
                   <div className="py-4 pb-4">
                     {product.rates && product.rates.length > 0 ? (
                       <AvailabilityChecker
@@ -292,7 +292,7 @@ export function ProductDetailsModal({
                       </div>
                     )}
                   </div>
-                </ScrollArea>
+                </div>
               </TabsContent>
             </Tabs>
           </>

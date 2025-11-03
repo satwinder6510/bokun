@@ -32,7 +32,7 @@ export function ProductDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col" data-testid="modal-product-details">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto" data-testid="modal-product-details">
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-8 w-3/4" />
@@ -70,16 +70,15 @@ export function ProductDetailsModal({
               </div>
             </DialogHeader>
 
-            <Tabs defaultValue="details" className="mt-4 flex-1 flex flex-col min-h-0 overflow-hidden">
-              <TabsList className="grid w-full grid-cols-2 shrink-0">
+            <Tabs defaultValue="details" className="mt-4">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
                 <TabsTrigger value="availability" data-testid="tab-availability">Check Availability</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="flex-1 min-h-0">
-                <div className="h-full overflow-y-auto pr-4">
-                  <div className="space-y-6 pb-4">
-                {product.keyPhoto?.originalUrl && (
+              <TabsContent value="details">
+                <div className="space-y-6">
+                  {product.keyPhoto?.originalUrl && (
                   <div className="rounded-lg overflow-hidden border">
                     <img
                       src={product.keyPhoto.originalUrl}
@@ -273,25 +272,22 @@ export function ProductDetailsModal({
                     )}
                   </div>
                 </div>
-                  </div>
-                </div>
+              </div>
               </TabsContent>
 
-              <TabsContent value="availability" className="flex-1 min-h-0">
-                <div className="h-full overflow-y-auto pr-4">
-                  <div className="py-4 pb-4">
-                    {product.rates && product.rates.length > 0 ? (
-                      <AvailabilityChecker
-                        productId={productId!}
-                        productTitle={product.title}
-                        rates={product.rates}
-                      />
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No availability information for this product
-                      </div>
-                    )}
-                  </div>
+              <TabsContent value="availability">
+                <div className="py-4">
+                  {product.rates && product.rates.length > 0 ? (
+                    <AvailabilityChecker
+                      productId={productId!}
+                      productTitle={product.title}
+                      rates={product.rates}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No availability information for this product
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

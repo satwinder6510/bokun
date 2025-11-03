@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import type { BokunProductDetails } from "@shared/schema";
 
 export default function TourDetail() {
@@ -157,6 +158,7 @@ export default function TourDetail() {
                   {product.itinerary && product.itinerary.length > 0 && (
                     <TabsTrigger value="itinerary" data-testid="tab-itinerary">Itinerary</TabsTrigger>
                   )}
+                  <TabsTrigger value="availability" data-testid="tab-availability">Availability</TabsTrigger>
                   {product.bookableExtras && product.bookableExtras.length > 0 && (
                     <TabsTrigger value="extras" data-testid="tab-extras">Add-ons</TabsTrigger>
                   )}
@@ -196,6 +198,17 @@ export default function TourDetail() {
                     ))}
                   </TabsContent>
                 )}
+
+                <TabsContent value="availability" className="space-y-4 pt-6" data-testid="content-availability">
+                  {productId && (
+                    <AvailabilityChecker
+                      productId={productId}
+                      productTitle={product.title}
+                      rates={product.rates}
+                      bookableExtras={product.bookableExtras}
+                    />
+                  )}
+                </TabsContent>
 
                 {product.bookableExtras && product.bookableExtras.length > 0 && (
                   <TabsContent value="extras" className="space-y-4 pt-6" data-testid="content-extras">

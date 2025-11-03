@@ -1,18 +1,28 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+export const bokunProductSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  productCategory: z.string().optional(),
+  excerpt: z.string().optional(),
+  description: z.string().optional(),
+  flags: z.array(z.string()).optional(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const bokunProductSearchResponseSchema = z.object({
+  totalCount: z.number(),
+  page: z.number(),
+  pageSize: z.number(),
+  results: z.array(bokunProductSchema),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export const connectionStatusSchema = z.object({
+  connected: z.boolean(),
+  message: z.string(),
+  timestamp: z.string(),
+  responseTime: z.number().optional(),
+});
+
+export type BokunProduct = z.infer<typeof bokunProductSchema>;
+export type BokunProductSearchResponse = z.infer<typeof bokunProductSearchResponseSchema>;
+export type ConnectionStatus = z.infer<typeof connectionStatusSchema>;

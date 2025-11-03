@@ -61,6 +61,7 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
   const [numberOfPeople, setNumberOfPeople] = useState<string>("2");
   const [availabilities, setAvailabilities] = useState<AvailabilityData[]>([]);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
+  const [dateRange, setDateRange] = useState<{ fromMonth?: Date; toMonth?: Date }>({});
 
   // Auto-adjust number of people when rate is selected
   useEffect(() => {
@@ -93,9 +94,6 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
   // Parse available dates from the API response
   useEffect(() => {
     if (initialAvailability && Array.isArray(initialAvailability)) {
-      console.log("Raw availability data:", initialAvailability.length, "items");
-      console.log("First item:", initialAvailability[0]);
-      
       const dates = initialAvailability
         .filter((a: any) => !a.soldOut && !a.unavailable)
         .map((a: any) => {
@@ -109,11 +107,9 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                 const month = parseInt(dateStr.substring(4, 6)) - 1; // JS months are 0-indexed
                 const day = parseInt(dateStr.substring(6, 8));
                 const parsedDate = new Date(year, month, day);
-                console.log("Parsed date from ID:", a.id, "->", dateStr, "->", parsedDate);
                 return parsedDate;
               }
             } catch (error) {
-              console.error("Error parsing date from ID:", a.id, error);
               return null;
             }
           }
@@ -121,8 +117,21 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
         })
         .filter((d: Date | null): d is Date => d !== null);
       
-      console.log("Available dates after filtering:", dates.length, dates);
       setAvailableDates(dates);
+      
+      // Calculate the date range (earliest and latest months with availability)
+      if (dates.length > 0) {
+        const sortedDates = [...dates].sort((a, b) => a.getTime() - b.getTime());
+        const earliest = sortedDates[0];
+        const latest = sortedDates[sortedDates.length - 1];
+        
+        // Set fromMonth to the start of the earliest month
+        const fromMonth = new Date(earliest.getFullYear(), earliest.getMonth(), 1);
+        // Set toMonth to the start of the latest month
+        const toMonth = new Date(latest.getFullYear(), latest.getMonth(), 1);
+        
+        setDateRange({ fromMonth, toMonth });
+      }
     }
   }, [initialAvailability]);
 
@@ -289,13 +298,17 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                 {departureDate ? format(departureDate, "PPP") : "Select departure date"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0 max-w-fit" align="start">
               <Calendar
                 mode="single"
                 selected={departureDate}
                 onSelect={setDepartureDate}
                 initialFocus
                 numberOfMonths={2}
+                showOutsideDays={false}
+                fromMonth={dateRange.fromMonth}
+                toMonth={dateRange.toMonth}
+                defaultMonth={dateRange.fromMonth}
                 disabled={(date) => {
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);

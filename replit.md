@@ -1,29 +1,34 @@
-# Bokun API Testing Console
+# Tour Discoveries - Public Tour Booking Website
 
 ## Overview
 
-A professional developer tool for testing and exploring the Bokun booking API. The application provides a clean, technical dashboard for verifying API connectivity, viewing product details, checking availability, and browsing available products from the Bokun production API. Built as a full-stack TypeScript application with a focus on data presentation, calendar-based date selection, and immediate visual feedback.
+A public-facing tour booking website showcasing 700+ curated tours from the Bokun API. The application provides a clean, minimal interface for browsing tours, viewing detailed itineraries with hotel information, checking availability with calendar-based date selection, and exploring pricing options. Built as a full-stack TypeScript application focused on user experience and visual appeal.
+
+**Current Phase:** Phase 1 - Browse and explore only. Shopping cart and booking functionality planned for Phase 2.
 
 ## Recent Changes (November 3, 2025)
 
+- **Security Update**: Removed public access to admin dashboard for production security
 - **Implemented 30-Day Product Caching System**:
   - In-memory cache storing all products for 30 days to reduce API load
-  - Auto-load products from cache on dashboard mount (no manual button click required)
-  - Single "Refresh Products" button for manual cache refresh
-  - Cache metadata display showing last refresh time and product count
-  - Cache metadata automatically updates after product loads
+  - Auto-load products from cache on homepage (no manual action required)
   - Products served from cache when available, otherwise fetched from API
   - Note: Cache resets on server restart (in-memory storage)
-- Added **Product Details Modal** with comprehensive tour information:
-  - Full tour description with highlights
-  - Complete day-by-day itinerary breakdown (12 days for multi-day tours)
-  - Accommodation options showing hotel choices for each section of the trip
-  - Additional pricing options for bookable extras (e.g., private transfers)
-  - Photos, categories, duration, and technical details
-  - Removed vendor display per user request
-- Added **Availability Checker**: Select date ranges using visual calendar pickers to check product availability and pricing
-- Implemented calendar-based date selection using shadcn Calendar components with Popover UI
+- **Public Tour Pages**:
+  - Homepage displays 700+ unique tours with search and filtering
+  - Tour detail pages with comprehensive information:
+    - Full tour descriptions with HTML formatting
+    - Complete day-by-day itinerary breakdown
+    - Hotel details by location (for multi-day tours)
+    - Photo galleries with hero images
+    - Availability checker with calendar date picker
+    - Bookable extras and add-ons
+  - Search functionality by destination or tour name with live feedback
+  - Category filtering with formatted badge names
+- **HTML Content Rendering**: Fixed display of tour descriptions, itineraries, and hotel details using dangerouslySetInnerHTML
+- **Availability Tab**: Calendar-based date selection for checking tour availability and pricing
 - **Default currency set to GBP** for all pricing displays
+- **Category Name Formatting**: Display readable names (e.g., "Seat In Coach Tour" instead of "SEAT_IN_COACH_TOUR")
 - Fixed HMAC signature generation to include query parameters for availability endpoint
 - Improved error handling with proper HTTP status code propagation
 - Schema updated to include `itinerary`, `customFields`, `bookableExtras`, and `pricingCategories` fields

@@ -115,15 +115,6 @@ export default function Dashboard() {
     enabled: !!selectedProductId,
   });
 
-  console.log("Dashboard state:", {
-    selectedProductId,
-    hasSelectedProduct: !!selectedProduct,
-    isLoadingProductDetails,
-    hasProductDetails: !!productDetails,
-    hasRates: !!productDetails?.rates,
-    ratesLength: productDetails?.rates?.length
-  });
-
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -190,8 +181,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {selectedProductId && selectedProduct && !isLoadingProductDetails && productDetails && (
-            <div className="grid grid-cols-1 gap-6">
+          {selectedProductId && selectedProduct && productDetails?.rates && (
+            <div className="grid grid-cols-1 gap-6" data-testid="availability-section">
+              <h2 className="text-xl font-semibold">Check Availability & Pricing</h2>
               <AvailabilityChecker
                 productId={selectedProductId}
                 productTitle={selectedProduct.title}

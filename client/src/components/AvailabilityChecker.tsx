@@ -29,17 +29,28 @@ interface AvailabilityCheckerProps {
 }
 
 interface AvailabilityData {
-  date?: string;
+  id?: string;
+  date?: number;
+  localizedDate?: string;
   time?: string;
+  startTime?: string;
   availabilityCount?: number;
   unlimitedAvailability?: boolean;
   soldOut?: boolean;
   unavailable?: boolean;
-  pricesByRate?: Array<{
-    id?: string;
+  rates?: Array<{
+    id?: number;
     title?: string;
-    price?: number;
-    currency?: string;
+  }>;
+  pricesByRate?: Array<{
+    activityRateId?: number;
+    pricePerCategoryUnit?: Array<{
+      id?: number;
+      amount?: {
+        amount?: number;
+        currency?: string;
+      };
+    }>;
   }>;
 }
 
@@ -338,8 +349,8 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                         <div className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium text-sm">
-                            {availability.date || "Date not specified"}
-                            {availability.time && ` at ${availability.time}`}
+                            {availability.localizedDate || availability.date || "Date not specified"}
+                            {(availability.time || availability.startTime) && ` at ${availability.time || availability.startTime}`}
                           </span>
                         </div>
                         <div className={`flex items-center gap-1 ${status.color}`}>
@@ -348,16 +359,26 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                         </div>
                       </div>
 
-                      {availability.pricesByRate && availability.pricesByRate.length > 0 && (
+                      {availability.pricesByRate && availability.pricesByRate.length > 0 && availability.rates && (
                         <div className="space-y-2">
                           <div className="text-xs font-medium text-muted-foreground">Pricing Options:</div>
                           <div className="flex flex-wrap gap-2">
-                            {availability.pricesByRate.map((rate, rateIndex) => (
-                              <div key={rateIndex} className="flex items-center gap-1 text-xs bg-muted/30 rounded px-2 py-1">
-                                <span className="text-muted-foreground">{rate.title}:</span>
-                                <span className="font-semibold text-primary">£{rate.price?.toFixed(2)}</span>
-                              </div>
-                            ))}
+                            {availability.pricesByRate.map((priceInfo) => {
+                              const rate = availability.rates?.find(r => r.id === priceInfo.activityRateId);
+                              const price = priceInfo.pricePerCategoryUnit?.[0]?.amount;
+                              
+                              if (!rate || !price) return null;
+                              
+                              return (
+                                <div key={priceInfo.activityRateId} className="flex items-center gap-1 text-xs bg-muted/30 rounded px-2 py-1">
+                                  <span className="text-muted-foreground">{rate.title}:</span>
+                                  <span className="font-semibold text-primary">
+                                    {price.currency === 'GBP' ? '£' : price.currency === 'USD' ? '$' : price.currency}
+                                    {price.amount?.toFixed(2)}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       )}

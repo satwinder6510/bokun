@@ -39,13 +39,25 @@ export function ProductDetailsModal({
     ? [
         ...(product.keyPhoto?.originalUrl ? [product.keyPhoto] : []),
         ...(product.photos || [])
-      ].filter(photo => photo.originalUrl)
+      ].filter(photo => photo?.originalUrl)
     : [];
 
   // Reset image index when product changes or modal opens
   useEffect(() => {
     setCurrentImageIndex(0);
   }, [productId, open]);
+
+  // Debug: Log images array
+  useEffect(() => {
+    if (product) {
+      console.log('Product images debug:', {
+        keyPhoto: product.keyPhoto,
+        photos: product.photos,
+        allImages,
+        allImagesLength: allImages.length
+      });
+    }
+  }, [product, allImages]);
 
   const handlePreviousImage = () => {
     setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
@@ -108,10 +120,13 @@ export function ProductDetailsModal({
                       {/* Main Image Display */}
                       <div className="relative rounded-lg overflow-hidden border group">
                         <img
-                          src={allImages[currentImageIndex].originalUrl}
-                          alt={allImages[currentImageIndex].description || product.title}
+                          src={allImages[currentImageIndex]?.originalUrl || ''}
+                          alt={allImages[currentImageIndex]?.description || product.title}
                           className="w-full h-96 object-cover"
                           data-testid="img-product-photo"
+                          onError={(e) => {
+                            console.error('Image failed to load:', allImages[currentImageIndex]);
+                          }}
                         />
                         
                         {/* Navigation Arrows - only show if multiple images */}
@@ -159,9 +174,12 @@ export function ProductDetailsModal({
                               data-testid={`button-thumbnail-${index}`}
                             >
                               <img
-                                src={image.originalUrl}
-                                alt={image.description || `${product.title} - Image ${index + 1}`}
+                                src={image?.originalUrl || ''}
+                                alt={image?.description || `${product.title} - Image ${index + 1}`}
                                 className="w-20 h-20 object-cover"
+                                onError={(e) => {
+                                  console.error('Thumbnail failed to load:', image);
+                                }}
                               />
                             </button>
                           ))}

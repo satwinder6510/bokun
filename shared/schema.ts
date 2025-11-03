@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { pgTable, text, timestamp, jsonb, integer } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
 
 export const bokunProductSchema = z.object({
   id: z.string(),
@@ -142,3 +144,31 @@ export type BokunAvailability = z.infer<typeof bokunAvailabilitySchema>;
 export type BokunAvailabilityResponse = z.infer<typeof bokunAvailabilityResponseSchema>;
 export type BokunProductSearchResponse = z.infer<typeof bokunProductSearchResponseSchema>;
 export type ConnectionStatus = z.infer<typeof connectionStatusSchema>;
+
+// Database tables
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  username: text("username").unique().notNull(),
+  password: text("password").notNull(),
+});
+
+export const cachedProducts = pgTable("cached_products", {
+  productId: text("product_id").primaryKey(),
+  data: jsonb("data").notNull(),
+  cachedAt: timestamp("cached_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export const cacheMetadata = pgTable("cache_metadata", {
+  id: integer("id").primaryKey(),
+  lastRefreshAt: timestamp("last_refresh_at").notNull().defaultNow(),
+  totalProducts: integer("total_products").notNull().default(0),
+});
+
+export const insertUserSchema = createInsertSchema(users);
+export const insertCachedProductSchema = createInsertSchema(cachedProducts);
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type CachedProduct = typeof cachedProducts.$inferSelect;
+export type InsertCachedProduct = z.infer<typeof insertCachedProductSchema>;

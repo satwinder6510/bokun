@@ -9,9 +9,12 @@ import { ProductDetailsModal } from "@/components/ProductDetailsModal";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -62,6 +65,14 @@ export default function Dashboard() {
     },
   });
 
+  // Fetch cache metadata
+  const { data: cacheMetadata, refetch: refetchCacheMetadata } = useQuery<{
+    lastRefreshAt: string | null;
+    totalProducts: number;
+  }>({
+    queryKey: ["/api/bokun/cache-metadata"],
+  });
+
   const fetchProductsMutation = useMutation<BokunProductSearchResponse>({
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/bokun/products", {
@@ -74,8 +85,9 @@ export default function Dashboard() {
       setProductsData(data);
       queryClient.setQueryData(["/api/bokun/products"], data);
       setLastResponse(data);
+      const fromCache = (data as any).fromCache;
       toast({
-        title: "Products Loaded",
+        title: fromCache ? "Products Loaded from Cache" : "Products Loaded from API",
         description: `Found ${data.totalHits || 0} products (showing ${data.items?.length || 0})`,
       });
     },
@@ -94,12 +106,40 @@ export default function Dashboard() {
     },
   });
 
+  const refreshProductsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/bokun/products/refresh", {});
+      return response;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Products Refreshed",
+        description: `Successfully refreshed ${data.productsRefreshed || 0} products from Bokun API`,
+      });
+      // Refresh cache metadata
+      refetchCacheMetadata();
+      // Re-fetch products to show updated data
+      fetchProductsMutation.mutate();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Refresh Failed",
+        description: error.message || "Failed to refresh products from Bokun API",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleTestConnection = () => {
     testConnectionMutation.mutate();
   };
 
   const handleFetchProducts = () => {
     fetchProductsMutation.mutate();
+  };
+
+  const handleRefreshProducts = () => {
+    refreshProductsMutation.mutate();
   };
 
   const handleProductClick = (productId: string) => {
@@ -160,6 +200,51 @@ export default function Dashboard() {
             accessKey={import.meta.env.BOKUN_ACCESS_KEY || "Not configured"}
             secretKey={import.meta.env.BOKUN_SECRET_KEY || "Not configured"}
           />
+
+          <Card data-testid="card-cache-status">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <Database className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-lg">Product Cache Status</CardTitle>
+                    <CardDescription>
+                      Products are cached for 30 days to improve performance
+                    </CardDescription>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleRefreshProducts}
+                  disabled={refreshProductsMutation.isPending}
+                  variant="outline"
+                  size="sm"
+                  data-testid="button-refresh-products"
+                  className="gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshProductsMutation.isPending ? 'animate-spin' : ''}`} />
+                  {refreshProductsMutation.isPending ? "Refreshing..." : "Refresh Products"}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Total Products:</span>
+                  <Badge variant="secondary" data-testid="badge-total-products">
+                    {cacheMetadata?.totalProducts || 0}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Last Updated:</span>
+                  <Badge variant="outline" data-testid="badge-last-updated">
+                    {cacheMetadata?.lastRefreshAt
+                      ? formatDistanceToNow(new Date(cacheMetadata.lastRefreshAt), { addSuffix: true })
+                      : "Never"}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">

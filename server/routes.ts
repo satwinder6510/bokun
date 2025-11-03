@@ -46,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bokun/availability/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { start, end, currency = "USD" } = req.query;
+      const { start, end, currency = "GBP" } = req.query;
       
       if (!start || !end) {
         return res.status(400).json({

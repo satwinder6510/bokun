@@ -154,7 +154,7 @@ export async function getBokunAvailability(
   productId: string, 
   startDate: string, 
   endDate: string,
-  currency: string = "USD"
+  currency: string = "GBP"
 ) {
   const path = `/activity.json/${productId}/availabilities`;
   const method = "GET";

@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBokunAvailability } from "./bokun";
 import { storage } from "./storage";
+import * as OTPAuth from "otpauth";
+import QRCode from "qrcode";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bokun/test-connection", async (req, res) => {
@@ -186,6 +188,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const status = statusMatch ? parseInt(statusMatch[1]) : 500;
       res.status(status).json({
         error: error.message || "Failed to fetch availability",
+      });
+    }
+  });
+
+  // 2FA Setup - Generate QR code for initial setup
+  app.get("/api/auth/2fa/setup", async (req, res) => {
+    try {
+      // Get or generate 2FA secret from environment
+      let secret = process.env.TOTP_SECRET;
+      
+      if (!secret) {
+        // Generate new secret if not configured
+        const totp = new OTPAuth.Secret({ size: 20 });
+        secret = totp.base32;
+        console.log("Generated new TOTP secret. Add to environment: TOTP_SECRET=" + secret);
+      }
+
+      // Create TOTP instance
+      const totp = new OTPAuth.TOTP({
+        issuer: "Tour Discoveries",
+        label: "Admin Dashboard",
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: secret,
+      });
+
+      // Generate otpauth URI
+      const uri = totp.toString();
+
+      // Generate QR code
+      const qrCode = await QRCode.toDataURL(uri);
+
+      res.json({
+        secret,
+        qrCode,
+        uri,
+      });
+    } catch (error: any) {
+      console.error("Error generating 2FA setup:", error);
+      res.status(500).json({
+        error: error.message || "Failed to generate 2FA setup",
+      });
+    }
+  });
+
+  // Verify TOTP code
+  app.post("/api/auth/2fa/verify", async (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({
+          error: "Token is required",
+        });
+      }
+
+      const secret = process.env.TOTP_SECRET;
+
+      if (!secret) {
+        return res.status(500).json({
+          error: "2FA is not configured. Please complete setup first.",
+        });
+      }
+
+      // Create TOTP instance
+      const totp = new OTPAuth.TOTP({
+        issuer: "Tour Discoveries",
+        label: "Admin Dashboard",
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: secret,
+      });
+
+      // Validate token (allow 1 window before/after for clock skew)
+      const delta = totp.validate({ token, window: 1 });
+
+      if (delta !== null) {
+        res.json({
+          valid: true,
+        });
+      } else {
+        res.json({
+          valid: false,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error verifying TOTP:", error);
+      res.status(500).json({
+        error: error.message || "Failed to verify TOTP",
       });
     }
   });

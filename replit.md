@@ -8,7 +8,12 @@ A public-facing tour booking website showcasing 700+ curated tours from the Boku
 
 ## Recent Changes (November 3, 2025)
 
-- **Security Update**: Removed public access to admin dashboard for production security
+- **Security Update**: Implemented password-protected dashboard with login authentication
+  - Dashboard accessible at `/login` with password protection
+  - Default password: `admin123` (configurable via VITE_ADMIN_PASSWORD)
+  - Session-based authentication using browser sessionStorage
+  - Logout functionality to clear session and return to login page
+  - Public users cannot access admin features without correct password
 - **Implemented 30-Day Product Caching System**:
   - In-memory cache storing all products for 30 days to reduce API load
   - Auto-load products from cache on homepage (no manual action required)

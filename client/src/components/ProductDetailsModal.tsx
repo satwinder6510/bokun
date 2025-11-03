@@ -70,13 +70,13 @@ export function ProductDetailsModal({
               </div>
             </DialogHeader>
 
-            <Tabs defaultValue="details" className="mt-4 flex-1 flex flex-col overflow-hidden">
+            <Tabs defaultValue="details" className="mt-4 flex-1 flex flex-col min-h-0 overflow-hidden">
               <TabsList className="grid w-full grid-cols-2 shrink-0">
                 <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
                 <TabsTrigger value="availability" data-testid="tab-availability">Check Availability</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details" className="flex-1 overflow-hidden">
+              <TabsContent value="details" className="flex-1 min-h-0 overflow-hidden">
                 <ScrollArea className="h-full pr-4">
                   <div className="space-y-6 pb-4">
                 {product.keyPhoto?.originalUrl && (
@@ -277,7 +277,7 @@ export function ProductDetailsModal({
                 </ScrollArea>
               </TabsContent>
 
-              <TabsContent value="availability" className="flex-1 overflow-hidden">
+              <TabsContent value="availability" className="flex-1 min-h-0 overflow-hidden">
                 <ScrollArea className="h-full pr-4">
                   <div className="py-4 pb-4">
                     {product.rates && product.rates.length > 0 ? (

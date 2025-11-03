@@ -6,6 +6,14 @@ A professional developer tool for testing and exploring the Bokun booking API. T
 
 ## Recent Changes (November 3, 2025)
 
+- **Implemented 30-Day Product Caching System**:
+  - In-memory cache storing all products for 30 days to reduce API load
+  - Auto-load products from cache on dashboard mount (no manual button click required)
+  - Single "Refresh Products" button for manual cache refresh
+  - Cache metadata display showing last refresh time and product count
+  - Cache metadata automatically updates after product loads
+  - Products served from cache when available, otherwise fetched from API
+  - Note: Cache resets on server restart (in-memory storage)
 - Added **Product Details Modal** with comprehensive tour information:
   - Full tour description with highlights
   - Complete day-by-day itinerary breakdown (12 days for multi-day tours)

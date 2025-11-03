@@ -85,6 +85,7 @@ export default function Dashboard() {
       setProductsData(data);
       queryClient.setQueryData(["/api/bokun/products"], data);
       setLastResponse(data);
+      refetchCacheMetadata();
       const fromCache = (data as any).fromCache;
       toast({
         title: fromCache ? "Products Loaded from Cache" : "Products Loaded from API",

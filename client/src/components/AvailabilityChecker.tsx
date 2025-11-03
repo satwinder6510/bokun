@@ -83,12 +83,16 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
   useEffect(() => {
     if (initialAvailability?.availabilities || initialAvailability?.results) {
       const availabilityData = initialAvailability.availabilities || initialAvailability.results || [];
+      console.log("Raw availability data:", availabilityData.length, "items");
+      
       const dates = availabilityData
         .filter((a: AvailabilityData) => !a.soldOut && !a.unavailable)
         .map((a: AvailabilityData) => {
           if (a.date) {
             try {
-              return new Date(a.date);
+              const parsedDate = new Date(a.date);
+              console.log("Parsed date:", a.date, "->", parsedDate);
+              return parsedDate;
             } catch {
               return null;
             }
@@ -97,6 +101,7 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
         })
         .filter((d: Date | null): d is Date => d !== null);
       
+      console.log("Available dates after filtering:", dates.length);
       setAvailableDates(dates);
     }
   }, [initialAvailability]);

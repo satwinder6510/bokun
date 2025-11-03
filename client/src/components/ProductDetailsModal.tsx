@@ -9,7 +9,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Clock, Users, Star, Calendar } from "lucide-react";
+import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import type { BokunProductDetails } from "@shared/schema";
 
 interface ProductDetailsModalProps {
@@ -30,7 +32,7 @@ export function ProductDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh]" data-testid="modal-product-details">
+      <DialogContent className="max-w-5xl max-h-[90vh]" data-testid="modal-product-details">
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-8 w-3/4" />

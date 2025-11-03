@@ -139,19 +139,12 @@ export function ProductDetailsModal({
 
                 {product.summary && (
                   <div>
-                    <h4 className="text-sm font-medium mb-2">Description</h4>
+                    <h4 className="text-sm font-medium mb-3">Tour Description</h4>
                     <div
-                      className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                      className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
                       dangerouslySetInnerHTML={{ __html: product.summary }}
                       data-testid="text-product-description"
                     />
-                  </div>
-                )}
-
-                {product.vendor && (
-                  <div className="pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-1">Vendor</h4>
-                    <p className="text-sm text-muted-foreground">{product.vendor.title}</p>
                   </div>
                 )}
 

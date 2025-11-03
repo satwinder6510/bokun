@@ -81,19 +81,28 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
 
   // Parse available dates from the API response
   useEffect(() => {
-    if (initialAvailability?.availabilities || initialAvailability?.results) {
-      const availabilityData = initialAvailability.availabilities || initialAvailability.results || [];
-      console.log("Raw availability data:", availabilityData.length, "items");
+    if (initialAvailability && Array.isArray(initialAvailability)) {
+      console.log("Raw availability data:", initialAvailability.length, "items");
+      console.log("First item:", initialAvailability[0]);
       
-      const dates = availabilityData
-        .filter((a: AvailabilityData) => !a.soldOut && !a.unavailable)
-        .map((a: AvailabilityData) => {
-          if (a.date) {
+      const dates = initialAvailability
+        .filter((a: any) => !a.soldOut && !a.unavailable)
+        .map((a: any) => {
+          // Extract date from ID field (format: "77405_20251204" -> YYYYMMDD)
+          if (a.id && typeof a.id === 'string') {
             try {
-              const parsedDate = new Date(a.date);
-              console.log("Parsed date:", a.date, "->", parsedDate);
-              return parsedDate;
-            } catch {
+              const match = a.id.match(/_(\d{8})$/);
+              if (match) {
+                const dateStr = match[1]; // e.g., "20251204"
+                const year = parseInt(dateStr.substring(0, 4));
+                const month = parseInt(dateStr.substring(4, 6)) - 1; // JS months are 0-indexed
+                const day = parseInt(dateStr.substring(6, 8));
+                const parsedDate = new Date(year, month, day);
+                console.log("Parsed date from ID:", a.id, "->", dateStr, "->", parsedDate);
+                return parsedDate;
+              }
+            } catch (error) {
+              console.error("Error parsing date from ID:", a.id, error);
               return null;
             }
           }
@@ -101,7 +110,7 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
         })
         .filter((d: Date | null): d is Date => d !== null);
       
-      console.log("Available dates after filtering:", dates.length);
+      console.log("Available dates after filtering:", dates.length, dates);
       setAvailableDates(dates);
     }
   }, [initialAvailability]);
@@ -121,10 +130,11 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
       return response;
     },
     onSuccess: (data: any) => {
-      setAvailabilities(data.availabilities || data.results || []);
+      const availabilityArray = Array.isArray(data) ? data : [];
+      setAvailabilities(availabilityArray);
       toast({
         title: "Availability Loaded",
-        description: `Found ${(data.availabilities || data.results || []).length} available slots`,
+        description: `Found ${availabilityArray.length} available slots`,
       });
     },
     onError: (error: any) => {

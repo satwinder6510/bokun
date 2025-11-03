@@ -177,6 +177,7 @@ export async function getBokunAvailability(
 
     const data = await response.json();
     console.log("Bokun availability fetched for product:", productId, "dates:", startDate, "-", endDate);
+    console.log("Availability response structure:", JSON.stringify(data, null, 2));
     return data;
   } catch (error: any) {
     throw new Error(error.message || "Failed to fetch availability from Bokun API");

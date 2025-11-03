@@ -177,6 +177,19 @@ export default function TourDetail() {
                       dangerouslySetInnerHTML={{ __html: product.excerpt }}
                     />
                   )}
+                  
+                  {product.customFields && product.customFields.find(f => f.code === "Accommodation options") && (
+                    <div className="pt-6 border-t">
+                      <h3 className="text-lg font-semibold mb-4" data-testid="text-hotel-details">Hotel Details by Location</h3>
+                      <div
+                        className="prose prose-sm max-w-none text-base leading-relaxed"
+                        data-testid="content-hotel-details"
+                        dangerouslySetInnerHTML={{ 
+                          __html: product.customFields.find(f => f.code === "Accommodation options")?.value || "" 
+                        }}
+                      />
+                    </div>
+                  )}
                 </TabsContent>
 
                 {product.itinerary && product.itinerary.length > 0 && (

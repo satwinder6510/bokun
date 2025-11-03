@@ -114,10 +114,11 @@ export async function searchBokunProducts(page: number = 1, pageSize: number = 2
     const data = await response.json();
     console.log("Bokun products response structure:", {
       totalHits: data.totalHits,
-      resultsCount: data.results?.length || 0,
-      hasResults: !!data.results,
+      itemsCount: data.items?.length || 0,
+      hasItems: !!data.items,
       keys: Object.keys(data),
-      firstResult: data.results?.[0] ? Object.keys(data.results[0]) : "no results"
+      firstItemKeys: data.items?.[0] ? Object.keys(data.items[0]) : "no items",
+      sampleItem: data.items?.[0]
     });
     return data;
   } catch (error: any) {

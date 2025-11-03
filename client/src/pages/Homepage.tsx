@@ -35,6 +35,14 @@ export default function Homepage() {
     fetchProductsMutation.mutate();
   }, []);
 
+  // Format category names for display
+  const formatCategoryName = (category: string): string => {
+    return category
+      .split('_')
+      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   // Get unique categories from products
   const categories = Array.from(
     new Set(
@@ -143,7 +151,7 @@ export default function Homepage() {
                   onClick={() => setSelectedCategory(category)}
                   data-testid={`button-category-${category.toLowerCase().replace(/\s+/g, '-')}`}
                 >
-                  {category}
+                  {formatCategoryName(category)}
                 </Badge>
               ))}
             </div>
@@ -159,7 +167,7 @@ export default function Homepage() {
               {searchQuery 
                 ? `Search Results` 
                 : selectedCategory 
-                  ? `${selectedCategory} Tours` 
+                  ? `${formatCategoryName(selectedCategory)} Tours` 
                   : 'All Tours'}
             </h3>
             <p className="text-sm text-muted-foreground" data-testid="text-results-count">

@@ -295,6 +295,7 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                 selected={departureDate}
                 onSelect={setDepartureDate}
                 initialFocus
+                numberOfMonths={2}
                 disabled={(date) => {
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
@@ -350,7 +351,9 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                           <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium text-sm">
                             {availability.localizedDate || availability.date || "Date not specified"}
-                            {(availability.time || availability.startTime) && ` at ${availability.time || availability.startTime}`}
+                            {(availability.time || availability.startTime) && 
+                             (availability.time !== '00:00' && availability.startTime !== '00:00') && 
+                             ` at ${availability.time || availability.startTime}`}
                           </span>
                         </div>
                         <div className={`flex items-center gap-1 ${status.color}`}>
@@ -363,22 +366,32 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                         <div className="space-y-2">
                           <div className="text-xs font-medium text-muted-foreground">Pricing Options:</div>
                           <div className="flex flex-wrap gap-2">
-                            {availability.pricesByRate.map((priceInfo) => {
-                              const rate = availability.rates?.find(r => r.id === priceInfo.activityRateId);
-                              const price = priceInfo.pricePerCategoryUnit?.[0]?.amount;
-                              
-                              if (!rate || !price) return null;
-                              
-                              return (
-                                <div key={priceInfo.activityRateId} className="flex items-center gap-1 text-xs bg-muted/30 rounded px-2 py-1">
-                                  <span className="text-muted-foreground">{rate.title}:</span>
-                                  <span className="font-semibold text-primary">
-                                    {price.currency === 'GBP' ? '£' : price.currency === 'USD' ? '$' : price.currency}
-                                    {price.amount?.toFixed(2)}
-                                  </span>
-                                </div>
-                              );
-                            })}
+                            {availability.pricesByRate
+                              .filter((priceInfo) => {
+                                // If a rate is selected, only show that rate's pricing
+                                if (selectedRate) {
+                                  return String(priceInfo.activityRateId) === selectedRate;
+                                }
+                                return true;
+                              })
+                              .map((priceInfo) => {
+                                const rate = availability.rates?.find(r => r.id === priceInfo.activityRateId);
+                                const price = priceInfo.pricePerCategoryUnit?.[0]?.amount;
+                                
+                                if (!rate || !price || price.amount === undefined) return null;
+                                
+                                // Convert USD to GBP (approximate rate: 1 USD = 0.79 GBP)
+                                const gbpAmount = price.currency === 'USD' ? price.amount * 0.79 : price.amount;
+                                
+                                return (
+                                  <div key={priceInfo.activityRateId} className="flex items-center gap-1 text-xs bg-muted/30 rounded px-2 py-1">
+                                    <span className="text-muted-foreground">{rate.title}:</span>
+                                    <span className="font-semibold text-primary">
+                                      £{gbpAmount.toFixed(2)}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                           </div>
                         </div>
                       )}

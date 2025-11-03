@@ -70,8 +70,15 @@ export function ProductDetailsModal({
               </div>
             </DialogHeader>
 
-            <ScrollArea className="max-h-[60vh] pr-4">
-              <div className="space-y-6">
+            <Tabs defaultValue="details" className="mt-4">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
+                <TabsTrigger value="availability" data-testid="tab-availability">Check Availability</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="details">
+                <ScrollArea className="max-h-[55vh] pr-4">
+                  <div className="space-y-6">
                 {product.keyPhoto?.originalUrl && (
                   <div className="rounded-lg overflow-hidden border">
                     <img
@@ -266,8 +273,28 @@ export function ProductDetailsModal({
                     )}
                   </div>
                 </div>
-              </div>
-            </ScrollArea>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="availability">
+                <ScrollArea className="max-h-[55vh] pr-4">
+                  <div className="py-4">
+                    {product.rates && product.rates.length > 0 ? (
+                      <AvailabilityChecker
+                        productId={productId!}
+                        productTitle={product.title}
+                        rates={product.rates}
+                      />
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No availability information for this product
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </>
         ) : (
           <div className="text-center py-8 text-muted-foreground">

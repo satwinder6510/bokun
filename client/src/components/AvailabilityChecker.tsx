@@ -45,8 +45,7 @@ interface AvailabilityData {
 
 export function AvailabilityChecker({ productId, productTitle, rates }: AvailabilityCheckerProps) {
   const { toast } = useToast();
-  const [startDate, setStartDate] = useState<Date>();
-  const [endDate, setEndDate] = useState<Date>();
+  const [departureDate, setDepartureDate] = useState<Date>();
   const [selectedRate, setSelectedRate] = useState<string>("");
   const [numberOfPeople, setNumberOfPeople] = useState<string>("2");
   const [availabilities, setAvailabilities] = useState<AvailabilityData[]>([]);
@@ -104,16 +103,15 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
 
   const checkAvailabilityMutation = useMutation({
     mutationFn: async () => {
-      if (!startDate || !endDate) {
-        throw new Error("Please select both start and end dates");
+      if (!departureDate) {
+        throw new Error("Please select a departure date");
       }
 
-      const formattedStart = format(startDate, "yyyy-MM-dd");
-      const formattedEnd = format(endDate, "yyyy-MM-dd");
+      const formattedDate = format(departureDate, "yyyy-MM-dd");
 
       const response = await apiRequest(
         "GET",
-        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=GBP`
+        `/api/bokun/availability/${productId}?start=${formattedDate}&end=${formattedDate}&currency=GBP`
       );
       return response;
     },
@@ -252,86 +250,49 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Start Date</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                  data-testid="button-start-date"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                  disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    // Disable if before today or not in available dates
-                    return date < today || (availableDates.length > 0 && !isDateAvailable(date));
-                  }}
-                  modifiers={{
-                    available: availableDates,
-                  }}
-                  modifiersClassNames={{
-                    available: "bg-primary/10 font-semibold",
-                  }}
-                  data-testid="calendar-start-date"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">End Date</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                  data-testid="button-end-date"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "PPP") : "Pick a date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                  disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    // Disable if before today/start date or not available
-                    if (startDate && date < startDate) return true;
-                    if (date < today) return true;
-                    return availableDates.length > 0 && !isDateAvailable(date);
-                  }}
-                  modifiers={{
-                    available: availableDates,
-                  }}
-                  modifiersClassNames={{
-                    available: "bg-primary/10 font-semibold",
-                  }}
-                  data-testid="calendar-end-date"
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Tour Departure Date</label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+                data-testid="button-departure-date"
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {departureDate ? format(departureDate, "PPP") : "Select departure date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={departureDate}
+                onSelect={setDepartureDate}
+                initialFocus
+                disabled={(date) => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  // Disable if before today or not in available dates
+                  return date < today || (availableDates.length > 0 && !isDateAvailable(date));
+                }}
+                modifiers={{
+                  available: availableDates,
+                }}
+                modifiersClassNames={{
+                  available: "bg-primary/10 font-semibold",
+                }}
+                data-testid="calendar-departure-date"
+              />
+            </PopoverContent>
+          </Popover>
+          <p className="text-xs text-muted-foreground">
+            Highlighted dates are available departure dates for this tour
+          </p>
         </div>
 
         <Button
           onClick={handleCheckAvailability}
-          disabled={!startDate || !endDate || checkAvailabilityMutation.isPending || (rates && rates.length > 0 && !selectedRate)}
+          disabled={!departureDate || checkAvailabilityMutation.isPending || (rates && rates.length > 0 && !selectedRate)}
           className="w-full"
           data-testid="button-check-availability"
         >
@@ -393,9 +354,9 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
           </div>
         )}
 
-        {!checkAvailabilityMutation.isPending && availabilities.length === 0 && startDate && endDate && (
+        {!checkAvailabilityMutation.isPending && availabilities.length === 0 && departureDate && (
           <div className="text-center py-8 text-muted-foreground text-sm">
-            Click "Check Availability" to see available slots
+            Click "Check Availability" to see pricing for this departure
           </div>
         )}
       </CardContent>

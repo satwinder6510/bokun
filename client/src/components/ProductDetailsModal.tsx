@@ -32,7 +32,7 @@ export function ProductDetailsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh]" data-testid="modal-product-details">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col" data-testid="modal-product-details">
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-8 w-3/4" />
@@ -70,15 +70,15 @@ export function ProductDetailsModal({
               </div>
             </DialogHeader>
 
-            <Tabs defaultValue="details" className="mt-4">
-              <TabsList className="grid w-full grid-cols-2">
+            <Tabs defaultValue="details" className="mt-4 flex-1 flex flex-col overflow-hidden">
+              <TabsList className="grid w-full grid-cols-2 shrink-0">
                 <TabsTrigger value="details" data-testid="tab-details">Details</TabsTrigger>
                 <TabsTrigger value="availability" data-testid="tab-availability">Check Availability</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="details">
-                <ScrollArea className="max-h-[55vh] pr-4">
-                  <div className="space-y-6">
+              <TabsContent value="details" className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full pr-4">
+                  <div className="space-y-6 pb-4">
                 {product.keyPhoto?.originalUrl && (
                   <div className="rounded-lg overflow-hidden border">
                     <img
@@ -277,9 +277,9 @@ export function ProductDetailsModal({
                 </ScrollArea>
               </TabsContent>
 
-              <TabsContent value="availability">
-                <ScrollArea className="max-h-[55vh] pr-4">
-                  <div className="py-4">
+              <TabsContent value="availability" className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full pr-4">
+                  <div className="py-4 pb-4">
                     {product.rates && product.rates.length > 0 ? (
                       <AvailabilityChecker
                         productId={productId!}

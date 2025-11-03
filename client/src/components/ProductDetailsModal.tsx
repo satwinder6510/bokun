@@ -137,12 +137,12 @@ export function ProductDetailsModal({
                   </div>
                 )}
 
-                {product.summary && (
+                {product.description && (
                   <div>
                     <h4 className="text-sm font-medium mb-3">Tour Description</h4>
                     <div
                       className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
-                      dangerouslySetInnerHTML={{ __html: product.summary }}
+                      dangerouslySetInnerHTML={{ __html: product.description }}
                       data-testid="text-product-description"
                     />
                   </div>

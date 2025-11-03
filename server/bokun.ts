@@ -125,3 +125,60 @@ export async function searchBokunProducts(page: number = 1, pageSize: number = 2
     throw new Error(error.message || "Failed to fetch products from Bokun API");
   }
 }
+
+export async function getBokunProductDetails(productId: string) {
+  const path = `/activity.json/${productId}`;
+  const method = "GET";
+
+  try {
+    const headers = getBokunHeaders(method, path);
+    const response = await fetch(`${BOKUN_API_BASE}${path}`, {
+      method,
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API returned status ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("Bokun product details fetched for ID:", productId);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to fetch product details from Bokun API");
+  }
+}
+
+export async function getBokunAvailability(
+  productId: string, 
+  startDate: string, 
+  endDate: string,
+  currency: string = "USD"
+) {
+  const path = `/activity.json/${productId}/availabilities`;
+  const method = "GET";
+  const queryParams = `?start=${startDate}&end=${endDate}&currency=${currency}`;
+  const fullPath = `${path}${queryParams}`;
+
+  try {
+    // Generate signature with the full path including query parameters
+    const headers = getBokunHeaders(method, fullPath);
+    const response = await fetch(`${BOKUN_API_BASE}${fullPath}`, {
+      method,
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Bokun availability API error:", response.status, errorText);
+      throw new Error(`API returned status ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("Bokun availability fetched for product:", productId, "dates:", startDate, "-", endDate);
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to fetch availability from Bokun API");
+  }
+}

@@ -2,7 +2,15 @@
 
 ## Overview
 
-A professional developer tool for testing and exploring the Bokun booking API. The application provides a clean, technical dashboard for verifying API connectivity, viewing connection status, and browsing available products from the Bokun test environment. Built as a full-stack TypeScript application with a focus on data presentation and immediate visual feedback.
+A professional developer tool for testing and exploring the Bokun booking API. The application provides a clean, technical dashboard for verifying API connectivity, viewing product details, checking availability, and browsing available products from the Bokun production API. Built as a full-stack TypeScript application with a focus on data presentation, calendar-based date selection, and immediate visual feedback.
+
+## Recent Changes (November 3, 2025)
+
+- Added **Product Details Modal**: Click any product to view comprehensive information including photos, descriptions, vendor details, and booking configuration
+- Added **Availability Checker**: Select date ranges using visual calendar pickers to check product availability and pricing
+- Implemented calendar-based date selection using shadcn Calendar components with Popover UI
+- Fixed HMAC signature generation to include query parameters for availability endpoint
+- Improved error handling with proper HTTP status code propagation
 
 ## User Preferences
 
@@ -49,11 +57,13 @@ Preferred communication style: Simple, everyday language.
 
 **Bokun Integration:**
 - HMAC-SHA1 signature authentication for Bokun API requests
-- Custom signature generation using access key, secret key, and timestamp
+- Custom signature generation using access key, secret key, timestamp, and full request path (including query parameters)
 - Proxy pattern: backend acts as secure intermediary to hide API credentials from client
-- Two primary integration points:
+- Four primary integration points:
   - Connection testing endpoint (health check pattern)
   - Product search with pagination support
+  - Product details retrieval by ID
+  - Availability and pricing queries with date range filtering
 
 **Security Approach:**
 - API credentials (BOKUN_ACCESS_KEY, BOKUN_SECRET_KEY) stored as environment variables

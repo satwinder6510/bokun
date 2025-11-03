@@ -2,17 +2,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Package, RefreshCw, PackageOpen } from "lucide-react";
+import { Package, RefreshCw, PackageOpen, Eye } from "lucide-react";
 import type { BokunProduct } from "@shared/schema";
 
 interface ProductsCardProps {
   products: BokunProduct[];
   isLoading: boolean;
   onFetch: () => void;
+  onProductClick: (productId: string) => void;
   totalCount?: number;
 }
 
-export function ProductsCard({ products, isLoading, onFetch, totalCount }: ProductsCardProps) {
+export function ProductsCard({ products, isLoading, onFetch, onProductClick, totalCount }: ProductsCardProps) {
   return (
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-4">
@@ -33,16 +34,22 @@ export function ProductsCard({ products, isLoading, onFetch, totalCount }: Produ
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className="rounded-lg border bg-card p-4 space-y-2 hover-elevate"
+                  onClick={() => onProductClick(product.id)}
+                  className="rounded-lg border bg-card p-4 space-y-2 hover-elevate active-elevate-2 cursor-pointer"
                   data-testid={`card-product-${product.id}`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <h4 className="font-medium text-sm leading-snug">{product.title}</h4>
-                    {product.activityCategories && product.activityCategories.length > 0 && (
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {product.activityCategories[0].replace(/_/g, ' ')}
-                      </Badge>
-                    )}
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm leading-snug">{product.title}</h4>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {product.activityCategories && product.activityCategories.length > 0 && (
+                        <Badge variant="outline" className="text-xs">
+                          {product.activityCategories[0].replace(/_/g, ' ')}
+                        </Badge>
+                      )}
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
                   {product.excerpt && (
                     <p className="text-xs text-muted-foreground line-clamp-2">

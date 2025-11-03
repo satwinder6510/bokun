@@ -5,6 +5,8 @@ import { ProductsCard } from "@/components/ProductsCard";
 import { JsonViewer } from "@/components/JsonViewer";
 import { CredentialsPanel } from "@/components/CredentialsPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ProductDetailsModal } from "@/components/ProductDetailsModal";
+import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse } from "@shared/schema";
 import { Activity, ExternalLink } from "lucide-react";
@@ -15,14 +17,12 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [lastResponse, setLastResponse] = useState<any>(null);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [productsData, setProductsData] = useState<BokunProductSearchResponse | null>(null);
 
   const { data: connectionStatus, isLoading: isTestingConnection } = useQuery<ConnectionStatus>({
     queryKey: ["/api/bokun/test-connection"],
-    enabled: false,
-  });
-
-  const { data: productsData, isLoading: isFetchingProducts } = useQuery<BokunProductSearchResponse>({
-    queryKey: ["/api/bokun/products"],
     enabled: false,
   });
 
@@ -71,6 +71,7 @@ export default function Dashboard() {
       return response as BokunProductSearchResponse;
     },
     onSuccess: (data) => {
+      setProductsData(data);
       queryClient.setQueryData(["/api/bokun/products"], data);
       setLastResponse(data);
       toast({
@@ -100,6 +101,13 @@ export default function Dashboard() {
   const handleFetchProducts = () => {
     fetchProductsMutation.mutate();
   };
+
+  const handleProductClick = (productId: string) => {
+    setSelectedProductId(productId);
+    setShowDetailsModal(true);
+  };
+
+  const selectedProduct = productsData?.items?.find(p => p.id === selectedProductId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -162,9 +170,19 @@ export default function Dashboard() {
                 totalCount={productsData?.totalHits}
                 isLoading={fetchProductsMutation.isPending}
                 onFetch={handleFetchProducts}
+                onProductClick={handleProductClick}
               />
             </div>
           </div>
+
+          {selectedProductId && selectedProduct && (
+            <div className="grid grid-cols-1 gap-6">
+              <AvailabilityChecker
+                productId={selectedProductId}
+                productTitle={selectedProduct.title}
+              />
+            </div>
+          )}
 
           {lastResponse && (
             <JsonViewer
@@ -173,6 +191,12 @@ export default function Dashboard() {
               timestamp={new Date().toISOString()}
             />
           )}
+
+          <ProductDetailsModal
+            productId={selectedProductId}
+            open={showDetailsModal}
+            onOpenChange={setShowDetailsModal}
+          />
         </div>
       </main>
 

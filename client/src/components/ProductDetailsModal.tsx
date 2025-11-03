@@ -56,7 +56,7 @@ export function ProductDetailsModal({
                   <div className="text-right shrink-0">
                     <div className="text-sm text-muted-foreground">From</div>
                     <div className="text-2xl font-semibold text-primary" data-testid="text-product-price">
-                      ${product.price.toFixed(2)}
+                      £{product.price.toFixed(2)}
                     </div>
                   </div>
                 )}
@@ -145,6 +145,74 @@ export function ProductDetailsModal({
                       dangerouslySetInnerHTML={{ __html: product.description }}
                       data-testid="text-product-description"
                     />
+                  </div>
+                )}
+
+                {product.itinerary && product.itinerary.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-medium mb-3">Day-by-Day Itinerary</h4>
+                    <div className="space-y-3">
+                      {product.itinerary.map((day) => (
+                        <div key={day.id} className="border rounded-lg p-3 bg-muted/30">
+                          <div className="flex items-start gap-2 mb-2">
+                            <Badge variant="secondary" className="shrink-0">Day {day.day}</Badge>
+                            <h5 className="font-medium text-sm flex-1">{day.title}</h5>
+                          </div>
+                          {day.body && (
+                            <div
+                              className="text-xs text-muted-foreground prose prose-xs max-w-none dark:prose-invert"
+                              dangerouslySetInnerHTML={{ __html: day.body }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {product.customFields && product.customFields.find(f => f.code === "Accommodation options") && (
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-medium mb-3">Accommodation Options</h4>
+                    <div
+                      className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ 
+                        __html: product.customFields.find(f => f.code === "Accommodation options")?.value || "" 
+                      }}
+                    />
+                  </div>
+                )}
+
+                {product.bookableExtras && product.bookableExtras.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-medium mb-3">Additional Options & Pricing</h4>
+                    <div className="space-y-2">
+                      {product.bookableExtras.map((extra) => (
+                        <div key={extra.id} className="border rounded-lg p-3 bg-card">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{extra.title}</div>
+                              {extra.information && (
+                                <div className="text-xs text-muted-foreground mt-1">{extra.information}</div>
+                              )}
+                              {extra.pricingTypeLabel && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Pricing: {extra.pricingTypeLabel}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              {extra.free || extra.included ? (
+                                <Badge variant="secondary" className="text-xs">
+                                  {extra.free ? "Free" : "Included"}
+                                </Badge>
+                              ) : extra.price !== undefined && (
+                                <div className="font-semibold text-primary">£{extra.price.toFixed(2)}</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
 

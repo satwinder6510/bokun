@@ -49,6 +49,35 @@ export const bokunProductDetailsSchema = z.object({
   difficultyLevel: z.string().optional(),
   reviewRating: z.number().optional(),
   reviewCount: z.number().optional(),
+  customFields: z.array(z.object({
+    code: z.string().optional(),
+    value: z.string().optional(),
+    title: z.string().optional(),
+    type: z.string().optional(),
+  })).optional(),
+  itinerary: z.array(z.object({
+    id: z.number().optional(),
+    day: z.number().optional(),
+    title: z.string().optional(),
+    body: z.string().optional(),
+    excerpt: z.string().optional(),
+  })).optional(),
+  bookableExtras: z.array(z.object({
+    id: z.number().optional(),
+    title: z.string().optional(),
+    information: z.string().optional(),
+    price: z.number().optional(),
+    pricingType: z.string().optional(),
+    pricingTypeLabel: z.string().optional(),
+    included: z.boolean().optional(),
+    free: z.boolean().optional(),
+  })).optional(),
+  pricingCategories: z.array(z.object({
+    id: z.number().optional(),
+    label: z.string().optional(),
+    minAge: z.number().optional(),
+    maxAge: z.number().optional(),
+  })).optional(),
 });
 
 export const bokunAvailabilityRateSchema = z.object({

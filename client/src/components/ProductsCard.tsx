@@ -62,7 +62,7 @@ export function ProductsCard({ products, isLoading, onFetch, onProductClick, tot
                     </code>
                     {product.price && (
                       <span className="text-xs font-medium text-primary">
-                        ${product.price.toFixed(2)}
+                        £{product.price.toFixed(2)}
                       </span>
                     )}
                   </div>

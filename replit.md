@@ -6,11 +6,19 @@ A professional developer tool for testing and exploring the Bokun booking API. T
 
 ## Recent Changes (November 3, 2025)
 
-- Added **Product Details Modal**: Click any product to view comprehensive information including photos, descriptions, vendor details, and booking configuration
+- Added **Product Details Modal** with comprehensive tour information:
+  - Full tour description with highlights
+  - Complete day-by-day itinerary breakdown (12 days for multi-day tours)
+  - Accommodation options showing hotel choices for each section of the trip
+  - Additional pricing options for bookable extras (e.g., private transfers)
+  - Photos, categories, duration, and technical details
+  - Removed vendor display per user request
 - Added **Availability Checker**: Select date ranges using visual calendar pickers to check product availability and pricing
 - Implemented calendar-based date selection using shadcn Calendar components with Popover UI
+- **Default currency set to GBP** for all pricing displays
 - Fixed HMAC signature generation to include query parameters for availability endpoint
 - Improved error handling with proper HTTP status code propagation
+- Schema updated to include `itinerary`, `customFields`, `bookableExtras`, and `pricingCategories` fields
 
 ## User Preferences
 

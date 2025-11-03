@@ -78,6 +78,19 @@ export const bokunProductDetailsSchema = z.object({
     minAge: z.number().optional(),
     maxAge: z.number().optional(),
   })).optional(),
+  rates: z.array(z.object({
+    id: z.number().optional(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    pricedPerPerson: z.boolean().optional(),
+    minPerBooking: z.number().optional(),
+    maxPerBooking: z.number().optional(),
+  })).optional(),
+  nextDefaultPrice: z.number().optional(),
+  nextDefaultPriceMoney: z.object({
+    amount: z.number().optional(),
+    currency: z.string().optional(),
+  }).optional(),
 });
 
 export const bokunAvailabilityRateSchema = z.object({

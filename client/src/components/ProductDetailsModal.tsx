@@ -52,12 +52,17 @@ export function ProductDetailsModal({
                     </DialogDescription>
                   )}
                 </div>
-                {product.price && (
+                {(product.price || product.nextDefaultPrice) && (
                   <div className="text-right shrink-0">
                     <div className="text-sm text-muted-foreground">From</div>
                     <div className="text-2xl font-semibold text-primary" data-testid="text-product-price">
-                      £{product.price.toFixed(2)}
+                      £{(product.nextDefaultPrice || product.price)?.toFixed(2)}
                     </div>
+                    {product.rates && product.rates.length > 0 && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Price varies by category
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -170,9 +175,40 @@ export function ProductDetailsModal({
                   </div>
                 )}
 
+                {product.rates && product.rates.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h4 className="text-sm font-medium mb-3">Pricing by Room & Hotel Category</h4>
+                    <div className="space-y-2">
+                      {product.rates.map((rate) => (
+                        <div key={rate.id} className="border rounded-lg p-3 bg-card">
+                          <div className="font-medium text-sm">{rate.title}</div>
+                          {rate.description && (
+                            <div className="text-xs text-muted-foreground mt-1">{rate.description}</div>
+                          )}
+                          <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                            {rate.pricedPerPerson && <span>Per person pricing</span>}
+                            {rate.minPerBooking && rate.maxPerBooking && (
+                              <span>
+                                {rate.minPerBooking === rate.maxPerBooking 
+                                  ? `Exactly ${rate.minPerBooking} ${rate.minPerBooking === 1 ? 'person' : 'people'}`
+                                  : `${rate.minPerBooking}-${rate.maxPerBooking} people`
+                                }
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-3 text-xs text-muted-foreground bg-muted/30 rounded-lg p-3">
+                      <strong>Note:</strong> Final pricing varies based on your selected room type and hotel category. 
+                      Use the Availability Checker below to see exact pricing for your travel dates.
+                    </div>
+                  </div>
+                )}
+
                 {product.customFields && product.customFields.find(f => f.code === "Accommodation options") && (
                   <div className="pt-4 border-t">
-                    <h4 className="text-sm font-medium mb-3">Accommodation Options</h4>
+                    <h4 className="text-sm font-medium mb-3">Hotel Details by Location</h4>
                     <div
                       className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
                       dangerouslySetInnerHTML={{ 

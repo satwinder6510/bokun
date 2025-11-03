@@ -116,19 +116,31 @@ export function ProductDetailsModal({
                     </div>
                   )}
 
-                  {product.bookableExtras && product.bookableExtras.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Board Basis:</span>
-                      <span className="font-medium">
-                        {product.bookableExtras.map(extra => {
-                          if (extra.included) return `${extra.title} (Included)`;
-                          if (extra.free) return `${extra.title} (Free)`;
-                          return extra.title;
-                        }).join(', ')}
-                      </span>
-                    </div>
-                  )}
+                  {product.bookableExtras && product.bookableExtras.length > 0 && (() => {
+                    // Filter for board basis options only (meal plans)
+                    const boardBasisKeywords = ['board', 'meal', 'breakfast', 'lunch', 'dinner', 'all inclusive', 'half board', 'full board'];
+                    const boardBasisExtras = product.bookableExtras.filter(extra => 
+                      extra.title && boardBasisKeywords.some(keyword => 
+                        extra.title!.toLowerCase().includes(keyword)
+                      )
+                    );
+                    
+                    if (boardBasisExtras.length === 0) return null;
+                    
+                    return (
+                      <div className="flex items-center gap-2 text-sm">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Board Basis:</span>
+                        <span className="font-medium">
+                          {boardBasisExtras.map(extra => {
+                            if (extra.included) return `${extra.title} (Included)`;
+                            if (extra.free) return `${extra.title} (Free)`;
+                            return extra.title;
+                          }).join(', ')}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {product.reviewCount !== undefined && product.reviewCount > 0 && (

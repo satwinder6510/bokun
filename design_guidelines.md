@@ -1,16 +1,16 @@
-# Bokun API Testing Application - Design Guidelines
+# Tour Booking Website - Design Guidelines
 
 ## Design Approach
 
-**Selected Approach:** Design System - Technical Dashboard Pattern
-**Inspiration:** Linear, Vercel Dashboard, GitHub Actions UI
-**Rationale:** This is a utility-focused developer tool requiring clarity, data presentation excellence, and immediate status feedback.
+**Selected Approach:** Reference-Based - Premium Travel Platform
+**Primary References:** Airbnb experiences, Viator, GetYourGuide
+**Rationale:** Visual-rich booking experience where tour photography drives engagement and conversion. Clean, spacious aesthetic builds trust and showcases destinations.
 
 **Core Principles:**
-- Information hierarchy through typography and spacing
-- Instant visual feedback for API states
-- Scannable data presentation
-- Professional, technical aesthetic
+- Photography-first presentation with generous breathing room
+- Effortless browsing and booking flow
+- Trust-building through clarity and professionalism
+- Scannable tour information hierarchy
 
 ---
 
@@ -18,197 +18,244 @@
 
 **Font Stack:**
 - Primary: 'Inter' via Google Fonts (400, 500, 600)
-- Monospace: 'JetBrains Mono' for API responses and code (400, 500)
+- All text uses Inter - no secondary fonts needed
 
 **Hierarchy:**
-- Page Title: text-2xl font-semibold (tracking-tight)
-- Section Headers: text-lg font-semibold
-- Card Titles: text-base font-medium
-- Body Text: text-sm font-normal
-- Labels: text-xs font-medium uppercase (tracking-wide)
-- Code/JSON: text-xs font-mono
-- Status Messages: text-sm font-medium
+- Hero Headline: text-5xl md:text-6xl font-semibold (tracking-tight, leading-tight)
+- Page Titles: text-4xl font-semibold
+- Section Headers: text-2xl md:text-3xl font-semibold
+- Tour Card Titles: text-xl font-semibold
+- Subheadings: text-lg font-medium
+- Body Text: text-base font-normal (leading-relaxed)
+- Price Display: text-2xl font-semibold
+- Labels/Meta: text-sm font-medium
+- Captions: text-sm (muted styling)
 
 ---
 
 ## Layout System
 
-**Spacing Primitives:** Tailwind units 2, 4, 6, 8
-- Component padding: p-6
-- Card spacing: space-y-4
-- Section gaps: gap-6
-- Tight spacing: gap-2
-- Container padding: px-6 py-8
+**Spacing Primitives:** Tailwind units 4, 6, 8, 12, 16, 24
+- Section padding: py-16 md:py-24
+- Container padding: px-6 md:px-8
+- Card internal: p-6
+- Component gaps: gap-8 to gap-12
+- Tight spacing: gap-4
+- Generous margins between major sections
 
 **Grid Structure:**
-- Main container: max-w-7xl mx-auto
-- Dashboard grid: grid grid-cols-1 lg:grid-cols-3 gap-6
-- Status cards: Flexible grid adapting to content
-- Full-width sections for JSON display
+- Container: max-w-7xl mx-auto
+- Tour Grid: grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8
+- Feature Grid: grid grid-cols-1 md:grid-cols-2 gap-12
+- Single column content: max-w-4xl mx-auto
 
-**Responsive Breakpoints:**
-- Mobile: Single column, full-width cards
-- Desktop (lg:): Multi-column dashboard layout
+**Vertical Rhythm:**
+- Hero section: min-h-screen or 85vh
+- Content sections: Natural height with py-16 md:py-24
+- Footer: py-12
 
 ---
 
 ## Component Library
 
-### Status Dashboard Header
-- Connection status badge (prominent, top-right)
-- Page title with subtitle
-- Last updated timestamp
-- Refresh action button
+### Navigation Bar
+- Fixed/sticky position with subtle backdrop blur
+- Logo left, navigation center, CTA right
+- Links: text-base font-medium with spacing-x-8
+- Mobile: Hamburger menu, slide-in panel
+- Height: h-20, minimal borders
 
-### Connection Status Card
-- Large status indicator (icon + text)
-- API endpoint display (monospace)
-- Connection details grid (Access Key masked, Response Time)
-- Test connection button (primary action)
-- Structured as: Icon + Title + Details Grid + Action
+### Hero Section
+- Full-width immersive tour photography
+- Centered headline + subheadline overlay
+- Search/filter bar (destination, dates, guests) centered below headline
+- Gradient overlay for text readability
+- CTA buttons with blurred background treatment
+- Minimum height: 85vh, responsive to viewport
 
-### API Credentials Section
-- Masked credential inputs (click to reveal)
-- Environment variable indicators
-- Validation status per credential
-- Secure storage notice text
-- Layout: 2-column on desktop (Access Key | Secret Key)
+### Tour Card Component
+- Aspect ratio 4:3 image with rounded-xl corners
+- Image fills card top, content below with p-6
+- Tour title (text-xl font-semibold)
+- Location + duration row (icons + text-sm)
+- Short description (2 lines, text-ellipsis)
+- Rating stars + review count
+- Price prominence: "From £XXX" (text-2xl font-semibold)
+- Hover: Subtle lift (shadow transition)
+- CTA: "View Details" button
 
-### Products Display Card
-- Product count header
-- Scrollable product list (max-h-96)
-- Each product item: Name + ID + Category badge
-- Empty state illustration with helpful text
-- Fetch products button
+### Tour Detail Section
+- Two-column layout (lg:): Gallery left (60%), Details right (40%)
+- Gallery: Large primary image + thumbnail grid
+- Details panel: Sticky positioning
+  - Title, location, rating
+  - Key highlights (bulleted, icon-enhanced)
+  - Price breakdown
+  - Availability calendar widget
+  - "Book Now" primary CTA (large, prominent)
+  - Trust badges (cancellation policy, instant confirmation)
 
-### JSON Response Viewer
-- Expandable/collapsible sections
-- Syntax-highlighted JSON (using pre + code tags)
-- Copy to clipboard functionality
-- Scroll container with max height
-- Toggle between raw/formatted views
-- Header: "API Response" + metadata (timestamp, status code)
+### Search/Filter Bar
+- Inline form fields with subtle borders
+- Destination input (with icon)
+- Date picker (calendar icon trigger)
+- Guest selector (dropdown)
+- Large search button (primary CTA styling)
+- Mobile: Stacked fields, full-width button
 
-### Error Display Component
-- Alert-style container
-- Error icon + error code
-- Message text (readable, not technical jargon)
-- Expandable details section
-- Retry action button
-- Use warm tones for warnings, stronger for errors
+### Availability Calendar
+- Monthly grid view
+- Available dates highlighted
+- Price variations shown on hover
+- Sold out dates clearly marked
+- Selected date emphasized
+- Navigation arrows for month switching
 
-### Loading States
-- Skeleton loaders for data sections
-- Spinner for button actions
-- Pulse animation for status checking
-- Progress indicators for multi-step operations
+### Trust Elements
+- Review cards: User photo, name, rating, quote, date
+- Statistics bar: Total tours, happy customers, destinations
+- Trust badges: Free cancellation, best price guarantee, 24/7 support
+- Payment icons: Visa, Mastercard, etc.
+
+### Feature Grid
+- 2-3 columns on desktop
+- Icon + Headline + Description pattern
+- Icons: Simple line icons (large, 48x48)
+- Balanced spacing, centered alignment
+- Showcases: "Expert guides," "Small groups," "Flexible booking"
+
+### Footer
+- Multi-column layout: Company, Destinations, Support, Connect
+- Newsletter signup (single input + button)
+- Social media icons
+- Payment/security badges
+- Copyright + legal links
+- Padding: py-12, subtle top border
 
 ---
 
 ## Page Structure
 
-**Single Page Dashboard Layout:**
+### Homepage Layout:
 
-1. **Header Section** (sticky, top)
-   - App title: "Bokun API Testing Console"
-   - Overall connection status badge
-   - Layout: flex justify-between items-center
+1. **Hero Section** (full viewport)
+   - Stunning destination photography
+   - Headline: "Discover Unforgettable Experiences"
+   - Subheadline: Value proposition
+   - Integrated search bar
+   - Scroll indicator
 
-2. **Credentials Panel** (collapsible)
-   - API key inputs with visibility toggles
-   - Environment variable status
-   - Save/Update buttons
-   - Padding: p-6, border-b
+2. **Featured Tours Section** (py-24)
+   - Section header: "Popular Tours"
+   - 3-column tour card grid
+   - "View All Tours" CTA link
 
-3. **Main Dashboard Grid** (3-column responsive)
-   - Column 1: Connection Status Card + Quick Stats
-   - Column 2: Products List Card
-   - Column 3: Recent Activity Log
+3. **Why Choose Us Section** (py-24)
+   - 3-column feature grid
+   - Icon-driven benefits
+   - Trust-building messaging
 
-4. **Full-Width Response Section**
-   - Tabbed interface: JSON Raw | Formatted | Headers
-   - Collapsible by default, expands when data received
-   - Fixed max height with internal scroll
+4. **Destinations Showcase** (py-24)
+   - Image gallery grid (masonry or uniform)
+   - Destination name overlays
+   - Click to filter tours by destination
 
-5. **Footer Info Bar**
-   - API documentation link
-   - Support resources
-   - Version info
+5. **Social Proof Section** (py-16)
+   - Statistics bar (Tours booked, 5-star reviews, Years operating)
+   - Featured testimonials (3-column cards)
 
----
+6. **Newsletter CTA** (py-16)
+   - Centered content, max-w-2xl
+   - Headline + email capture
+   - Privacy assurance text
 
-## Interaction Patterns
+7. **Footer** (comprehensive)
 
-**Button Hierarchy:**
-- Primary actions: Solid style (Test Connection, Fetch Products)
-- Secondary actions: Outlined style (Refresh, Copy)
-- Tertiary actions: Ghost style (Expand/Collapse)
+### Tours Listing Page:
 
-**State Indicators:**
-- Success: Use checkmark icons, positive messaging
-- Loading: Spinner + disabled states
-- Error: Alert icons, error containers
-- Idle: Neutral icons, muted styling
+1. **Page Header** (py-12)
+   - Breadcrumbs navigation
+   - Page title + result count
+   - View toggle (grid/list)
 
-**Data Presentation:**
-- Tables: Minimal borders, hover row highlighting
-- Code blocks: Rounded corners (rounded-lg), monospace font
-- Badges: Rounded-full for status, rounded-md for categories
-- Cards: Elevated appearance (shadow-sm), rounded-lg
+2. **Filter Sidebar + Results Grid**
+   - Sidebar (lg:): Filters (price range, duration, category)
+   - Main area: Tour cards grid (responsive columns)
+   - Pagination or infinite scroll
+
+3. **Footer**
+
+### Tour Detail Page:
+
+1. **Image Gallery + Booking Panel**
+2. **Tour Information Tabs** (Description, Itinerary, Inclusions, Reviews)
+3. **Related Tours** (similar experiences grid)
+4. **Footer**
 
 ---
 
 ## Images
 
-**No Hero Image Required**
-This is a technical dashboard - no marketing imagery needed.
+**Hero Image:** Yes - Large, full-width hero image required
+- Placement: Homepage hero section (full viewport width)
+- Content: Stunning travel photography (landscape, cultural experiences, adventure)
+- Treatment: Subtle dark gradient overlay (top to bottom) for text contrast
+- Specifications: High-resolution, optimized for web, aspect ratio 21:9 or 16:9
 
-**Optional Illustrations:**
-- Empty state graphic for "No Products Found" (simple line art)
-- Connection success illustration (checkmark with subtle icon)
-- Error state illustration (friendly error icon)
-Place these centered within their respective card containers.
+**Tour Card Images:**
+- Placement: Top of each tour card
+- Aspect ratio: 4:3 (consistent across all cards)
+- Treatment: Rounded corners (rounded-xl), subtle hover scale effect
+- Content: Tour-specific photography (landmarks, activities, scenery)
+
+**Tour Detail Gallery:**
+- Primary image: Large, above-fold (aspect 16:9)
+- Thumbnails: 4-6 additional images in grid below primary
+- Lightbox functionality for full-screen viewing
+
+**Destination Images:**
+- Grid showcase: Equal-sized tiles with location name overlays
+- Aspect: Square (1:1) or landscape (16:9)
+
+**Trust Elements:**
+- Review photos: Small circular user avatars (optional, if available)
+- No stock photography - authentic tour imagery only
 
 ---
 
-## Accessibility Features
+## Interaction Patterns
 
-- Clear focus indicators on all interactive elements
-- Aria-labels for status indicators and icon buttons
-- Keyboard navigation for all actions
-- Screen reader announcements for status changes
-- High contrast between text and backgrounds
-- Proper heading hierarchy (h1 → h2 → h3)
-- Form labels explicitly connected to inputs
+**Navigation:**
+- Smooth scroll to sections
+- Sticky header with minimal animation
+- Mobile menu slides from right
+
+**Tour Cards:**
+- Hover: Subtle elevation increase, image slight zoom
+- Click: Navigate to tour detail page
+
+**Booking Flow:**
+- Calendar date selection → Guest count → Add-ons → Review → Payment
+- Progress indicator for multi-step checkout
+
+**Buttons:**
+- Primary CTA: Prominent, high contrast (blue accent)
+- Secondary: Outlined style
+- Ghost: Minimal, text-based links
+- Buttons on images: Blurred background (backdrop-blur-sm)
 
 ---
 
-## Technical Specifications
+## Accessibility
 
-**Card Component Structure:**
-```
-- Rounded corners: rounded-lg
-- Padding: p-6
-- Borders: border (subtle)
-- Shadow: shadow-sm hover:shadow-md transition
-```
+- Focus indicators: Visible outline on all interactive elements
+- Alt text: Descriptive for all tour images
+- Form labels: Explicit associations
+- Color contrast: WCAG AA minimum for text
+- Keyboard navigation: Full site navigable without mouse
+- Screen reader: Proper heading hierarchy (h1 → h2 → h3)
+- ARIA labels: Calendar, date pickers, modal dialogs
 
-**Monospace Code Display:**
-```
-- Font: font-mono
-- Size: text-xs
-- Line height: leading-relaxed
-- Overflow: overflow-x-auto
-- Background: distinct from page background
-- Border: border rounded-md
-```
+---
 
-**Status Badge Pattern:**
-```
-- Size: px-3 py-1
-- Border radius: rounded-full
-- Font: text-xs font-medium
-- Include icon + text
-```
-
-This design creates a professional, highly functional testing interface that prioritizes clarity and usability for developers validating API connectivity.
+This design creates an elegant, conversion-focused booking experience that lets tour photography shine while maintaining professional clarity and effortless navigation.

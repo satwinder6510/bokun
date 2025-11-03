@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -7,10 +8,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Clock, Users, Star, Calendar, DollarSign } from "lucide-react";
+import { MapPin, Clock, Users, Star, Calendar, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import type { BokunProductDetails } from "@shared/schema";
 
@@ -25,10 +27,33 @@ export function ProductDetailsModal({
   open,
   onOpenChange,
 }: ProductDetailsModalProps) {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  
   const { data: product, isLoading } = useQuery<BokunProductDetails>({
     queryKey: ["/api/bokun/product", productId],
     enabled: open && !!productId,
   });
+
+  // Build array of all available images
+  const allImages = product 
+    ? [
+        ...(product.keyPhoto?.originalUrl ? [product.keyPhoto] : []),
+        ...(product.photos || [])
+      ].filter(photo => photo.originalUrl)
+    : [];
+
+  // Reset image index when product changes or modal opens
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [productId, open]);
+
+  const handlePreviousImage = () => {
+    setCurrentImageIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -78,16 +103,72 @@ export function ProductDetailsModal({
 
               <TabsContent value="details">
                 <div className="space-y-6">
-                  {product.keyPhoto?.originalUrl && (
-                  <div className="rounded-lg overflow-hidden border">
-                    <img
-                      src={product.keyPhoto.originalUrl}
-                      alt={product.title}
-                      className="w-full h-64 object-cover"
-                      data-testid="img-product-photo"
-                    />
-                  </div>
-                )}
+                  {allImages.length > 0 && (
+                    <div className="space-y-3">
+                      {/* Main Image Display */}
+                      <div className="relative rounded-lg overflow-hidden border group">
+                        <img
+                          src={allImages[currentImageIndex].originalUrl}
+                          alt={allImages[currentImageIndex].description || product.title}
+                          className="w-full h-96 object-cover"
+                          data-testid="img-product-photo"
+                        />
+                        
+                        {/* Navigation Arrows - only show if multiple images */}
+                        {allImages.length > 1 && (
+                          <>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm"
+                              onClick={handlePreviousImage}
+                              data-testid="button-previous-image"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm"
+                              onClick={handleNextImage}
+                              data-testid="button-next-image"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </Button>
+                            
+                            {/* Image Counter */}
+                            <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium">
+                              {currentImageIndex + 1} / {allImages.length}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Thumbnail Navigation - only show if multiple images */}
+                      {allImages.length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {allImages.map((image, index) => (
+                            <button
+                              key={index}
+                              onClick={() => setCurrentImageIndex(index)}
+                              className={`flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
+                                index === currentImageIndex
+                                  ? "border-primary ring-2 ring-primary/20"
+                                  : "border-border hover-elevate"
+                              }`}
+                              data-testid={`button-thumbnail-${index}`}
+                            >
+                              <img
+                                src={image.originalUrl}
+                                alt={image.description || `${product.title} - Image ${index + 1}`}
+                                className="w-20 h-20 object-cover"
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                 <div className="grid grid-cols-2 gap-4">
                   {product.durationText && (

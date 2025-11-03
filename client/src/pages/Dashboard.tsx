@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
 import { ProductsCard } from "@/components/ProductsCard";
@@ -134,10 +134,6 @@ export default function Dashboard() {
     testConnectionMutation.mutate();
   };
 
-  const handleFetchProducts = () => {
-    fetchProductsMutation.mutate();
-  };
-
   const handleRefreshProducts = () => {
     refreshProductsMutation.mutate();
   };
@@ -154,6 +150,11 @@ export default function Dashboard() {
     queryKey: ["/api/bokun/product", selectedProductId],
     enabled: !!selectedProductId,
   });
+
+  // Auto-load products from cache on mount
+  useEffect(() => {
+    fetchProductsMutation.mutate();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -260,7 +261,6 @@ export default function Dashboard() {
                 products={productsData?.items || []}
                 totalCount={productsData?.totalHits}
                 isLoading={fetchProductsMutation.isPending}
-                onFetch={handleFetchProducts}
                 onProductClick={handleProductClick}
               />
             </div>

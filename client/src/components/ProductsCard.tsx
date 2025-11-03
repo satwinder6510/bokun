@@ -8,12 +8,11 @@ import type { BokunProduct } from "@shared/schema";
 interface ProductsCardProps {
   products: BokunProduct[];
   isLoading: boolean;
-  onFetch: () => void;
   onProductClick: (productId: string) => void;
   totalCount?: number;
 }
 
-export function ProductsCard({ products, isLoading, onFetch, onProductClick, totalCount }: ProductsCardProps) {
+export function ProductsCard({ products, isLoading, onProductClick, totalCount }: ProductsCardProps) {
   return (
     <Card className="shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-4">
@@ -70,35 +69,23 @@ export function ProductsCard({ products, isLoading, onFetch, onProductClick, tot
               ))}
             </div>
           </ScrollArea>
+        ) : isLoading ? (
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center border rounded-lg bg-muted/30">
+            <RefreshCw className="h-12 w-12 text-muted-foreground/50 mb-4 animate-spin" />
+            <h3 className="font-medium text-sm mb-2">Loading Products</h3>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Fetching products from cache or Bokun API...
+            </p>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center border rounded-lg bg-muted/30">
             <PackageOpen className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="font-medium text-sm mb-2">No Products Loaded</h3>
-            <p className="text-xs text-muted-foreground max-w-xs mb-4">
-              Click the button below to fetch available products from your Bokun account.
+            <h3 className="font-medium text-sm mb-2">No Products Available</h3>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Use "Refresh Products" above to load products from the Bokun API.
             </p>
           </div>
         )}
-
-        <Button
-          onClick={onFetch}
-          disabled={isLoading}
-          variant="outline"
-          className="w-full"
-          data-testid="button-fetch-products"
-        >
-          {isLoading ? (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-              Fetching Products...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Fetch Products
-            </>
-          )}
-        </Button>
       </CardContent>
     </Card>
   );

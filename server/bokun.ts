@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-const BOKUN_API_BASE = process.env.BOKUN_API_BASE || "https://api.bokun.com";
+const BOKUN_API_BASE = process.env.BOKUN_API_BASE || "https://api.bokun.io";
 const ACCESS_KEY = process.env.BOKUN_ACCESS_KEY || "";
 const SECRET_KEY = process.env.BOKUN_SECRET_KEY || "";
 

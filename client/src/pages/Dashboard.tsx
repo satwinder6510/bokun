@@ -181,11 +181,10 @@ export default function Dashboard() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <div className="flex flex-col items-center md:items-start gap-2">
               <p>
-                API Endpoint: <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded">{import.meta.env.BOKUN_API_BASE || "api.bokun.com"}</code>
+                Production API: <code className="font-mono text-xs bg-muted px-2 py-0.5 rounded">api.bokun.io</code>
               </p>
               <p className="text-xs">
-                💡 If you see "Invalid API key" errors, your credentials may be for a different environment. 
-                Set <code className="font-mono bg-muted px-1 rounded">BOKUN_API_BASE</code> to switch between production and test.
+                💡 To use test environment, set environment variable <code className="font-mono bg-muted px-1 rounded">BOKUN_API_BASE=https://api.bokuntest.com</code>
               </p>
             </div>
             <div className="flex items-center gap-4">

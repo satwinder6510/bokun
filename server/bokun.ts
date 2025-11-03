@@ -112,6 +112,13 @@ export async function searchBokunProducts(page: number = 1, pageSize: number = 2
     }
 
     const data = await response.json();
+    console.log("Bokun products response structure:", {
+      totalHits: data.totalHits,
+      resultsCount: data.results?.length || 0,
+      hasResults: !!data.results,
+      keys: Object.keys(data),
+      firstResult: data.results?.[0] ? Object.keys(data.results[0]) : "no results"
+    });
     return data;
   } catch (error: any) {
     throw new Error(error.message || "Failed to fetch products from Bokun API");

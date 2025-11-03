@@ -12,7 +12,7 @@ export const bokunProductSchema = z.object({
 export const bokunProductSearchResponseSchema = z.object({
   totalHits: z.number(),
   tookInMillis: z.number().optional(),
-  results: z.array(bokunProductSchema),
+  items: z.array(bokunProductSchema),
 });
 
 export const connectionStatusSchema = z.object({

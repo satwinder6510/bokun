@@ -72,14 +72,16 @@ export async function testBokunConnection() {
     }
 
     const data = await response.json();
-    console.log("Bokun connection successful, got", data.totalCount || 0, "total products");
+    const productCount = data.totalCount || 0;
+    console.log("Bokun connection successful, got", productCount, "total products");
     
     return {
       connected: true,
-      message: "Successfully connected to Bokun API",
+      message: productCount > 0 
+        ? `Successfully connected to Bokun API (${productCount} products available)` 
+        : "Successfully connected to Bokun API (no products found in your account)",
       timestamp: new Date().toISOString(),
       responseTime,
-      data,
     };
   } catch (error: any) {
     console.error("Bokun connection error:", error);

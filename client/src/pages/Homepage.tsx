@@ -18,7 +18,7 @@ export default function Homepage() {
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/bokun/products", {
         page: 1,
-        pageSize: 50,
+        pageSize: 1000,
       });
       return response as BokunProductSearchResponse;
     },

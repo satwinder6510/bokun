@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
 import { ProductsCard } from "@/components/ProductsCard";
 import { JsonViewer } from "@/components/JsonViewer";
@@ -9,7 +10,7 @@ import { ProductDetailsModal } from "@/components/ProductDetailsModal";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink, RefreshCw, Database } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,10 +20,20 @@ import { formatDistanceToNow } from "date-fns";
 export default function Dashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [lastResponse, setLastResponse] = useState<any>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [productsData, setProductsData] = useState<BokunProductSearchResponse | null>(null);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("dashboard_auth");
+    toast({
+      title: "Logged Out",
+      description: "You have been logged out successfully",
+    });
+    setLocation("/login");
+  };
 
   const { data: connectionStatus, isLoading: isTestingConnection } = useQuery<ConnectionStatus>({
     queryKey: ["/api/bokun/test-connection"],
@@ -192,6 +203,16 @@ export default function Dashboard() {
               </a>
             </Button>
             <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="gap-2"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>

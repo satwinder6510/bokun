@@ -115,6 +115,15 @@ export default function Dashboard() {
     enabled: !!selectedProductId,
   });
 
+  console.log("Dashboard state:", {
+    selectedProductId,
+    hasSelectedProduct: !!selectedProduct,
+    isLoadingProductDetails,
+    hasProductDetails: !!productDetails,
+    hasRates: !!productDetails?.rates,
+    ratesLength: productDetails?.rates?.length
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

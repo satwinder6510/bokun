@@ -110,7 +110,7 @@ export default function Dashboard() {
   const selectedProduct = productsData?.items?.find(p => p.id === selectedProductId);
 
   // Fetch full product details for rates information
-  const { data: productDetails } = useQuery<BokunProductDetails>({
+  const { data: productDetails, isLoading: isLoadingProductDetails } = useQuery<BokunProductDetails>({
     queryKey: ["/api/bokun/product", selectedProductId],
     enabled: !!selectedProductId,
   });
@@ -181,12 +181,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {selectedProductId && selectedProduct && (
+          {selectedProductId && selectedProduct && !isLoadingProductDetails && productDetails && (
             <div className="grid grid-cols-1 gap-6">
               <AvailabilityChecker
                 productId={selectedProductId}
                 productTitle={selectedProduct.title}
-                rates={productDetails?.rates}
+                rates={productDetails.rates}
               />
             </div>
           )}

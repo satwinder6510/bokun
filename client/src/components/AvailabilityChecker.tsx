@@ -51,8 +51,6 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
   const [numberOfPeople, setNumberOfPeople] = useState<string>("2");
   const [availabilities, setAvailabilities] = useState<AvailabilityData[]>([]);
 
-  console.log("AvailabilityChecker rates:", rates, "length:", rates?.length);
-
   const checkAvailabilityMutation = useMutation({
     mutationFn: async () => {
       if (!startDate || !endDate) {

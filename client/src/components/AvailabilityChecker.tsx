@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Calendar as CalendarIcon, DollarSign, AlertCircle, CheckCircle2, XCircle, Users } from "lucide-react";
+import { Calendar as CalendarIcon, DollarSign, AlertCircle, CheckCircle2, XCircle, Users, Loader2 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { format } from "date-fns";
+import { format, addMonths } from "date-fns";
 
 interface Rate {
   id?: number;
@@ -50,6 +50,46 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
   const [selectedRate, setSelectedRate] = useState<string>("");
   const [numberOfPeople, setNumberOfPeople] = useState<string>("2");
   const [availabilities, setAvailabilities] = useState<AvailabilityData[]>([]);
+  const [availableDates, setAvailableDates] = useState<Date[]>([]);
+
+  // Fetch available dates for the next 6 months on mount
+  const { data: initialAvailability, isLoading: isLoadingDates } = useQuery({
+    queryKey: ["/api/bokun/availability", productId, "initial"],
+    queryFn: async () => {
+      const today = new Date();
+      const sixMonthsLater = addMonths(today, 6);
+      const formattedStart = format(today, "yyyy-MM-dd");
+      const formattedEnd = format(sixMonthsLater, "yyyy-MM-dd");
+      
+      const response = await apiRequest(
+        "GET",
+        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=GBP`
+      );
+      return response;
+    },
+  });
+
+  // Parse available dates from the API response
+  useEffect(() => {
+    if (initialAvailability?.availabilities || initialAvailability?.results) {
+      const availabilityData = initialAvailability.availabilities || initialAvailability.results || [];
+      const dates = availabilityData
+        .filter((a: AvailabilityData) => !a.soldOut && !a.unavailable)
+        .map((a: AvailabilityData) => {
+          if (a.date) {
+            try {
+              return new Date(a.date);
+            } catch {
+              return null;
+            }
+          }
+          return null;
+        })
+        .filter((d: Date | null): d is Date => d !== null);
+      
+      setAvailableDates(dates);
+    }
+  }, [initialAvailability]);
 
   const checkAvailabilityMutation = useMutation({
     mutationFn: async () => {
@@ -62,7 +102,7 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
 
       const response = await apiRequest(
         "GET",
-        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=USD`
+        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=GBP`
       );
       return response;
     },
@@ -106,14 +146,29 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
     return { icon: AlertCircle, text: "Unknown", color: "text-muted-foreground" };
   };
 
+  // Helper function to check if a date is available
+  const isDateAvailable = (date: Date) => {
+    return availableDates.some(
+      (availableDate) =>
+        availableDate.getFullYear() === date.getFullYear() &&
+        availableDate.getMonth() === date.getMonth() &&
+        availableDate.getDate() === date.getDate()
+    );
+  };
+
   return (
     <Card data-testid="card-availability-checker">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
+          {isLoadingDates && <Loader2 className="h-5 w-5 animate-spin" />}
+          {!isLoadingDates && <CalendarIcon className="h-5 w-5" />}
           Check Availability
         </CardTitle>
-        <p className="text-sm text-muted-foreground">{productTitle}</p>
+        <p className="text-sm text-muted-foreground">
+          {productTitle}
+          {isLoadingDates && " • Loading available dates..."}
+          {!isLoadingDates && availableDates.length > 0 && ` • ${availableDates.length} dates available`}
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {rates && rates.length > 0 && (
@@ -190,6 +245,18 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                   selected={startDate}
                   onSelect={setStartDate}
                   initialFocus
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    // Disable if before today or not in available dates
+                    return date < today || (availableDates.length > 0 && !isDateAvailable(date));
+                  }}
+                  modifiers={{
+                    available: availableDates,
+                  }}
+                  modifiersClassNames={{
+                    available: "bg-primary/10 font-semibold",
+                  }}
                   data-testid="calendar-start-date"
                 />
               </PopoverContent>
@@ -214,7 +281,20 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                   selected={endDate}
                   onSelect={setEndDate}
                   initialFocus
-                  disabled={(date) => startDate ? date < startDate : false}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    // Disable if before today/start date or not available
+                    if (startDate && date < startDate) return true;
+                    if (date < today) return true;
+                    return availableDates.length > 0 && !isDateAvailable(date);
+                  }}
+                  modifiers={{
+                    available: availableDates,
+                  }}
+                  modifiersClassNames={{
+                    available: "bg-primary/10 font-semibold",
+                  }}
                   data-testid="calendar-end-date"
                 />
               </PopoverContent>

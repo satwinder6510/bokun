@@ -8,12 +8,16 @@ A public-facing tour booking website showcasing 700+ curated tours from the Boku
 
 ## Recent Changes (November 3, 2025)
 
-- **Security Update**: Implemented password-protected dashboard with login authentication
-  - Dashboard accessible at `/login` with password protection
+- **Security Update**: Implemented two-factor authentication (2FA) with authenticator app
+  - Dashboard now requires password + 6-digit TOTP code from authenticator app
+  - 2FA setup page at `/2fa-setup` displays QR code for scanning
+  - Supports all standard authenticator apps (Google Authenticator, Authy, 1Password, etc.)
+  - Two-step login flow: password verification → TOTP verification
   - Default password: `admin123` (configurable via VITE_ADMIN_PASSWORD)
+  - TOTP secret stored in TOTP_SECRET environment variable
   - Session-based authentication using browser sessionStorage
   - Logout functionality to clear session and return to login page
-  - Public users cannot access admin features without correct password
+  - Public users cannot access admin features without correct credentials
 - **Implemented 30-Day Product Caching System**:
   - In-memory cache storing all products for 30 days to reduce API load
   - Auto-load products from cache on homepage (no manual action required)

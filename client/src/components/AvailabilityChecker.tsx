@@ -52,6 +52,17 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
   const [availabilities, setAvailabilities] = useState<AvailabilityData[]>([]);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
 
+  // Auto-adjust number of people when rate is selected
+  useEffect(() => {
+    if (selectedRate && rates) {
+      const rate = rates.find(r => String(r.id) === selectedRate);
+      if (rate && rate.minPerBooking === rate.maxPerBooking) {
+        // If rate requires exact number of people, set it automatically
+        setNumberOfPeople(String(rate.minPerBooking));
+      }
+    }
+  }, [selectedRate, rates]);
+
   // Fetch available dates for the next 6 months on mount
   const { data: initialAvailability, isLoading: isLoadingDates } = useQuery({
     queryKey: ["/api/bokun/availability", productId, "initial"],
@@ -221,8 +232,24 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
             max="20"
             value={numberOfPeople}
             onChange={(e) => setNumberOfPeople(e.target.value)}
+            disabled={
+              !!(selectedRate && 
+              rates && 
+              rates.find(r => String(r.id) === selectedRate)?.minPerBooking === 
+              rates.find(r => String(r.id) === selectedRate)?.maxPerBooking)
+            }
             data-testid="input-people-count"
           />
+          {selectedRate && 
+           rates && 
+           rates.find(r => String(r.id) === selectedRate)?.minPerBooking === 
+           rates.find(r => String(r.id) === selectedRate)?.maxPerBooking && (
+            <p className="text-xs text-muted-foreground">
+              This rate requires exactly {rates.find(r => String(r.id) === selectedRate)?.minPerBooking} {
+                rates.find(r => String(r.id) === selectedRate)?.minPerBooking === 1 ? 'person' : 'people'
+              }
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

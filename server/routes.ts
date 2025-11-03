@@ -52,8 +52,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (page > 50) break;
       }
 
+      // Deduplicate before storing
+      const uniqueProducts = Array.from(
+        new Map(allProducts.map(p => [p.id, p])).values()
+      );
+
       // Store in cache
-      await storage.setCachedProducts(allProducts);
+      await storage.setCachedProducts(uniqueProducts);
+      allProducts = uniqueProducts;
       
       console.log(`Refreshed ${allProducts.length} products in cache`);
       
@@ -81,13 +87,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (cachedProducts.length > 0) {
         console.log(`Serving ${cachedProducts.length} products from cache`);
         
+        // Deduplicate products by ID (some products appear multiple times in Bokun API)
+        const uniqueProducts = Array.from(
+          new Map(cachedProducts.map(p => [p.id, p])).values()
+        );
+        
         // Paginate cached results
         const startIndex = (page - 1) * pageSize;
         const endIndex = startIndex + pageSize;
-        const paginatedProducts = cachedProducts.slice(startIndex, endIndex);
+        const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
         
         res.json({
-          totalHits: cachedProducts.length,
+          totalHits: uniqueProducts.length,
           items: paginatedProducts,
           fromCache: true,
         });
@@ -110,16 +121,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (currentPage > 50) break;
         }
 
+        // Deduplicate before caching
+        const uniqueProducts = Array.from(
+          new Map(allProducts.map(p => [p.id, p])).values()
+        );
+        
         // Store all products in cache
-        await storage.setCachedProducts(allProducts);
+        await storage.setCachedProducts(uniqueProducts);
         
         // Return requested page
         const startIndex = (page - 1) * pageSize;
         const endIndex = startIndex + pageSize;
-        const paginatedProducts = allProducts.slice(startIndex, endIndex);
+        const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
         
         res.json({
-          totalHits: allProducts.length,
+          totalHits: uniqueProducts.length,
           items: paginatedProducts,
           fromCache: false,
         });

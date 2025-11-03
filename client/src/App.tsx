@@ -8,6 +8,7 @@ import Homepage from "@/pages/Homepage";
 import TourDetail from "@/pages/TourDetail";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
+import TwoFactorSetup from "@/pages/TwoFactorSetup";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -16,6 +17,7 @@ function Router() {
       <Route path="/" component={Homepage} />
       <Route path="/tour/:id" component={TourDetail} />
       <Route path="/login" component={Login} />
+      <Route path="/2fa-setup" component={TwoFactorSetup} />
       <Route path="/dashboard">
         <ProtectedRoute>
           <Dashboard />

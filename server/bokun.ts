@@ -177,6 +177,27 @@ export async function getBokunAvailability(
 
     const data = await response.json();
     console.log("Bokun availability fetched for product:", productId, "dates:", startDate, "-", endDate);
+    
+    // Log detailed structure of availability data
+    if (Array.isArray(data) && data.length > 0) {
+      console.log("\n=== AVAILABILITY DATA STRUCTURE ===");
+      console.log("Total items:", data.length);
+      console.log("\nFirst availability item keys:", Object.keys(data[0]));
+      console.log("\nComplete first item structure:");
+      console.log(JSON.stringify(data[0], null, 2));
+      
+      if (data[0].pricesByRate && data[0].pricesByRate.length > 0) {
+        console.log("\nPricing structure (pricesByRate[0]):");
+        console.log(JSON.stringify(data[0].pricesByRate[0], null, 2));
+      }
+      
+      if (data[0].rates && data[0].rates.length > 0) {
+        console.log("\nRate details (rates[0]):");
+        console.log(JSON.stringify(data[0].rates[0], null, 2));
+      }
+      console.log("===================================\n");
+    }
+    
     return data;
   } catch (error: any) {
     throw new Error(error.message || "Failed to fetch availability from Bokun API");

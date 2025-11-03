@@ -15,6 +15,11 @@ export const bokunProductSchema = z.object({
     id: z.number(),
     title: z.string(),
   }).optional(),
+  locationCode: z.object({
+    country: z.string().optional(),
+    location: z.string().optional(),
+    name: z.string().optional(),
+  }).optional(),
   keyPhoto: z.object({
     originalUrl: z.string().optional(),
     description: z.string().optional(),

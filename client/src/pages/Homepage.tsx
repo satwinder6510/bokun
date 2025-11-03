@@ -46,7 +46,8 @@ export default function Homepage() {
   const filteredProducts = products.filter(product => {
     const matchesSearch = !searchQuery || 
       product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.excerpt || "").toLowerCase().includes(searchQuery.toLowerCase());
+      (product.excerpt || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (product.locationCode?.name || "").toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesCategory = !selectedCategory || 
       (product.activityCategories || []).includes(selectedCategory);

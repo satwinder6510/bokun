@@ -34,6 +34,12 @@ export function TourCard({ product }: TourCardProps) {
           </h3>
           
           <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+            {product.locationCode?.name && (
+              <div className="flex items-center gap-1" data-testid={`text-location-${product.id}`}>
+                <MapPin className="w-4 h-4" />
+                <span>{product.locationCode.name}</span>
+              </div>
+            )}
             {product.durationText && (
               <div className="flex items-center gap-1" data-testid={`text-duration-${product.id}`}>
                 <Clock className="w-4 h-4" />

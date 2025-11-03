@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { TourCard } from "@/components/TourCard";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,14 +90,35 @@ export default function Homepage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search tours or destinations..."
+                placeholder="Search by destination (Thailand, Mexico, Colombo...) or tour name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 pr-10"
                 data-testid="input-search"
               />
+              {searchQuery && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                  onClick={() => setSearchQuery("")}
+                  data-testid="button-clear-search"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
+          
+          {/* Search Results Indicator */}
+          {searchQuery && !isLoading && (
+            <div className="mt-4 text-sm text-muted-foreground" data-testid="text-search-indicator">
+              Searching for <span className="font-medium text-foreground">{searchQuery}</span>...{' '}
+              <span className="font-medium text-foreground">
+                {filteredProducts.length} {filteredProducts.length === 1 ? 'tour' : 'tours'} found
+              </span> - see below
+            </div>
+          )}
         </div>
       </section>
 
@@ -135,10 +156,16 @@ export default function Homepage() {
         <div className="container mx-auto px-6 md:px-8">
           <div className="flex items-center justify-between mb-8">
             <h3 className="text-2xl md:text-3xl font-semibold" data-testid="text-section-title">
-              {selectedCategory ? `${selectedCategory} Tours` : 'All Tours'}
+              {searchQuery 
+                ? `Search Results` 
+                : selectedCategory 
+                  ? `${selectedCategory} Tours` 
+                  : 'All Tours'}
             </h3>
             <p className="text-sm text-muted-foreground" data-testid="text-results-count">
-              {filteredProducts.length} {filteredProducts.length === 1 ? 'tour' : 'tours'}
+              {searchQuery && filteredProducts.length < products.length
+                ? `${filteredProducts.length} of ${products.length} tours`
+                : `${filteredProducts.length} ${filteredProducts.length === 1 ? 'tour' : 'tours'}`}
             </p>
           </div>
 
@@ -150,9 +177,22 @@ export default function Homepage() {
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-muted-foreground" data-testid="text-no-results">
-                No tours found. Try adjusting your search or filters.
+              <p className="text-lg font-medium mb-2" data-testid="text-no-results">
+                No tours found{searchQuery && ` for "${searchQuery}"`}
               </p>
+              <p className="text-sm text-muted-foreground">
+                Try searching for destinations like Thailand, Mexico, Colombo, or Portugal
+              </p>
+              {searchQuery && (
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => setSearchQuery("")}
+                  data-testid="button-clear-search-empty"
+                >
+                  Clear search
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

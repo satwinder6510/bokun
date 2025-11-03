@@ -41,6 +41,7 @@ interface AvailabilityData {
   rates?: Array<{
     id?: number;
     title?: string;
+    pricedPerPerson?: boolean;
   }>;
   pricesByRate?: Array<{
     activityRateId?: number;
@@ -397,10 +398,13 @@ export function AvailabilityChecker({ productId, productTitle, rates }: Availabi
                                 const gbpAmount = price.currency === 'USD' ? price.amount * 0.79 : price.amount;
                                 
                                 return (
-                                  <div key={priceInfo.activityRateId} className="flex items-center gap-1 text-xs bg-muted/30 rounded px-2 py-1">
+                                  <div key={priceInfo.activityRateId} className="flex items-center gap-1.5 text-xs bg-muted/30 rounded px-2 py-1.5">
                                     <span className="text-muted-foreground">{rate.title}:</span>
                                     <span className="font-semibold text-primary">
                                       £{gbpAmount.toFixed(2)}
+                                    </span>
+                                    <span className="text-muted-foreground text-[10px]">
+                                      {rate.pricedPerPerson ? 'per person' : 'total'}
                                     </span>
                                   </div>
                                 );

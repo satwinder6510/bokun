@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MapPin, Clock, Users, Star, Calendar } from "lucide-react";
+import { MapPin, Clock, Users, Star, Calendar, DollarSign } from "lucide-react";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import type { BokunProductDetails } from "@shared/schema";
 
@@ -116,12 +116,16 @@ export function ProductDetailsModal({
                     </div>
                   )}
 
-                  {product.bookingType && (
+                  {product.bookableExtras && product.bookableExtras.length > 0 && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Booking:</span>
+                      <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Board Basis:</span>
                       <span className="font-medium">
-                        {product.bookingType.replace(/_/g, " ")}
+                        {product.bookableExtras.map(extra => {
+                          if (extra.included) return `${extra.title} (Included)`;
+                          if (extra.free) return `${extra.title} (Free)`;
+                          return extra.title;
+                        }).join(', ')}
                       </span>
                     </div>
                   )}

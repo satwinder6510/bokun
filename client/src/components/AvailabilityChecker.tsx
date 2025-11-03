@@ -54,6 +54,12 @@ interface AvailabilityData {
     id?: number;
     title?: string;
     pricedPerPerson?: boolean;
+    extraConfigs?: Array<{
+      activityExtraId?: number;
+      selectionType?: string;
+      pricingType?: string;
+      pricedPerPerson?: boolean;
+    }>;
   }>;
   pricesByRate?: Array<{
     activityRateId?: number;
@@ -419,15 +425,30 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                 // Convert USD to GBP (approximate rate: 1 USD = 0.79 GBP)
                                 const gbpAmount = price.currency === 'USD' ? price.amount * 0.79 : price.amount;
                                 
+                                // Find board basis info from extraConfigs
+                                const includedExtra = rate.extraConfigs?.find(
+                                  ec => ec.pricingType === 'INCLUDED_IN_PRICE' && bookableExtras?.some(be => be.id === ec.activityExtraId)
+                                );
+                                const includedExtraName = includedExtra 
+                                  ? bookableExtras?.find(be => be.id === includedExtra.activityExtraId)?.title
+                                  : null;
+                                
                                 return (
-                                  <div key={priceInfo.activityRateId} className="flex items-center gap-1.5 text-xs bg-muted/30 rounded px-2 py-1.5">
-                                    <span className="text-muted-foreground">{rate.title}:</span>
-                                    <span className="font-semibold text-primary">
-                                      £{gbpAmount.toFixed(2)}
-                                    </span>
-                                    <span className="text-muted-foreground text-[10px]">
-                                      {rate.pricedPerPerson ? 'per person' : 'total'}
-                                    </span>
+                                  <div key={priceInfo.activityRateId} className="flex flex-col gap-0.5 text-xs bg-muted/30 rounded px-2 py-1.5">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="text-muted-foreground">{rate.title}:</span>
+                                      <span className="font-semibold text-primary">
+                                        £{gbpAmount.toFixed(2)}
+                                      </span>
+                                      <span className="text-muted-foreground text-[10px]">
+                                        {rate.pricedPerPerson ? 'per person' : 'total'}
+                                      </span>
+                                    </div>
+                                    {includedExtraName && (
+                                      <span className="text-[10px] text-muted-foreground">
+                                        {includedExtraName} included
+                                      </span>
+                                    )}
                                   </div>
                                 );
                               })}

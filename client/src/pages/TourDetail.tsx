@@ -21,6 +21,14 @@ export default function TourDetail() {
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80";
   const photos = product?.photos || [];
 
+  // Format category names for display
+  const formatCategoryName = (category: string): string => {
+    return category
+      .split('_')
+      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -133,7 +141,7 @@ export default function TourDetail() {
                   <div className="flex gap-2 flex-wrap mb-6">
                     {product.activityCategories.map((category) => (
                       <Badge key={category} variant="outline" data-testid={`badge-category-${category.toLowerCase().replace(/\s+/g, '-')}`}>
-                        {category}
+                        {formatCategoryName(category)}
                       </Badge>
                     ))}
                   </div>
@@ -156,14 +164,16 @@ export default function TourDetail() {
 
                 <TabsContent value="description" className="space-y-4 pt-6" data-testid="content-description">
                   {product.description && (
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-base leading-relaxed">{product.description}</p>
-                    </div>
+                    <div 
+                      className="prose prose-sm max-w-none text-base leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: product.description }}
+                    />
                   )}
                   {product.excerpt && !product.description && (
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-base leading-relaxed">{product.excerpt}</p>
-                    </div>
+                    <div 
+                      className="prose prose-sm max-w-none text-base leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: product.excerpt }}
+                    />
                   )}
                 </TabsContent>
 
@@ -177,7 +187,10 @@ export default function TourDetail() {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-sm leading-relaxed">{day.body || day.excerpt}</p>
+                          <div 
+                            className="text-sm leading-relaxed prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: day.body || day.excerpt || '' }}
+                          />
                         </CardContent>
                       </Card>
                     ))}
@@ -195,7 +208,10 @@ export default function TourDetail() {
                                 {extra.title}
                               </h4>
                               {extra.information && (
-                                <p className="text-sm text-muted-foreground">{extra.information}</p>
+                                <div 
+                                  className="text-sm text-muted-foreground prose prose-sm max-w-none"
+                                  dangerouslySetInnerHTML={{ __html: extra.information }}
+                                />
                               )}
                             </div>
                             {extra.price && !extra.free && (

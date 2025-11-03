@@ -64,6 +64,16 @@ interface AvailabilityData {
         currency?: string;
       };
     }>;
+    extraPricePerCategoryUnit?: Array<{
+      id?: number;
+      prices?: Array<{
+        id?: number;
+        amount?: {
+          amount?: number;
+          currency?: string;
+        };
+      }>;
+    }>;
   }>;
 }
 
@@ -425,34 +435,58 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                         </div>
                       )}
 
-                      {bookableExtras && bookableExtras.length > 0 && (
+                      {bookableExtras && bookableExtras.length > 0 && availability.pricesByRate && (
                         <div className="space-y-2 pt-2 border-t">
                           <div className="text-xs font-medium text-muted-foreground">Additional Options & Pricing:</div>
                           <div className="space-y-1.5">
-                            {bookableExtras.map((extra) => (
-                              <div key={extra.id} className="flex items-start justify-between gap-2 text-xs bg-muted/30 rounded p-2">
-                                <div className="flex-1">
-                                  <div className="font-medium">{extra.title}</div>
-                                  {extra.information && (
-                                    <div className="text-[10px] text-muted-foreground mt-0.5">{extra.information}</div>
-                                  )}
-                                  {extra.pricingTypeLabel && (
-                                    <div className="text-[10px] text-muted-foreground mt-0.5">
-                                      {extra.pricingTypeLabel}
-                                    </div>
-                                  )}
+                            {bookableExtras.map((extra) => {
+                              // Find pricing from the availability response for this extra
+                              let extraPrice: number | undefined;
+                              
+                              // Look through pricesByRate for the selected rate (or first rate if none selected)
+                              const relevantPriceData = availability.pricesByRate?.find(pr => 
+                                selectedRate ? String(pr.activityRateId) === selectedRate : true
+                              );
+                              
+                              if (relevantPriceData?.extraPricePerCategoryUnit) {
+                                const extraPricing = relevantPriceData.extraPricePerCategoryUnit.find(
+                                  epc => epc.id === extra.id
+                                );
+                                if (extraPricing?.prices?.[0]?.amount) {
+                                  extraPrice = extraPricing.prices[0].amount.amount;
+                                }
+                              }
+                              
+                              // Convert USD to GBP (approximate rate: 1 USD = 0.79 GBP)
+                              const gbpPrice = extraPrice !== undefined ? extraPrice * 0.79 : undefined;
+                              
+                              return (
+                                <div key={extra.id} className="flex items-start justify-between gap-2 text-xs bg-muted/30 rounded p-2">
+                                  <div className="flex-1">
+                                    <div className="font-medium">{extra.title}</div>
+                                    {extra.information && (
+                                      <div className="text-[10px] text-muted-foreground mt-0.5">{extra.information}</div>
+                                    )}
+                                    {extra.pricingTypeLabel && (
+                                      <div className="text-[10px] text-muted-foreground mt-0.5">
+                                        {extra.pricingTypeLabel}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    {extra.free || extra.included ? (
+                                      <Badge variant="secondary" className="text-[10px] h-5">
+                                        {extra.free ? "Free" : "Included"}
+                                      </Badge>
+                                    ) : gbpPrice !== undefined && gbpPrice > 0 ? (
+                                      <div className="font-semibold text-primary">£{gbpPrice.toFixed(2)}</div>
+                                    ) : (
+                                      <div className="text-[10px] text-muted-foreground">Price varies</div>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="text-right shrink-0">
-                                  {extra.free || extra.included ? (
-                                    <Badge variant="secondary" className="text-[10px] h-5">
-                                      {extra.free ? "Free" : "Included"}
-                                    </Badge>
-                                  ) : extra.price !== undefined && (
-                                    <div className="font-semibold text-primary">£{extra.price.toFixed(2)}</div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       )}

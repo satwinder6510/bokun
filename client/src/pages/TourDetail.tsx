@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Calendar, Users } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Calendar, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,10 +9,16 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import type { BokunProductDetails } from "@shared/schema";
+import useEmblaCarousel from "embla-carousel-react";
 
 export default function TourDetail() {
   const [, params] = useRoute("/tour/:id");
   const productId = params?.id;
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: false, 
+    align: "start",
+    slidesToScroll: 1
+  });
 
   const { data: product, isLoading } = useQuery<BokunProductDetails>({
     queryKey: ["/api/bokun/product", productId],
@@ -21,6 +27,14 @@ export default function TourDetail() {
 
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80";
   const photos = product?.photos || [];
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
 
   // Format category names for display
   const formatCategoryName = (category: string): string => {
@@ -96,17 +110,47 @@ export default function TourDetail() {
             />
           </div>
           {photos.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {photos.slice(0, 6).map((photo, index) => (
-                <div key={index} className="rounded-lg overflow-hidden aspect-[4/3]">
-                  <img
-                    src={photo.originalUrl || imagePlaceholder}
-                    alt={photo.description || `Tour photo ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    data-testid={`img-gallery-${index}`}
-                  />
+            <div className="relative group">
+              <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex gap-4">
+                  {photos.map((photo, index) => (
+                    <div 
+                      key={index} 
+                      className="flex-[0_0_auto] w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3]"
+                    >
+                      <img
+                        src={photo.originalUrl || imagePlaceholder}
+                        alt={photo.description || `Tour photo ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        data-testid={`img-gallery-${index}`}
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+              
+              {photos.length > 6 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur"
+                    onClick={scrollPrev}
+                    data-testid="button-gallery-prev"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur"
+                    onClick={scrollNext}
+                    data-testid="button-gallery-next"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>

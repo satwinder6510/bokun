@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { TourCard } from "@/components/TourCard";
@@ -13,6 +13,7 @@ export default function Homepage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const hasFetched = useRef(false);
 
   const fetchProductsMutation = useMutation<BokunProductSearchResponse>({
     mutationFn: async () => {
@@ -32,7 +33,11 @@ export default function Homepage() {
   });
 
   useEffect(() => {
-    fetchProductsMutation.mutate();
+    // Only fetch once on mount
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      fetchProductsMutation.mutate();
+    }
   }, []);
 
   // Format category names for display

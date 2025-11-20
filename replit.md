@@ -20,6 +20,13 @@ A public-facing tour booking website showcasing 700+ curated tours from the Boku
   - Updated TourCard component with small badge labels, bottom-right pricing, and styled CTA buttons
   - Refined TourDetail page with better image galleries and elegant section styling
   - All design elements tested and verified via end-to-end testing
+- **Country Filtering with Full Names**:
+  - Replaced 2-letter country codes with full country names (e.g., "Thailand" instead of "TH")
+  - Smart space-efficient design: Top 8 most popular countries as quick-access pills
+  - Dropdown selector showing all countries alphabetically for comprehensive browsing
+  - Dual filtering system supports both country and category selection simultaneously
+  - Section titles dynamically update to reflect active filters (e.g., "Arts And Culture Tours in Thailand")
+  - Uses `googlePlace.country` field from Bokun API for full country names
 - **Custom CSS Utilities**: Added `.hide-scrollbar` utility class for horizontal scrolling elements
 
 ## Previous Changes (November 3, 2025)

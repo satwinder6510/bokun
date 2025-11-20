@@ -5,12 +5,20 @@ import { TourCard } from "@/components/TourCard";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { BokunProductSearchResponse, BokunProduct } from "@shared/schema";
 
 export default function Homepage() {
   const [products, setProducts] = useState<BokunProduct[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const hasFetched = useRef(false);
@@ -52,6 +60,29 @@ export default function Homepage() {
     )
   ).sort();
 
+  // Extract countries with full names and count tours per country
+  const countryData = new Map<string, { name: string; count: number }>();
+  products.forEach(p => {
+    const countryName = p.googlePlace?.country;
+    if (countryName) {
+      const existing = countryData.get(countryName);
+      if (existing) {
+        existing.count++;
+      } else {
+        countryData.set(countryName, { name: countryName, count: 1 });
+      }
+    }
+  });
+
+  // Get all countries sorted alphabetically for dropdown
+  const allCountries = Array.from(countryData.keys()).sort();
+  
+  // Get top 8 countries by tour count for quick access pills
+  const topCountries = Array.from(countryData.entries())
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 8)
+    .map(([country]) => country);
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = !searchQuery || 
       product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -61,7 +92,10 @@ export default function Homepage() {
     const matchesCategory = !selectedCategory || 
       (product.activityCategories || []).includes(selectedCategory);
     
-    return matchesSearch && matchesCategory;
+    const matchesCountry = !selectedCountry || 
+      product.googlePlace?.country === selectedCountry;
+    
+    return matchesSearch && matchesCategory && matchesCountry;
   });
 
   // Featured tours for hero carousel (first 5 with images)
@@ -243,11 +277,70 @@ export default function Homepage() {
         </div>
       </section>
 
+      {/* Country Tabs */}
+      {allCountries.length > 0 && (
+        <section className="py-8 bg-card border-b overflow-hidden">
+          <div className="container mx-auto px-6 md:px-8">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+                Browse by Destination
+              </h4>
+              <Select 
+                value={selectedCountry || "all"} 
+                onValueChange={(value) => setSelectedCountry(value === "all" ? null : value)}
+              >
+                <SelectTrigger className="w-[200px]" data-testid="select-all-destinations">
+                  <SelectValue placeholder="All Destinations" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Destinations</SelectItem>
+                  {allCountries.map((country) => (
+                    <SelectItem key={country} value={country}>
+                      {country}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
+              <button
+                onClick={() => setSelectedCountry(null)}
+                className={`px-6 py-3 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+                  selectedCountry === null
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
+                data-testid="button-country-all"
+              >
+                All Destinations
+              </button>
+              {topCountries.map((country) => (
+                <button
+                  key={country}
+                  onClick={() => setSelectedCountry(country)}
+                  className={`px-6 py-3 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+                    selectedCountry === country
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
+                  data-testid={`button-country-${country.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  {country}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Horizontal Category Pills */}
       {categories.length > 0 && (
         <section className="py-8 bg-background overflow-hidden">
           <div className="container mx-auto px-6 md:px-8">
-            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">
+              Filter by Activity
+            </h4>
+            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={`px-6 py-3 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
@@ -257,7 +350,7 @@ export default function Homepage() {
                 }`}
                 data-testid="button-category-all"
               >
-                All Tours
+                All Activities
               </button>
               {categories.slice(0, 15).map((category) => (
                 <button
@@ -289,9 +382,13 @@ export default function Homepage() {
             <h3 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-section-title">
               {searchQuery 
                 ? 'Search Results' 
-                : selectedCategory 
-                  ? `${formatCategoryName(selectedCategory)} Tours` 
-                  : 'Special Tour Offers'}
+                : selectedCountry && selectedCategory
+                  ? `${formatCategoryName(selectedCategory)} Tours in ${selectedCountry}`
+                  : selectedCountry
+                    ? `Tours in ${selectedCountry}`
+                    : selectedCategory 
+                      ? `${formatCategoryName(selectedCategory)} Tours` 
+                      : 'Special Tour Offers'}
             </h3>
             <p className="text-muted-foreground text-lg" data-testid="text-results-count">
               {filteredProducts.length} {filteredProducts.length === 1 ? 'tour' : 'tours'} available

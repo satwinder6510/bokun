@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { MapPin, Clock } from "lucide-react";
 import type { BokunProduct } from "@shared/schema";
-import { Card, CardContent } from "@/components/ui/card";
 
 interface TourCardProps {
   product: BokunProduct;
@@ -11,29 +10,62 @@ export function TourCard({ product }: TourCardProps) {
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
   const imageUrl = product.keyPhoto?.originalUrl || imagePlaceholder;
   
+  const formatCategoryName = (category: string): string => {
+    return category
+      .split('_')
+      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  const firstCategory = product.activityCategories?.[0];
+  
   return (
     <Link href={`/tour/${product.id}`}>
-      <Card 
-        className="overflow-hidden hover-elevate active-elevate-2 cursor-pointer h-full"
+      <div 
+        className="relative overflow-hidden rounded-xl aspect-[3/4] group cursor-pointer"
         data-testid={`card-tour-${product.id}`}
       >
-        <div className="aspect-[4/3] overflow-hidden">
+        {/* Background Image */}
+        <div className="absolute inset-0">
           <img
             src={imageUrl}
             alt={product.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             data-testid={`img-tour-${product.id}`}
           />
         </div>
-        <CardContent className="p-6">
+
+        {/* Dark gradient overlay for text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
+        {/* Top Badge - Category */}
+        {firstCategory && (
+          <div className="absolute top-4 left-4 z-10">
+            <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-foreground">
+              {formatCategoryName(firstCategory)}
+            </span>
+          </div>
+        )}
+
+        {/* "DISCOVER" label */}
+        <div className="absolute top-4 right-4 z-10">
+          <span className="text-white/80 text-xs font-bold tracking-wider">
+            DISCOVER
+          </span>
+        </div>
+
+        {/* Bottom content overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+          {/* Tour Title */}
           <h3 
-            className="text-xl font-semibold mb-2 line-clamp-2"
+            className="text-white text-2xl font-bold mb-3 line-clamp-2 leading-tight"
             data-testid={`text-tour-title-${product.id}`}
           >
             {product.title}
           </h3>
-          
-          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+
+          {/* Location and Duration */}
+          <div className="flex items-center gap-4 text-sm text-white/90 mb-4">
             {product.locationCode?.name && (
               <div className="flex items-center gap-1" data-testid={`text-location-${product.id}`}>
                 <MapPin className="w-4 h-4" />
@@ -48,28 +80,28 @@ export function TourCard({ product }: TourCardProps) {
             )}
           </div>
 
-          {product.excerpt && (
-            <p 
-              className="text-sm text-muted-foreground mb-4 line-clamp-2"
-              data-testid={`text-excerpt-${product.id}`}
-            >
-              {product.excerpt}
-            </p>
-          )}
-
-          {product.price && (
-            <div className="flex items-baseline gap-1">
-              <span className="text-sm text-muted-foreground">From</span>
-              <span 
-                className="text-2xl font-semibold"
-                data-testid={`text-price-${product.id}`}
-              >
-                £{product.price.toFixed(2)}
-              </span>
+          {/* Price and CTA */}
+          <div className="flex items-center justify-between">
+            {product.price && (
+              <div className="flex items-baseline gap-1">
+                <span className="text-sm text-white/80">from</span>
+                <span 
+                  className="text-3xl font-bold text-white"
+                  data-testid={`text-price-${product.id}`}
+                >
+                  £{product.price.toFixed(0)}
+                </span>
+                <span className="text-sm text-white/80">/pp</span>
+              </div>
+            )}
+            
+            {/* View More button */}
+            <div className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-sm font-semibold transition-colors">
+              view more
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      </div>
     </Link>
   );
 }

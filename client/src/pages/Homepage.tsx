@@ -2,10 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { TourCard } from "@/components/TourCard";
-import { Search, X } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import type { BokunProductSearchResponse, BokunProduct } from "@shared/schema";
 
 export default function Homepage() {
@@ -13,6 +12,7 @@ export default function Homepage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const hasFetched = useRef(false);
 
   const fetchProductsMutation = useMutation<BokunProductSearchResponse>({
@@ -33,14 +33,12 @@ export default function Homepage() {
   });
 
   useEffect(() => {
-    // Only fetch once on mount
     if (!hasFetched.current) {
       hasFetched.current = true;
       fetchProductsMutation.mutate();
     }
   }, []);
 
-  // Format category names for display
   const formatCategoryName = (category: string): string => {
     return category
       .split('_')
@@ -48,14 +46,12 @@ export default function Homepage() {
       .join(' ');
   };
 
-  // Get unique categories from products
   const categories = Array.from(
     new Set(
       products.flatMap(p => p.activityCategories || [])
     )
   ).sort();
 
-  // Filter products based on search and category
   const filteredProducts = products.filter(product => {
     const matchesSearch = !searchQuery || 
       product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -68,138 +64,258 @@ export default function Homepage() {
     return matchesSearch && matchesCategory;
   });
 
+  // Featured tours for hero carousel (first 5 with images)
+  const featuredTours = products
+    .filter(p => p.keyPhoto?.originalUrl)
+    .slice(0, 5);
+
+  // Auto-advance carousel (only when we have slides)
+  useEffect(() => {
+    if (featuredTours.length > 1) {
+      const interval = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % featuredTours.length);
+      }, 6000);
+      return () => clearInterval(interval);
+    }
+    return undefined;
+  }, [featuredTours.length]);
+
+  const nextSlide = () => {
+    if (featuredTours.length < 2) return;
+    setCurrentSlide((prev) => (prev + 1) % featuredTours.length);
+  };
+
+  const prevSlide = () => {
+    if (featuredTours.length < 2) return;
+    setCurrentSlide((prev) => (prev - 1 + featuredTours.length) % featuredTours.length);
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold" data-testid="text-site-title">
+          <h1 className="text-2xl font-bold" data-testid="text-site-title">
             Tour Discoveries
           </h1>
           <nav className="flex items-center gap-6">
-            <a href="/" className="text-base font-medium hover-elevate px-3 py-2 rounded-md" data-testid="link-home">
+            <a href="/" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-home">
               Home
             </a>
-            <a href="#tours" className="text-base font-medium hover-elevate px-3 py-2 rounded-md" data-testid="link-tours">
+            <a href="#tours" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-tours">
               Tours
             </a>
+            <Button size="sm" variant="default" className="hidden md:inline-flex">
+              Contact Us
+            </Button>
           </nav>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="py-16 md:py-24 border-b">
-        <div className="container mx-auto px-6 md:px-8 max-w-4xl text-center">
-          <h2 className="text-4xl md:text-5xl font-semibold mb-4 tracking-tight" data-testid="text-hero-title">
-            Discover Unforgettable Journeys
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8" data-testid="text-hero-subtitle">
-            Explore curated tours across stunning destinations
-          </p>
-          
-          {/* Search Bar */}
-          <div className="flex gap-2 max-w-2xl mx-auto">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder="Search by destination (Thailand, Mexico, Colombo...) or tour name..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10"
-                data-testid="input-search"
-              />
-              {searchQuery && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                  onClick={() => setSearchQuery("")}
-                  data-testid="button-clear-search"
+      {/* Fullscreen Hero Carousel */}
+      <section className="relative h-screen w-full overflow-hidden">
+        {isLoading || featuredTours.length === 0 ? (
+          <div className="absolute inset-0 bg-muted animate-pulse" />
+        ) : (
+          <>
+            {/* Carousel Slides */}
+            {featuredTours.map((tour, index) => (
+              <div
+                key={tour.id}
+                className={`absolute inset-0 transition-opacity duration-1000 ${
+                  index === currentSlide ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                <img
+                  src={tour.keyPhoto?.originalUrl}
+                  alt={tour.title}
+                  className="w-full h-full object-cover"
+                />
+                {/* Dark gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                
+                {/* Centered Content */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white max-w-4xl px-6" data-testid="text-hero-title">
+                    <p className="text-sm md:text-base font-bold tracking-[0.2em] mb-4 uppercase">
+                      DISCOVER
+                    </p>
+                    <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+                      {tour.title}
+                    </h2>
+                    {tour.locationCode?.name && (
+                      <p className="text-xl md:text-2xl font-medium mb-8 text-white/90">
+                        {tour.locationCode.name}
+                      </p>
+                    )}
+                    {tour.price && (
+                      <div className="mb-8">
+                        <span className="text-lg text-white/80">from </span>
+                        <span className="text-5xl md:text-6xl font-bold">£{tour.price.toFixed(0)}</span>
+                        <span className="text-lg text-white/80">/pp</span>
+                      </div>
+                    )}
+                    <a href={`/tour/${tour.id}`}>
+                      <Button size="lg" variant="default" className="text-lg px-8 py-6">
+                        view more
+                      </Button>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Navigation Arrows */}
+            {featuredTours.length > 1 && (
+              <>
+                <button
+                  onClick={prevSlide}
+                  className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-3 rounded-full transition-colors z-10"
+                  aria-label="Previous slide"
                 >
-                  <X className="w-4 h-4" />
-                </Button>
-              )}
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={nextSlide}
+                  className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-3 rounded-full transition-colors z-10"
+                  aria-label="Next slide"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+              </>
+            )}
+
+            {/* Carousel Indicators */}
+            {featuredTours.length > 1 && (
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                {featuredTours.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentSlide(index)}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      index === currentSlide ? 'bg-white w-8' : 'bg-white/50'
+                    }`}
+                    aria-label={`Go to slide ${index + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Scroll Down Indicator */}
+            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 text-white text-center animate-bounce">
+              <p className="text-sm mb-2">Scroll Down</p>
+              <p className="text-xs">Discover more content</p>
             </div>
+          </>
+        )}
+      </section>
+
+      {/* Search Bar Section */}
+      <section className="py-12 bg-card border-b">
+        <div className="container mx-auto px-6 md:px-8 max-w-3xl">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search by destination (Thailand, Mexico, Colombo...) or tour name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 pr-12 h-14 text-base"
+              data-testid="input-search"
+            />
+            {searchQuery && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                onClick={() => setSearchQuery("")}
+                data-testid="button-clear-search"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            )}
           </div>
-          
-          {/* Search Results Indicator */}
           {searchQuery && !isLoading && (
-            <div className="mt-4 text-sm text-muted-foreground" data-testid="text-search-indicator">
-              Searching for <span className="font-medium text-foreground">{searchQuery}</span>...{' '}
-              <span className="font-medium text-foreground">
-                {filteredProducts.length} {filteredProducts.length === 1 ? 'tour' : 'tours'} found
-              </span> - see below
-            </div>
+            <p className="mt-3 text-sm text-center text-muted-foreground" data-testid="text-search-indicator">
+              Found <span className="font-semibold text-foreground">{filteredProducts.length}</span> {filteredProducts.length === 1 ? 'tour' : 'tours'}
+            </p>
           )}
         </div>
       </section>
 
-      {/* Category Filters */}
+      {/* Horizontal Category Pills */}
       {categories.length > 0 && (
-        <section className="py-8 border-b">
+        <section className="py-8 bg-background overflow-hidden">
           <div className="container mx-auto px-6 md:px-8">
-            <div className="flex gap-2 flex-wrap items-center justify-center">
-              <Badge
-                variant={selectedCategory === null ? "default" : "outline"}
-                className="cursor-pointer hover-elevate px-4 py-2 text-sm"
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              <button
                 onClick={() => setSelectedCategory(null)}
+                className={`px-6 py-3 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+                  selectedCategory === null
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                }`}
                 data-testid="button-category-all"
               >
                 All Tours
-              </Badge>
-              {categories.map((category) => (
-                <Badge
+              </button>
+              {categories.slice(0, 15).map((category) => (
+                <button
                   key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  className="cursor-pointer hover-elevate px-4 py-2 text-sm"
                   onClick={() => setSelectedCategory(category)}
+                  className={`px-6 py-3 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+                    selectedCategory === category
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  }`}
                   data-testid={`button-category-${category.toLowerCase().replace(/\s+/g, '-')}`}
                 >
                   {formatCategoryName(category)}
-                </Badge>
+                </button>
               ))}
             </div>
           </div>
         </section>
       )}
 
-      {/* Tours Grid */}
-      <section id="tours" className="py-16 md:py-24">
+      {/* Tours Grid Section */}
+      <section id="tours" className="py-16 md:py-24 bg-background">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl md:text-3xl font-semibold" data-testid="text-section-title">
+          {/* Section Header */}
+          <div className="text-center mb-12">
+            <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">
+              Exclusive offers for you
+            </p>
+            <h3 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-section-title">
               {searchQuery 
-                ? `Search Results` 
+                ? 'Search Results' 
                 : selectedCategory 
                   ? `${formatCategoryName(selectedCategory)} Tours` 
-                  : 'All Tours'}
+                  : 'Special Tour Offers'}
             </h3>
-            <p className="text-sm text-muted-foreground" data-testid="text-results-count">
-              {searchQuery && filteredProducts.length < products.length
-                ? `${filteredProducts.length} of ${products.length} tours`
-                : `${filteredProducts.length} ${filteredProducts.length === 1 ? 'tour' : 'tours'}`}
+            <p className="text-muted-foreground text-lg" data-testid="text-results-count">
+              {filteredProducts.length} {filteredProducts.length === 1 ? 'tour' : 'tours'} available
             </p>
           </div>
 
+          {/* Tours Grid */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-96 bg-muted rounded-xl animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="aspect-[3/4] bg-muted rounded-xl animate-pulse" />
               ))}
             </div>
           ) : filteredProducts.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-lg font-medium mb-2" data-testid="text-no-results">
+            <div className="text-center py-20">
+              <p className="text-xl font-semibold mb-2" data-testid="text-no-results">
                 No tours found{searchQuery && ` for "${searchQuery}"`}
               </p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground mb-6">
                 Try searching for destinations like Thailand, Mexico, Colombo, or Portugal
               </p>
               {searchQuery && (
                 <Button
                   variant="outline"
-                  className="mt-4"
                   onClick={() => setSearchQuery("")}
                   data-testid="button-clear-search-empty"
                 >
@@ -208,7 +324,7 @@ export default function Homepage() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredProducts.map((product) => (
                 <TourCard key={product.id} product={product} />
               ))}
@@ -218,10 +334,40 @@ export default function Homepage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-12">
+      <footer className="bg-card border-t py-16">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="text-center text-sm text-muted-foreground">
-            <p data-testid="text-footer">© 2025 Tour Discoveries. All rights reserved.</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h4 className="font-bold text-lg mb-4">Tour Discoveries</h4>
+              <p className="text-sm text-muted-foreground">
+                Discover unforgettable journeys across stunning destinations worldwide.
+              </p>
+            </div>
+            <div>
+              <h5 className="font-semibold mb-4">Quick Links</h5>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="/" className="hover:text-primary transition-colors">Home</a></li>
+                <li><a href="#tours" className="hover:text-primary transition-colors">All Tours</a></li>
+                <li><a href="#" className="hover:text-primary transition-colors">Destinations</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 className="font-semibold mb-4">Support</h5>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
+                <li><a href="#" className="hover:text-primary transition-colors">FAQs</a></li>
+                <li><a href="#" className="hover:text-primary transition-colors">Terms</a></li>
+              </ul>
+            </div>
+            <div>
+              <h5 className="font-semibold mb-4">Contact</h5>
+              <p className="text-sm text-muted-foreground">
+                Email: info@tourdiscoveries.com
+              </p>
+            </div>
+          </div>
+          <div className="border-t pt-8 text-center text-sm text-muted-foreground" data-testid="text-footer">
+            <p>© 2025 Tour Discoveries. All rights reserved.</p>
           </div>
         </div>
       </footer>

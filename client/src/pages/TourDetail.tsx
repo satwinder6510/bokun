@@ -84,7 +84,7 @@ export default function TourDetail() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
           <Link href="/">
             <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back">
@@ -92,11 +92,14 @@ export default function TourDetail() {
               Back to Tours
             </Button>
           </Link>
-          <h1 className="text-lg font-semibold" data-testid="text-site-title">
+          <h1 className="text-2xl font-bold" data-testid="text-site-title">
             Tour Discoveries
           </h1>
         </div>
       </header>
+
+      {/* Spacer for fixed header */}
+      <div className="h-20" />
 
       {/* Gallery */}
       <section className="py-8">

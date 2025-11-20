@@ -34,7 +34,7 @@
 
   --sidebar-border: 220 13% 92%;
 
-  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary: 6 78% 57%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
@@ -42,7 +42,7 @@
 
   --sidebar-accent-foreground: 222 15% 15%;
 
-  --sidebar-ring: 217 91% 60%;
+  --sidebar-ring: 6 78% 57%;
 
   --popover: 0 0% 97%;
 
@@ -50,7 +50,7 @@
 
   --popover-border: 220 13% 93%;
 
-  --primary: 217 91% 60%;
+  --primary: 6 78% 57%;
 
   --primary-foreground: 0 0% 100%;
 
@@ -71,8 +71,8 @@
   --destructive-foreground: 0 0% 100%;
 
   --input: 220 13% 85%;
-  --ring: 217 91% 60%;
-  --chart-1: 217 91% 60%;
+  --ring: 6 78% 57%;
+  --chart-1: 6 78% 57%;
   --chart-2: 142 76% 36%;
   --chart-3: 262 83% 58%;
   --chart-4: 32 95% 55%;
@@ -152,7 +152,7 @@
 
   --sidebar-border: 220 13% 16%;
 
-  --sidebar-primary: 217 91% 60%;
+  --sidebar-primary: 6 78% 57%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
@@ -160,7 +160,7 @@
 
   --sidebar-accent-foreground: 0 0% 95%;
 
-  --sidebar-ring: 217 91% 60%;
+  --sidebar-ring: 6 78% 57%;
 
   --popover: 222 14% 11%;
 
@@ -168,7 +168,7 @@
 
   --popover-border: 220 13% 15%;
 
-  --primary: 217 91% 60%;
+  --primary: 6 78% 57%;
 
   --primary-foreground: 0 0% 100%;
 
@@ -189,8 +189,8 @@
   --destructive-foreground: 0 0% 100%;
 
   --input: 220 13% 25%;
-  --ring: 217 91% 60%;
-  --chart-1: 217 91% 70%;
+  --ring: 6 78% 57%;
+  --chart-1: 6 78% 62%;
   --chart-2: 142 76% 50%;
   --chart-3: 262 83% 68%;
   --chart-4: 32 95% 65%;
@@ -239,6 +239,16 @@
  * need to be distinguished from eachother visually.
  */
 @layer utilities {
+
+  /* Hide scrollbar for horizontal scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 
   /* Hide ugly search cancel button in Chrome until we can style it properly */
   input[type="search"]::-webkit-search-cancel-button {

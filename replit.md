@@ -6,7 +6,23 @@ A public-facing tour booking website showcasing 700+ curated tours from the Boku
 
 **Current Phase:** Phase 1 - Browse and explore only. Shopping cart and booking functionality planned for Phase 2.
 
-## Recent Changes (November 3, 2025)
+## Recent Changes (November 20, 2025)
+
+- **Major Design Overhaul - Flights and Packages Aesthetic**:
+  - Complete visual redesign inspired by https://demo.flightsandpackages.com/flightsandpackages/
+  - Changed primary accent color from blue to red/orange (#E74C3C) throughout application
+  - Implemented fullscreen hero carousel with 5 featured tours and 6-second auto-advance
+  - Fixed critical carousel auto-advance bug with proper dependency tracking and defensive guards
+  - Redesigned tour cards with image backgrounds, gradient overlays, and overlaid content (portrait 3:4 aspect ratio)
+  - Added horizontal scrolling category pills with hide-scrollbar CSS utility
+  - Updated section headers with luxury travel platform styling ("our most popular DEALS", "Exclusive offers for you")
+  - Implemented fixed transparent header with backdrop blur effect
+  - Updated TourCard component with small badge labels, bottom-right pricing, and styled CTA buttons
+  - Refined TourDetail page with better image galleries and elegant section styling
+  - All design elements tested and verified via end-to-end testing
+- **Custom CSS Utilities**: Added `.hide-scrollbar` utility class for horizontal scrolling elements
+
+## Previous Changes (November 3, 2025)
 
 - **Security Update**: Implemented two-factor authentication (2FA) with authenticator app
   - Dashboard now requires password + 6-digit TOTP code from authenticator app

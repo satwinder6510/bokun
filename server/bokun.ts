@@ -208,3 +208,128 @@ export async function getBokunAvailability(
     throw new Error(error.message || "Failed to fetch availability from Bokun API");
   }
 }
+
+interface BokunBookingRequest {
+  productId: string;
+  date: string;
+  rateId: string;
+  currency: string;
+  adults: number;
+  children?: number;
+  customerFirstName: string;
+  customerLastName: string;
+  customerEmail: string;
+  customerPhone: string;
+}
+
+export async function reserveBokunBooking(bookingRequest: BokunBookingRequest) {
+  const path = "/checkout.json/submit";
+  const method = "POST";
+  const queryParams = `?currency=${bookingRequest.currency}`;
+  const fullPath = `${path}${queryParams}`;
+
+  try {
+    const headers = getBokunHeaders(method, fullPath);
+    
+    // Build Bokun checkout request
+    const checkoutRequest = {
+      bookingRequest: {
+        productBookings: [
+          {
+            productId: parseInt(bookingRequest.productId),
+            date: bookingRequest.date,
+            rateId: bookingRequest.rateId,
+            pricingCategoryWithQuantities: [
+              {
+                pricingCategoryId: 1, // Adult pricing category (default)
+                numberOfParticipants: bookingRequest.adults,
+              },
+            ],
+          },
+        ],
+        contact: {
+          firstName: bookingRequest.customerFirstName,
+          lastName: bookingRequest.customerLastName,
+          email: bookingRequest.customerEmail,
+          phone: bookingRequest.customerPhone,
+        },
+      },
+      paymentMethod: "RESERVE_FOR_EXTERNAL_PAYMENT",
+    };
+
+    console.log("Reserving Bokun booking:", JSON.stringify(checkoutRequest, null, 2));
+
+    const response = await fetch(`${BOKUN_API_BASE}${fullPath}`, {
+      method,
+      headers,
+      body: JSON.stringify(checkoutRequest),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Bokun reserve booking error:", response.status, errorText);
+      throw new Error(`Failed to reserve booking: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("Bokun booking reserved successfully:", {
+      confirmationCode: data.confirmationCode,
+      status: data.status,
+    });
+    
+    return data;
+  } catch (error: any) {
+    console.error("Error reserving Bokun booking:", error);
+    throw new Error(error.message || "Failed to reserve booking with Bokun");
+  }
+}
+
+export async function confirmBokunBooking(
+  confirmationCode: string,
+  amountPaid: number,
+  currency: string,
+  paymentReference: string
+) {
+  const path = `/checkout.json/confirm-reserved/${confirmationCode}`;
+  const method = "POST";
+
+  try {
+    const headers = getBokunHeaders(method, path);
+    
+    const confirmRequest = {
+      amountPaid,
+      currency,
+      paymentReference,
+    };
+
+    console.log("Confirming Bokun booking:", {
+      confirmationCode,
+      amountPaid,
+      currency,
+      paymentReference: paymentReference.slice(0, 20) + "...",
+    });
+
+    const response = await fetch(`${BOKUN_API_BASE}${path}`, {
+      method,
+      headers,
+      body: JSON.stringify(confirmRequest),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Bokun confirm booking error:", response.status, errorText);
+      throw new Error(`Failed to confirm booking: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("Bokun booking confirmed successfully:", {
+      confirmationCode: data.confirmationCode,
+      status: data.status,
+    });
+    
+    return data;
+  } catch (error: any) {
+    console.error("Error confirming Bokun booking:", error);
+    throw new Error(error.message || "Failed to confirm booking with Bokun");
+  }
+}

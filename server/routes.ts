@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBokunAvailability } from "./bokun";
+import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking } from "./bokun";
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
@@ -955,6 +955,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Cart is empty" });
       }
 
+      // For now, we'll only support single-item bookings with Bokun
+      // Multi-item bookings can be added later
+      const firstCartItem = cartItems[0];
+      const productData = firstCartItem.productData as any;
+
+      // Validate that we have all required booking data
+      if (!productData?.date || !productData?.rateId) {
+        console.error("Missing booking data in cart:", { productData });
+        return res.status(400).json({ 
+          error: "Invalid cart data - missing date or rate information" 
+        });
+      }
+
+      let bokunReservationId = null;
+      let bokunConfirmationCode = null;
+      
+      try {
+        // Step 1: Reserve booking with Bokun
+        console.log("Reserving booking with Bokun for product:", firstCartItem.productId);
+        const reservationResponse = await reserveBokunBooking({
+          productId: firstCartItem.productId,
+          date: productData.date,
+          rateId: productData.rateId.toString(),
+          currency: paidCurrency,
+          adults: firstCartItem.quantity || 1,
+          customerFirstName,
+          customerLastName,
+          customerEmail,
+          customerPhone,
+        });
+
+        bokunReservationId = reservationResponse.confirmationCode;
+        console.log("Bokun reservation created:", bokunReservationId);
+
+        // Step 2: Confirm booking with Bokun using Stripe payment
+        console.log("Confirming booking with Bokun:", bokunReservationId);
+        const confirmationResponse = await confirmBokunBooking(
+          bokunReservationId,
+          paidAmount,
+          paidCurrency,
+          stripePaymentIntentId
+        );
+
+        bokunConfirmationCode = confirmationResponse.confirmationCode;
+        console.log("Bokun booking confirmed:", bokunConfirmationCode);
+      } catch (bokunError: any) {
+        console.error("Bokun booking failed:", bokunError);
+        // Note: Payment already succeeded with Stripe, so we create the booking anyway
+        // but mark it as pending manual processing
+        console.warn("Creating booking record despite Bokun error - requires manual processing");
+      }
+
       // Generate booking reference
       const bookingReference = `FP${Date.now()}-${randomBytes(4).toString('hex').toUpperCase()}`;
 
@@ -966,29 +1018,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerLastName,
         customerEmail,
         customerPhone,
-        productId: cartItems[0].productId, // Primary product from cart
-        productTitle: cartItems[0].productTitle, // Primary product from cart
+        productId: firstCartItem.productId, // Primary product from cart
+        productTitle: firstCartItem.productTitle, // Primary product from cart
         productPrice: paidAmount, // Amount from verified Payment Intent
         currency: paidCurrency, // Currency from verified Payment Intent
         totalAmount: paidAmount, // Total from verified Payment Intent
         stripePaymentIntentId,
+        bokunReservationId,
+        bokunBookingId: bokunConfirmationCode,
         paymentStatus: 'completed', // Verified as succeeded
-        bookingStatus: 'confirmed',
+        bookingStatus: bokunConfirmationCode ? 'confirmed' : 'pending', // Confirmed if Bokun succeeded
         bookingData: {
           cartItems: cartItems.map(item => {
-            const productData = item.productData as any;
+            const itemData = item.productData as any;
             return {
               productId: item.productId,
               productTitle: item.productTitle,
               price: item.productPrice,
               quantity: item.quantity,
-              date: productData?.date,
-              rateTitle: productData?.rateTitle,
-              rateId: productData?.rateId,
+              date: itemData?.date,
+              rateTitle: itemData?.rateTitle,
+              rateId: itemData?.rateId,
             };
           }),
           paymentIntentAmount: paidAmount,
           paymentIntentCurrency: paymentIntent.currency,
+          bokunReservationId,
+          bokunConfirmationCode,
         },
       });
 

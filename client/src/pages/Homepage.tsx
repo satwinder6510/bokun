@@ -174,30 +174,30 @@ export default function Homepage() {
                 
                 {/* Centered Content */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-white max-w-4xl px-6" data-testid="text-hero-title">
-                    <p className="text-sm md:text-base font-bold tracking-[0.2em] mb-4 uppercase">
+                  <div className="text-center text-white max-w-4xl px-4 md:px-6" data-testid="text-hero-title">
+                    <p className="text-xs md:text-base font-bold tracking-[0.2em] mb-2 md:mb-4 uppercase">
                       DISCOVER
                     </p>
-                    <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+                    <h2 className="text-2xl sm:text-3xl md:text-6xl lg:text-7xl font-bold mb-3 md:mb-6 leading-tight">
                       {tour.title}
                     </h2>
                     {tour.locationCode?.name && (
-                      <p className="text-xl md:text-2xl font-medium mb-8 text-white/90">
+                      <p className="text-sm md:text-2xl font-medium mb-4 md:mb-8 text-white/90">
                         {tour.locationCode.name}
                       </p>
                     )}
                     {tour.price && (
-                      <div className="mb-8">
-                        <span className="text-lg text-white/80">from </span>
+                      <div className="mb-4 md:mb-8">
+                        <span className="text-sm md:text-lg text-white/80">from </span>
                         <div>
-                          <span className="text-5xl md:text-6xl font-bold">{selectedCurrency.symbol}{tour.price.toFixed(0)}</span>
-                          <span className="text-lg text-white/80 ml-2">{selectedCurrency.code}</span>
+                          <span className="text-3xl sm:text-4xl md:text-6xl font-bold">{selectedCurrency.symbol}{tour.price.toFixed(0)}</span>
+                          <span className="text-xs md:text-lg text-white/80 ml-1 md:ml-2">{selectedCurrency.code}</span>
                         </div>
-                        <span className="text-lg text-white/80">/pp</span>
+                        <span className="text-sm md:text-lg text-white/80">/pp</span>
                       </div>
                     )}
                     <a href={`/tour/${tour.id}`}>
-                      <Button size="lg" variant="default" className="text-lg px-8 py-6">
+                      <Button size="default" className="text-xs md:text-lg px-4 md:px-8 py-2 md:py-6">
                         view more
                       </Button>
                     </a>
@@ -242,8 +242,8 @@ export default function Homepage() {
               </div>
             )}
 
-            {/* Scroll Down Indicator */}
-            <div className="absolute bottom-24 left-1/2 -translate-x-1/2 text-white text-center animate-bounce">
+            {/* Scroll Down Indicator - Hidden on mobile/tablet */}
+            <div className="hidden lg:flex absolute bottom-12 left-1/2 -translate-x-1/2 text-white text-center animate-bounce flex-col items-center">
               <p className="text-sm mb-2">Scroll Down</p>
               <p className="text-xs">Discover more content</p>
             </div>

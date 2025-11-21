@@ -1,6 +1,12 @@
 import { Link } from "wouter";
-import { MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, Info } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type { BokunProduct } from "@shared/schema";
 
 interface TourCardProps {
@@ -8,7 +14,7 @@ interface TourCardProps {
 }
 
 export function TourCard({ product }: TourCardProps) {
-  const { selectedCurrency } = useCurrency();
+  const { selectedCurrency, convertFromGBP, isRatesLoading } = useCurrency();
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=500&q=75";
   const imageUrl = product.keyPhoto?.originalUrl || imagePlaceholder;
   
@@ -20,6 +26,11 @@ export function TourCard({ product }: TourCardProps) {
   };
 
   const firstCategory = product.activityCategories?.[0];
+  
+  // Convert GBP price to selected currency
+  const gbpPrice = product.price || 0;
+  const convertedPrice = convertFromGBP(gbpPrice, selectedCurrency.code);
+  const isGBP = selectedCurrency.code === 'GBP';
   
   return (
     <Link href={`/tour/${product.id}`}>

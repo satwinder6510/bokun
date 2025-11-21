@@ -510,11 +510,11 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                   : price.amount;
                                 const buttonKey = `${priceInfo.activityRateId}-${departureDate?.getTime()}`;
                                 const isAdding = addingToCart === buttonKey;
-                                const priceCurrency = price.currency || selectedCurrency.code;
+                                // Note: We always use selectedCurrency as the Bokun API currency field is unreliable
+                                const priceCurrency = selectedCurrency.code;
                                 
                                 // Check if prerequisites are met
                                 const canBook = departureDate && (!rates || rates.length === 0 || selectedRate);
-                                const currencyMismatch = priceCurrency !== selectedCurrency.code;
                                 
                                 return (
                                   <div key={priceInfo.activityRateId} className="flex flex-col gap-2 text-xs bg-muted/30 rounded p-3 border">
@@ -524,11 +524,6 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                         {includedExtraName && (
                                           <span className="text-[10px] text-muted-foreground">
                                             {includedExtraName} included
-                                          </span>
-                                        )}
-                                        {currencyMismatch && (
-                                          <span className="text-[10px] text-destructive">
-                                            ⚠️ Price in {priceCurrency} - please recheck availability in {selectedCurrency.code}
                                           </span>
                                         )}
                                       </div>
@@ -546,7 +541,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                         size="sm"
                                         variant="outline"
                                         onClick={() => handleAddToCart(priceInfo.activityRateId!, rate.title!, totalPrice, priceCurrency)}
-                                        disabled={!canBook || isAdding || availability.soldOut || availability.unavailable || currencyMismatch}
+                                        disabled={!canBook || isAdding || availability.soldOut || availability.unavailable}
                                         className="flex-1"
                                         data-testid={`button-add-to-cart-${priceInfo.activityRateId}`}
                                       >
@@ -556,7 +551,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                       <Button
                                         size="sm"
                                         onClick={() => handleBuyNow(priceInfo.activityRateId!, rate.title!, totalPrice, priceCurrency)}
-                                        disabled={!canBook || isAdding || availability.soldOut || availability.unavailable || currencyMismatch}
+                                        disabled={!canBook || isAdding || availability.soldOut || availability.unavailable}
                                         className="flex-1"
                                         data-testid={`button-buy-now-${priceInfo.activityRateId}`}
                                       >

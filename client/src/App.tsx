@@ -10,6 +10,8 @@ import TourDetail from "@/pages/TourDetail";
 import Terms from "@/pages/Terms";
 import Contact from "@/pages/Contact";
 import FAQ from "@/pages/FAQ";
+import Blog from "@/pages/Blog";
+import BlogPost from "@/pages/BlogPost";
 import AdminFAQ from "@/pages/AdminFAQ";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -24,6 +26,8 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/contact" component={Contact} />
       <Route path="/faq" component={FAQ} />
+      <Route path="/blog" component={Blog} />
+      <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/login" component={Login} />
       <Route path="/2fa-setup" component={TwoFactorSetup} />
       <Route path="/dashboard">

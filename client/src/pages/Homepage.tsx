@@ -220,6 +220,9 @@ export default function Homepage() {
             <a href="/faq" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-faq">
               FAQ
             </a>
+            <a href="/blog" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-blog">
+              Blog
+            </a>
             <CurrencySelector />
             <a href="/contact">
               <Button size="sm" variant="default" className="hidden md:inline-flex" data-testid="button-contact">

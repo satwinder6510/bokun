@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, timestamp, jsonb, integer, serial, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, integer, serial, boolean, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const bokunProductSchema = z.object({
@@ -283,7 +283,7 @@ export const cartItems = pgTable("cart_items", {
   sessionId: text("session_id").notNull(),
   productId: text("product_id").notNull(),
   productTitle: text("product_title").notNull(),
-  productPrice: integer("product_price").notNull(),
+  productPrice: real("product_price").notNull(),
   currency: text("currency").notNull().default("USD"),
   quantity: integer("quantity").notNull().default(1),
   productData: jsonb("product_data").notNull(),
@@ -313,7 +313,7 @@ export const bookings = pgTable("bookings", {
   // Booking details
   productId: text("product_id").notNull(),
   productTitle: text("product_title").notNull(),
-  productPrice: integer("product_price").notNull(),
+  productPrice: real("product_price").notNull(),
   currency: text("currency").notNull().default("USD"),
   
   // Bokun details

@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { MapPin, Clock } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { AddToCartButton } from "@/components/AddToCartButton";
 import type { BokunProduct } from "@shared/schema";
 
 interface TourCardProps {
@@ -102,19 +101,9 @@ export function TourCard({ product }: TourCardProps) {
             </div>
           )}
           
-          {/* Action Buttons */}
-          <div className="flex gap-2">
-            <AddToCartButton
-              productId={product.id}
-              productTitle={product.title}
-              productPrice={product.price || 0}
-              variant="default"
-              size="sm"
-              className="flex-1"
-            />
-            <div className="bg-background/10 backdrop-blur-sm hover:bg-background/20 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors border border-white/20">
-              view more
-            </div>
+          {/* View More Button */}
+          <div className="bg-background/10 backdrop-blur-sm hover:bg-background/20 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors border border-white/20 text-center">
+            view more
           </div>
         </div>
       </div>

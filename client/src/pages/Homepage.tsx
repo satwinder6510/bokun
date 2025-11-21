@@ -5,7 +5,7 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { Search, X, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
@@ -24,6 +24,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import type { BokunProductSearchResponse, BokunProduct } from "@shared/schema";
 
 export default function Homepage() {
@@ -34,6 +41,7 @@ export default function Homepage() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const fetchProductsMutation = useMutation<BokunProductSearchResponse, Error, string>({
     mutationFn: async (currency: string) => {
@@ -177,14 +185,88 @@ export default function Homepage() {
               aria-label="Travel Trust Association member"
             />
           </div>
-          <nav className="flex items-center gap-4 md:gap-6 flex-shrink-0">
-            <a href="/" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-home">
+          {/* Mobile Menu */}
+          <div className="md:hidden flex items-center gap-3">
+            <CurrencySelector />
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" data-testid="button-mobile-menu">
+                  <Menu className="w-6 h-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[280px]">
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-4 mt-6">
+                  <a 
+                    href="/" 
+                    className="text-base font-medium hover:text-primary transition-colors py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="mobile-link-home"
+                  >
+                    Home
+                  </a>
+                  <div className="border-t pt-4">
+                    <p className="text-sm font-semibold mb-2 text-muted-foreground">Destinations</p>
+                    <button
+                      onClick={() => {
+                        setSelectedCountry(null);
+                        setMobileMenuOpen(false);
+                        document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="text-base font-medium hover:text-primary transition-colors py-2 block w-full text-left"
+                      data-testid="mobile-menu-all-destinations"
+                    >
+                      All Destinations
+                    </button>
+                    <div className="max-h-[300px] overflow-y-auto mt-2 space-y-1">
+                      {allCountries.map((country) => (
+                        <button
+                          key={country}
+                          onClick={() => {
+                            setSelectedCountry(country);
+                            setMobileMenuOpen(false);
+                            document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="text-sm hover:text-primary transition-colors py-1.5 block w-full text-left"
+                          data-testid={`mobile-menu-${country.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          {country}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <a 
+                    href="/blog" 
+                    className="text-base font-medium hover:text-primary transition-colors py-2 border-t pt-4"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="mobile-link-blog"
+                  >
+                    Blog
+                  </a>
+                  <a 
+                    href="/contact" 
+                    className="text-base font-medium hover:text-primary transition-colors py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="mobile-link-contact"
+                  >
+                    Contact
+                  </a>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Desktop Menu */}
+          <nav className="hidden md:flex items-center gap-4 md:gap-6 flex-shrink-0">
+            <a href="/" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-home">
               Home
             </a>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button 
-                  className="text-base font-medium hover:text-primary transition-colors hidden md:inline-flex items-center gap-1" 
+                  className="text-base font-medium hover:text-primary transition-colors inline-flex items-center gap-1" 
                   data-testid="button-destinations-menu"
                 >
                   Destinations
@@ -222,7 +304,7 @@ export default function Homepage() {
             </a>
             <CurrencySelector />
             <a href="/contact">
-              <Button size="sm" variant="default" className="hidden md:inline-flex" data-testid="button-contact">
+              <Button size="sm" variant="default" data-testid="button-contact">
                 Contact Us
               </Button>
             </a>

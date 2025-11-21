@@ -219,9 +219,11 @@ export default function Homepage() {
               </DropdownMenuContent>
             </DropdownMenu>
             <CurrencySelector />
-            <Button size="sm" variant="default" className="hidden md:inline-flex">
-              Contact Us
-            </Button>
+            <a href="/contact">
+              <Button size="sm" variant="default" className="hidden md:inline-flex" data-testid="button-contact">
+                Contact Us
+              </Button>
+            </a>
           </nav>
         </div>
       </header>

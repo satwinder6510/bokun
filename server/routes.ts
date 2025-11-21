@@ -4,6 +4,7 @@ import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBo
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
+import { contactLeadSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dynamic sitemap.xml endpoint
@@ -326,6 +327,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error verifying TOTP:", error);
       res.status(500).json({
         error: error.message || "Failed to verify TOTP",
+      });
+    }
+  });
+
+  // Contact form submission - forwards to Privyr webhook
+  app.post("/api/contact", async (req, res) => {
+    try {
+      // Validate request body
+      const validationResult = contactLeadSchema.safeParse(req.body);
+      
+      if (!validationResult.success) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: validationResult.error.issues,
+        });
+      }
+
+      const { firstName, lastName, email, phone, bookingReference, message } = validationResult.data;
+
+      // Get Privyr webhook URL from environment
+      const webhookUrl = process.env.PRIVYR_WEBHOOK_URL;
+      
+      if (!webhookUrl) {
+        console.error("PRIVYR_WEBHOOK_URL is not configured");
+        return res.status(500).json({
+          error: "Contact form is not configured. Please try again later.",
+        });
+      }
+
+      // Normalize booking reference (empty string to "N/A")
+      const normalizedBookingRef = bookingReference && bookingReference.trim() !== "" ? bookingReference : "N/A";
+
+      // Prepare payload for Privyr webhook with proper structure
+      const payload = {
+        name: `${firstName} ${lastName}`,
+        email: email,
+        phone: phone,
+        display_name: firstName,
+        other_fields: {
+          "First Name": firstName,
+          "Last Name": lastName,
+          "Booking Reference": normalizedBookingRef,
+          "Message": message,
+          "Source": "Website Contact Form",
+          "Landing URL": `${req.protocol}://${req.get('host')}/contact`,
+          "Submitted At": new Date().toISOString(),
+        },
+      };
+
+      console.log("Sending contact form to Privyr webhook...");
+      
+      // Send to Privyr webhook with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+      try {
+        const response = await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          let errorDetail = "Unknown error";
+          try {
+            const errorText = await response.text();
+            errorDetail = errorText;
+            console.error("Privyr webhook error:", response.status, errorText);
+          } catch (e) {
+            console.error("Privyr webhook error (no body):", response.status);
+          }
+          
+          // Return different error based on status code
+          if (response.status >= 500) {
+            return res.status(502).json({
+              error: "The contact service is temporarily unavailable. Please try again in a few moments.",
+              retryable: true,
+              details: process.env.NODE_ENV === 'development' ? errorDetail : undefined,
+            });
+          } else if (response.status === 400) {
+            return res.status(400).json({
+              error: "Invalid form data. Please check your information and try again.",
+              retryable: false,
+              details: process.env.NODE_ENV === 'development' ? errorDetail : undefined,
+            });
+          } else {
+            return res.status(502).json({
+              error: "Failed to submit your message. Please try again or contact us directly via email.",
+              retryable: true,
+              details: process.env.NODE_ENV === 'development' ? errorDetail : undefined,
+            });
+          }
+        }
+
+        const result = await response.json();
+        console.log("Contact form submitted successfully to Privyr:", result);
+
+        res.json({
+          success: true,
+          message: "Your message has been sent successfully. We'll get back to you soon!",
+          leadId: result.lead_id,
+        });
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          console.error("Privyr webhook timeout");
+          return res.status(504).json({
+            error: "Request timed out. Please try again.",
+            retryable: true,
+          });
+        }
+        throw fetchError;
+      }
+    } catch (error: any) {
+      console.error("Error submitting contact form:", error);
+      res.status(500).json({
+        error: "Failed to submit contact form. Please try again later.",
+        details: error.message,
       });
     }
   });

@@ -194,3 +194,19 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type CachedProduct = typeof cachedProducts.$inferSelect;
 export type InsertCachedProduct = z.infer<typeof insertCachedProductSchema>;
+
+// Contact form schema
+export const contactLeadSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(100, "First name too long"),
+  lastName: z.string().min(1, "Last name is required").max(100, "Last name too long"),
+  email: z.string().email("Valid email is required").max(255, "Email too long"),
+  phone: z.string()
+    .min(1, "Phone number is required")
+    .min(7, "Phone number is too short")
+    .max(20, "Phone number is too long")
+    .regex(/^[+]?[0-9\s.\-()]+$/, "Please enter a valid phone number (digits, spaces, +, -, (, ) only)"),
+  bookingReference: z.string().max(50, "Booking reference too long").optional().or(z.literal("")),
+  message: z.string().min(10, "Please provide at least 10 characters").max(2000, "Message too long"),
+});
+
+export type ContactLead = z.infer<typeof contactLeadSchema>;

@@ -1,0 +1,309 @@
+import { useEffect } from "react";
+import { Link, useLocation } from "wouter";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { setMetaTags } from "@/lib/meta-tags";
+import { contactLeadSchema, type ContactLead } from "@shared/schema";
+import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
+import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
+import { ArrowLeft, Mail, Phone, MapPin, Loader2 } from "lucide-react";
+
+export default function Contact() {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    setMetaTags(
+      "Contact Us | Flights and Packages",
+      "Get in touch with Flights and Packages for tour inquiries, bookings, and customer support. We're here to help plan your perfect journey.",
+      logoImage
+    );
+  }, []);
+
+  const form = useForm<ContactLead>({
+    resolver: zodResolver(contactLeadSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      bookingReference: "",
+      message: "",
+    },
+  });
+
+  const contactMutation = useMutation({
+    mutationFn: async (data: ContactLead) => {
+      return await apiRequest("POST", "/api/contact", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Message sent successfully!",
+        description: "We'll get back to you soon. Thank you for contacting us.",
+      });
+      form.reset();
+      // Redirect to homepage after 2 seconds
+      setTimeout(() => {
+        setLocation("/");
+      }, 2000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send message",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: ContactLead) => {
+    contactMutation.mutate(data);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
+        <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
+          <Link href="/">
+            <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Button>
+          </Link>
+          <div className="flex items-center gap-5 md:gap-6">
+            <Link href="/">
+              <img 
+                src={logoImage} 
+                alt="Flights and Packages" 
+                className="h-10 md:h-12 w-auto"
+                data-testid="img-logo"
+              />
+            </Link>
+            <img 
+              src={travelTrustLogo} 
+              alt="Travel Trust Association - Your Holidays 100% Financially Protected" 
+              className="hidden md:block h-8 md:h-10 w-auto"
+              aria-label="Travel Trust Association member"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* Spacer for fixed header */}
+      <div className="h-20" />
+
+      {/* Contact Section */}
+      <section className="py-12 md:py-16">
+        <div className="container mx-auto px-6 md:px-8 max-w-4xl">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Get in Touch</h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Have questions about a tour or need assistance? Fill out the form below and our team will get back to you as soon as possible.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
+            {/* Contact Information */}
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Mail className="w-5 h-5 text-primary mt-1" />
+                    <div>
+                      <p className="font-medium">Email</p>
+                      <a href="mailto:holidayenq@flightsandpackages.com" className="text-muted-foreground hover:text-primary transition-colors">
+                        holidayenq@flightsandpackages.com
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-primary mt-1" />
+                    <div>
+                      <p className="font-medium">Address</p>
+                      <p className="text-muted-foreground">
+                        Airport House, Purley Way<br />
+                        Croydon, Surrey, CR0 0XZ<br />
+                        United Kingdom
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 p-6 rounded-md border">
+                <h3 className="font-semibold mb-3">Why Choose Us?</h3>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>✓ 700+ unique tours worldwide</li>
+                  <li>✓ Expert travel guidance</li>
+                  <li>✓ Secure payment processing</li>
+                  <li>✓ 24/7 customer support</li>
+                  <li>✓ TTA & ATOL protected</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Contact Form */}
+            <div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="John" 
+                              {...field} 
+                              data-testid="input-firstName"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name *</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Doe" 
+                              {...field} 
+                              data-testid="input-lastName"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="email" 
+                            placeholder="john.doe@example.com" 
+                            {...field} 
+                            data-testid="input-email"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone Number *</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="tel" 
+                            placeholder="+44 20 1234 5678 or 020 1234 5678" 
+                            {...field} 
+                            data-testid="input-phone"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="bookingReference"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Booking Reference (Optional)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="REF123456" 
+                            {...field} 
+                            data-testid="input-bookingReference"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="message"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Your Message *</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Please enter the details of your query..." 
+                            className="min-h-[120px]" 
+                            {...field} 
+                            data-testid="input-message"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button 
+                    type="submit" 
+                    className="w-full" 
+                    disabled={contactMutation.isPending}
+                    data-testid="button-submit"
+                  >
+                    {contactMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Message"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t py-12">
+        <div className="container mx-auto px-6 md:px-8">
+          <div className="text-center text-sm text-muted-foreground">
+            <p>© 2025 Flights and Packages. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}

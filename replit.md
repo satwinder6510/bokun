@@ -1,12 +1,26 @@
-# Tour Discoveries - Public Tour Booking Website
+# Flights and Packages - Tours Booking Platform
 
 ## Overview
 
 A public-facing tour booking website showcasing 700+ curated tours from the Bokun API. The application provides a clean, minimal interface for browsing tours, viewing detailed itineraries with hotel information, checking availability with calendar-based date selection, and exploring pricing options. Built as a full-stack TypeScript application focused on user experience and visual appeal.
 
+**Company:** Flights and Packages
+**Custom Domain:** tours.flightsandpackages.com
 **Current Phase:** Phase 1 - Browse and explore only. Shopping cart and booking functionality planned for Phase 2.
 
 ## Recent Changes (November 21, 2025)
+
+- **Company Branding Update**:
+  - Rebranded from "Tour Discoveries" to "Flights and Packages"
+  - Updated all meta tags, page titles, and branding to reflect company name
+  - Prepared for custom domain deployment: tours.flightsandpackages.com
+- **SEO Implementation - Phase 1 Complete**:
+  - Dynamic meta tags on tour detail pages with unique titles and descriptions
+  - Structured data (Schema.org JSON-LD) for rich snippets in Google Search results
+  - Tour schema includes name, price, destination, duration, and imagery
+  - Open Graph tags for social media sharing
+  - Robots.txt with sitemap reference
+  - Meta tag utility library for dynamic tag management
 
 - **Multi-Currency Support**:
   - Added currency selector in header with 5 currencies: USD ($), EUR (€), GBP (£), CAD (C$), INR (₹)

@@ -18,7 +18,8 @@ export function setMetaTags(title: string, description: string, ogImage?: string
     canonical.setAttribute('rel', 'canonical');
     document.head.appendChild(canonical);
   }
-  canonical.setAttribute('href', window.location.href);
+  const baseUrl = 'https://tours.flightsandpackages.com';
+  canonical.setAttribute('href', baseUrl + window.location.pathname + window.location.search);
 
   // Update/create Open Graph tags
   updateOGTag('og:title', title);

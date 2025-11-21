@@ -39,7 +39,7 @@ export default function TourDetail() {
   // Set meta tags and structured data when product loads
   useEffect(() => {
     if (product) {
-      const title = `${product.title} - Tour in ${product.locationCode?.name || 'Worldwide'} | Tour Discoveries`;
+      const title = `${product.title} - Tour in ${product.locationCode?.name || 'Worldwide'} | Flights and Packages`;
       const description = (product.excerpt || product.title).substring(0, 160) + (product.excerpt ? '...' : '');
       const ogImage = product.keyPhoto?.originalUrl || imagePlaceholder;
       

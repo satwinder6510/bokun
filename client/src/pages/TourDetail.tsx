@@ -117,6 +117,8 @@ export default function TourDetail() {
               alt={product.title}
               className="w-full aspect-[21/9] object-cover"
               data-testid="img-tour-hero"
+              loading="lazy"
+              decoding="async"
             />
           </div>
           {photos.length > 0 && (
@@ -133,6 +135,8 @@ export default function TourDetail() {
                         alt={photo.description || `Tour photo ${index + 1}`}
                         className="w-full h-full object-cover"
                         data-testid={`img-gallery-${index}`}
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                   ))}

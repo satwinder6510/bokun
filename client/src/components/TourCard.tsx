@@ -9,7 +9,7 @@ interface TourCardProps {
 
 export function TourCard({ product }: TourCardProps) {
   const { selectedCurrency } = useCurrency();
-  const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
+  const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=500&q=75";
   const imageUrl = product.keyPhoto?.originalUrl || imagePlaceholder;
   
   const formatCategoryName = (category: string): string => {
@@ -34,6 +34,8 @@ export function TourCard({ product }: TourCardProps) {
             alt={product.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             data-testid={`img-tour-${product.id}`}
+            loading="lazy"
+            decoding="async"
           />
         </div>
 

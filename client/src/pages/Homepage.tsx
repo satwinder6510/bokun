@@ -168,6 +168,8 @@ export default function Homepage() {
                   src={tour.keyPhoto?.originalUrl}
                   alt={tour.title}
                   className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
                 />
                 {/* Dark gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

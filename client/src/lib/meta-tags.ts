@@ -19,7 +19,7 @@ export function setMetaTags(title: string, description: string, ogImage?: string
     document.head.appendChild(canonical);
   }
   const baseUrl = 'https://tours.flightsandpackages.com';
-  canonical.setAttribute('href', baseUrl + window.location.pathname + window.location.search);
+  canonical.setAttribute('href', baseUrl + window.location.pathname);
 
   // Update/create Open Graph tags
   updateOGTag('og:title', title);
@@ -27,7 +27,7 @@ export function setMetaTags(title: string, description: string, ogImage?: string
   if (ogImage) {
     updateOGTag('og:image', ogImage);
   }
-  updateOGTag('og:url', window.location.href);
+  updateOGTag('og:url', baseUrl + window.location.pathname);
 }
 
 function updateOGTag(property: string, content: string) {
@@ -41,6 +41,11 @@ function updateOGTag(property: string, content: string) {
 }
 
 export function addJsonLD(schema: object) {
+  // Remove any existing JSON-LD scripts to prevent duplicates
+  const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
+  existingScripts.forEach(script => script.remove());
+  
+  // Add new JSON-LD script
   const script = document.createElement('script');
   script.type = 'application/ld+json';
   script.textContent = JSON.stringify(schema);

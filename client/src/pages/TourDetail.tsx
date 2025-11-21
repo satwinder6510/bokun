@@ -12,6 +12,9 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
+import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
+import travelTrustLogo from "@assets/travel-trust_1763745255759.png";
+import atolLogo from "@assets/atol_logo_white_1763745297064.png";
 
 export default function TourDetail() {
   const { selectedCurrency } = useCurrency();
@@ -40,7 +43,9 @@ export default function TourDetail() {
   useEffect(() => {
     if (product) {
       const title = `${product.title} - Tour in ${product.locationCode?.name || 'Worldwide'} | Flights and Packages`;
-      const description = (product.excerpt || product.title).substring(0, 160) + (product.excerpt ? '...' : '');
+      const excerpt = product.excerpt || product.title;
+      const description = excerpt.length > 160 ? excerpt.substring(0, 157) + '...' : excerpt;
+      const schemaDescription = excerpt.length > 200 ? excerpt.substring(0, 200) : excerpt;
       const ogImage = product.keyPhoto?.originalUrl || imagePlaceholder;
       
       setMetaTags(title, description, ogImage);
@@ -50,12 +55,12 @@ export default function TourDetail() {
         '@context': 'https://schema.org',
         '@type': 'Tour',
         name: product.title,
-        description: description,
+        description: schemaDescription,
         image: ogImage,
         offers: {
           '@type': 'Offer',
           price: product.price?.toString() || '0',
-          priceCurrency: 'GBP',
+          priceCurrency: selectedCurrency.code,
           availability: 'https://schema.org/InStock'
         },
         destination: {
@@ -63,11 +68,11 @@ export default function TourDetail() {
           name: product.locationCode?.name || 'Worldwide'
         },
         duration: product.durationText || 'Variable',
-        url: window.location.href
+        url: `https://tours.flightsandpackages.com/tour/${product.id}`
       };
       addJsonLD(schema);
     }
-  }, [product]);
+  }, [product, selectedCurrency.code]);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
@@ -133,9 +138,30 @@ export default function TourDetail() {
               Back to Tours
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold" data-testid="text-site-title">
-            Tour Discoveries
-          </h1>
+          <div className="flex items-center gap-3 md:gap-4">
+            <Link href="/">
+              <img 
+                src={logoImage} 
+                alt="Flights and Packages" 
+                className="h-10 md:h-12 w-auto"
+                data-testid="img-logo"
+              />
+            </Link>
+            <div className="hidden md:flex items-center gap-2 md:gap-3">
+              <img 
+                src={travelTrustLogo} 
+                alt="Travel Trust" 
+                className="h-6 md:h-7 w-auto opacity-90"
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
+              <img 
+                src={atolLogo} 
+                alt="ATOL Protected" 
+                className="h-6 md:h-7 w-auto opacity-90"
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
+            </div>
+          </div>
         </div>
       </header>
 
@@ -408,7 +434,7 @@ export default function TourDetail() {
       <footer className="border-t py-12">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center text-sm text-muted-foreground">
-            <p data-testid="text-footer">© 2025 Tour Discoveries. All rights reserved.</p>
+            <p data-testid="text-footer">© 2025 Flights and Packages. All rights reserved.</p>
           </div>
         </div>
       </footer>

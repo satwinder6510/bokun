@@ -6,6 +6,47 @@ import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Dynamic sitemap.xml endpoint
+  app.get("/sitemap.xml", async (req, res) => {
+    try {
+      const cachedProducts = await storage.getCachedProducts();
+      const baseUrl = 'https://tours.flightsandpackages.com';
+      
+      // Deduplicate products
+      const uniqueProducts = Array.from(
+        new Map(cachedProducts.map(p => [p.id, p])).values()
+      );
+
+      // Generate sitemap XML
+      let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+      
+      // Homepage
+      sitemap += '  <url>\n';
+      sitemap += `    <loc>${baseUrl}/</loc>\n`;
+      sitemap += '    <changefreq>daily</changefreq>\n';
+      sitemap += '    <priority>1.0</priority>\n';
+      sitemap += '  </url>\n';
+      
+      // Tour detail pages
+      uniqueProducts.forEach(product => {
+        sitemap += '  <url>\n';
+        sitemap += `    <loc>${baseUrl}/tour/${product.id}</loc>\n`;
+        sitemap += '    <changefreq>weekly</changefreq>\n';
+        sitemap += '    <priority>0.8</priority>\n';
+        sitemap += '  </url>\n';
+      });
+      
+      sitemap += '</urlset>';
+      
+      res.header('Content-Type', 'application/xml');
+      res.send(sitemap);
+    } catch (error: any) {
+      console.error("Error generating sitemap:", error);
+      res.status(500).send('Error generating sitemap');
+    }
+  });
+
   app.post("/api/bokun/test-connection", async (req, res) => {
     try {
       const result = await testBokunConnection();

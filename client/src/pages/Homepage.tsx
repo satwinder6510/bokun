@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
+import travelTrustLogo from "@assets/travel-trust_1763745255759.png";
+import atolLogo from "@assets/atol_logo_white_1763745297064.png";
 import {
   Select,
   SelectContent,
@@ -48,6 +52,26 @@ export default function Homepage() {
       hasFetched.current = true;
       fetchProductsMutation.mutate();
     }
+  }, []);
+
+  // Set meta tags and structured data for homepage
+  useEffect(() => {
+    const title = "Flights and Packages - Book 700+ Tours Worldwide";
+    const description = "Discover and book 700+ unique tours worldwide with Flights and Packages. Explore destinations, compare prices, check availability, and find your perfect adventure.";
+    
+    setMetaTags(title, description, logoImage);
+
+    // Add organization structured data
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'TravelAgency',
+      name: 'Flights and Packages',
+      url: 'https://tours.flightsandpackages.com',
+      logo: logoImage,
+      description: description,
+      sameAs: []
+    };
+    addJsonLD(schema);
   }, []);
 
   const formatCategoryName = (category: string): string => {
@@ -132,9 +156,30 @@ export default function Homepage() {
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <h1 className="text-2xl font-bold" data-testid="text-site-title">
-            Tour Discoveries
-          </h1>
+          <div className="flex items-center gap-3 md:gap-4">
+            <a href="/" className="flex items-center" data-testid="link-logo">
+              <img 
+                src={logoImage} 
+                alt="Flights and Packages" 
+                className="h-10 md:h-12 w-auto"
+                data-testid="img-logo"
+              />
+            </a>
+            <div className="flex items-center gap-2 md:gap-3">
+              <img 
+                src={travelTrustLogo} 
+                alt="Travel Trust" 
+                className="h-6 md:h-7 w-auto opacity-90"
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
+              <img 
+                src={atolLogo} 
+                alt="ATOL Protected" 
+                className="h-6 md:h-7 w-auto opacity-90"
+                style={{ filter: 'brightness(0) invert(1)' }}
+              />
+            </div>
+          </div>
           <nav className="flex items-center gap-4 md:gap-6">
             <a href="/" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-home">
               Home
@@ -444,7 +489,7 @@ export default function Homepage() {
         <div className="container mx-auto px-6 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <h4 className="font-bold text-lg mb-4">Tour Discoveries</h4>
+              <h4 className="font-bold text-lg mb-4">Flights and Packages</h4>
               <p className="text-sm text-muted-foreground">
                 Discover unforgettable journeys across stunning destinations worldwide.
               </p>
@@ -468,12 +513,12 @@ export default function Homepage() {
             <div>
               <h5 className="font-semibold mb-4">Contact</h5>
               <p className="text-sm text-muted-foreground">
-                Email: info@tourdiscoveries.com
+                Email: info@flightsandpackages.com
               </p>
             </div>
           </div>
           <div className="border-t pt-8 text-center text-sm text-muted-foreground" data-testid="text-footer">
-            <p>© 2025 Tour Discoveries. All rights reserved.</p>
+            <p>© 2025 Flights and Packages. All rights reserved.</p>
           </div>
         </div>
       </footer>

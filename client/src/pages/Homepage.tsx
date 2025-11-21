@@ -5,7 +5,7 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
@@ -17,6 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import type { BokunProductSearchResponse, BokunProduct } from "@shared/schema";
 
 export default function Homepage() {
@@ -175,9 +182,42 @@ export default function Homepage() {
             <a href="/" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-home">
               Home
             </a>
-            <a href="#tours" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-tours">
-              Tours
-            </a>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  className="text-base font-medium hover:text-primary transition-colors hidden md:inline-flex items-center gap-1" 
+                  data-testid="button-destinations-menu"
+                >
+                  Destinations
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 max-h-[400px] overflow-y-auto">
+                <DropdownMenuItem 
+                  onClick={() => {
+                    setSelectedCountry(null);
+                    document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="font-medium"
+                  data-testid="menu-item-all-destinations"
+                >
+                  All Destinations
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {allCountries.map((country) => (
+                  <DropdownMenuItem 
+                    key={country}
+                    onClick={() => {
+                      setSelectedCountry(country);
+                      document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    data-testid={`menu-item-${country.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {country}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <CurrencySelector />
             <Button size="sm" variant="default" className="hidden md:inline-flex">
               Contact Us

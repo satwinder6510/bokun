@@ -94,13 +94,15 @@ export async function testBokunConnection() {
   }
 }
 
-export async function searchBokunProducts(page: number = 1, pageSize: number = 20) {
+export async function searchBokunProducts(page: number = 1, pageSize: number = 20, currency: string = "GBP") {
   const path = "/activity.json/search";
+  const queryParams = `?currency=${currency}`;
+  const fullPath = `${path}${queryParams}`;
   const method = "POST";
 
   try {
-    const headers = getBokunHeaders(method, path);
-    const response = await fetch(`${BOKUN_API_BASE}${path}`, {
+    const headers = getBokunHeaders(method, fullPath);
+    const response = await fetch(`${BOKUN_API_BASE}${fullPath}`, {
       method,
       headers,
       body: JSON.stringify({ page, pageSize }),
@@ -117,6 +119,7 @@ export async function searchBokunProducts(page: number = 1, pageSize: number = 2
       itemsCount: data.items?.length || 0,
       hasItems: !!data.items,
       keys: Object.keys(data),
+      currency,
       firstItemKeys: data.items?.[0] ? Object.keys(data.items[0]) : "no items",
       sampleItem: data.items?.[0]
     });

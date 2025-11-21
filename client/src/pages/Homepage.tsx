@@ -34,13 +34,13 @@ export default function Homepage() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const hasFetched = useRef(false);
 
-  const fetchProductsMutation = useMutation<BokunProductSearchResponse>({
-    mutationFn: async () => {
+  const fetchProductsMutation = useMutation<BokunProductSearchResponse, Error, string>({
+    mutationFn: async (currency: string) => {
       const response = await apiRequest("POST", "/api/bokun/products", {
         page: 1,
         pageSize: 1000,
+        currency,
       });
       return response as BokunProductSearchResponse;
     },
@@ -53,12 +53,11 @@ export default function Homepage() {
     },
   });
 
+  // Fetch products when currency changes
   useEffect(() => {
-    if (!hasFetched.current) {
-      hasFetched.current = true;
-      fetchProductsMutation.mutate();
-    }
-  }, []);
+    setIsLoading(true);
+    fetchProductsMutation.mutate(selectedCurrency.code);
+  }, [selectedCurrency.code]);
 
   // Set meta tags and structured data for homepage
   useEffect(() => {

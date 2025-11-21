@@ -123,45 +123,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/bokun/products", async (req, res) => {
     try {
-      const { page = 1, pageSize = 20 } = req.body;
+      const { page = 1, pageSize = 20, currency = "GBP" } = req.body;
       
-      // Check if cache exists and is valid
-      // Note: Cached product prices are in the default currency (USD/GBP from Bokun)
-      // and do not change with user's selected currency. Detail pages and availability
-      // checker fetch fresh data with the correct currency.
-      const cachedProducts = await storage.getCachedProducts();
-      
-      if (cachedProducts.length > 0) {
-        console.log(`Serving ${cachedProducts.length} products from cache`);
+      // Only cache GBP (default currency) to optimize memory usage
+      // For other currencies, always fetch fresh data with correct prices
+      if (currency === "GBP") {
+        const cachedProducts = await storage.getCachedProducts();
         
-        // Deduplicate products by ID (some products appear multiple times in Bokun API)
-        const uniqueProducts = Array.from(
-          new Map(cachedProducts.map(p => [p.id, p])).values()
-        );
-        
-        // Paginate cached results
-        const startIndex = (page - 1) * pageSize;
-        const endIndex = startIndex + pageSize;
-        const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
-        
-        res.json({
-          totalHits: uniqueProducts.length,
-          items: paginatedProducts,
-          fromCache: true,
-        });
+        if (cachedProducts.length > 0) {
+          console.log(`Serving ${cachedProducts.length} GBP products from cache`);
+          
+          // Deduplicate products by ID
+          const uniqueProducts = Array.from(
+            new Map(cachedProducts.map(p => [p.id, p])).values()
+          );
+          
+          // Paginate cached results
+          const startIndex = (page - 1) * pageSize;
+          const endIndex = startIndex + pageSize;
+          const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
+          
+          return res.json({
+            totalHits: uniqueProducts.length,
+            items: paginatedProducts,
+            fromCache: true,
+            currency: "GBP",
+          });
+        } else {
+          console.log("GBP cache miss - fetching from Bokun API and caching...");
+          
+          // Fetch all GBP products and cache them
+          let allProducts: any[] = [];
+          let currentPage = 1;
+          const fetchPageSize = 100;
+          let hasMore = true;
+
+          while (hasMore) {
+            const data = await searchBokunProducts(currentPage, fetchPageSize, "GBP");
+            allProducts = allProducts.concat(data.items || []);
+            hasMore = (data.items?.length || 0) === fetchPageSize;
+            currentPage++;
+            
+            // Safety limit
+            if (currentPage > 50) break;
+          }
+
+          // Deduplicate before caching
+          const uniqueProducts = Array.from(
+            new Map(allProducts.map(p => [p.id, p])).values()
+          );
+          
+          // Store all GBP products in cache
+          await storage.setCachedProducts(uniqueProducts);
+          
+          // Return requested page
+          const startIndex = (page - 1) * pageSize;
+          const endIndex = startIndex + pageSize;
+          const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
+          
+          return res.json({
+            totalHits: uniqueProducts.length,
+            items: paginatedProducts,
+            fromCache: false,
+            currency: "GBP",
+          });
+        }
       } else {
-        console.log("Cache miss - fetching from Bokun API and caching...");
+        // For non-GBP currencies, fetch fresh data with correct prices
+        console.log(`Fetching products in ${currency} (fresh, not cached)`);
         
-        // Fetch all products and cache them
-        // Note: Bokun product search does not support currency parameter
-        // Prices will be in Bokun's default currency (USD/GBP)
         let allProducts: any[] = [];
         let currentPage = 1;
         const fetchPageSize = 100;
         let hasMore = true;
 
         while (hasMore) {
-          const data = await searchBokunProducts(currentPage, fetchPageSize);
+          const data = await searchBokunProducts(currentPage, fetchPageSize, currency);
           allProducts = allProducts.concat(data.items || []);
           hasMore = (data.items?.length || 0) === fetchPageSize;
           currentPage++;
@@ -170,23 +207,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (currentPage > 50) break;
         }
 
-        // Deduplicate before caching
+        // Deduplicate
         const uniqueProducts = Array.from(
           new Map(allProducts.map(p => [p.id, p])).values()
         );
         
-        // Store all products in cache
-        await storage.setCachedProducts(uniqueProducts);
-        
-        // Return requested page
+        // Return requested page (no caching for non-GBP)
         const startIndex = (page - 1) * pageSize;
         const endIndex = startIndex + pageSize;
         const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
         
-        res.json({
+        return res.json({
           totalHits: uniqueProducts.length,
           items: paginatedProducts,
           fromCache: false,
+          currency,
         });
       }
     } catch (error: any) {

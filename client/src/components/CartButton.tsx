@@ -5,6 +5,7 @@ import { useLocation } from "wouter";
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -41,6 +42,9 @@ export function CartButton() {
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Shopping Cart ({itemCount})</SheetTitle>
+          <SheetDescription>
+            Review your selected tours and proceed to checkout
+          </SheetDescription>
         </SheetHeader>
         
         <div className="mt-6 space-y-4">

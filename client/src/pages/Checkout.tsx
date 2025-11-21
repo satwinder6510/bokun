@@ -277,7 +277,7 @@ function CheckoutForm({ serverAmount, serverCurrency, paymentIntentId }: Checkou
 
 export default function Checkout() {
   const [, navigate] = useLocation();
-  const { items, itemCount, removeFromCart } = useCart();
+  const { items, itemCount, removeFromCart, isLoading: isCartLoading } = useCart();
   const { toast } = useToast();
   const [clientSecret, setClientSecret] = useState<string>("");
   const [stripePublishableKey, setStripePublishableKey] = useState<string>("");
@@ -290,16 +290,16 @@ export default function Checkout() {
   const clientSubtotal = items.reduce((sum, item) => sum + item.productPrice, 0);
   const currency = items[0]?.currency || 'USD';
 
-  // Redirect if cart is empty
+  // Redirect if cart is empty - but only after cart has loaded to avoid race conditions
   useEffect(() => {
-    if (itemCount === 0) {
+    if (!isCartLoading && itemCount === 0) {
       toast({
         title: "Empty cart",
         description: "Your cart is empty. Please add tours before checking out.",
       });
       navigate("/");
     }
-  }, [itemCount, navigate, toast]);
+  }, [itemCount, isCartLoading, navigate, toast]);
 
   // Fetch Stripe config and create payment intent
   useEffect(() => {

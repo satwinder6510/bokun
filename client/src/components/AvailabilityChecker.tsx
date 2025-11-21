@@ -6,13 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Calendar as CalendarIcon, DollarSign, AlertCircle, CheckCircle2, XCircle, Users, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, DollarSign, AlertCircle, CheckCircle2, XCircle, Users, Loader2, ShoppingCart, CreditCard } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useCart } from "@/contexts/CartContext";
 import { apiRequest } from "@/lib/queryClient";
 import { format, addMonths } from "date-fns";
+import { useLocation } from "wouter";
 
 interface Rate {
   id?: number;
@@ -87,12 +89,15 @@ interface AvailabilityData {
 export function AvailabilityChecker({ productId, productTitle, rates, bookableExtras }: AvailabilityCheckerProps) {
   const { toast } = useToast();
   const { selectedCurrency } = useCurrency();
+  const { addToCart } = useCart();
+  const [, setLocation] = useLocation();
   const [departureDate, setDepartureDate] = useState<Date>();
   const [selectedRate, setSelectedRate] = useState<string>("");
   const [numberOfPeople, setNumberOfPeople] = useState<string>("2");
   const [availabilities, setAvailabilities] = useState<AvailabilityData[]>([]);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [dateRange, setDateRange] = useState<{ fromMonth?: Date; toMonth?: Date }>({});
+  const [addingToCart, setAddingToCart] = useState<string | null>(null);
 
   // Auto-adjust number of people when rate is selected
   useEffect(() => {
@@ -229,6 +234,74 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
         availableDate.getMonth() === date.getMonth() &&
         availableDate.getDate() === date.getDate()
     );
+  };
+
+  const handleAddToCart = async (rateId: number, rateTitle: string, totalPrice: number, priceCurrency: string): Promise<boolean> => {
+    // Validate prerequisites
+    if (!departureDate) {
+      toast({
+        title: "Date required",
+        description: "Please select a departure date first",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (rates && rates.length > 0 && !selectedRate) {
+      toast({
+        title: "Rate required",
+        description: "Please select a room/rate option first",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Validate currency match
+    if (priceCurrency !== selectedCurrency.code) {
+      toast({
+        title: "Currency mismatch",
+        description: `Price is in ${priceCurrency} but you selected ${selectedCurrency.code}. Please refresh the availability.`,
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const key = `${rateId}-${departureDate.getTime()}`;
+    setAddingToCart(key);
+    try {
+      await addToCart({
+        productId,
+        productTitle,
+        productPrice: totalPrice, // Send the total price (already calculated with quantity)
+        currency: selectedCurrency.code,
+        date: format(departureDate, "yyyy-MM-dd"),
+        rateId,
+        rateTitle,
+        quantity: parseInt(numberOfPeople) || 1,
+      });
+      toast({
+        title: "Added to cart",
+        description: `${rateTitle} for ${productTitle} on ${format(departureDate, "PPP")}`,
+      });
+      return true; // Successfully added to cart
+    } catch (error) {
+      toast({
+        title: "Failed to add to cart",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+      return false; // Failed to add to cart
+    } finally {
+      setAddingToCart(null);
+    }
+  };
+
+  const handleBuyNow = async (rateId: number, rateTitle: string, totalPrice: number, priceCurrency: string) => {
+    const success = await handleAddToCart(rateId, rateTitle, totalPrice, priceCurrency);
+    // Only navigate if successfully added to cart
+    if (success) {
+      setLocation("/checkout");
+    }
   };
 
   return (
@@ -432,22 +505,65 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                   ? bookableExtras?.find(be => be.id === includedExtra.activityExtraId)?.title
                                   : null;
                                 
+                                const totalPrice = rate.pricedPerPerson 
+                                  ? price.amount * parseInt(numberOfPeople)
+                                  : price.amount;
+                                const buttonKey = `${priceInfo.activityRateId}-${departureDate?.getTime()}`;
+                                const isAdding = addingToCart === buttonKey;
+                                const priceCurrency = price.currency || selectedCurrency.code;
+                                
+                                // Check if prerequisites are met
+                                const canBook = departureDate && (!rates || rates.length === 0 || selectedRate);
+                                const currencyMismatch = priceCurrency !== selectedCurrency.code;
+                                
                                 return (
-                                  <div key={priceInfo.activityRateId} className="flex flex-col gap-0.5 text-xs bg-muted/30 rounded px-2 py-1.5">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-muted-foreground">{rate.title}:</span>
-                                      <span className="font-semibold text-primary">
-                                        {selectedCurrency.symbol}{price.amount.toFixed(2)}
-                                      </span>
-                                      <span className="text-muted-foreground text-[10px]">
-                                        {rate.pricedPerPerson ? 'per person' : 'total'}
-                                      </span>
+                                  <div key={priceInfo.activityRateId} className="flex flex-col gap-2 text-xs bg-muted/30 rounded p-3 border">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-medium text-sm">{rate.title}</span>
+                                        {includedExtraName && (
+                                          <span className="text-[10px] text-muted-foreground">
+                                            {includedExtraName} included
+                                          </span>
+                                        )}
+                                        {currencyMismatch && (
+                                          <span className="text-[10px] text-destructive">
+                                            ⚠️ Price in {priceCurrency} - please recheck availability in {selectedCurrency.code}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="flex flex-col items-end gap-0.5">
+                                        <span className="font-bold text-lg text-primary">
+                                          {selectedCurrency.symbol}{totalPrice.toFixed(2)}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                          {rate.pricedPerPerson ? `${selectedCurrency.symbol}${price.amount.toFixed(2)} × ${numberOfPeople} people` : 'total price'}
+                                        </span>
+                                      </div>
                                     </div>
-                                    {includedExtraName && (
-                                      <span className="text-[10px] text-muted-foreground">
-                                        {includedExtraName} included
-                                      </span>
-                                    )}
+                                    <div className="flex gap-2 pt-1">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleAddToCart(priceInfo.activityRateId!, rate.title!, totalPrice, priceCurrency)}
+                                        disabled={!canBook || isAdding || availability.soldOut || availability.unavailable || currencyMismatch}
+                                        className="flex-1"
+                                        data-testid={`button-add-to-cart-${priceInfo.activityRateId}`}
+                                      >
+                                        <ShoppingCart className="w-3 h-3 mr-1" />
+                                        {isAdding ? "Adding..." : "Add to Cart"}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => handleBuyNow(priceInfo.activityRateId!, rate.title!, totalPrice, priceCurrency)}
+                                        disabled={!canBook || isAdding || availability.soldOut || availability.unavailable || currencyMismatch}
+                                        className="flex-1"
+                                        data-testid={`button-buy-now-${priceInfo.activityRateId}`}
+                                      >
+                                        <CreditCard className="w-3 h-3 mr-1" />
+                                        Buy Now
+                                      </Button>
+                                    </div>
                                   </div>
                                 );
                               })}

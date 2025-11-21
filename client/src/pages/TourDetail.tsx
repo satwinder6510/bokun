@@ -411,17 +411,8 @@ export default function TourDetail() {
 
                   <Separator />
 
-                  <Button 
-                    size="lg" 
-                    className="w-full"
-                    data-testid="button-check-availability"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Check Availability
-                  </Button>
-
-                  <p className="text-xs text-muted-foreground text-center">
-                    Select dates and travelers to see pricing
+                  <p className="text-sm text-muted-foreground text-center">
+                    Use the <span className="font-medium text-foreground">Availability</span> tab below to select dates and see pricing options
                   </p>
                 </CardContent>
               </Card>

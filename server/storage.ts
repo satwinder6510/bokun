@@ -487,7 +487,7 @@ export class MemStorage implements IStorage {
   async getCartItemCount(sessionId: string): Promise<number> {
     return Array.from(this.cartItems.values())
       .filter(item => item.sessionId === sessionId)
-      .reduce((sum, item) => sum + item.quantity, 0);
+      .length; // Count distinct cart items, not sum of quantities
   }
 
   // Booking methods

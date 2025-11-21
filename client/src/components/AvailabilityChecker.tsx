@@ -10,6 +10,7 @@ import { Calendar as CalendarIcon, DollarSign, AlertCircle, CheckCircle2, XCircl
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { apiRequest } from "@/lib/queryClient";
 import { format, addMonths } from "date-fns";
 
@@ -85,6 +86,7 @@ interface AvailabilityData {
 
 export function AvailabilityChecker({ productId, productTitle, rates, bookableExtras }: AvailabilityCheckerProps) {
   const { toast } = useToast();
+  const { selectedCurrency } = useCurrency();
   const [departureDate, setDepartureDate] = useState<Date>();
   const [selectedRate, setSelectedRate] = useState<string>("");
   const [numberOfPeople, setNumberOfPeople] = useState<string>("2");
@@ -105,7 +107,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
 
   // Fetch available dates for the next 6 months on mount
   const { data: initialAvailability, isLoading: isLoadingDates } = useQuery({
-    queryKey: ["/api/bokun/availability", productId, "initial"],
+    queryKey: ["/api/bokun/availability", productId, "initial", selectedCurrency.code],
     queryFn: async () => {
       const today = new Date();
       const sixMonthsLater = addMonths(today, 6);
@@ -114,7 +116,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
       
       const response = await apiRequest(
         "GET",
-        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=GBP`
+        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=${selectedCurrency.code}`
       );
       return response;
     },
@@ -174,7 +176,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
 
       const response = await apiRequest(
         "GET",
-        `/api/bokun/availability/${productId}?start=${formattedDate}&end=${formattedDate}&currency=GBP`
+        `/api/bokun/availability/${productId}?start=${formattedDate}&end=${formattedDate}&currency=${selectedCurrency.code}`
       );
       return response;
     },
@@ -422,9 +424,6 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                 
                                 if (!rate || !price || price.amount === undefined) return null;
                                 
-                                // Convert USD to GBP (approximate rate: 1 USD = 0.79 GBP)
-                                const gbpAmount = price.currency === 'USD' ? price.amount * 0.79 : price.amount;
-                                
                                 // Find board basis info from extraConfigs
                                 const includedExtra = rate.extraConfigs?.find(
                                   ec => ec.pricingType === 'INCLUDED_IN_PRICE' && bookableExtras?.some(be => be.id === ec.activityExtraId)
@@ -438,7 +437,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-muted-foreground">{rate.title}:</span>
                                       <span className="font-semibold text-primary">
-                                        £{gbpAmount.toFixed(2)}
+                                        {selectedCurrency.symbol}{price.amount.toFixed(2)}
                                       </span>
                                       <span className="text-muted-foreground text-[10px]">
                                         {rate.pricedPerPerson ? 'per person' : 'total'}
@@ -478,9 +477,6 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                 }
                               }
                               
-                              // Convert USD to GBP (approximate rate: 1 USD = 0.79 GBP)
-                              const gbpPrice = extraPrice !== undefined ? extraPrice * 0.79 : undefined;
-                              
                               return (
                                 <div key={extra.id} className="flex items-start justify-between gap-2 text-xs bg-muted/30 rounded p-2">
                                   <div className="flex-1">
@@ -499,8 +495,8 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                                       <Badge variant="secondary" className="text-[10px] h-5">
                                         {extra.free ? "Free" : "Included"}
                                       </Badge>
-                                    ) : gbpPrice !== undefined && gbpPrice > 0 ? (
-                                      <div className="font-semibold text-primary">£{gbpPrice.toFixed(2)}</div>
+                                    ) : extraPrice !== undefined && extraPrice > 0 ? (
+                                      <div className="font-semibold text-primary">{selectedCurrency.symbol}{extraPrice.toFixed(2)}</div>
                                     ) : (
                                       <div className="text-[10px] text-muted-foreground">Price varies</div>
                                     )}

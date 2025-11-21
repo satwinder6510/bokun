@@ -8,10 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 
 export default function TourDetail() {
+  const { selectedCurrency } = useCurrency();
   const [, params] = useRoute("/tour/:id");
   const productId = params?.id;
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
@@ -316,7 +318,7 @@ export default function TourDetail() {
                       <div className="flex items-baseline gap-2 mb-1">
                         <span className="text-sm text-muted-foreground">From</span>
                         <span className="text-3xl font-semibold" data-testid="text-price">
-                          £{product.price.toFixed(2)}
+                          {selectedCurrency.symbol}{product.price.toFixed(2)}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">per person</p>

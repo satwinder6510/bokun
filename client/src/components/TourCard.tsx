@@ -1,5 +1,6 @@
 import { Link } from "wouter";
 import { MapPin, Clock } from "lucide-react";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import type { BokunProduct } from "@shared/schema";
 
 interface TourCardProps {
@@ -7,6 +8,7 @@ interface TourCardProps {
 }
 
 export function TourCard({ product }: TourCardProps) {
+  const { selectedCurrency } = useCurrency();
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
   const imageUrl = product.keyPhoto?.originalUrl || imagePlaceholder;
   
@@ -89,7 +91,7 @@ export function TourCard({ product }: TourCardProps) {
                   className="text-3xl font-bold text-white"
                   data-testid={`text-price-${product.id}`}
                 >
-                  £{product.price.toFixed(0)}
+                  {selectedCurrency.symbol}{product.price.toFixed(0)}
                 </span>
                 <span className="text-sm text-white/80">/pp</span>
               </div>

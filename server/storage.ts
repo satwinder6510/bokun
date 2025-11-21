@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 // modify the interface with any CRUD methods
@@ -34,6 +34,18 @@ export interface IStorage {
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
   updateBlogPost(id: number, post: UpdateBlogPost): Promise<BlogPost | undefined>;
   deleteBlogPost(id: number): Promise<boolean>;
+  
+  // Shopping cart methods
+  getCartBySessionId(sessionId: string): Promise<CartItem[]>;
+  addToCart(item: InsertCartItem): Promise<CartItem>;
+  removeFromCart(id: number): Promise<boolean>;
+  clearCart(sessionId: string): Promise<boolean>;
+  getCartItemCount(sessionId: string): Promise<number>;
+  
+  // Booking methods
+  createBooking(booking: InsertBooking): Promise<Booking>;
+  getBookingByReference(reference: string): Promise<Booking | undefined>;
+  updateBooking(id: number, updates: Partial<Booking>): Promise<Booking | undefined>;
 }
 
 // In-memory storage with per-currency product caching
@@ -46,6 +58,10 @@ export class MemStorage implements IStorage {
   private faqIdCounter: number;
   private blogPosts: Map<number, BlogPost>;
   private blogPostIdCounter: number;
+  private cartItems: Map<number, CartItem>;
+  private cartIdCounter: number;
+  private bookings: Map<number, Booking>;
+  private bookingIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -56,6 +72,10 @@ export class MemStorage implements IStorage {
     this.faqIdCounter = 1;
     this.blogPosts = new Map();
     this.blogPostIdCounter = 1;
+    this.cartItems = new Map();
+    this.cartIdCounter = 1;
+    this.bookings = new Map();
+    this.bookingIdCounter = 1;
     
     this.initializeSampleBlogPosts();
   }
@@ -424,6 +444,98 @@ export class MemStorage implements IStorage {
 
   async deleteBlogPost(id: number): Promise<boolean> {
     return this.blogPosts.delete(id);
+  }
+
+  // Shopping cart methods
+  async getCartBySessionId(sessionId: string): Promise<CartItem[]> {
+    return Array.from(this.cartItems.values())
+      .filter(item => item.sessionId === sessionId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async addToCart(insertItem: InsertCartItem): Promise<CartItem> {
+    const id = this.cartIdCounter++;
+    const now = new Date();
+    const item: CartItem = {
+      id,
+      sessionId: insertItem.sessionId,
+      productId: insertItem.productId,
+      productTitle: insertItem.productTitle,
+      productPrice: insertItem.productPrice,
+      currency: insertItem.currency,
+      quantity: insertItem.quantity,
+      productData: insertItem.productData,
+      createdAt: now,
+    };
+    this.cartItems.set(id, item);
+    return item;
+  }
+
+  async removeFromCart(id: number): Promise<boolean> {
+    return this.cartItems.delete(id);
+  }
+
+  async clearCart(sessionId: string): Promise<boolean> {
+    const itemsToDelete = Array.from(this.cartItems.entries())
+      .filter(([_, item]) => item.sessionId === sessionId)
+      .map(([id]) => id);
+    
+    itemsToDelete.forEach(id => this.cartItems.delete(id));
+    return itemsToDelete.length > 0;
+  }
+
+  async getCartItemCount(sessionId: string): Promise<number> {
+    return Array.from(this.cartItems.values())
+      .filter(item => item.sessionId === sessionId)
+      .reduce((sum, item) => sum + item.quantity, 0);
+  }
+
+  // Booking methods
+  async createBooking(insertBooking: InsertBooking): Promise<Booking> {
+    const id = this.bookingIdCounter++;
+    const now = new Date();
+    const booking: Booking = {
+      id,
+      bookingReference: insertBooking.bookingReference,
+      sessionId: insertBooking.sessionId,
+      customerFirstName: insertBooking.customerFirstName,
+      customerLastName: insertBooking.customerLastName,
+      customerEmail: insertBooking.customerEmail,
+      customerPhone: insertBooking.customerPhone,
+      productId: insertBooking.productId,
+      productTitle: insertBooking.productTitle,
+      productPrice: insertBooking.productPrice,
+      currency: insertBooking.currency,
+      bokunBookingId: insertBooking.bokunBookingId ?? null,
+      bokunReservationId: insertBooking.bokunReservationId ?? null,
+      stripePaymentIntentId: insertBooking.stripePaymentIntentId ?? null,
+      stripeChargeId: insertBooking.stripeChargeId ?? null,
+      paymentStatus: insertBooking.paymentStatus,
+      totalAmount: insertBooking.totalAmount,
+      bookingStatus: insertBooking.bookingStatus,
+      bookingData: insertBooking.bookingData ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.bookings.set(id, booking);
+    return booking;
+  }
+
+  async getBookingByReference(reference: string): Promise<Booking | undefined> {
+    return Array.from(this.bookings.values()).find(booking => booking.bookingReference === reference);
+  }
+
+  async updateBooking(id: number, updates: Partial<Booking>): Promise<Booking | undefined> {
+    const existing = this.bookings.get(id);
+    if (!existing) return undefined;
+
+    const updated: Booking = {
+      ...existing,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.bookings.set(id, updated);
+    return updated;
   }
 }
 

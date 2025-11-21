@@ -4,7 +4,9 @@ import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBo
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema } from "@shared/schema";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import { randomBytes } from "crypto";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dynamic sitemap.xml endpoint
@@ -734,6 +736,235 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting blog post:", error);
       res.status(500).json({ error: "Failed to delete blog post" });
+    }
+  });
+
+  // Shopping Cart API endpoints
+  
+  // Get cart
+  app.get("/api/cart", async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID required" });
+      }
+
+      const cartItems = await storage.getCartBySessionId(sessionId);
+      res.json({ items: cartItems });
+    } catch (error: any) {
+      console.error("Error fetching cart:", error);
+      res.status(500).json({ error: "Failed to fetch cart" });
+    }
+  });
+
+  // Add to cart
+  app.post("/api/cart", async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID required" });
+      }
+
+      const validation = insertCartItemSchema.safeParse({
+        ...req.body,
+        sessionId,
+      });
+
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid cart item data", 
+          details: validation.error.errors 
+        });
+      }
+
+      const cartItem = await storage.addToCart(validation.data);
+      res.json(cartItem);
+    } catch (error: any) {
+      console.error("Error adding to cart:", error);
+      res.status(500).json({ error: "Failed to add to cart" });
+    }
+  });
+
+  // Remove from cart
+  app.delete("/api/cart/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid cart item ID" });
+      }
+
+      const success = await storage.removeFromCart(id);
+      if (!success) {
+        return res.status(404).json({ error: "Cart item not found" });
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error removing from cart:", error);
+      res.status(500).json({ error: "Failed to remove from cart" });
+    }
+  });
+
+  // Clear cart
+  app.delete("/api/cart", async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID required" });
+      }
+
+      await storage.clearCart(sessionId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error clearing cart:", error);
+      res.status(500).json({ error: "Failed to clear cart" });
+    }
+  });
+
+  // Get cart item count
+  app.get("/api/cart/count", async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.json({ count: 0 });
+      }
+
+      const count = await storage.getCartItemCount(sessionId);
+      res.json({ count });
+    } catch (error: any) {
+      console.error("Error fetching cart count:", error);
+      res.status(500).json({ error: "Failed to fetch cart count" });
+    }
+  });
+
+  // Stripe and Booking API endpoints
+
+  // Get Stripe publishable key
+  app.get("/api/stripe/config", async (_req, res) => {
+    try {
+      const publishableKey = await getStripePublishableKey();
+      res.json({ publishableKey });
+    } catch (error: any) {
+      console.error("Error fetching Stripe config:", error);
+      res.status(500).json({ error: "Failed to fetch Stripe config" });
+    }
+  });
+
+  // Create payment intent
+  app.post("/api/create-payment-intent", async (req, res) => {
+    try {
+      const { amount, currency, customerEmail, productId, productTitle } = req.body;
+
+      if (!amount || !currency) {
+        return res.status(400).json({ error: "Amount and currency are required" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100),
+        currency: currency.toLowerCase(),
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          customerEmail: customerEmail || '',
+          productId: productId || '',
+          productTitle: productTitle || '',
+        },
+      });
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id,
+      });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ error: error.message || "Failed to create payment intent" });
+    }
+  });
+
+  // Create booking
+  app.post("/api/bookings", async (req, res) => {
+    try {
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID required" });
+      }
+
+      const {
+        customerFirstName,
+        customerLastName,
+        customerEmail,
+        customerPhone,
+        productId,
+        productTitle,
+        productPrice,
+        currency,
+        totalAmount,
+        stripePaymentIntentId,
+      } = req.body;
+
+      // Generate booking reference
+      const bookingReference = `FP${Date.now()}-${randomBytes(4).toString('hex').toUpperCase()}`;
+
+      const booking = await storage.createBooking({
+        bookingReference,
+        sessionId,
+        customerFirstName,
+        customerLastName,
+        customerEmail,
+        customerPhone,
+        productId,
+        productTitle,
+        productPrice,
+        currency,
+        totalAmount,
+        stripePaymentIntentId,
+        paymentStatus: 'pending',
+        bookingStatus: 'pending',
+        bookingData: req.body,
+      });
+
+      res.json(booking);
+    } catch (error: any) {
+      console.error("Error creating booking:", error);
+      res.status(500).json({ error: "Failed to create booking" });
+    }
+  });
+
+  // Get booking by reference
+  app.get("/api/bookings/:reference", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const booking = await storage.getBookingByReference(reference);
+
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+
+      res.json(booking);
+    } catch (error: any) {
+      console.error("Error fetching booking:", error);
+      res.status(500).json({ error: "Failed to fetch booking" });
+    }
+  });
+
+  // Update booking status (webhook handler will use this)
+  app.patch("/api/bookings/:reference", async (req, res) => {
+    try {
+      const { reference } = req.params;
+      const booking = await storage.getBookingByReference(reference);
+
+      if (!booking) {
+        return res.status(404).json({ error: "Booking not found" });
+      }
+
+      const updated = await storage.updateBooking(booking.id, req.body);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating booking:", error);
+      res.status(500).json({ error: "Failed to update booking" });
     }
   });
 

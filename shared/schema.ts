@@ -276,3 +276,71 @@ export const updateBlogPostSchema = insertBlogPostSchema.partial();
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 export type UpdateBlogPost = z.infer<typeof updateBlogPostSchema>;
+
+// Shopping cart schema
+export const cartItems = pgTable("cart_items", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull(),
+  productId: text("product_id").notNull(),
+  productTitle: text("product_title").notNull(),
+  productPrice: integer("product_price").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  quantity: integer("quantity").notNull().default(1),
+  productData: jsonb("product_data").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCartItemSchema = createInsertSchema(cartItems).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export type CartItem = typeof cartItems.$inferSelect;
+export type InsertCartItem = z.infer<typeof insertCartItemSchema>;
+
+// Bookings schema
+export const bookings = pgTable("bookings", {
+  id: serial("id").primaryKey(),
+  bookingReference: text("booking_reference").notNull().unique(),
+  sessionId: text("session_id").notNull(),
+  
+  // Customer information
+  customerFirstName: text("customer_first_name").notNull(),
+  customerLastName: text("customer_last_name").notNull(),
+  customerEmail: text("customer_email").notNull(),
+  customerPhone: text("customer_phone").notNull(),
+  
+  // Booking details
+  productId: text("product_id").notNull(),
+  productTitle: text("product_title").notNull(),
+  productPrice: integer("product_price").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  
+  // Bokun details
+  bokunBookingId: text("bokun_booking_id"),
+  bokunReservationId: text("bokun_reservation_id"),
+  
+  // Payment details
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripeChargeId: text("stripe_charge_id"),
+  paymentStatus: text("payment_status").notNull().default("pending"),
+  totalAmount: integer("total_amount").notNull(),
+  
+  // Booking status
+  bookingStatus: text("booking_status").notNull().default("pending"),
+  
+  // Additional data
+  bookingData: jsonb("booking_data"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertBookingSchema = createInsertSchema(bookings).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true 
+});
+
+export type Booking = typeof bookings.$inferSelect;
+export type InsertBooking = z.infer<typeof insertBookingSchema>;

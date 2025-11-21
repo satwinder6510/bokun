@@ -217,10 +217,10 @@ export default function Homepage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <a href="/faq" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-faq">
+            <a href="/faq" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-faq">
               FAQ
             </a>
-            <a href="/blog" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-blog">
+            <a href="/blog" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-blog">
               Blog
             </a>
             <CurrencySelector />
@@ -489,6 +489,9 @@ export default function Homepage() {
                   </a>
                   <a href="/faq" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     FAQ
+                  </a>
+                  <a href="/blog" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Blog
                   </a>
                   <a href="/contact" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     Contact

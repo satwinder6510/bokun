@@ -128,15 +128,14 @@ export default function Login() {
                 {isLoading ? "Verifying..." : "Continue"}
               </Button>
               <div className="text-center">
-                <Button
+                <button
                   type="button"
-                  variant="link"
                   onClick={() => setLocation("/2fa-setup")}
-                  className="text-sm"
+                  className="text-sm text-primary hover:underline"
                   data-testid="link-setup-2fa"
                 >
                   Need to set up 2FA?
-                </Button>
+                </button>
               </div>
             </form>
           ) : (

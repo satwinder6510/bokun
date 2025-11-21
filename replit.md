@@ -24,6 +24,8 @@ The frontend is built with **React 18** and **TypeScript**, using **Vite** for f
 
 The backend is an **Express.js** application written in TypeScript, providing RESTful API endpoints under the `/api` namespace. It acts as a secure intermediary (proxy pattern) for interactions with the Bokun API, protecting credentials and generating HMAC-SHA1 signatures server-side. Key integration points include connection testing, product search with pagination, product details retrieval, and availability/pricing queries. API credentials are stored as environment variables.
 
+**Multi-Currency Support:** The platform supports 5 currencies (USD, EUR, GBP, CAD, INR) with server-side currency conversion via Bokun API. The search endpoint accepts a `currency` query parameter which is included in the HMAC signature. A smart caching strategy is employed: GBP products are cached with a 24-hour TTL for performance, while other currencies fetch fresh data to ensure accurate pricing. Currency selection is persisted in local storage and the frontend automatically refetches products when currency changes.
+
 ### Data Layer
 
 An in-memory storage system (`MemStorage`) is used for initial development, with an interface-based design to facilitate future migration to a persistent database. **Drizzle ORM** is configured for PostgreSQL integration (using Neon Serverless PostgreSQL), with schema definitions in TypeScript and **Zod** for runtime validation.

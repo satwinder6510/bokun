@@ -13,7 +13,6 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
-import travelTrustLogo from "@assets/travel-trust_1763746315257.png";
 
 export default function TourDetail() {
   const { selectedCurrency } = useCurrency();
@@ -141,22 +140,14 @@ export default function TourDetail() {
               Back to Tours
             </Button>
           </Link>
-          <div className="flex items-center gap-3 md:gap-4">
-            <Link href="/">
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-10 md:h-12 w-auto"
-                data-testid="img-logo"
-              />
-            </Link>
+          <Link href="/">
             <img 
-              src={travelTrustLogo} 
-              alt="Travel Trust Member" 
-              className="hidden md:block h-8 md:h-9 w-auto"
-              aria-label="Travel Trust membership"
+              src={logoImage} 
+              alt="Flights and Packages" 
+              className="h-10 md:h-12 w-auto"
+              data-testid="img-logo"
             />
-          </div>
+          </Link>
         </div>
       </header>
 

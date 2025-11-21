@@ -464,24 +464,49 @@ export default function Homepage() {
       {/* Footer */}
       <footer className="bg-card border-t py-16">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
+            {/* Company Info */}
             <div>
               <h4 className="font-bold text-lg mb-4">Flights and Packages</h4>
-              <p className="text-sm text-muted-foreground">
-                Discover unforgettable journeys across stunning destinations worldwide.
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Discover unforgettable journeys across stunning destinations worldwide. Your trusted partner for travel experiences.
               </p>
             </div>
+            
+            {/* Quick Links */}
             <div>
-              <h5 className="font-semibold mb-4">Popular Destinations</h5>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                {allCountries.slice(0, 10).map((country) => (
+              <h5 className="font-semibold mb-4">Quick Links</h5>
+              <ul className="space-y-3 text-sm">
+                <li>
+                  <a href="/" className="text-muted-foreground hover:text-primary transition-colors">
+                    Home
+                  </a>
+                </li>
+                <li>
+                  <a href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
+                    Contact Us
+                  </a>
+                </li>
+                <li>
+                  <a href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
+                    Terms & Conditions
+                  </a>
+                </li>
+              </ul>
+            </div>
+            
+            {/* Top Destinations */}
+            <div>
+              <h5 className="font-semibold mb-4">Top Destinations</h5>
+              <ul className="space-y-3 text-sm">
+                {allCountries.slice(0, 8).map((country) => (
                   <li key={country}>
                     <button
                       onClick={() => {
                         setSelectedCountry(country);
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }}
-                      className="hover:text-primary transition-colors text-left"
+                      className="text-muted-foreground hover:text-primary transition-colors text-left"
                     >
                       {country}
                     </button>
@@ -489,46 +514,36 @@ export default function Homepage() {
                 ))}
               </ul>
             </div>
+            
+            {/* Contact Info */}
             <div>
-              <h5 className="font-semibold mb-4">More Destinations</h5>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                {allCountries.slice(10, 20).map((country) => (
-                  <li key={country}>
-                    <button
-                      onClick={() => {
-                        setSelectedCountry(country);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="hover:text-primary transition-colors text-left"
-                    >
-                      {country}
-                    </button>
-                  </li>
-                ))}
-                {allCountries.length > 20 && (
-                  <li className="pt-2">
-                    <span className="text-xs italic">
-                      + {allCountries.length - 20} more destinations
-                    </span>
-                  </li>
-                )}
-              </ul>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Contact</h5>
-              <p className="text-sm text-muted-foreground mb-4">
-                Email: holidayenq@flightsandpackages.com
-              </p>
-              <h5 className="font-semibold mb-4 mt-6">Support</h5>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">FAQs</a></li>
-                <li><a href="/terms" className="hover:text-primary transition-colors">Terms & Conditions</a></li>
-              </ul>
+              <h5 className="font-semibold mb-4">Get in Touch</h5>
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground">Email:</span><br />
+                  <a href="mailto:holidayenq@flightsandpackages.com" className="hover:text-primary transition-colors">
+                    holidayenq@flightsandpackages.com
+                  </a>
+                </p>
+                <p className="pt-2">
+                  Have questions? We're here to help you plan your perfect trip.
+                </p>
+              </div>
             </div>
           </div>
-          <div className="border-t pt-8 text-center text-sm text-muted-foreground" data-testid="text-footer">
-            <p>© 2025 Flights and Packages. All rights reserved.</p>
+          
+          {/* Bottom Bar */}
+          <div className="border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground" data-testid="text-footer">
+              © 2025 Flights and Packages. All rights reserved.
+            </p>
+            <div className="flex items-center gap-2">
+              <img 
+                src={travelTrustLogo} 
+                alt="Travel Trust Association" 
+                className="h-8 w-auto opacity-70"
+              />
+            </div>
           </div>
         </div>
       </footer>

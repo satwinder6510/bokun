@@ -515,7 +515,7 @@ export default function Homepage() {
             <div>
               <h5 className="font-semibold mb-4">Contact</h5>
               <p className="text-sm text-muted-foreground mb-4">
-                Email: info@flightsandpackages.com
+                Email: holidayenq@flightsandpackages.com
               </p>
               <h5 className="font-semibold mb-4 mt-6">Support</h5>
               <ul className="space-y-2 text-sm text-muted-foreground">

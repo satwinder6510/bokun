@@ -876,8 +876,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate total amount server-side (secure - cannot be tampered with)
+      // productPrice already includes quantity (per-person price × number of people)
       const totalAmount = cartItems.reduce((sum, item) => {
-        return sum + (item.productPrice * item.quantity);
+        return sum + item.productPrice;
       }, 0);
 
       if (totalAmount <= 0) {

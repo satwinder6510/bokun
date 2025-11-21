@@ -286,7 +286,8 @@ export default function Checkout() {
   const [serverValidatedCurrency, setServerValidatedCurrency] = useState<string>("");
   const [paymentIntentId, setPaymentIntentId] = useState<string>("");
 
-  const clientSubtotal = items.reduce((sum, item) => sum + item.productPrice * item.quantity, 0);
+  // productPrice already includes quantity calculation (per-person price × number of people)
+  const clientSubtotal = items.reduce((sum, item) => sum + item.productPrice, 0);
   const currency = items[0]?.currency || 'USD';
 
   // Redirect if cart is empty

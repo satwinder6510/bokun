@@ -18,7 +18,8 @@ export function CartButton() {
   const [, navigate] = useLocation();
   const { formatCurrency } = useCurrency();
 
-  const total = items.reduce((sum, item) => sum + item.productPrice * item.quantity, 0);
+  // productPrice already includes quantity calculation (per-person price × number of people)
+  const total = items.reduce((sum, item) => sum + item.productPrice, 0);
 
   return (
     <Sheet>

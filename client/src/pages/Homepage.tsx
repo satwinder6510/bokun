@@ -478,7 +478,7 @@ export default function Homepage() {
       {/* Footer */}
       <footer className="bg-card border-t py-16">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
             <div>
               <h4 className="font-bold text-lg mb-4">Flights and Packages</h4>
               <p className="text-sm text-muted-foreground">
@@ -486,26 +486,59 @@ export default function Homepage() {
               </p>
             </div>
             <div>
-              <h5 className="font-semibold mb-4">Quick Links</h5>
+              <h5 className="font-semibold mb-4">Popular Destinations</h5>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="/" className="hover:text-primary transition-colors">Home</a></li>
-                <li><a href="#tours" className="hover:text-primary transition-colors">All Tours</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Destinations</a></li>
+                {allCountries.slice(0, 10).map((country) => (
+                  <li key={country}>
+                    <button
+                      onClick={() => {
+                        setSelectedCountry(country);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="hover:text-primary transition-colors text-left"
+                    >
+                      {country}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
-              <h5 className="font-semibold mb-4">Support</h5>
+              <h5 className="font-semibold mb-4">More Destinations</h5>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {allCountries.slice(10, 20).map((country) => (
+                  <li key={country}>
+                    <button
+                      onClick={() => {
+                        setSelectedCountry(country);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="hover:text-primary transition-colors text-left"
+                    >
+                      {country}
+                    </button>
+                  </li>
+                ))}
+                {allCountries.length > 20 && (
+                  <li className="pt-2">
+                    <span className="text-xs italic">
+                      + {allCountries.length - 20} more destinations
+                    </span>
+                  </li>
+                )}
+              </ul>
+            </div>
+            <div>
+              <h5 className="font-semibold mb-4">Contact</h5>
+              <p className="text-sm text-muted-foreground mb-4">
+                Email: info@flightsandpackages.com
+              </p>
+              <h5 className="font-semibold mb-4 mt-6">Support</h5>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">FAQs</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">Terms</a></li>
               </ul>
-            </div>
-            <div>
-              <h5 className="font-semibold mb-4">Contact</h5>
-              <p className="text-sm text-muted-foreground">
-                Email: info@flightsandpackages.com
-              </p>
             </div>
           </div>
           <div className="border-t pt-8 text-center text-sm text-muted-foreground" data-testid="text-footer">

@@ -2,94 +2,9 @@
 
 ## Overview
 
-A public-facing tour booking website showcasing 700+ curated tours from the Bokun API. The application provides a clean, minimal interface for browsing tours, viewing detailed itineraries with hotel information, checking availability with calendar-based date selection, and exploring pricing options. Built as a full-stack TypeScript application focused on user experience and visual appeal.
+This project is a public-facing tour booking website for "Flights and Packages," showcasing over 700 curated tours sourced from the Bokun API. The platform aims to provide a clean, minimal interface for users to browse tours, view detailed itineraries with hotel information, check availability using a calendar-based system, and explore various pricing options.
 
-**Company:** Flights and Packages
-**Custom Domain:** tours.flightsandpackages.com
-**Current Phase:** Phase 1 - Browse and explore only. Shopping cart and booking functionality planned for Phase 2.
-
-## Recent Changes (November 21, 2025)
-
-- **Company Branding Update**:
-  - Rebranded from "Tour Discoveries" to "Flights and Packages"
-  - Updated all meta tags, page titles, and branding to reflect company name
-  - Prepared for custom domain deployment: tours.flightsandpackages.com
-- **SEO Implementation - Phase 1 Complete**:
-  - Dynamic meta tags on tour detail pages with unique titles and descriptions
-  - Structured data (Schema.org JSON-LD) for rich snippets in Google Search results
-  - Tour schema includes name, price, destination, duration, and imagery
-  - Open Graph tags for social media sharing
-  - Robots.txt with sitemap reference
-  - Meta tag utility library for dynamic tag management
-
-- **Multi-Currency Support**:
-  - Added currency selector in header with 5 currencies: USD ($), EUR (€), GBP (£), CAD (C$), INR (₹)
-  - Default currency: USD
-  - Currency preference persists in localStorage across sessions and affects detail/booking views
-  - **Limitation**: Cached product list prices (homepage tour cards, hero carousel) remain in GBP (£) - the Bokun product search endpoint does not support currency parameters
-  - Homepage tour cards display prices in £ (GBP) regardless of selected currency
-  - **Tour detail pages fetch fresh data** with selected currency parameter, displaying accurate prices in the user's chosen currency
-  - **Availability checker requests fresh data** with selected currency parameter, providing accurate booking prices in the user's chosen currency
-  - Currency selection impacts pricing only on detail pages and when checking availability - browsing uses cached GBP prices
-
-## Previous Changes (November 20, 2025)
-
-- **Major Design Overhaul - Flights and Packages Aesthetic**:
-  - Complete visual redesign inspired by https://demo.flightsandpackages.com/flightsandpackages/
-  - Changed primary accent color from blue to red/orange (#E74C3C) throughout application
-  - Implemented fullscreen hero carousel with 5 featured tours and 6-second auto-advance
-  - Fixed critical carousel auto-advance bug with proper dependency tracking and defensive guards
-  - Redesigned tour cards with image backgrounds, gradient overlays, and overlaid content (portrait 3:4 aspect ratio)
-  - Added horizontal scrolling category pills with hide-scrollbar CSS utility
-  - Updated section headers with luxury travel platform styling ("our most popular DEALS", "Exclusive offers for you")
-  - Implemented fixed transparent header with backdrop blur effect
-  - Updated TourCard component with small badge labels, bottom-right pricing, and styled CTA buttons
-  - Refined TourDetail page with better image galleries and elegant section styling
-  - All design elements tested and verified via end-to-end testing
-- **Country Filtering with Full Names**:
-  - Replaced 2-letter country codes with full country names (e.g., "Thailand" instead of "TH")
-  - Smart space-efficient design: Top 8 most popular countries as quick-access pills
-  - Dropdown selector showing all countries alphabetically for comprehensive browsing
-  - Dual filtering system supports both country and category selection simultaneously
-  - Section titles dynamically update to reflect active filters (e.g., "Arts And Culture Tours in Thailand")
-  - Uses `googlePlace.country` field from Bokun API for full country names
-- **Custom CSS Utilities**: Added `.hide-scrollbar` utility class for horizontal scrolling elements
-
-## Previous Changes (November 3, 2025)
-
-- **Security Update**: Implemented two-factor authentication (2FA) with authenticator app
-  - Dashboard now requires password + 6-digit TOTP code from authenticator app
-  - 2FA setup page at `/2fa-setup` displays QR code for scanning
-  - Supports all standard authenticator apps (Google Authenticator, Authy, 1Password, etc.)
-  - Two-step login flow: password verification → TOTP verification
-  - Default password: `admin123` (configurable via VITE_ADMIN_PASSWORD)
-  - TOTP secret stored in TOTP_SECRET environment variable
-  - Session-based authentication using browser sessionStorage
-  - Logout functionality to clear session and return to login page
-  - Public users cannot access admin features without correct credentials
-- **Implemented 30-Day Product Caching System**:
-  - In-memory cache storing all products for 30 days to reduce API load
-  - Auto-load products from cache on homepage (no manual action required)
-  - Products served from cache when available, otherwise fetched from API
-  - Note: Cache resets on server restart (in-memory storage)
-- **Public Tour Pages**:
-  - Homepage displays 700+ unique tours with search and filtering
-  - Tour detail pages with comprehensive information:
-    - Full tour descriptions with HTML formatting
-    - Complete day-by-day itinerary breakdown
-    - Hotel details by location (for multi-day tours)
-    - Photo galleries with hero images
-    - Availability checker with calendar date picker
-    - Bookable extras and add-ons
-  - Search functionality by destination or tour name with live feedback
-  - Category filtering with formatted badge names
-- **HTML Content Rendering**: Fixed display of tour descriptions, itineraries, and hotel details using dangerouslySetInnerHTML
-- **Availability Tab**: Calendar-based date selection for checking tour availability and pricing
-- **Default currency set to GBP** for all pricing displays
-- **Category Name Formatting**: Display readable names (e.g., "Seat In Coach Tour" instead of "SEAT_IN_COACH_TOUR")
-- Fixed HMAC signature generation to include query parameters for availability endpoint
-- Improved error handling with proper HTTP status code propagation
-- Schema updated to include `itinerary`, `customFields`, `bookableExtras`, and `pricingCategories` fields
+The business vision is to offer a premier travel booking experience, initially focusing on tour discovery and exploration (Phase 1). Future ambitions include integrating shopping cart functionality and booking capabilities (Phase 2) to become a comprehensive tour booking platform under the custom domain tours.flightsandpackages.com.
 
 ## User Preferences
 
@@ -97,165 +12,47 @@ Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
+### UI/UX Decisions
+
+The design follows a clean, minimal aesthetic with a focus on user experience. A complete visual redesign inspired by https://demo.flightsandpackages.com/flightsandpackages/ has been implemented, featuring a primary accent color of red/orange (#E74C3C). Key UI elements include a fullscreen hero carousel with auto-advancing featured tours, redesigned tour cards with image backgrounds and gradient overlays, and horizontal scrolling category pills. The header is transparent with a backdrop blur effect. The platform supports dynamic meta tags for SEO, structured data (Schema.org JSON-LD), and Open Graph tags. A multi-currency selector is available, with currency preferences persisted in local storage.
+
 ### Frontend Architecture
 
-**Framework & Build System:**
-- **React 18** with TypeScript for type-safe component development
-- **Vite** as the build tool and dev server, configured for fast HMR and optimized production builds
-- **Wouter** for lightweight client-side routing (single-page application pattern)
-
-**UI Component System:**
-- **shadcn/ui** component library (New York style variant) built on Radix UI primitives
-- **Tailwind CSS** for utility-first styling with custom design tokens
-- Custom design system following technical dashboard patterns inspired by Linear/Vercel
-- Typography hierarchy using Inter (primary) and JetBrains Mono (code/monospace)
-
-**State Management:**
-- **TanStack Query v5** for server state management, API caching, and data synchronization
-- React hooks for local component state
-- Query client configured with disabled refetching (manual refresh pattern)
-
-**Key Design Decisions:**
-- Component-based architecture with reusable UI primitives
-- Separation of concerns: presentational components vs. page-level logic
-- Custom theming system with light/dark mode support via CSS variables
-- Responsive design with mobile-first breakpoints
+The frontend is built with **React 18** and **TypeScript**, using **Vite** for fast HMR and optimized builds. **Wouter** handles client-side routing. The UI component system leverages **shadcn/ui** (New York style variant) built on Radix UI primitives, styled with **Tailwind CSS**. **TanStack Query v5** manages server state, API caching, and data synchronization. The architecture is component-based, emphasizing reusability and separation of concerns, with a responsive, mobile-first design.
 
 ### Backend Architecture
 
-**Server Framework:**
-- **Express.js** with TypeScript for REST API endpoints
-- ESM module system (type: "module" in package.json)
-- Custom middleware for request logging with response time tracking
-
-**API Design:**
-- RESTful endpoints under `/api` namespace
-- POST-based mutations for Bokun API interactions
-- JSON request/response format
-- Centralized error handling with structured error responses
-
-**Bokun Integration:**
-- HMAC-SHA1 signature authentication for Bokun API requests
-- Custom signature generation using access key, secret key, timestamp, and full request path (including query parameters)
-- Proxy pattern: backend acts as secure intermediary to hide API credentials from client
-- Four primary integration points:
-  - Connection testing endpoint (health check pattern)
-  - Product search with pagination support
-  - Product details retrieval by ID
-  - Availability and pricing queries with date range filtering
-
-**Security Approach:**
-- API credentials (BOKUN_ACCESS_KEY, BOKUN_SECRET_KEY) stored as environment variables
-- Credentials never exposed to client-side code
-- Server-side signature generation prevents credential leakage
+The backend is an **Express.js** application written in TypeScript, providing RESTful API endpoints under the `/api` namespace. It acts as a secure intermediary (proxy pattern) for interactions with the Bokun API, protecting credentials and generating HMAC-SHA1 signatures server-side. Key integration points include connection testing, product search with pagination, product details retrieval, and availability/pricing queries. API credentials are stored as environment variables.
 
 ### Data Layer
 
-**Storage Strategy:**
-- In-memory storage implementation via `MemStorage` class
-- Interface-based design (`IStorage`) allows for future database integration
-- Currently supports basic user CRUD operations (foundation for future auth)
-
-**Database Configuration:**
-- **Drizzle ORM** configured for PostgreSQL integration
-- Schema definition in TypeScript with Zod validation
-- Migration system ready but minimal schema usage in current implementation
-- Database provisioning expected via `DATABASE_URL` environment variable
-
-**Data Validation:**
-- **Zod schemas** for runtime type validation and parsing
-- Shared schema definitions between frontend and backend
-- Type-safe API contracts derived from Zod schemas
-
-**Key Schema Entities:**
-- `BokunProduct`: Product information from Bokun API
-- `BokunProductSearchResponse`: Paginated search results with metadata
-- `ConnectionStatus`: API health check response structure
+An in-memory storage system (`MemStorage`) is used for initial development, with an interface-based design to facilitate future migration to a persistent database. **Drizzle ORM** is configured for PostgreSQL integration (using Neon Serverless PostgreSQL), with schema definitions in TypeScript and **Zod** for runtime validation.
 
 ### Build & Deployment
 
-**Development Mode:**
-- `tsx` for running TypeScript server code without compilation
-- Vite dev server with HMR for frontend development
-- Concurrent processes (dev server + API server)
-
-**Production Build:**
-- Frontend: Vite builds React app to `dist/public`
-- Backend: esbuild bundles server code to `dist/index.js`
-- Single Node.js process serves both static files and API
-- Platform-agnostic deployment (node + external packages pattern)
-
-**Replit-Specific Integrations:**
-- Runtime error overlay plugin for development
-- Cartographer plugin for code navigation
-- Dev banner for Replit environment identification
+Development uses `tsx` for the backend and Vite for the frontend, with concurrent processes. Production builds involve Vite for the frontend (output to `dist/public`) and `esbuild` for the backend (output to `dist/index.js`), served by a single Node.js process.
 
 ## External Dependencies
 
 ### Third-Party Services
 
-**Bokun API:**
-- Test environment endpoint: `https://api.bokuntest.com`
-- Authentication: HMAC-SHA1 signature-based
-- Primary endpoints used:
-  - `/activity.json/search` - Product search with pagination
-- Response format: JSON with nested product objects
+-   **Bokun API:** Used for tour data, including searching, retrieving details, and checking availability. Authenticated via HMAC-SHA1 signatures.
+-   **Privyr CRM:** Integrated for handling contact form submissions via a secure webhook.
 
 ### Database & Infrastructure
 
-**Neon Serverless PostgreSQL:**
-- Serverless PostgreSQL via `@neondatabase/serverless` driver
-- WebSocket-based connection for serverless environments
-- Configured via Drizzle ORM but minimal current usage
-- Connection pooling handled by Neon driver
+-   **Neon Serverless PostgreSQL:** Configured for database operations via Drizzle ORM, utilizing a WebSocket-based connection.
 
 ### UI Component Libraries
 
-**Radix UI Primitives (30+ components):**
-- Unstyled, accessible component primitives
-- Used for: dialogs, dropdowns, tooltips, accordions, tabs, etc.
-- Provides ARIA-compliant, keyboard-navigable interactions
+-   **Radix UI Primitives:** Provides accessible, unstyled UI components (e.g., dialogs, dropdowns).
+-   **shadcn/ui:** Component library built on Radix UI and styled with Tailwind CSS.
+-   **embla-carousel-react:** For carousel functionality.
+-   **lucide-react:** Icon system.
+-   **react-day-picker:** Date picker component.
 
-**Supporting Libraries:**
-- `class-variance-authority` - Type-safe component variant system
-- `cmdk` - Command palette component (for future search features)
-- `embla-carousel-react` - Carousel/slider functionality
-- `lucide-react` - Icon system (200+ icons)
-- `react-day-picker` - Date picker component
-- `vaul` - Drawer component for mobile interfaces
+### Supporting Libraries
 
-### Development Tools
-
-**TypeScript Tooling:**
-- Full-stack TypeScript with strict mode enabled
-- Path aliases for clean imports (`@/`, `@shared/`)
-- Incremental compilation with build info caching
-
-**Code Quality:**
-- PostCSS with Tailwind CSS and Autoprefixer
-- ESLint/Prettier configuration implied by project structure
-
-### Runtime Dependencies
-
-- `date-fns` - Date formatting and manipulation
-- `nanoid` - Unique ID generation
-- `crypto` (Node.js built-in) - HMAC signature generation
-- `connect-pg-simple` - PostgreSQL session store (infrastructure for future auth)
-
-### Notable Architecture Decisions
-
-**Why In-Memory Storage Initially:**
-- Simplifies initial development and testing
-- Interface design allows seamless migration to PostgreSQL
-- User management infrastructure prepared but not critical for core API testing functionality
-
-**Why Server-Side Bokun Proxy:**
-- Protects API credentials from client exposure
-- Enables secure signature generation
-- Allows request/response transformation and caching opportunities
-
-**Why Vite Over Other Bundlers:**
-- Faster development experience with native ESM
-- Excellent TypeScript and React support
-- Simpler configuration compared to webpack
-- Optimal for modern React applications
+-   **class-variance-authority:** For type-safe component variants.
+-   **nanoid:** For unique ID generation.
+-   **date-fns:** For date formatting and manipulation.

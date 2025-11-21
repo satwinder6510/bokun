@@ -96,10 +96,10 @@ export class MemStorage implements IStorage {
   async setCachedProduct(productId: string, product: BokunProduct): Promise<void> {
     this.productsCache.set(productId, product);
     
-    // Update expiry if not set - 24 hour TTL for pricing data freshness
+    // Update expiry if not set - 30 day TTL for product cards
     if (!this.cacheExpiry) {
       const now = new Date();
-      this.cacheExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+      this.cacheExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
       this.lastRefreshAt = now;
     }
   }
@@ -115,8 +115,8 @@ export class MemStorage implements IStorage {
       this.productsCache.set(product.id, product);
     }
     
-    // Update cache metadata - 24 hour TTL for pricing data freshness
-    this.cacheExpiry = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours
+    // Update cache metadata - 30 day TTL for product cards
+    this.cacheExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
     this.lastRefreshAt = now;
   }
 

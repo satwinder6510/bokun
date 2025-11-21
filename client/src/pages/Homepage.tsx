@@ -537,7 +537,7 @@ export default function Homepage() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
                 <li><a href="#" className="hover:text-primary transition-colors">FAQs</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Terms</a></li>
+                <li><a href="/terms" className="hover:text-primary transition-colors">Terms & Conditions</a></li>
               </ul>
             </div>
           </div>

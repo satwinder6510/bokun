@@ -362,62 +362,6 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Country Tabs */}
-      {allCountries.length > 0 && (
-        <section className="py-8 bg-card border-b overflow-hidden">
-          <div className="container mx-auto px-6 md:px-8">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
-                Browse by Destination
-              </h4>
-              <Select 
-                value={selectedCountry || "all"} 
-                onValueChange={(value) => setSelectedCountry(value === "all" ? null : value)}
-              >
-                <SelectTrigger className="w-[200px]" data-testid="select-all-destinations">
-                  <SelectValue placeholder="All Destinations" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Destinations</SelectItem>
-                  {allCountries.map((country) => (
-                    <SelectItem key={country} value={country}>
-                      {country}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar">
-              <button
-                onClick={() => setSelectedCountry(null)}
-                className={`px-6 py-3 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
-                  selectedCountry === null
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                }`}
-                data-testid="button-country-all"
-              >
-                All Destinations
-              </button>
-              {topCountries.map((country) => (
-                <button
-                  key={country}
-                  onClick={() => setSelectedCountry(country)}
-                  className={`px-6 py-3 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
-                    selectedCountry === country
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                  }`}
-                  data-testid={`button-country-${country.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  {country}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Horizontal Category Pills */}
       {categories.length > 0 && (
         <section className="py-8 bg-background overflow-hidden">

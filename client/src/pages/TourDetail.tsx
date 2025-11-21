@@ -51,6 +51,10 @@ export default function TourDetail() {
       setMetaTags(title, description, ogImage);
 
       // Add structured data for rich snippets
+      // Use currency-adjusted price from API response
+      const priceAmount = product.nextDefaultPriceMoney?.amount ?? product.nextDefaultPrice ?? product.price ?? 0;
+      const priceCurrency = product.nextDefaultPriceMoney?.currency ?? selectedCurrency.code;
+      
       const schema = {
         '@context': 'https://schema.org',
         '@type': 'Tour',
@@ -59,8 +63,8 @@ export default function TourDetail() {
         image: ogImage,
         offers: {
           '@type': 'Offer',
-          price: product.price?.toString() || '0',
-          priceCurrency: selectedCurrency.code,
+          price: priceAmount.toString(),
+          priceCurrency: priceCurrency,
           availability: 'https://schema.org/InStock'
         },
         destination: {
@@ -148,18 +152,28 @@ export default function TourDetail() {
               />
             </Link>
             <div className="hidden md:flex items-center gap-2 md:gap-3">
-              <img 
-                src={travelTrustLogo} 
-                alt="Travel Trust" 
-                className="h-6 md:h-7 w-auto opacity-90"
-                style={{ filter: 'brightness(0) invert(1)' }}
-              />
-              <img 
-                src={atolLogo} 
-                alt="ATOL Protected" 
-                className="h-6 md:h-7 w-auto opacity-90"
-                style={{ filter: 'brightness(0) invert(1)' }}
-              />
+              <div 
+                className="flex items-center h-7 md:h-8 px-2 py-1 bg-muted/50 rounded border border-border"
+                role="img"
+                aria-label="Travel Trust membership"
+              >
+                <img 
+                  src={travelTrustLogo} 
+                  alt="Travel Trust" 
+                  className="h-full w-auto object-contain"
+                />
+              </div>
+              <div 
+                className="flex items-center h-7 md:h-8 px-2 py-1 bg-muted/50 rounded border border-border"
+                role="img"
+                aria-label="ATOL protected"
+              >
+                <img 
+                  src={atolLogo} 
+                  alt="ATOL Protected" 
+                  className="h-full w-auto object-contain"
+                />
+              </div>
             </div>
           </div>
         </div>

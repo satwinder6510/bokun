@@ -141,7 +141,7 @@ export default function TourDetail() {
               Back to Tours
             </Button>
           </Link>
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-5 md:gap-6">
             <Link href="/">
               <img 
                 src={logoImage} 

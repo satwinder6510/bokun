@@ -155,7 +155,7 @@ export default function Homepage() {
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-5 md:gap-6">
             <a href="/" className="flex items-center" data-testid="link-logo">
               <img 
                 src={logoImage} 

@@ -850,33 +850,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create payment intent
+  // Create payment intent - SECURE: Server-side total calculation
   app.post("/api/create-payment-intent", async (req, res) => {
     try {
-      const { amount, currency, customerEmail, productId, productTitle } = req.body;
+      const sessionId = req.headers['x-session-id'] as string;
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID required" });
+      }
 
-      if (!amount || !currency) {
-        return res.status(400).json({ error: "Amount and currency are required" });
+      // Fetch cart items from server-side storage (secure)
+      const cartItems = await storage.getCartBySessionId(sessionId);
+      
+      if (!cartItems || cartItems.length === 0) {
+        return res.status(400).json({ error: "Cart is empty" });
+      }
+
+      // Validate all cart items have the same currency
+      const firstCurrency = cartItems[0].currency;
+      const allSameCurrency = cartItems.every(item => item.currency === firstCurrency);
+      
+      if (!allSameCurrency) {
+        return res.status(400).json({ 
+          error: "All cart items must be in the same currency. Please clear your cart and start over." 
+        });
+      }
+
+      // Calculate total amount server-side (secure - cannot be tampered with)
+      const totalAmount = cartItems.reduce((sum, item) => {
+        return sum + (item.productPrice * item.quantity);
+      }, 0);
+
+      if (totalAmount <= 0) {
+        return res.status(400).json({ error: "Invalid total amount" });
       }
 
       const stripe = await getUncachableStripeClient();
       
+      // Create payment intent with server-calculated amount
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100),
-        currency: currency.toLowerCase(),
+        amount: Math.round(totalAmount * 100), // Convert to cents
+        currency: firstCurrency.toLowerCase(),
         automatic_payment_methods: {
           enabled: true,
         },
         metadata: {
-          customerEmail: customerEmail || '',
-          productId: productId || '',
-          productTitle: productTitle || '',
+          sessionId,
+          itemCount: cartItems.length.toString(),
+          cartItemIds: cartItems.map(item => item.id).join(','),
         },
       });
 
       res.json({ 
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
+        amount: totalAmount,
+        currency: firstCurrency,
       });
     } catch (error: any) {
       console.error("Error creating payment intent:", error);
@@ -884,7 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create booking
+  // Create booking - SECURE: Verify payment before creating booking
   app.post("/api/bookings", async (req, res) => {
     try {
       const sessionId = req.headers['x-session-id'] as string;
@@ -897,17 +925,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerLastName,
         customerEmail,
         customerPhone,
-        productId,
-        productTitle,
-        productPrice,
-        currency,
-        totalAmount,
         stripePaymentIntentId,
       } = req.body;
+
+      if (!stripePaymentIntentId) {
+        return res.status(400).json({ error: "Payment intent ID required" });
+      }
+
+      // CRITICAL SECURITY: Verify payment with Stripe before creating booking
+      const stripe = await getUncachableStripeClient();
+      const paymentIntent = await stripe.paymentIntents.retrieve(stripePaymentIntentId);
+
+      // Verify payment was successful
+      if (paymentIntent.status !== 'succeeded') {
+        return res.status(400).json({ 
+          error: "Payment not completed",
+          paymentStatus: paymentIntent.status,
+        });
+      }
+
+      // Derive all amounts from Payment Intent (source of truth)
+      const paidAmount = paymentIntent.amount / 100; // Convert cents to dollars
+      const paidCurrency = paymentIntent.currency.toUpperCase();
+
+      // Fetch cart items to get product details for booking
+      const cartItems = await storage.getCartBySessionId(sessionId);
+      
+      if (!cartItems || cartItems.length === 0) {
+        return res.status(400).json({ error: "Cart is empty" });
+      }
 
       // Generate booking reference
       const bookingReference = `FP${Date.now()}-${randomBytes(4).toString('hex').toUpperCase()}`;
 
+      // Create booking with verified payment
       const booking = await storage.createBooking({
         bookingReference,
         sessionId,
@@ -915,21 +966,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customerLastName,
         customerEmail,
         customerPhone,
-        productId,
-        productTitle,
-        productPrice,
-        currency,
-        totalAmount,
+        productId: cartItems[0].productId, // Primary product from cart
+        productTitle: cartItems[0].productTitle, // Primary product from cart
+        productPrice: paidAmount, // Amount from verified Payment Intent
+        currency: paidCurrency, // Currency from verified Payment Intent
+        totalAmount: paidAmount, // Total from verified Payment Intent
         stripePaymentIntentId,
-        paymentStatus: 'pending',
-        bookingStatus: 'pending',
-        bookingData: req.body,
+        paymentStatus: 'completed', // Verified as succeeded
+        bookingStatus: 'confirmed',
+        bookingData: {
+          cartItems: cartItems.map(item => {
+            const productData = item.productData as any;
+            return {
+              productId: item.productId,
+              productTitle: item.productTitle,
+              price: item.productPrice,
+              quantity: item.quantity,
+              date: productData?.date,
+              rateTitle: productData?.rateTitle,
+              rateId: productData?.rateId,
+            };
+          }),
+          paymentIntentAmount: paidAmount,
+          paymentIntentCurrency: paymentIntent.currency,
+        },
       });
 
-      res.json(booking);
+      res.json({ booking });
     } catch (error: any) {
       console.error("Error creating booking:", error);
-      res.status(500).json({ error: "Failed to create booking" });
+      res.status(500).json({ error: error.message || "Failed to create booking" });
     }
   });
 

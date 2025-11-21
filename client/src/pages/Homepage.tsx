@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { CurrencySelector } from "@/components/CurrencySelector";
+import { CartButton } from "@/components/CartButton";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -190,6 +191,9 @@ export default function Homepage() {
             <div className="flex-shrink-0">
               <CurrencySelector />
             </div>
+            <div className="flex-shrink-0">
+              <CartButton />
+            </div>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" data-testid="button-mobile-menu" className="flex-shrink-0">
@@ -305,6 +309,7 @@ export default function Homepage() {
               Blog
             </a>
             <CurrencySelector />
+            <CartButton />
             <a href="/contact">
               <Button size="sm" variant="default" data-testid="button-contact">
                 Contact Us

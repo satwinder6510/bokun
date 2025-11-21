@@ -79,6 +79,7 @@ async function detectCurrencyFromLocation(): Promise<Currency> {
 interface CurrencyContextType {
   selectedCurrency: Currency;
   setSelectedCurrency: (currency: Currency) => void;
+  formatCurrency: (amount: number, currencyCode?: string) => string;
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
@@ -102,6 +103,14 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('selectedCurrency', JSON.stringify(currency));
   };
 
+  const formatCurrency = (amount: number, currencyCode?: string): string => {
+    const currency = currencyCode
+      ? CURRENCIES.find(c => c.code === currencyCode) || selectedCurrency
+      : selectedCurrency;
+    
+    return `${currency.symbol}${amount.toFixed(2)}`;
+  };
+
   // Detect currency from geo-location on first visit
   useEffect(() => {
     const saved = localStorage.getItem('selectedCurrency');
@@ -115,7 +124,7 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <CurrencyContext.Provider value={{ selectedCurrency, setSelectedCurrency }}>
+    <CurrencyContext.Provider value={{ selectedCurrency, setSelectedCurrency, formatCurrency }}>
       {children}
     </CurrencyContext.Provider>
   );

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
+import { AddToCartButton } from "@/components/AddToCartButton";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import type { BokunProductDetails } from "@shared/schema";
@@ -411,12 +412,17 @@ export default function TourDetail() {
 
                   <Separator />
 
-                  <Button className="w-full" size="lg" disabled data-testid="button-add-to-cart">
-                    Add to Cart (Coming Soon)
-                  </Button>
+                  <AddToCartButton
+                    productId={product.id}
+                    productTitle={product.title}
+                    productPrice={product.price || 0}
+                    variant="default"
+                    size="lg"
+                    className="w-full"
+                  />
 
                   <p className="text-xs text-muted-foreground text-center">
-                    Booking functionality will be available soon
+                    Secure checkout with Stripe
                   </p>
                 </CardContent>
               </Card>

@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { MapPin, Clock } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { AddToCartButton } from "@/components/AddToCartButton";
 import type { BokunProduct } from "@shared/schema";
 
 interface TourCardProps {
@@ -84,26 +85,34 @@ export function TourCard({ product }: TourCardProps) {
             )}
           </div>
 
-          {/* Price and CTA */}
-          <div className="flex items-center justify-between">
-            {product.price && (
-              <div className="flex items-baseline gap-1">
-                <span className="text-sm text-white/80">from</span>
-                <div className="flex flex-col">
-                  <span 
-                    className="text-3xl font-bold text-white"
-                    data-testid={`text-price-${product.id}`}
-                  >
-                    {selectedCurrency.symbol}{product.price.toFixed(0)}
-                  </span>
-                  <span className="text-xs text-white/60">{selectedCurrency.code}</span>
-                </div>
-                <span className="text-sm text-white/80">/pp</span>
+          {/* Price */}
+          {product.price && (
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className="text-sm text-white/80">from</span>
+              <div className="flex flex-col">
+                <span 
+                  className="text-3xl font-bold text-white"
+                  data-testid={`text-price-${product.id}`}
+                >
+                  {selectedCurrency.symbol}{product.price.toFixed(0)}
+                </span>
+                <span className="text-xs text-white/60">{selectedCurrency.code}</span>
               </div>
-            )}
-            
-            {/* View More button */}
-            <div className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-sm font-semibold transition-colors">
+              <span className="text-sm text-white/80">/pp</span>
+            </div>
+          )}
+          
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <AddToCartButton
+              productId={product.id}
+              productTitle={product.title}
+              productPrice={product.price || 0}
+              variant="default"
+              size="sm"
+              className="flex-1"
+            />
+            <div className="bg-background/10 backdrop-blur-sm hover:bg-background/20 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors border border-white/20">
               view more
             </div>
           </div>

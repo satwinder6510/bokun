@@ -10,8 +10,22 @@ interface CartItem {
   productPrice: number;
   currency: string;
   quantity: number;
+  date?: string;
+  rateId?: number;
+  rateTitle?: string;
   productData: any;
   createdAt: string;
+}
+
+interface AddToCartPayload {
+  productId: string;
+  productTitle: string;
+  productPrice: number;
+  currency: string;
+  date?: string;
+  rateId?: number;
+  rateTitle?: string;
+  quantity: number;
 }
 
 interface CartContextType {
@@ -19,7 +33,7 @@ interface CartContextType {
   items: CartItem[];
   itemCount: number;
   isLoading: boolean;
-  addToCart: (product: any) => Promise<void>;
+  addToCart: (payload: AddToCartPayload) => Promise<void>;
   removeFromCart: (itemId: number) => Promise<void>;
   clearCart: () => Promise<void>;
 }
@@ -61,7 +75,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   });
 
   const addToCartMutation = useMutation({
-    mutationFn: async (product: any) => {
+    mutationFn: async (payload: AddToCartPayload) => {
       const response = await fetch("/api/cart", {
         method: "POST",
         headers: {
@@ -69,12 +83,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           "x-session-id": sessionId,
         },
         body: JSON.stringify({
-          productId: product.id,
-          productTitle: product.title,
-          productPrice: product.price || 0,
-          currency: product.currency || "USD",
-          quantity: 1,
-          productData: product,
+          productId: payload.productId,
+          productTitle: payload.productTitle,
+          productPrice: payload.productPrice,
+          currency: payload.currency,
+          quantity: payload.quantity,
+          productData: {
+            date: payload.date,
+            rateId: payload.rateId,
+            rateTitle: payload.rateTitle,
+          },
         }),
       });
       if (!response.ok) throw new Error("Failed to add to cart");

@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCart } from "@/contexts/CartContext";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, ShoppingCart, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Checkout() {
   const [, navigate] = useLocation();
-  const cart = useCart();
+  const { items, removeFromCart, itemCount } = useCart();
+  const { formatCurrency } = useCurrency();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -20,6 +23,20 @@ export default function Checkout() {
     email: "",
     phone: "",
   });
+
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (itemCount === 0) {
+      toast({
+        title: "Empty cart",
+        description: "Your cart is empty. Please add tours before checking out.",
+      });
+      navigate("/");
+    }
+  }, [itemCount, navigate, toast]);
+
+  const subtotal = items.reduce((sum, item) => sum + item.productPrice * item.quantity, 0);
+  const currency = items[0]?.currency || 'USD';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,8 +135,54 @@ export default function Checkout() {
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Booking Summary</h2>
-            <p className="text-muted-foreground">Cart contents will appear here</p>
+            <div className="flex items-center gap-2 mb-6">
+              <ShoppingCart className="w-5 h-5" />
+              <h2 className="text-xl font-semibold">Booking Summary</h2>
+            </div>
+            
+            <div className="space-y-4">
+              {items.map((item) => (
+                <div key={item.id} className="flex justify-between items-start gap-4 pb-4 border-b last:border-0">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium line-clamp-2 mb-1" data-testid={`text-checkout-item-${item.id}`}>
+                      {item.productTitle}
+                    </h3>
+                    {item.date && (
+                      <p className="text-sm text-muted-foreground">
+                        Date: {new Date(item.date).toLocaleDateString()}
+                      </p>
+                    )}
+                    {item.rateTitle && (
+                      <p className="text-sm text-muted-foreground">{item.rateTitle}</p>
+                    )}
+                    <p className="text-sm font-semibold mt-1">
+                      {formatCurrency(item.productPrice, item.currency)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeFromCart(item.id)}
+                    data-testid={`button-remove-checkout-${item.id}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            <Separator className="my-6" />
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-base">
+                <span>Subtotal</span>
+                <span data-testid="text-subtotal">{formatCurrency(subtotal, currency)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total</span>
+                <span data-testid="text-total">{formatCurrency(subtotal, currency)}</span>
+              </div>
+            </div>
           </Card>
         </div>
       </div>

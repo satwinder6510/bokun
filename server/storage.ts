@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 // modify the interface with any CRUD methods
@@ -25,6 +25,15 @@ export interface IStorage {
   createFaq(faq: InsertFaq): Promise<Faq>;
   updateFaq(id: number, faq: UpdateFaq): Promise<Faq | undefined>;
   deleteFaq(id: number): Promise<boolean>;
+  
+  // Blog post methods
+  getAllBlogPosts(): Promise<BlogPost[]>;
+  getPublishedBlogPosts(): Promise<BlogPost[]>;
+  getBlogPostById(id: number): Promise<BlogPost | undefined>;
+  getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
+  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(id: number, post: UpdateBlogPost): Promise<BlogPost | undefined>;
+  deleteBlogPost(id: number): Promise<boolean>;
 }
 
 // In-memory storage with product caching
@@ -35,6 +44,8 @@ export class MemStorage implements IStorage {
   private lastRefreshAt: Date | null;
   private faqs: Map<number, Faq>;
   private faqIdCounter: number;
+  private blogPosts: Map<number, BlogPost>;
+  private blogPostIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -43,6 +54,8 @@ export class MemStorage implements IStorage {
     this.lastRefreshAt = null;
     this.faqs = new Map();
     this.faqIdCounter = 1;
+    this.blogPosts = new Map();
+    this.blogPostIdCounter = 1;
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -175,6 +188,72 @@ export class MemStorage implements IStorage {
 
   async deleteFaq(id: number): Promise<boolean> {
     return this.faqs.delete(id);
+  }
+
+  // Blog post methods
+  async getAllBlogPosts(): Promise<BlogPost[]> {
+    return Array.from(this.blogPosts.values()).sort((a, b) => {
+      const aDate = a.publishedAt || a.createdAt;
+      const bDate = b.publishedAt || b.createdAt;
+      return bDate.getTime() - aDate.getTime();
+    });
+  }
+
+  async getPublishedBlogPosts(): Promise<BlogPost[]> {
+    return Array.from(this.blogPosts.values())
+      .filter(post => post.isPublished && post.publishedAt && post.publishedAt <= new Date())
+      .sort((a, b) => {
+        const aDate = a.publishedAt || a.createdAt;
+        const bDate = b.publishedAt || b.createdAt;
+        return bDate.getTime() - aDate.getTime();
+      });
+  }
+
+  async getBlogPostById(id: number): Promise<BlogPost | undefined> {
+    return this.blogPosts.get(id);
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    return Array.from(this.blogPosts.values()).find(post => post.slug === slug);
+  }
+
+  async createBlogPost(insertPost: InsertBlogPost): Promise<BlogPost> {
+    const id = this.blogPostIdCounter++;
+    const now = new Date();
+    const post: BlogPost = {
+      id,
+      title: insertPost.title,
+      slug: insertPost.slug,
+      content: insertPost.content,
+      excerpt: insertPost.excerpt,
+      metaTitle: insertPost.metaTitle ?? null,
+      metaDescription: insertPost.metaDescription ?? null,
+      featuredImage: insertPost.featuredImage ?? null,
+      author: insertPost.author ?? "Flights and Packages",
+      isPublished: insertPost.isPublished ?? false,
+      publishedAt: insertPost.publishedAt ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.blogPosts.set(id, post);
+    return post;
+  }
+
+  async updateBlogPost(id: number, updatePost: UpdateBlogPost): Promise<BlogPost | undefined> {
+    const existing = this.blogPosts.get(id);
+    if (!existing) return undefined;
+
+    const updated: BlogPost = {
+      ...existing,
+      ...updatePost,
+      updatedAt: new Date(),
+    };
+    this.blogPosts.set(id, updated);
+    return updated;
+  }
+
+  async deleteBlogPost(id: number): Promise<boolean> {
+    return this.blogPosts.delete(id);
   }
 }
 

@@ -237,3 +237,42 @@ export const updateFaqSchema = createInsertSchema(faqs).omit({
 export type Faq = typeof faqs.$inferSelect;
 export type InsertFaq = z.infer<typeof insertFaqSchema>;
 export type UpdateFaq = z.infer<typeof updateFaqSchema>;
+
+// Blog posts schema with SEO optimization
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: text("content").notNull(),
+  excerpt: text("excerpt").notNull(),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  featuredImage: text("featured_image"),
+  author: text("author").notNull().default("Flights and Packages"),
+  isPublished: boolean("is_published").notNull().default(false),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+}).extend({
+  slug: z.string()
+    .min(1, "Slug is required")
+    .max(200, "Slug too long")
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers, and hyphens only"),
+  title: z.string().min(1, "Title is required").max(200, "Title too long"),
+  excerpt: z.string().min(1, "Excerpt is required").max(500, "Excerpt too long"),
+  content: z.string().min(1, "Content is required"),
+  metaTitle: z.string().max(70, "Meta title should be under 70 characters").optional(),
+  metaDescription: z.string().max(160, "Meta description should be under 160 characters").optional(),
+});
+
+export const updateBlogPostSchema = insertBlogPostSchema.partial();
+
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type UpdateBlogPost = z.infer<typeof updateBlogPostSchema>;

@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { TourCard } from "@/components/TourCard";
+import { CurrencySelector } from "@/components/CurrencySelector";
+import { useCurrency } from "@/contexts/CurrencyContext";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,7 @@ import {
 import type { BokunProductSearchResponse, BokunProduct } from "@shared/schema";
 
 export default function Homepage() {
+  const { selectedCurrency } = useCurrency();
   const [products, setProducts] = useState<BokunProduct[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -132,13 +135,14 @@ export default function Homepage() {
           <h1 className="text-2xl font-bold" data-testid="text-site-title">
             Tour Discoveries
           </h1>
-          <nav className="flex items-center gap-6">
-            <a href="/" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-home">
+          <nav className="flex items-center gap-4 md:gap-6">
+            <a href="/" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-home">
               Home
             </a>
-            <a href="#tours" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-tours">
+            <a href="#tours" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-tours">
               Tours
             </a>
+            <CurrencySelector />
             <Button size="sm" variant="default" className="hidden md:inline-flex">
               Contact Us
             </Button>

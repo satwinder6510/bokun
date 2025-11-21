@@ -20,6 +20,13 @@ export const bokunProductSchema = z.object({
     location: z.string().optional(),
     name: z.string().optional(),
   }).optional(),
+  googlePlace: z.object({
+    country: z.string().optional(),
+    countryCode: z.string().optional(),
+    city: z.string().optional(),
+    cityCode: z.string().optional(),
+    name: z.string().optional(),
+  }).optional(),
   keyPhoto: z.object({
     originalUrl: z.string().optional(),
     description: z.string().optional(),

@@ -126,13 +126,15 @@ export async function searchBokunProducts(page: number = 1, pageSize: number = 2
   }
 }
 
-export async function getBokunProductDetails(productId: string) {
+export async function getBokunProductDetails(productId: string, currency: string = "GBP") {
   const path = `/activity.json/${productId}`;
+  const queryParams = `?currency=${currency}`;
+  const fullPath = `${path}${queryParams}`;
   const method = "GET";
 
   try {
-    const headers = getBokunHeaders(method, path);
-    const response = await fetch(`${BOKUN_API_BASE}${path}`, {
+    const headers = getBokunHeaders(method, fullPath);
+    const response = await fetch(`${BOKUN_API_BASE}${fullPath}`, {
       method,
       headers,
     });

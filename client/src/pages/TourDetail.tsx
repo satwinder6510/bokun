@@ -23,7 +23,12 @@ export default function TourDetail() {
   });
 
   const { data: product, isLoading } = useQuery<BokunProductDetails>({
-    queryKey: ["/api/bokun/product", productId],
+    queryKey: ["/api/bokun/product", productId, selectedCurrency.code],
+    queryFn: async () => {
+      const response = await fetch(`/api/bokun/product/${productId}?currency=${selectedCurrency.code}`);
+      if (!response.ok) throw new Error('Failed to fetch product');
+      return response.json();
+    },
     enabled: !!productId,
   });
 

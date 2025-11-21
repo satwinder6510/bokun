@@ -84,6 +84,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { page = 1, pageSize = 20 } = req.body;
       
       // Check if cache exists and is valid
+      // Note: Cached product prices are in the default currency (USD/GBP from Bokun)
+      // and do not change with user's selected currency. Detail pages and availability
+      // checker fetch fresh data with the correct currency.
       const cachedProducts = await storage.getCachedProducts();
       
       if (cachedProducts.length > 0) {
@@ -108,6 +111,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Cache miss - fetching from Bokun API and caching...");
         
         // Fetch all products and cache them
+        // Note: Bokun product search does not support currency parameter
+        // Prices will be in Bokun's default currency (USD/GBP)
         let allProducts: any[] = [];
         let currentPage = 1;
         const fetchPageSize = 100;
@@ -152,7 +157,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bokun/product/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const data = await getBokunProductDetails(id);
+      const { currency = "GBP" } = req.query;
+      const data = await getBokunProductDetails(id, currency as string);
       res.json(data);
     } catch (error: any) {
       console.error("Error fetching product details:", error.message);

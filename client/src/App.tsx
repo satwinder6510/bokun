@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { CartProvider } from "@/contexts/CartContext";
 import Homepage from "@/pages/Homepage";
 import TourDetail from "@/pages/TourDetail";
 import Terms from "@/pages/Terms";
@@ -12,6 +13,8 @@ import Contact from "@/pages/Contact";
 import FAQ from "@/pages/FAQ";
 import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
+import Checkout from "@/pages/Checkout";
+import BookingConfirmation from "@/pages/BookingConfirmation";
 import AdminFAQ from "@/pages/AdminFAQ";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -23,6 +26,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Homepage} />
       <Route path="/tour/:id" component={TourDetail} />
+      <Route path="/checkout" component={Checkout} />
+      <Route path="/booking/:reference" component={BookingConfirmation} />
       <Route path="/terms" component={Terms} />
       <Route path="/contact" component={Contact} />
       <Route path="/faq" component={FAQ} />
@@ -49,10 +54,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <CurrencyProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <CartProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </CartProvider>
       </CurrencyProvider>
     </QueryClientProvider>
   );

@@ -4,7 +4,7 @@
 
 This project is a public-facing tour booking website for "Flights and Packages," showcasing over 700 curated tours sourced from the Bokun API. The platform aims to provide a clean, minimal interface for users to browse tours, view detailed itineraries with hotel information, check availability using a calendar-based system, and explore various pricing options.
 
-The business vision is to offer a premier travel booking experience, initially focusing on tour discovery and exploration (Phase 1). Future ambitions include integrating shopping cart functionality and booking capabilities (Phase 2) to become a comprehensive tour booking platform under the custom domain tours.flightsandpackages.com.
+The business vision is to offer a premier travel booking experience. **Phase 2 is now active**: implementing full booking functionality with shopping cart, secure payment processing via Stripe (TEST mode), and booking confirmations. The platform will become a comprehensive tour booking platform under the custom domain tours.flightsandpackages.com.
 
 ## User Preferences
 

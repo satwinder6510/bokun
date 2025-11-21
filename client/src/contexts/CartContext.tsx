@@ -62,14 +62,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCartMutation = useMutation({
     mutationFn: async (product: any) => {
-      const response = await apiRequest("POST", "/api/cart", {
-        productId: product.id,
-        productTitle: product.title,
-        productPrice: product.price || 0,
-        currency: product.currency || "USD",
-        quantity: 1,
-        productData: product,
-      }, { "x-session-id": sessionId });
+      const response = await fetch("/api/cart", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-session-id": sessionId,
+        },
+        body: JSON.stringify({
+          productId: product.id,
+          productTitle: product.title,
+          productPrice: product.price || 0,
+          currency: product.currency || "USD",
+          quantity: 1,
+          productData: product,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to add to cart");
       return response.json();
     },
     onSuccess: () => {
@@ -80,9 +88,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const removeFromCartMutation = useMutation({
     mutationFn: async (itemId: number) => {
-      const response = await apiRequest("DELETE", `/api/cart/${itemId}`, undefined, {
-        "x-session-id": sessionId,
+      const response = await fetch(`/api/cart/${itemId}`, {
+        method: "DELETE",
+        headers: {
+          "x-session-id": sessionId,
+        },
       });
+      if (!response.ok) throw new Error("Failed to remove from cart");
       return response.json();
     },
     onSuccess: () => {
@@ -93,9 +105,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const clearCartMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("DELETE", "/api/cart", undefined, {
-        "x-session-id": sessionId,
+      const response = await fetch("/api/cart", {
+        method: "DELETE",
+        headers: {
+          "x-session-id": sessionId,
+        },
       });
+      if (!response.ok) throw new Error("Failed to clear cart");
       return response.json();
     },
     onSuccess: () => {

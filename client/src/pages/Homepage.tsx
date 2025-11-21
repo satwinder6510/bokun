@@ -189,7 +189,10 @@ export default function Homepage() {
                     {tour.price && (
                       <div className="mb-8">
                         <span className="text-lg text-white/80">from </span>
-                        <span className="text-5xl md:text-6xl font-bold">£{tour.price.toFixed(0)}</span>
+                        <div>
+                          <span className="text-5xl md:text-6xl font-bold">£{tour.price.toFixed(0)}</span>
+                          <span className="text-lg text-white/80 ml-2">{selectedCurrency.code}</span>
+                        </div>
                         <span className="text-lg text-white/80">/pp</span>
                       </div>
                     )}

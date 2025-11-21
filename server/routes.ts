@@ -10,7 +10,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dynamic sitemap.xml endpoint
   app.get("/sitemap.xml", async (req, res) => {
     try {
-      const cachedProducts = await storage.getCachedProducts();
+      const cachedProducts = await storage.getCachedProducts("GBP");
       const baseUrl = 'https://tours.flightsandpackages.com';
       
       // Deduplicate products
@@ -64,7 +64,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get cache metadata
   app.get("/api/bokun/cache-metadata", async (req, res) => {
     try {
-      const metadata = await storage.getCacheMetadata();
+      const { currency = "GBP" } = req.query;
+      const metadata = await storage.getCacheMetadata(currency as string);
       res.json(metadata || { lastRefreshAt: null, totalProducts: 0 });
     } catch (error: any) {
       console.error("Error fetching cache metadata:", error);
@@ -78,7 +79,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Refresh products from Bokun API (force refresh)
   app.post("/api/bokun/products/refresh", async (req, res) => {
     try {
-      console.log("Force refreshing products from Bokun API...");
+      const { currency = "GBP" } = req.body;
+      console.log(`Force refreshing ${currency} products from Bokun API...`);
       
       // Fetch all products from Bokun API
       let allProducts: any[] = [];
@@ -87,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let hasMore = true;
 
       while (hasMore) {
-        const data = await searchBokunProducts(page, pageSize);
+        const data = await searchBokunProducts(page, pageSize, currency);
         allProducts = allProducts.concat(data.items || []);
         hasMore = (data.items?.length || 0) === pageSize;
         page++;
@@ -101,16 +103,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         new Map(allProducts.map(p => [p.id, p])).values()
       );
 
-      // Store in cache
-      await storage.setCachedProducts(uniqueProducts);
+      // Store in cache for this currency
+      await storage.setCachedProducts(uniqueProducts, currency);
       allProducts = uniqueProducts;
       
-      console.log(`Refreshed ${allProducts.length} products in cache`);
+      console.log(`Refreshed ${allProducts.length} ${currency} products in cache`);
       
-      const metadata = await storage.getCacheMetadata();
+      const metadata = await storage.getCacheMetadata(currency);
       res.json({
         success: true,
         productsRefreshed: allProducts.length,
+        currency,
         metadata,
       });
     } catch (error: any) {
@@ -125,73 +128,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { page = 1, pageSize = 20, currency = "GBP" } = req.body;
       
-      // Only cache GBP (default currency) to optimize memory usage
-      // For other currencies, always fetch fresh data with correct prices
-      if (currency === "GBP") {
-        const cachedProducts = await storage.getCachedProducts();
+      // Check if this currency is already cached
+      const cachedProducts = await storage.getCachedProducts(currency);
+      
+      if (cachedProducts.length > 0) {
+        console.log(`Serving ${cachedProducts.length} ${currency} products from cache`);
         
-        if (cachedProducts.length > 0) {
-          console.log(`Serving ${cachedProducts.length} GBP products from cache`);
-          
-          // Deduplicate products by ID
-          const uniqueProducts = Array.from(
-            new Map(cachedProducts.map(p => [p.id, p])).values()
-          );
-          
-          // Paginate cached results
-          const startIndex = (page - 1) * pageSize;
-          const endIndex = startIndex + pageSize;
-          const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
-          
-          return res.json({
-            totalHits: uniqueProducts.length,
-            items: paginatedProducts,
-            fromCache: true,
-            currency: "GBP",
-          });
-        } else {
-          console.log("GBP cache miss - fetching from Bokun API and caching...");
-          
-          // Fetch all GBP products and cache them
-          let allProducts: any[] = [];
-          let currentPage = 1;
-          const fetchPageSize = 100;
-          let hasMore = true;
-
-          while (hasMore) {
-            const data = await searchBokunProducts(currentPage, fetchPageSize, "GBP");
-            allProducts = allProducts.concat(data.items || []);
-            hasMore = (data.items?.length || 0) === fetchPageSize;
-            currentPage++;
-            
-            // Safety limit
-            if (currentPage > 50) break;
-          }
-
-          // Deduplicate before caching
-          const uniqueProducts = Array.from(
-            new Map(allProducts.map(p => [p.id, p])).values()
-          );
-          
-          // Store all GBP products in cache
-          await storage.setCachedProducts(uniqueProducts);
-          
-          // Return requested page
-          const startIndex = (page - 1) * pageSize;
-          const endIndex = startIndex + pageSize;
-          const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
-          
-          return res.json({
-            totalHits: uniqueProducts.length,
-            items: paginatedProducts,
-            fromCache: false,
-            currency: "GBP",
-          });
-        }
+        // Deduplicate products by ID
+        const uniqueProducts = Array.from(
+          new Map(cachedProducts.map(p => [p.id, p])).values()
+        );
+        
+        // Paginate cached results
+        const startIndex = (page - 1) * pageSize;
+        const endIndex = startIndex + pageSize;
+        const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
+        
+        return res.json({
+          totalHits: uniqueProducts.length,
+          items: paginatedProducts,
+          fromCache: true,
+          currency,
+        });
       } else {
-        // For non-GBP currencies, fetch fresh data with correct prices
-        console.log(`Fetching products in ${currency} (fresh, not cached)`);
+        console.log(`${currency} cache miss - fetching from Bokun API and caching...`);
         
+        // Fetch all products for this currency and cache them
         let allProducts: any[] = [];
         let currentPage = 1;
         const fetchPageSize = 100;
@@ -207,12 +169,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (currentPage > 50) break;
         }
 
-        // Deduplicate
+        // Deduplicate before caching
         const uniqueProducts = Array.from(
           new Map(allProducts.map(p => [p.id, p])).values()
         );
         
-        // Return requested page (no caching for non-GBP)
+        // Store all products for this currency in cache
+        await storage.setCachedProducts(uniqueProducts, currency);
+        
+        // Return requested page
         const startIndex = (page - 1) * pageSize;
         const endIndex = startIndex + pageSize;
         const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);

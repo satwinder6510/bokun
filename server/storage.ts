@@ -9,14 +9,14 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   
-  // Product cache methods
-  getCachedProduct(productId: string): Promise<BokunProduct | null>;
-  getCachedProducts(): Promise<BokunProduct[]>;
-  setCachedProduct(productId: string, product: BokunProduct): Promise<void>;
-  setCachedProducts(products: BokunProduct[]): Promise<void>;
-  clearProductCache(): Promise<void>;
-  getCacheMetadata(): Promise<{ lastRefreshAt: Date; totalProducts: number } | null>;
-  isCacheExpired(): Promise<boolean>;
+  // Product cache methods (per-currency)
+  getCachedProduct(productId: string, currency: string): Promise<BokunProduct | null>;
+  getCachedProducts(currency: string): Promise<BokunProduct[]>;
+  setCachedProduct(productId: string, product: BokunProduct, currency: string): Promise<void>;
+  setCachedProducts(products: BokunProduct[], currency: string): Promise<void>;
+  clearProductCache(currency?: string): Promise<void>;
+  getCacheMetadata(currency: string): Promise<{ lastRefreshAt: Date; totalProducts: number } | null>;
+  isCacheExpired(currency: string): Promise<boolean>;
   
   // FAQ methods
   getAllFaqs(): Promise<Faq[]>;
@@ -36,12 +36,12 @@ export interface IStorage {
   deleteBlogPost(id: number): Promise<boolean>;
 }
 
-// In-memory storage with product caching
+// In-memory storage with per-currency product caching
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
-  private productsCache: Map<string, BokunProduct>;
-  private cacheExpiry: Date | null;
-  private lastRefreshAt: Date | null;
+  private productsCacheByCurrency: Map<string, Map<string, BokunProduct>>;
+  private cacheExpiryByCurrency: Map<string, Date>;
+  private lastRefreshAtByCurrency: Map<string, Date>;
   private faqs: Map<number, Faq>;
   private faqIdCounter: number;
   private blogPosts: Map<number, BlogPost>;
@@ -49,9 +49,9 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.users = new Map();
-    this.productsCache = new Map();
-    this.cacheExpiry = null;
-    this.lastRefreshAt = null;
+    this.productsCacheByCurrency = new Map();
+    this.cacheExpiryByCurrency = new Map();
+    this.lastRefreshAtByCurrency = new Map();
     this.faqs = new Map();
     this.faqIdCounter = 1;
     this.blogPosts = new Map();
@@ -75,71 +75,104 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async getCachedProduct(productId: string): Promise<BokunProduct | null> {
+  async getCachedProduct(productId: string, currency: string): Promise<BokunProduct | null> {
+    // Check if cache exists for this currency
+    const currencyCache = this.productsCacheByCurrency.get(currency);
+    if (!currencyCache) return null;
+    
     // Check if cache is expired
-    if (this.cacheExpiry && new Date() > this.cacheExpiry) {
+    const expiry = this.cacheExpiryByCurrency.get(currency);
+    if (expiry && new Date() > expiry) {
       return null;
     }
     
-    return this.productsCache.get(productId) || null;
+    return currencyCache.get(productId) || null;
   }
 
-  async getCachedProducts(): Promise<BokunProduct[]> {
+  async getCachedProducts(currency: string): Promise<BokunProduct[]> {
+    // Check if cache exists for this currency
+    const currencyCache = this.productsCacheByCurrency.get(currency);
+    if (!currencyCache) return [];
+    
     // Check if cache is expired
-    if (this.cacheExpiry && new Date() > this.cacheExpiry) {
+    const expiry = this.cacheExpiryByCurrency.get(currency);
+    if (expiry && new Date() > expiry) {
       return [];
     }
     
-    return Array.from(this.productsCache.values());
+    return Array.from(currencyCache.values());
   }
 
-  async setCachedProduct(productId: string, product: BokunProduct): Promise<void> {
-    this.productsCache.set(productId, product);
+  async setCachedProduct(productId: string, product: BokunProduct, currency: string): Promise<void> {
+    // Get or create currency cache
+    let currencyCache = this.productsCacheByCurrency.get(currency);
+    if (!currencyCache) {
+      currencyCache = new Map();
+      this.productsCacheByCurrency.set(currency, currencyCache);
+    }
+    
+    currencyCache.set(productId, product);
     
     // Update expiry if not set - 30 day TTL for product cards
-    if (!this.cacheExpiry) {
+    if (!this.cacheExpiryByCurrency.has(currency)) {
       const now = new Date();
-      this.cacheExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
-      this.lastRefreshAt = now;
+      this.cacheExpiryByCurrency.set(currency, new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)); // 30 days
+      this.lastRefreshAtByCurrency.set(currency, now);
     }
   }
 
-  async setCachedProducts(products: BokunProduct[]): Promise<void> {
+  async setCachedProducts(products: BokunProduct[], currency: string): Promise<void> {
     const now = new Date();
     
-    // Clear existing cache
-    this.productsCache.clear();
+    // Create new cache for this currency
+    const currencyCache = new Map<string, BokunProduct>();
     
     // Store all products
     for (const product of products) {
-      this.productsCache.set(product.id, product);
+      currencyCache.set(product.id, product);
     }
     
-    // Update cache metadata - 30 day TTL for product cards
-    this.cacheExpiry = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
-    this.lastRefreshAt = now;
-  }
-
-  async clearProductCache(): Promise<void> {
-    this.productsCache.clear();
-    this.cacheExpiry = null;
-    this.lastRefreshAt = null;
-  }
-
-  async getCacheMetadata(): Promise<{ lastRefreshAt: Date; totalProducts: number } | null> {
-    if (!this.lastRefreshAt) return null;
+    // Update cache for this currency
+    this.productsCacheByCurrency.set(currency, currencyCache);
     
+    // Update cache metadata - 30 day TTL for product cards
+    this.cacheExpiryByCurrency.set(currency, new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)); // 30 days
+    this.lastRefreshAtByCurrency.set(currency, now);
+  }
+
+  async clearProductCache(currency?: string): Promise<void> {
+    if (currency) {
+      // Clear specific currency cache
+      this.productsCacheByCurrency.delete(currency);
+      this.cacheExpiryByCurrency.delete(currency);
+      this.lastRefreshAtByCurrency.delete(currency);
+    } else {
+      // Clear all caches
+      this.productsCacheByCurrency.clear();
+      this.cacheExpiryByCurrency.clear();
+      this.lastRefreshAtByCurrency.clear();
+    }
+  }
+
+  async getCacheMetadata(currency: string): Promise<{ lastRefreshAt: Date; totalProducts: number } | null> {
+    const lastRefresh = this.lastRefreshAtByCurrency.get(currency);
+    if (!lastRefresh) return null;
+    
+    const currencyCache = this.productsCacheByCurrency.get(currency);
     return {
-      lastRefreshAt: this.lastRefreshAt,
-      totalProducts: this.productsCache.size,
+      lastRefreshAt: lastRefresh,
+      totalProducts: currencyCache?.size || 0,
     };
   }
 
-  async isCacheExpired(): Promise<boolean> {
-    if (!this.cacheExpiry || !this.lastRefreshAt) return true;
+  async isCacheExpired(currency: string): Promise<boolean> {
+    const expiry = this.cacheExpiryByCurrency.get(currency);
+    const lastRefresh = this.lastRefreshAtByCurrency.get(currency);
+    
+    if (!expiry || !lastRefresh) return true;
     
     const now = new Date();
-    return now > this.cacheExpiry;
+    return now > expiry;
   }
 
   // FAQ methods

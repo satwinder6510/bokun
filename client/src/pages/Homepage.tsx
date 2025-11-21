@@ -218,6 +218,9 @@ export default function Homepage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            <a href="/faq" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-faq">
+              FAQ
+            </a>
             <CurrencySelector />
             <a href="/contact">
               <Button size="sm" variant="default" className="hidden md:inline-flex" data-testid="button-contact">
@@ -481,6 +484,9 @@ export default function Homepage() {
                 <div className="space-y-2">
                   <a href="/" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     Home
+                  </a>
+                  <a href="/faq" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    FAQ
                   </a>
                   <a href="/contact" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
                     Contact

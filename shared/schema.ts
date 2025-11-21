@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, timestamp, jsonb, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, integer, serial, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const bokunProductSchema = z.object({
@@ -210,3 +210,30 @@ export const contactLeadSchema = z.object({
 });
 
 export type ContactLead = z.infer<typeof contactLeadSchema>;
+
+// FAQ schema
+export const faqs = pgTable("faqs", {
+  id: serial("id").primaryKey(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  isPublished: boolean("is_published").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFaqSchema = createInsertSchema(faqs).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const updateFaqSchema = createInsertSchema(faqs).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+}).partial();
+
+export type Faq = typeof faqs.$inferSelect;
+export type InsertFaq = z.infer<typeof insertFaqSchema>;
+export type UpdateFaq = z.infer<typeof updateFaqSchema>;

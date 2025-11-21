@@ -269,6 +269,29 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
+          <Card data-testid="card-faq-management">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                    <Activity className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">FAQ Management</CardTitle>
+                    <CardDescription>
+                      Manage frequently asked questions for your visitors
+                    </CardDescription>
+                  </div>
+                </div>
+                <a href="/admin/faq">
+                  <Button variant="outline" size="sm" data-testid="button-manage-faqs">
+                    Manage FAQs
+                  </Button>
+                </a>
+              </div>
+            </CardHeader>
+          </Card>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">
               <ConnectionStatusCard

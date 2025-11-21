@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 // modify the interface with any CRUD methods
@@ -17,6 +17,14 @@ export interface IStorage {
   clearProductCache(): Promise<void>;
   getCacheMetadata(): Promise<{ lastRefreshAt: Date; totalProducts: number } | null>;
   isCacheExpired(): Promise<boolean>;
+  
+  // FAQ methods
+  getAllFaqs(): Promise<Faq[]>;
+  getPublishedFaqs(): Promise<Faq[]>;
+  getFaqById(id: number): Promise<Faq | undefined>;
+  createFaq(faq: InsertFaq): Promise<Faq>;
+  updateFaq(id: number, faq: UpdateFaq): Promise<Faq | undefined>;
+  deleteFaq(id: number): Promise<boolean>;
 }
 
 // In-memory storage with product caching
@@ -25,12 +33,16 @@ export class MemStorage implements IStorage {
   private productsCache: Map<string, BokunProduct>;
   private cacheExpiry: Date | null;
   private lastRefreshAt: Date | null;
+  private faqs: Map<number, Faq>;
+  private faqIdCounter: number;
 
   constructor() {
     this.users = new Map();
     this.productsCache = new Map();
     this.cacheExpiry = null;
     this.lastRefreshAt = null;
+    this.faqs = new Map();
+    this.faqIdCounter = 1;
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -115,6 +127,54 @@ export class MemStorage implements IStorage {
     
     const now = new Date();
     return now > this.cacheExpiry;
+  }
+
+  // FAQ methods
+  async getAllFaqs(): Promise<Faq[]> {
+    return Array.from(this.faqs.values()).sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  async getPublishedFaqs(): Promise<Faq[]> {
+    return Array.from(this.faqs.values())
+      .filter(faq => faq.isPublished)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+  }
+
+  async getFaqById(id: number): Promise<Faq | undefined> {
+    return this.faqs.get(id);
+  }
+
+  async createFaq(insertFaq: InsertFaq): Promise<Faq> {
+    const id = this.faqIdCounter++;
+    const now = new Date();
+    const faq: Faq = {
+      id,
+      question: insertFaq.question,
+      answer: insertFaq.answer,
+      displayOrder: insertFaq.displayOrder ?? 0,
+      isPublished: insertFaq.isPublished ?? true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.faqs.set(id, faq);
+    return faq;
+  }
+
+  async updateFaq(id: number, updateFaq: UpdateFaq): Promise<Faq | undefined> {
+    const existing = this.faqs.get(id);
+    if (!existing) return undefined;
+
+    const updated: Faq = {
+      ...existing,
+      ...updateFaq,
+      updatedAt: new Date(),
+    };
+    this.faqs.set(id, updated);
+    return updated;
+  }
+
+  async deleteFaq(id: number): Promise<boolean> {
+    return this.faqs.delete(id);
   }
 }
 

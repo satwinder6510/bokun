@@ -4,7 +4,7 @@ import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBo
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
-import { contactLeadSchema } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dynamic sitemap.xml endpoint
@@ -452,6 +452,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: "Failed to submit contact form. Please try again later.",
         details: error.message,
       });
+    }
+  });
+
+  // FAQ Routes
+  // NOTE: Admin FAQ endpoints (POST/PATCH/DELETE) are currently not protected by server-side auth.
+  // Frontend uses ProtectedRoute for UI access control. In production, add proper API authentication.
+  
+  // Get all FAQs (admin only - UI protected)
+  app.get("/api/faqs/admin", async (req, res) => {
+    try {
+      const faqs = await storage.getAllFaqs();
+      res.json(faqs);
+    } catch (error: any) {
+      console.error("Error fetching all FAQs:", error);
+      res.status(500).json({ error: "Failed to fetch FAQs" });
+    }
+  });
+
+  // Get published FAQs (public)
+  app.get("/api/faqs", async (req, res) => {
+    try {
+      const faqs = await storage.getPublishedFaqs();
+      res.json(faqs);
+    } catch (error: any) {
+      console.error("Error fetching published FAQs:", error);
+      res.status(500).json({ error: "Failed to fetch FAQs" });
+    }
+  });
+
+  // Get FAQ by ID
+  app.get("/api/faqs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid FAQ ID" });
+      }
+
+      const faq = await storage.getFaqById(id);
+      if (!faq) {
+        return res.status(404).json({ error: "FAQ not found" });
+      }
+
+      res.json(faq);
+    } catch (error: any) {
+      console.error("Error fetching FAQ:", error);
+      res.status(500).json({ error: "Failed to fetch FAQ" });
+    }
+  });
+
+  // Create FAQ (admin only)
+  app.post("/api/faqs", async (req, res) => {
+    try {
+      const validation = insertFaqSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid FAQ data", 
+          details: validation.error.errors 
+        });
+      }
+
+      const faq = await storage.createFaq(validation.data);
+      res.status(201).json(faq);
+    } catch (error: any) {
+      console.error("Error creating FAQ:", error);
+      res.status(500).json({ error: "Failed to create FAQ" });
+    }
+  });
+
+  // Update FAQ (admin only)
+  app.patch("/api/faqs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid FAQ ID" });
+      }
+
+      const validation = updateFaqSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid FAQ data", 
+          details: validation.error.errors 
+        });
+      }
+
+      const faq = await storage.updateFaq(id, validation.data);
+      if (!faq) {
+        return res.status(404).json({ error: "FAQ not found" });
+      }
+
+      res.json(faq);
+    } catch (error: any) {
+      console.error("Error updating FAQ:", error);
+      res.status(500).json({ error: "Failed to update FAQ" });
+    }
+  });
+
+  // Delete FAQ (admin only)
+  app.delete("/api/faqs/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid FAQ ID" });
+      }
+
+      const success = await storage.deleteFaq(id);
+      if (!success) {
+        return res.status(404).json({ error: "FAQ not found" });
+      }
+
+      res.json({ success: true, message: "FAQ deleted successfully" });
+    } catch (error: any) {
+      console.error("Error deleting FAQ:", error);
+      res.status(500).json({ error: "Failed to delete FAQ" });
     }
   });
 

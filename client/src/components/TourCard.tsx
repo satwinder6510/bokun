@@ -92,7 +92,7 @@ export function TourCard({ product }: TourCardProps) {
                     className="text-3xl font-bold text-white"
                     data-testid={`text-price-${product.id}`}
                   >
-                    £{product.price.toFixed(0)}
+                    {selectedCurrency.symbol}{product.price.toFixed(0)}
                   </span>
                   <span className="text-xs text-white/60">{selectedCurrency.code}</span>
                 </div>

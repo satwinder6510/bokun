@@ -217,9 +217,6 @@ export default function Homepage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            <a href="/faq" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-faq">
-              FAQ
-            </a>
             <a href="/blog" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-blog">
               Blog
             </a>

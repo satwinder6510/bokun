@@ -462,88 +462,51 @@ export default function Homepage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-card border-t py-16">
+      <footer className="bg-card border-t py-12">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-            {/* Company Info */}
-            <div>
-              <h4 className="font-bold text-lg mb-4">Flights and Packages</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                Discover unforgettable journeys across stunning destinations worldwide. Your trusted partner for travel experiences.
+          {/* Main Footer Content */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 pb-8 border-b">
+            {/* Left: Company Info */}
+            <div className="flex-1">
+              <h4 className="font-bold text-lg mb-2">Flights and Packages</h4>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Discover unforgettable journeys across stunning destinations worldwide.
               </p>
             </div>
             
-            {/* Quick Links */}
-            <div>
-              <h5 className="font-semibold mb-4">Quick Links</h5>
-              <ul className="space-y-3 text-sm">
-                <li>
-                  <a href="/" className="text-muted-foreground hover:text-primary transition-colors">
-                    Home
-                  </a>
-                </li>
-                <li>
-                  <a href="/contact" className="text-muted-foreground hover:text-primary transition-colors">
-                    Contact Us
-                  </a>
-                </li>
-                <li>
-                  <a href="/terms" className="text-muted-foreground hover:text-primary transition-colors">
-                    Terms & Conditions
-                  </a>
-                </li>
-              </ul>
+            {/* Center: Quick Links */}
+            <div className="flex gap-8">
+              <a href="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Home
+              </a>
+              <a href="/contact" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Contact
+              </a>
+              <a href="/terms" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Terms
+              </a>
             </div>
             
-            {/* Top Destinations */}
-            <div>
-              <h5 className="font-semibold mb-4">Top Destinations</h5>
-              <ul className="space-y-3 text-sm">
-                {allCountries.slice(0, 8).map((country) => (
-                  <li key={country}>
-                    <button
-                      onClick={() => {
-                        setSelectedCountry(country);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }}
-                      className="text-muted-foreground hover:text-primary transition-colors text-left"
-                    >
-                      {country}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            {/* Contact Info */}
-            <div>
-              <h5 className="font-semibold mb-4">Get in Touch</h5>
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <p>
-                  <span className="font-medium text-foreground">Email:</span><br />
-                  <a href="mailto:holidayenq@flightsandpackages.com" className="hover:text-primary transition-colors">
-                    holidayenq@flightsandpackages.com
-                  </a>
-                </p>
-                <p className="pt-2">
-                  Have questions? We're here to help you plan your perfect trip.
-                </p>
-              </div>
+            {/* Right: Contact */}
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">
+                <a href="mailto:holidayenq@flightsandpackages.com" className="hover:text-primary transition-colors">
+                  holidayenq@flightsandpackages.com
+                </a>
+              </p>
             </div>
           </div>
           
           {/* Bottom Bar */}
-          <div className="border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground" data-testid="text-footer">
               © 2025 Flights and Packages. All rights reserved.
             </p>
-            <div className="flex items-center gap-2">
-              <img 
-                src={travelTrustLogo} 
-                alt="Travel Trust Association" 
-                className="h-8 w-auto opacity-70"
-              />
-            </div>
+            <img 
+              src={travelTrustLogo} 
+              alt="Travel Trust Association" 
+              className="h-8 w-auto opacity-60"
+            />
           </div>
         </div>
       </footer>

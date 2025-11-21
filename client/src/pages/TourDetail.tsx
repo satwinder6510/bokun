@@ -13,8 +13,6 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
-import travelTrustLogo from "@assets/travel-trust_1763745255759.png";
-import atolLogo from "@assets/atol_logo_white_1763745297064.png";
 
 export default function TourDetail() {
   const { selectedCurrency } = useCurrency();
@@ -142,40 +140,14 @@ export default function TourDetail() {
               Back to Tours
             </Button>
           </Link>
-          <div className="flex items-center gap-3 md:gap-4">
-            <Link href="/">
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-10 md:h-12 w-auto"
-                data-testid="img-logo"
-              />
-            </Link>
-            <div className="hidden md:flex items-center gap-2 md:gap-3">
-              <div 
-                className="flex items-center h-7 md:h-8 px-2 py-1 bg-muted/50 rounded border border-border"
-                role="img"
-                aria-label="Travel Trust membership"
-              >
-                <img 
-                  src={travelTrustLogo} 
-                  alt="Travel Trust" 
-                  className="h-full w-auto object-contain"
-                />
-              </div>
-              <div 
-                className="flex items-center h-7 md:h-8 px-2 py-1 bg-muted/50 rounded border border-border"
-                role="img"
-                aria-label="ATOL protected"
-              >
-                <img 
-                  src={atolLogo} 
-                  alt="ATOL Protected" 
-                  className="h-full w-auto object-contain"
-                />
-              </div>
-            </div>
-          </div>
+          <Link href="/">
+            <img 
+              src={logoImage} 
+              alt="Flights and Packages" 
+              className="h-10 md:h-12 w-auto"
+              data-testid="img-logo"
+            />
+          </Link>
         </div>
       </header>
 

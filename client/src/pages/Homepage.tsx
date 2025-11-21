@@ -9,8 +9,6 @@ import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
-import travelTrustLogo from "@assets/travel-trust_1763745255759.png";
-import atolLogo from "@assets/atol_logo_white_1763745297064.png";
 import {
   Select,
   SelectContent,
@@ -156,40 +154,14 @@ export default function Homepage() {
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 md:gap-4">
-            <a href="/" className="flex items-center" data-testid="link-logo">
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-10 md:h-12 w-auto"
-                data-testid="img-logo"
-              />
-            </a>
-            <div className="flex items-center gap-2 md:gap-3">
-              <div 
-                className="flex items-center h-7 md:h-8 px-2 py-1 bg-muted/50 rounded border border-border"
-                role="img"
-                aria-label="Travel Trust membership"
-              >
-                <img 
-                  src={travelTrustLogo} 
-                  alt="Travel Trust" 
-                  className="h-full w-auto object-contain"
-                />
-              </div>
-              <div 
-                className="flex items-center h-7 md:h-8 px-2 py-1 bg-muted/50 rounded border border-border"
-                role="img"
-                aria-label="ATOL protected"
-              >
-                <img 
-                  src={atolLogo} 
-                  alt="ATOL Protected" 
-                  className="h-full w-auto object-contain"
-                />
-              </div>
-            </div>
-          </div>
+          <a href="/" className="flex items-center" data-testid="link-logo">
+            <img 
+              src={logoImage} 
+              alt="Flights and Packages" 
+              className="h-10 md:h-12 w-auto"
+              data-testid="img-logo"
+            />
+          </a>
           <nav className="flex items-center gap-4 md:gap-6">
             <a href="/" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-home">
               Home

@@ -186,7 +186,7 @@ export default function Homepage() {
             />
           </div>
           {/* Mobile Menu */}
-          <div className="md:hidden flex items-center gap-3">
+          <div className="lg:hidden flex items-center gap-3">
             <CurrencySelector />
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -259,7 +259,7 @@ export default function Homepage() {
           </div>
 
           {/* Desktop Menu */}
-          <nav className="hidden md:flex items-center gap-4 md:gap-6 flex-shrink-0">
+          <nav className="hidden lg:flex items-center gap-4 lg:gap-6 flex-shrink-0">
             <a href="/" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-home">
               Home
             </a>

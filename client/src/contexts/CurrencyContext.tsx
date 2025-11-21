@@ -10,13 +10,8 @@ export const CURRENCIES: Currency[] = [
   { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'GBP', symbol: '£', name: 'British Pound' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
-  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
-  { code: 'NZD', symbol: 'NZ$', name: 'New Zealand Dollar' },
-  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
-  { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
 ];
 
 interface CurrencyContextType {
@@ -32,12 +27,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return CURRENCIES.find(c => c.code === parsed.code) || CURRENCIES[2]; // Default to GBP
+        return CURRENCIES.find(c => c.code === parsed.code) || CURRENCIES[0]; // Default to USD
       } catch {
-        return CURRENCIES[2]; // Default to GBP
+        return CURRENCIES[0]; // Default to USD
       }
     }
-    return CURRENCIES[2]; // Default to GBP (index 2)
+    return CURRENCIES[0]; // Default to USD (index 0)
   });
 
   const setSelectedCurrency = (currency: Currency) => {

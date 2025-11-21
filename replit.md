@@ -9,7 +9,8 @@ A public-facing tour booking website showcasing 700+ curated tours from the Boku
 ## Recent Changes (November 21, 2025)
 
 - **Multi-Currency Support**:
-  - Added currency selector in header with 8 common currencies: USD ($), EUR (€), GBP (£), AUD (AU$), CAD (CA$), JPY (¥), CHF (CHF), NZD (NZ$)
+  - Added currency selector in header with 5 currencies: USD ($), EUR (€), GBP (£), CAD (C$), INR (₹)
+  - Default currency: USD
   - Currency preference persists in localStorage across sessions and affects detail/booking views
   - **Limitation**: Cached product list prices (homepage tour cards, hero carousel) remain in GBP (£) - the Bokun product search endpoint does not support currency parameters
   - Homepage tour cards display prices in £ (GBP) regardless of selected currency

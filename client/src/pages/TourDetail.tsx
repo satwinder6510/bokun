@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Clock, MapPin, Calendar, Users, ChevronLeft, ChevronRight } from "lucide-react";
@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 
@@ -34,6 +35,39 @@ export default function TourDetail() {
 
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80";
   const photos = product?.photos || [];
+
+  // Set meta tags and structured data when product loads
+  useEffect(() => {
+    if (product) {
+      const title = `${product.title} - Tour in ${product.locationCode?.name || 'Worldwide'} | Tour Discoveries`;
+      const description = (product.excerpt || product.title).substring(0, 160) + (product.excerpt ? '...' : '');
+      const ogImage = product.keyPhoto?.originalUrl || imagePlaceholder;
+      
+      setMetaTags(title, description, ogImage);
+
+      // Add structured data for rich snippets
+      const schema = {
+        '@context': 'https://schema.org',
+        '@type': 'Tour',
+        name: product.title,
+        description: description,
+        image: ogImage,
+        offers: {
+          '@type': 'Offer',
+          price: product.price?.toString() || '0',
+          priceCurrency: 'GBP',
+          availability: 'https://schema.org/InStock'
+        },
+        destination: {
+          '@type': 'Place',
+          name: product.locationCode?.name || 'Worldwide'
+        },
+        duration: product.durationText || 'Variable',
+        url: window.location.href
+      };
+      addJsonLD(schema);
+    }
+  }, [product]);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();

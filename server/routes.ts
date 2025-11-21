@@ -151,39 +151,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currency,
         });
       } else {
-        console.log(`${currency} cache miss - fetching from Bokun API and caching...`);
+        console.log(`${currency} cache miss - fetching first page immediately and caching in background...`);
         
-        // Fetch all products for this currency and cache them
-        let allProducts: any[] = [];
-        let currentPage = 1;
-        const fetchPageSize = 100;
-        let hasMore = true;
+        // Fetch ONLY the first page to return immediately (fast!)
+        const firstPageData = await searchBokunProducts(1, 100, currency);
+        const firstPageProducts = firstPageData.items || [];
+        
+        // Cache first page IMMEDIATELY to start 30-day TTL
+        await storage.setCachedProducts(firstPageProducts, currency);
+        console.log(`Cached first ${firstPageProducts.length} ${currency} products (30-day TTL started)`);
+        
+        // Start background caching of remaining pages (non-blocking)
+        if (firstPageProducts.length === 100) {
+          // Only continue if there might be more pages
+          (async () => {
+            try {
+              let allProducts = [...firstPageProducts];
+              let currentPage = 2;
+              const fetchPageSize = 100;
+              let hasMore = true;
 
-        while (hasMore) {
-          const data = await searchBokunProducts(currentPage, fetchPageSize, currency);
-          allProducts = allProducts.concat(data.items || []);
-          hasMore = (data.items?.length || 0) === fetchPageSize;
-          currentPage++;
-          
-          // Safety limit
-          if (currentPage > 50) break;
+              while (hasMore) {
+                const data = await searchBokunProducts(currentPage, fetchPageSize, currency);
+                allProducts = allProducts.concat(data.items || []);
+                hasMore = (data.items?.length || 0) === fetchPageSize;
+                currentPage++;
+                
+                // Safety limit
+                if (currentPage > 50) break;
+              }
+
+              // Deduplicate and update cache with ALL products
+              const uniqueProducts = Array.from(
+                new Map(allProducts.map(p => [p.id, p])).values()
+              );
+              
+              await storage.setCachedProducts(uniqueProducts, currency);
+              console.log(`Background caching completed: ${uniqueProducts.length} ${currency} products now cached`);
+            } catch (error) {
+              console.error(`Background caching failed for ${currency}:`, error);
+            }
+          })(); // Fire and forget
         }
-
-        // Deduplicate before caching
-        const uniqueProducts = Array.from(
-          new Map(allProducts.map(p => [p.id, p])).values()
-        );
         
-        // Store all products for this currency in cache
-        await storage.setCachedProducts(uniqueProducts, currency);
-        
-        // Return requested page
+        // Return first page immediately
         const startIndex = (page - 1) * pageSize;
         const endIndex = startIndex + pageSize;
-        const paginatedProducts = uniqueProducts.slice(startIndex, endIndex);
+        const paginatedProducts = firstPageProducts.slice(startIndex, endIndex);
         
         return res.json({
-          totalHits: uniqueProducts.length,
+          totalHits: firstPageData.totalHits || firstPageProducts.length,
           items: paginatedProducts,
           fromCache: false,
           currency,

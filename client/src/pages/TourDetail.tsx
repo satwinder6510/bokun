@@ -264,20 +264,50 @@ export default function TourDetail() {
 
               <Separator />
 
-              {/* Tabs */}
-              <Tabs defaultValue="description" className="w-full">
-                <TabsList className="w-full justify-start">
-                  <TabsTrigger value="description" data-testid="tab-description">Description</TabsTrigger>
+              {/* Sticky Navigation Tabs */}
+              <div className="sticky top-16 bg-background z-10 pb-4 border-b mb-6">
+                <div className="flex gap-2 flex-wrap">
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => document.getElementById('description-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    data-testid="nav-description"
+                  >
+                    Description
+                  </Button>
                   {product.itinerary && product.itinerary.length > 0 && (
-                    <TabsTrigger value="itinerary" data-testid="tab-itinerary">Itinerary</TabsTrigger>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => document.getElementById('itinerary-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      data-testid="nav-itinerary"
+                    >
+                      Itinerary
+                    </Button>
                   )}
-                  <TabsTrigger value="availability" data-testid="tab-availability">Availability</TabsTrigger>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => document.getElementById('availability-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    data-testid="nav-availability"
+                  >
+                    Availability
+                  </Button>
                   {product.bookableExtras && product.bookableExtras.length > 0 && (
-                    <TabsTrigger value="extras" data-testid="tab-extras">Add-ons</TabsTrigger>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => document.getElementById('extras-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      data-testid="nav-extras"
+                    >
+                      Add-ons
+                    </Button>
                   )}
-                </TabsList>
+                </div>
+              </div>
 
-                <TabsContent value="description" className="space-y-4 pt-6" data-testid="content-description">
+              {/* Description Section */}
+              <div id="description-section" className="space-y-4 scroll-mt-32" data-testid="content-description">
                   {product.description && (
                     <div 
                       className="prose prose-sm max-w-none text-base leading-relaxed"
@@ -303,10 +333,12 @@ export default function TourDetail() {
                       />
                     </div>
                   )}
-                </TabsContent>
+                </div>
 
-                {product.itinerary && product.itinerary.length > 0 && (
-                  <TabsContent value="itinerary" className="space-y-4 pt-6" data-testid="content-itinerary">
+              {/* Itinerary Section */}
+              {product.itinerary && product.itinerary.length > 0 && (
+                <div id="itinerary-section" className="space-y-4 pt-8 scroll-mt-32" data-testid="content-itinerary">
+                  <h2 className="text-2xl font-semibold mb-4">Itinerary</h2>
                     {product.itinerary.map((day) => (
                       <Card key={day.id}>
                         <CardHeader>
@@ -322,10 +354,12 @@ export default function TourDetail() {
                         </CardContent>
                       </Card>
                     ))}
-                  </TabsContent>
-                )}
+                </div>
+              )}
 
-                <TabsContent value="availability" className="space-y-4 pt-6" data-testid="content-availability">
+              {/* Availability Section */}
+              <div id="availability-section" className="space-y-4 pt-8 scroll-mt-32" data-testid="content-availability">
+                <h2 className="text-2xl font-semibold mb-4">Check Availability & Pricing</h2>
                   {productId && (
                     <AvailabilityChecker
                       productId={productId}
@@ -334,10 +368,12 @@ export default function TourDetail() {
                       bookableExtras={product.bookableExtras}
                     />
                   )}
-                </TabsContent>
+              </div>
 
-                {product.bookableExtras && product.bookableExtras.length > 0 && (
-                  <TabsContent value="extras" className="space-y-4 pt-6" data-testid="content-extras">
+              {/* Add-ons Section */}
+              {product.bookableExtras && product.bookableExtras.length > 0 && (
+                <div id="extras-section" className="space-y-4 pt-8 scroll-mt-32" data-testid="content-extras">
+                  <h2 className="text-2xl font-semibold mb-4">Available Add-ons</h2>
                     {product.bookableExtras.map((extra) => (
                       <Card key={extra.id}>
                         <CardContent className="p-6">
@@ -368,9 +404,8 @@ export default function TourDetail() {
                         </CardContent>
                       </Card>
                     ))}
-                  </TabsContent>
-                )}
-              </Tabs>
+                </div>
+              )}
             </div>
 
             {/* Booking Sidebar */}
@@ -391,29 +426,22 @@ export default function TourDetail() {
 
                   <Separator />
 
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        <Calendar className="w-4 h-4 inline mr-2" />
-                        Select Date
-                      </label>
-                      <p className="text-sm text-muted-foreground">Coming soon</p>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">
-                        <Users className="w-4 h-4 inline mr-2" />
-                        Travelers
-                      </label>
-                      <p className="text-sm text-muted-foreground">Coming soon</p>
-                    </div>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Check availability and pricing below
+                    </p>
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => {
+                        document.getElementById('availability-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      data-testid="button-view-availability"
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      View Availability
+                    </Button>
                   </div>
-
-                  <Separator />
-
-                  <p className="text-sm text-muted-foreground text-center">
-                    Use the <span className="font-medium text-foreground">Availability</span> tab below to select dates and see pricing options
-                  </p>
                 </CardContent>
               </Card>
             </div>

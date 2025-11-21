@@ -9,6 +9,7 @@ import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
+import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import {
   Select,
   SelectContent,
@@ -154,14 +155,22 @@ export default function Homepage() {
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
         <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center" data-testid="link-logo">
+          <div className="flex items-center gap-3 md:gap-4">
+            <a href="/" className="flex items-center" data-testid="link-logo">
+              <img 
+                src={logoImage} 
+                alt="Flights and Packages" 
+                className="h-10 md:h-12 w-auto"
+                data-testid="img-logo"
+              />
+            </a>
             <img 
-              src={logoImage} 
-              alt="Flights and Packages" 
-              className="h-10 md:h-12 w-auto"
-              data-testid="img-logo"
+              src={travelTrustLogo} 
+              alt="Travel Trust Association - Your Holidays 100% Financially Protected" 
+              className="h-8 md:h-10 w-auto"
+              aria-label="Travel Trust Association member"
             />
-          </a>
+          </div>
           <nav className="flex items-center gap-4 md:gap-6">
             <a href="/" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-home">
               Home

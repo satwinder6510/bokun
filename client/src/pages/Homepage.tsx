@@ -161,7 +161,7 @@ export default function Homepage() {
     <div className="min-h-screen bg-background">
       {/* Fixed Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
-        <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
+        <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between gap-6">
           <div className="flex items-center gap-5 md:gap-6">
             <a href="/" className="flex items-center" data-testid="link-logo">
               <img 
@@ -178,7 +178,7 @@ export default function Homepage() {
               aria-label="Travel Trust Association member"
             />
           </div>
-          <nav className="flex items-center gap-4 md:gap-6">
+          <nav className="flex items-center gap-4 md:gap-6 flex-shrink-0">
             <a href="/" className="text-base font-medium hover:text-primary transition-colors hidden md:inline" data-testid="link-home">
               Home
             </a>

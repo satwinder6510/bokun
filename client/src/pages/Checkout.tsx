@@ -277,7 +277,7 @@ function CheckoutForm({ serverAmount, serverCurrency, paymentIntentId }: Checkou
 
 export default function Checkout() {
   const [, navigate] = useLocation();
-  const { items, itemCount, removeFromCart, isLoading: isCartLoading } = useCart();
+  const { items, itemCount, removeFromCart, isLoading: isCartLoading, sessionId } = useCart();
   const { toast } = useToast();
   const [clientSecret, setClientSecret] = useState<string>("");
   const [stripePublishableKey, setStripePublishableKey] = useState<string>("");
@@ -313,7 +313,20 @@ export default function Checkout() {
         setStripePublishableKey(publishableKey);
 
         // Create payment intent - backend calculates amount from cart (secure)
-        const paymentResponse = await apiRequest("POST", "/api/create-payment-intent", {});
+        const paymentResponse = await fetch("/api/create-payment-intent", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-session-id": sessionId,
+          },
+          body: JSON.stringify({}),
+        });
+        
+        if (!paymentResponse.ok) {
+          const errorData = await paymentResponse.json();
+          throw new Error(errorData.error || "Failed to create payment intent");
+        }
+        
         const data = await paymentResponse.json();
         
         if (data.clientSecret && data.amount !== undefined && data.currency && data.paymentIntentId) {

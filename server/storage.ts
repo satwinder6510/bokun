@@ -56,6 +56,143 @@ export class MemStorage implements IStorage {
     this.faqIdCounter = 1;
     this.blogPosts = new Map();
     this.blogPostIdCounter = 1;
+    
+    this.initializeSampleBlogPosts();
+  }
+
+  private initializeSampleBlogPosts() {
+    const samplePosts: InsertBlogPost[] = [
+      {
+        title: "Top 10 Hidden Gems in Southeast Asia",
+        slug: "top-10-hidden-gems-southeast-asia",
+        content: `<p>Southeast Asia is renowned for its stunning beaches, vibrant cities, and rich cultural heritage. While places like Bangkok, Bali, and Singapore attract millions of visitors each year, the region is also home to countless hidden gems waiting to be discovered.</p>
+
+<h2>1. Luang Prabang, Laos</h2>
+<p>Nestled between the Mekong and Nam Khan rivers, Luang Prabang is a UNESCO World Heritage Site that combines French colonial architecture with traditional Lao culture. Wake up early to witness the alms-giving ceremony, where hundreds of Buddhist monks walk through the streets collecting offerings.</p>
+
+<h2>2. Raja Ampat, Indonesia</h2>
+<p>For diving enthusiasts, Raja Ampat offers some of the most biodiverse marine ecosystems on the planet. This remote archipelago in West Papua features crystal-clear waters, vibrant coral reefs, and over 1,500 species of fish.</p>
+
+<h2>3. Hoi An, Vietnam</h2>
+<p>This charming ancient town lights up at night with thousands of colorful lanterns. Explore the well-preserved architecture, take a cooking class, or have custom clothes tailored by local artisans.</p>
+
+<h2>4. Pai, Thailand</h2>
+<p>Escape the crowds in this laid-back mountain town in northern Thailand. Known for its hot springs, waterfalls, and stunning viewpoints, Pai attracts digital nomads and backpackers seeking tranquility.</p>
+
+<h2>5. Kampot, Cambodia</h2>
+<p>Famous for its world-class pepper, Kampot is a riverside town offering a glimpse into colonial Cambodia. Visit pepper farms, explore nearby Bokor National Park, or simply relax by the river.</p>
+
+<p>These destinations offer authentic experiences away from mass tourism. Each location provides unique opportunities to connect with local cultures, enjoy pristine natural beauty, and create unforgettable memories.</p>`,
+        excerpt: "Discover lesser-known destinations in Southeast Asia that offer authentic experiences, stunning natural beauty, and rich cultural encounters away from the tourist crowds.",
+        metaTitle: "Top 10 Hidden Gems in Southeast Asia - Flights and Packages",
+        metaDescription: "Explore Southeast Asia's best-kept secrets. From Luang Prabang to Raja Ampat, discover hidden destinations that offer authentic travel experiences.",
+        featuredImage: null,
+        author: "Flights and Packages",
+        isPublished: true,
+        publishedAt: new Date("2025-01-15T10:00:00Z"),
+      },
+      {
+        title: "Ultimate Guide to Planning Your First African Safari",
+        slug: "ultimate-guide-planning-first-african-safari",
+        content: `<p>An African safari is a once-in-a-lifetime adventure that offers unparalleled wildlife encounters and breathtaking landscapes. Planning your first safari can feel overwhelming, but with the right preparation, you'll create memories that last forever.</p>
+
+<h2>Choosing Your Destination</h2>
+<p>Africa offers diverse safari experiences across different countries:</p>
+
+<h3>Tanzania</h3>
+<p>Home to the Serengeti and the annual wildebeest migration, Tanzania offers classic safari experiences. Visit Ngorongoro Crater for concentrated wildlife viewing in a stunning volcanic caldera.</p>
+
+<h3>Kenya</h3>
+<p>The Masai Mara is famous for its big cat populations and the spectacular river crossings during migration season. Amboseli National Park provides iconic views of elephants against Mount Kilimanjaro's backdrop.</p>
+
+<h3>South Africa</h3>
+<p>Kruger National Park combines excellent wildlife viewing with luxury lodges and accessibility. The country's well-developed infrastructure makes it ideal for first-time safari-goers.</p>
+
+<h2>Best Time to Visit</h2>
+<p>The dry season (June to October) typically offers the best wildlife viewing as animals congregate around water sources. However, the wet season brings lush landscapes, baby animals, and fewer tourists.</p>
+
+<h2>What to Pack</h2>
+<ul>
+<li>Neutral-colored clothing (khaki, beige, olive) to blend with the environment</li>
+<li>Wide-brimmed hat and sunglasses for sun protection</li>
+<li>Binoculars for distant wildlife viewing</li>
+<li>Camera with telephoto lens</li>
+<li>Insect repellent and sunscreen</li>
+<li>Light jacket for early morning game drives</li>
+</ul>
+
+<h2>Safari Etiquette</h2>
+<p>Respect wildlife by maintaining safe distances, staying quiet during sightings, and following your guide's instructions. Never feed animals or leave the vehicle unless permitted.</p>
+
+<p>An African safari offers transformative experiences that connect you with nature in profound ways. Start planning your adventure today!</p>`,
+        excerpt: "Everything you need to know to plan your first African safari, from choosing destinations and timing your visit to packing essentials and safari etiquette.",
+        metaTitle: "Ultimate African Safari Planning Guide - First-Timer Tips",
+        metaDescription: "Plan your dream African safari with our comprehensive guide. Learn about top destinations, best times to visit, what to pack, and essential safari tips.",
+        featuredImage: null,
+        author: "Flights and Packages",
+        isPublished: true,
+        publishedAt: new Date("2025-01-10T14:00:00Z"),
+      },
+      {
+        title: "5 Essential Travel Photography Tips for Beginners",
+        slug: "5-essential-travel-photography-tips-beginners",
+        content: `<p>Capturing your travel experiences through photography allows you to preserve memories and share your adventures with others. Whether you're using a smartphone or a professional camera, these essential tips will help you take better travel photos.</p>
+
+<h2>1. Wake Up Early, Stay Out Late</h2>
+<p>The golden hours—shortly after sunrise and before sunset—provide the most flattering natural light. Soft, warm light during these times adds depth and drama to your photos while avoiding harsh midday shadows.</p>
+
+<h2>2. Tell a Story</h2>
+<p>Great travel photography goes beyond pretty landscapes. Include people, local culture, and details that convey the essence of a place. Capture street vendors, traditional ceremonies, architectural details, and everyday moments that reveal the destination's character.</p>
+
+<h2>3. Use the Rule of Thirds</h2>
+<p>Instead of centering your subject, imagine your frame divided into nine equal sections by two horizontal and two vertical lines. Place important elements along these lines or at their intersections for more dynamic, visually interesting compositions.</p>
+
+<h2>4. Get Closer to Your Subject</h2>
+<p>Don't be afraid to move closer or use your zoom lens. Fill the frame with your subject to eliminate distracting backgrounds and create more intimate, impactful images. This is especially effective for portraits and detail shots.</p>
+
+<h2>5. Be Respectful and Ask Permission</h2>
+<p>When photographing people, especially in unfamiliar cultures, always ask permission first. A smile and friendly gesture often transcend language barriers. Respect those who decline and be mindful of sacred or sensitive locations.</p>
+
+<h3>Bonus Tips</h3>
+<ul>
+<li>Shoot in RAW format for maximum editing flexibility</li>
+<li>Carry extra batteries and memory cards</li>
+<li>Clean your lens regularly</li>
+<li>Learn your camera's settings before your trip</li>
+<li>Look for unique perspectives and angles</li>
+</ul>
+
+<p>Remember, the best camera is the one you have with you. Focus on capturing authentic moments and enjoying your travels—the technical skills will develop over time.</p>`,
+        excerpt: "Improve your travel photography with these five essential tips for beginners. Learn about lighting, composition, storytelling, and respectful photography practices.",
+        metaTitle: "5 Essential Travel Photography Tips for Beginners",
+        metaDescription: "Master travel photography basics with these beginner-friendly tips. Learn composition techniques, lighting secrets, and how to capture authentic moments.",
+        featuredImage: null,
+        author: "Flights and Packages",
+        isPublished: true,
+        publishedAt: new Date("2025-01-05T09:00:00Z"),
+      },
+    ];
+
+    samplePosts.forEach(post => {
+      const id = this.blogPostIdCounter++;
+      const now = new Date();
+      const blogPost: BlogPost = {
+        id,
+        title: post.title,
+        slug: post.slug,
+        content: post.content,
+        excerpt: post.excerpt,
+        metaTitle: post.metaTitle ?? null,
+        metaDescription: post.metaDescription ?? null,
+        featuredImage: post.featuredImage ?? null,
+        author: post.author ?? "Flights and Packages",
+        isPublished: post.isPublished ?? false,
+        publishedAt: post.publishedAt ?? null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      this.blogPosts.set(id, blogPost);
+    });
   }
 
   async getUser(id: string): Promise<User | undefined> {

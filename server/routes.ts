@@ -11,6 +11,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/sitemap.xml", async (req, res) => {
     try {
       const cachedProducts = await storage.getCachedProducts("GBP");
+      const publishedBlogPosts = await storage.getPublishedBlogPosts();
       const baseUrl = 'https://tours.flightsandpackages.com';
       
       // Deduplicate products
@@ -28,6 +29,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sitemap += '    <changefreq>daily</changefreq>\n';
       sitemap += '    <priority>1.0</priority>\n';
       sitemap += '  </url>\n';
+      
+      // Blog index page
+      sitemap += '  <url>\n';
+      sitemap += `    <loc>${baseUrl}/blog</loc>\n`;
+      sitemap += '    <changefreq>weekly</changefreq>\n';
+      sitemap += '    <priority>0.9</priority>\n';
+      sitemap += '  </url>\n';
+      
+      // Blog post pages
+      publishedBlogPosts.forEach(post => {
+        sitemap += '  <url>\n';
+        sitemap += `    <loc>${baseUrl}/blog/${post.slug}</loc>\n`;
+        const lastmod = post.updatedAt.toISOString().split('T')[0];
+        sitemap += `    <lastmod>${lastmod}</lastmod>\n`;
+        sitemap += '    <changefreq>monthly</changefreq>\n';
+        sitemap += '    <priority>0.7</priority>\n';
+        sitemap += '  </url>\n';
+      });
       
       // Tour detail pages
       uniqueProducts.forEach(product => {

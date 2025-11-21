@@ -464,55 +464,57 @@ export default function Homepage() {
       {/* Footer */}
       <footer className="bg-card border-t py-12">
         <div className="container mx-auto px-6 md:px-8">
-          {/* Main Footer Content */}
-          <div className="flex flex-col md:flex-row justify-between items-start gap-8 pb-8 border-b">
+          {/* Top Section: Company Info & Links */}
+          <div className="flex flex-col md:flex-row justify-between items-start gap-8 pb-8 mb-8 border-b">
             {/* Left: Company Info */}
-            <div className="flex-1 max-w-xs">
+            <div className="flex-1 max-w-sm">
               <h4 className="font-bold text-lg mb-2">Flights and Packages</h4>
               <p className="text-sm text-muted-foreground">
                 Discover unforgettable journeys across stunning destinations worldwide.
               </p>
             </div>
             
-            {/* Center: Destinations Grid */}
-            <div className="flex-1">
-              <h5 className="font-semibold mb-3 text-sm">Popular Destinations</h5>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-                {allCountries.slice(0, 12).map((country) => (
-                  <button
-                    key={country}
-                    onClick={() => {
-                      setSelectedCountry(country);
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors text-left"
-                  >
-                    {country}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
             {/* Right: Contact & Links */}
-            <div className="flex-shrink-0">
-              <h5 className="font-semibold mb-3 text-sm">Quick Links</h5>
-              <div className="space-y-2 mb-6">
-                <a href="/" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Home
-                </a>
-                <a href="/contact" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Contact
-                </a>
-                <a href="/terms" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
-                  Terms
-                </a>
+            <div className="flex gap-12">
+              <div>
+                <h5 className="font-semibold mb-3 text-sm">Quick Links</h5>
+                <div className="space-y-2">
+                  <a href="/" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Home
+                  </a>
+                  <a href="/contact" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Contact
+                  </a>
+                  <a href="/terms" className="block text-sm text-muted-foreground hover:text-primary transition-colors">
+                    Terms
+                  </a>
+                </div>
               </div>
               <div>
-                <h5 className="font-semibold mb-2 text-sm">Email</h5>
+                <h5 className="font-semibold mb-3 text-sm">Email</h5>
                 <a href="mailto:holidayenq@flightsandpackages.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                   holidayenq@flightsandpackages.com
                 </a>
               </div>
+            </div>
+          </div>
+          
+          {/* Destinations Grid */}
+          <div className="pb-8 border-b">
+            <h5 className="font-semibold mb-4 text-sm">Browse by Destination</h5>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-2">
+              {allCountries.map((country) => (
+                <button
+                  key={country}
+                  onClick={() => {
+                    setSelectedCountry(country);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors text-left"
+                >
+                  {country}
+                </button>
+              ))}
             </div>
           </div>
           

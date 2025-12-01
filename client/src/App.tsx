@@ -8,6 +8,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CartProvider } from "@/contexts/CartContext";
 import Homepage from "@/pages/Homepage";
 import TourDetail from "@/pages/TourDetail";
+import OfferDetails from "@/pages/OfferDetails";
 import Terms from "@/pages/Terms";
 import Contact from "@/pages/Contact";
 import FAQ from "@/pages/FAQ";
@@ -26,6 +27,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Homepage} />
       <Route path="/tour/:id" component={TourDetail} />
+      <Route path="/offer/:slug" component={OfferDetails} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/booking/:reference" component={BookingConfirmation} />
       <Route path="/terms" component={Terms} />

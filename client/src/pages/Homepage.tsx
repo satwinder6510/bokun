@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { CartButton } from "@/components/CartButton";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu, Plane, MapPin, Clock, Utensils, Star } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import {
@@ -32,7 +33,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import type { BokunProductSearchResponse, BokunProduct } from "@shared/schema";
+import type { BokunProductSearchResponse, BokunProduct, CustomOffer } from "@shared/schema";
 
 export default function Homepage() {
   const { selectedCurrency } = useCurrency();
@@ -43,6 +44,10 @@ export default function Homepage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const { data: featuredOffers = [], isLoading: isLoadingOffers } = useQuery<CustomOffer[]>({
+    queryKey: ['/api/offers/featured'],
+  });
 
   const fetchProductsMutation = useMutation<BokunProductSearchResponse, Error, string>({
     mutationFn: async (currency: string) => {
@@ -454,6 +459,115 @@ export default function Homepage() {
           )}
         </div>
       </section>
+
+      {/* Featured Holiday Packages Section */}
+      {featuredOffers.length > 0 && (
+        <section className="py-16 bg-background" data-testid="section-holiday-packages">
+          <div className="container mx-auto px-6 md:px-8">
+            <div className="text-center mb-10">
+              <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">
+                Handpicked for You
+              </p>
+              <h3 className="text-3xl md:text-4xl font-bold mb-3">
+                Holiday Packages
+              </h3>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Curated all-inclusive packages featuring flights, hotels, and unforgettable experiences
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoadingOffers ? (
+                <>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="aspect-[4/5] bg-muted rounded-xl animate-pulse" />
+                  ))}
+                </>
+              ) : (
+                featuredOffers.map((offer) => (
+                  <a 
+                    key={offer.id} 
+                    href={`/offer/${offer.slug}`}
+                    className="group block relative overflow-hidden rounded-xl aspect-[4/5] hover-elevate"
+                    data-testid={`card-offer-${offer.id}`}
+                  >
+                    <img
+                      src={offer.featuredImage || 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800'}
+                      alt={offer.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    
+                    <div className="absolute top-4 left-4 right-4 flex flex-wrap gap-2">
+                      {offer.isFeatured && (
+                        <Badge className="bg-primary text-primary-foreground">
+                          <Star className="w-3 h-3 mr-1" />
+                          Featured
+                        </Badge>
+                      )}
+                      {offer.region && (
+                        <Badge variant="secondary" className="bg-white/20 text-white backdrop-blur-sm border-0">
+                          {offer.region}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+                      <h4 className="text-lg font-bold mb-2 line-clamp-2 group-hover:text-primary transition-colors">
+                        {offer.title}
+                      </h4>
+                      
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-white/80 mb-3">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          {offer.destination}
+                        </span>
+                        {offer.duration && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            {offer.duration}
+                          </span>
+                        )}
+                        {offer.mealPlan && (
+                          <span className="flex items-center gap-1">
+                            <Utensils className="w-3.5 h-3.5" />
+                            {offer.mealPlan}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <span className="text-xs text-white/70">From</span>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold">
+                              {offer.currency === 'GBP' ? '£' : offer.currency === 'EUR' ? '€' : '$'}{offer.priceFrom}
+                            </span>
+                            <span className="text-sm text-white/70">pp</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm">
+                          <Plane className="w-4 h-4" />
+                          <span>Flights Included</span>
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                ))
+              )}
+            </div>
+
+            <div className="text-center mt-10">
+              <a href="/holidays">
+                <Button variant="outline" size="lg" data-testid="button-view-all-packages">
+                  View All Holiday Packages
+                </Button>
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Horizontal Category Pills */}
       {categories.length > 0 && (

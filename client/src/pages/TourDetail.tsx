@@ -228,9 +228,9 @@ export default function TourDetail() {
       {/* Content */}
       <section className="pb-16">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="max-w-4xl">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="space-y-8">
               <div>
                 <h1 className="text-4xl font-semibold mb-4" data-testid="text-tour-title">
                   {product.title}
@@ -409,43 +409,6 @@ export default function TourDetail() {
               )}
             </div>
 
-            {/* Booking Sidebar */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-24">
-                <CardContent className="p-6 space-y-6">
-                  {product.price && (
-                    <div>
-                      <div className="flex items-baseline gap-2 mb-1">
-                        <span className="text-sm text-muted-foreground">From</span>
-                        <span className="text-3xl font-semibold" data-testid="text-price">
-                          {selectedCurrency.symbol}{product.price.toFixed(2)}
-                        </span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">per person</p>
-                    </div>
-                  )}
-
-                  <Separator />
-
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Check availability and pricing below
-                    </p>
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => {
-                        document.getElementById('availability-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
-                      data-testid="button-view-availability"
-                    >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      View Availability
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </div>
       </section>

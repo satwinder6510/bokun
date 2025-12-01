@@ -1,0 +1,558 @@
+var MyClass = React.createClass({
+  render: function() {
+    return (
+      <div>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content />
+        <meta name="author" content />
+        <title>Quality Holidays at Affordable Prices | Holidays - Flights and Packages</title>
+        <link rel="icon" type="image/x-icon" href="assets/images/favicon.png" />
+        <link href="assets/bootstrap/css/bootstrap.min.css" rel="stylesheet" />
+        <link href="assets/css/font-awesome.min.css" rel="stylesheet" />
+        <link href="assets/css/scss/style.css" rel="stylesheet" />
+        <nav className="navbar navbar-expand-lg fixed-top smart-scroll nav-bg">
+          <div className="container-fluid">
+            <a className="navbar-brand" href="#">
+              <img alt="Flights and Packages" src="assets/images/flights-and-packages-logo.png" className="logo" />
+            </a>
+            <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+            </button>
+            <div className="collapse navbar-collapse" id="navbarNavDropdown">
+              <ul className="navbar-nav ms-auto nav-mobile">
+                <li className="nav-item dropdown">
+                  <a className="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Cruises Packages
+                  </a>
+                  <ul className="dropdown-menu large-dropdown crpack" aria-labelledby="navbarDropdownMenuLink">
+                    <div className="row">
+                      <div className="col-sm-4">
+                        <span><a className="title" href="#">Cruise Destinations</a></span>
+                        <ul className="column">
+                          <li><a href="#">Caribbean Cruise</a></li>
+                          <li><a href="#">Maditerranean Cruise</a></li>
+                          <li><a href="#">Far East Cruise</a></li>
+                          <li><a href="#">Adriatic Cruise</a></li>
+                          <li><a href="#">Transatlantic Cruise</a></li>
+                          <li><a href="#">Fjords Cruise</a></li>
+                          <li><a href="#" className="view-all">VIEW ALL</a></li>
+                        </ul>
+                      </div>
+                      <div className="col-sm-4">
+                        <span><a className="title" href="#">Cruise Line</a></span>
+                        <ul className="column">
+                          <li><a href="#">Norwegian Cruise</a></li>
+                          <li><a href="#">Royal Caribbean</a></li>
+                          <li><a href="#">Celebrity Cruises</a></li>
+                          <li><a href="#">Costa Cruise</a></li>
+                          <li><a href="#">CarnivalCruise</a></li>
+                          <li><a href="#">Oceania Cruise</a></li>
+                          <li><a href="#" className="view-all">VIEW ALL</a></li>
+                        </ul>
+                      </div>
+                      <div className="col-sm-4">
+                        <span><a className="title" href="#">Other Cruises</a></span>
+                        <ul className="column">
+                          <li><a href="#">Gulet Cruise</a></li>
+                          <li><a href="#">Nile Cruise</a></li>
+                          <li><a href="#">River Cruise</a></li>
+                          <li><a href="#">Small Yachts </a></li>
+                          <li><a href="#" className="view-all">VIEW ALL</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </ul>
+                </li>
+                <li className="nav-item dropdown">
+                  <a className="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Cruise Deals
+                  </a>
+                  <ul className="dropdown-menu large-dropdown crdeal" aria-labelledby="navbarDropdownMenuLink">
+                    <div className="row">
+                      <div className="col-sm-5">
+                        <span className="column"><a className="title" href="#">Popular</a></span>	
+                        <ul className="column column2">
+                          <li><a href="#">All Cruise Deals</a></li>
+                          <li><a href="#">All Inclusive Cruises</a></li>
+                          <li><a href="#">Balcony Deals</a></li>
+                          <li><a href="#">Single Traveller</a></li>
+                          <li><a href="#">Christmas &amp; New Year</a></li>
+                          <li><a href="#">Cruise Deals 2025</a></li>
+                          <li><a href="#">Cruise Deals 2026</a></li>
+                          <li><a href="#">Cruise Deals 2027</a></li>
+                          <li><a href="#">Cruise Deals 2028</a></li>
+                          <li><a href="#">The Heven</a></li>
+                          <li><a href="#">School Holidays</a></li>
+                          <li><a href="#">Mini Cruises </a></li>
+                          <li><a href="#">Last Minute Cruises</a></li>
+                          <li><a href="#">Music Cities</a></li>
+                          <li><a href="#">Grand Prix Specials</a></li>
+                          <li><a href="#">Verona Opera</a></li>
+                          <li><a href="#">Fire &amp; Ice</a></li>
+                          <li><a href="#">New Ships</a></li>
+                        </ul>
+                      </div>
+                      <div className="col-sm-7">
+                        <div className="row">
+                          <div className="col-sm-4">
+                            <span className="column"><a className="title" href="#">From UK</a></span>
+                            <ul className="column">
+                              <li><a href="#">Cruises from UK</a></li>
+                              <li><a href="#">Cruises from Southampton</a></li>
+                              <li><a href="#">Cruises from Liverpool</a></li>
+                              <li><a href="#">Cruises from Dover</a></li>
+                              <li><a href="#">Cruises from Scotland</a></li>
+                              <li><a href="#">Cruises from London</a></li>
+                              <li><a href="#">Cruises from Newcastle</a></li>
+                              <li><a href="#">Cruises from Rosyth</a></li>
+                              <li><a href="#" className="view-all">View All</a></li>
+                            </ul>
+                          </div>
+                          <div className="col-sm-4">
+                            <span className="column"><a className="title" href="#">Cruise Lines</a></span>
+                            <ul className="column">
+                              <li><a href="#">Norwegian Cruise Lines</a></li>
+                              <li><a href="#">Celebrity Cruise Line</a></li>
+                              <li><a href="#">MSC Cruise line</a></li>
+                              <li><a href="#">Costa Cruises line</a></li>
+                              <li><a href="#" className="view-all">View All</a></li>
+                            </ul>
+                          </div>
+                          <div className="col-sm-4">
+                            <span className="column"><a className="title" href="#">Monthly</a></span>
+                            <ul className="column">
+                              <li><a href="#">January </a></li>
+                              <li><a href="#">February</a></li>
+                              <li><a href="#">March</a></li>
+                              <li><a href="#">April</a></li>
+                              <li><a href="#">May</a></li>
+                              <li><a href="#">June</a></li>
+                              <li><a href="#">July</a></li>
+                              <li><a href="#">August</a></li>
+                              <li><a href="#">September</a></li>
+                              <li><a href="#">October</a></li>
+                              <li><a href="#">November</a></li>
+                              <li><a href="#">December</a></li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </ul>
+                </li>
+                <li className="nav-item dropdown">
+                  <a className="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Cruise Destinations
+                  </a>
+                  <ul className="dropdown-menu large-dropdown crddest" aria-labelledby="navbarDropdownMenuLink">
+                    <div className="row">
+                      <div className="col-sm-12">
+                        <span className="column"><a className="title" href="#">Cruise Destinations</a></span>
+                        <ul className="column column4">
+                          <li><a href="#">Caribbean Cruises </a></li>
+                          <li><a href="#">Mediterranean Cruises </a></li>
+                          <li><a href="#">Alaska Cruises </a></li>
+                          <li><a href="#">Greek Island Cruises </a></li>
+                          <li><a href="#">Canary Island Cruises </a></li>
+                          <li><a href="#">Dubai &amp; The Emirates</a></li>
+                          <li><a href="#">Canary Islands</a></li>
+                          <li><a href="#">Norwegian Fjords</a></li>
+                          <li><a href="#">USA</a></li>
+                          <li><a href="#">Hawaii</a></li>
+                          <li><a href="#">Lake Garda</a></li>
+                          <li><a href="#">Great Barrier Reef</a></li>
+                          <li><a href="#">Canada &amp; New England</a></li>
+                          <li><a href="#">South America</a></li>
+                          <li><a href="#">Panama Canal</a></li>
+                          <li><a href="#">Scandinavia</a></li>
+                          <li><a href="#">Northern Europe</a></li>
+                          <li><a href="#">Rocky Mountaineer</a></li>
+                          <li><a href="#">Northern Lights</a></li>
+                          <li><a href="#">Western Mediterranean</a></li>
+                          <li><a href="#">Eastern Mediterranean</a></li>
+                          <li><a href="#">Australia &amp; New Zealand</a></li>
+                          <li><a href="#">Greek Isles</a></li>
+                          <li><a href="#">United Kingdom</a></li>
+                          <li><a href="#">Niagara Falls &amp; New York</a></li>
+                          <li><a href="#">Polar Regions</a></li>
+                          <li><a href="#">Transatlantic</a></li>
+                          <li><a href="#">Africa</a></li>
+                          <li><a href="#">World Cruises</a></li>
+                          <li><a href="#">Ocean Cay Marine Reserve</a></li>
+                          <li><a href="#">Perfect Day</a></li>
+                          <li><a href="#">Half Moon Cay</a></li>
+                          <li><a href="#">Princess Cays</a></li>
+                        </ul>
+                        <ul className="column">
+                          <li style={{textAlign: 'center'}}><a href="#" className="view-all">View All</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </ul>
+                </li>
+                <li className="nav-item dropdown">
+                  <a className="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Cruise Lines
+                  </a>
+                  <ul className="dropdown-menu large-dropdown crline" aria-labelledby="navbarDropdownMenuLink">
+                    <div className="row">
+                      <div className="col-sm-6">
+                        <span className="column"><a className="title" href="#">Ocean Cruise Line</a></span>
+                        <ul className="column column2">
+                          <li><a href="#">Norwegian Cruise Line</a></li>
+                          <li><a href="#">Celebrity Cruises</a></li>
+                          <li><a href="#">Royal Caribbean</a></li>
+                          <li><a href="#">Disney Cruise Line</a></li>
+                          <li><a href="#">Holland America Line</a></li>
+                          <li><a href="#">P&amp;O Cruises</a></li>
+                          <li><a href="#">Regent Seven Seas Cruises</a></li>
+                          <li><a href="#">Seabourn Cruise Line</a></li>
+                          <li><a href="#">AmaWaterways</a></li>
+                          <li><a href="#">Azamara</a></li>
+                          <li><a href="#">MSC Cruises</a></li>
+                          <li><a href="#">Carnival Cruises Line</a></li>
+                          <li><a href="#">Cunard Line</a></li>
+                          <li><a href="#">Explora journeys</a></li>
+                          <li><a href="#">Oceania Cruises</a></li>
+                          <li><a href="#">Princess Cruises</a></li>
+                          <li><a href="#">Silversea</a></li>
+                          <li><a href="#" className="view-all">VIEW ALL</a></li>
+                        </ul>
+                      </div>
+                      <div className="col-sm-3">
+                        <span className="column"><a className="title" href="#">River Cruise Line</a></span>
+                        <ul className="column">
+                          <li><a href="#">A Rosa</a></li>
+                          <li><a href="#">Croisi Europe</a></li>
+                          <li><a href="#">Tui River Cruises</a></li>
+                          <li><a href="#">Riverside Luxury Cruises</a></li>
+                          <li><a href="#" className="view-all">VIEW ALL</a></li>
+                        </ul>
+                      </div>
+                      <div className="col-sm-3">
+                        <span className="column"><a className="title" href="#">Other Cruise Line</a></span>
+                        <ul className="column">
+                          <li><a href="#">Gulet Cruise</a></li>
+                          <li><a href="#">Nile Cruise</a></li>
+                          <li><a href="#">Small Yachts </a></li>
+                          <li><a href="#" className="view-all">VIEW ALL</a></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </ul>
+                </li>
+                <li className="nav-item dropdown">
+                  <a className="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Holidays
+                  </a>
+                  <ul className="dropdown-menu large-dropdown holiday" aria-labelledby="navbarDropdownMenuLink">
+                    <div className="row">
+                      <div className="col-sm-9">
+                        <span className="column"><a className="title2" href>Holidays Destinations</a></span>
+                        <div className="row">
+                          <div className="col-sm-9">
+                            <div className="row">
+                              <div className="col-sm-3">
+                                <span className="column"><a className="title" href="#">Europe</a></span>
+                                <ul className="column">
+                                  <li><a href="#">Italy</a></li>
+                                  <li><a href="#">Greece</a></li>
+                                  <li><a href="#">Spain</a></li>
+                                  <li><a href="#">Portugal</a></li>
+                                  <li><a href="#">Malta</a></li>
+                                  <li><a href="#">Romania</a></li>
+                                  <li><a href="#">Cyprus</a></li>
+                                  <li><a href="#">Montenegro</a></li>
+                                  <li><a href="#">Estonia</a></li>
+                                  <li><a href="#">France</a></li>
+                                  <li><a href="#" className="view-all">View All</a></li>
+                                </ul>
+                              </div>
+                              <div className="col-sm-3">
+                                <span className="column"><a className="title" href="#">Americas</a></span>
+                                <ul className="column">
+                                  <li><a href="#">Peru</a></li>
+                                  <li><a href="#">Argentina</a></li>
+                                  <li><a href="#">Brazil </a></li>
+                                  <li><a href="#">Las Vegas</a></li>
+                                  <li><a href="#">Ecuador</a></li>
+                                  <li><a href="#" className="view-all">View All</a></li>
+                                </ul>
+                              </div>
+                              <div className="col-sm-3">
+                                <span className="column"><a className="title" href="#">Africa</a></span>
+                                <ul className="column">
+                                  <li><a href="#">Morocco</a></li>
+                                  <li><a href="#">Kenya</a></li>
+                                  <li><a href="#">South Africa</a></li>
+                                  <li><a href="#" className="view-all">View All</a></li>
+                                </ul>
+                              </div>
+                              <div className="col-sm-3">
+                                <span className="column"><a className="title" href="#">Asia</a></span>
+                                <ul className="column">
+                                  <li><a href="#">India </a></li>
+                                  <li><a href="#">Sri lanka</a></li>
+                                  <li><a href="#">Vietnam</a></li>
+                                  <li><a href="#">Cambodia</a></li>
+                                  <li><a href="#">Thailand</a></li>
+                                  <li><a href="#">Malaysia</a></li>
+                                  <li><a href="#">Singapore</a></li>
+                                  <li><a href="#">Indonesia</a></li>
+                                  <li><a href="#">Nepal</a></li>
+                                  <li><a href="#" className="view-all">View All</a></li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="col-sm-3">
+                            <span className="column"><a className="title" href="#">Middle East</a></span>
+                            <ul className="column">
+                              <li><a href="#">UAE</a></li>
+                              <li><a href="#">Egypt</a></li>
+                              <li><a href="#" className="view-all">View All</a></li>
+                            </ul>
+                            <span className="column"><a className="title" href="#">Indian Ocean</a></span>
+                            <ul className="column">
+                              <li><a href="#">Maldives</a></li>
+                              <li><a href="#">Mauritius</a></li>
+                              <li><a href="#" className="view-all">View All</a></li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-sm-3">
+                        <span className="column"><a className="title2" href>Holidays Collections</a></span>
+                        <div className="row">
+                          <div className="col-sm-6">
+                            <span className="column"><a className="title" href="#">Europe</a></span>
+                            <ul className="column">
+                              <li><a href="#">Italy</a></li>
+                              <li><a href="#">Greece</a></li>
+                              <li><a href="#">Spain</a></li>
+                              <li><a href="#">Portugal</a></li>
+                              <li><a href="#">Malta</a></li>
+                              <li><a href="#">Romania</a></li>
+                              <li><a href="#">Cyprus</a></li>
+                              <li><a href="#">Montenegro</a></li>
+                              <li><a href="#">Estonia</a></li>
+                              <li><a href="#">France</a></li>
+                              <li><a href="#" className="view-all">View All</a></li>
+                            </ul>
+                          </div>
+                          <div className="col-sm-6">
+                            <span className="column"><a className="title" href="#">Americas</a></span>
+                            <ul className="column">
+                              <li><a href="#">Peru</a></li>
+                              <li><a href="#">Argentina</a></li>
+                              <li><a href="#">Brazil </a></li>
+                              <li><a href="#">Las Vegas</a></li>
+                              <li><a href="#">Ecuador</a></li>
+                              <li><a href="#" className="view-all">View All</a></li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </ul>
+                </li>
+              </ul>
+              <div className="contacts">
+                <span className="phone">0208 183 0518</span><br />
+                <span>We're open until 9pm</span>
+              </div>
+            </div>
+          </div>
+        </nav>
+        {/* -------------------------------End Header------------------------------- */}
+        <div className="main-container" style={{padding: '0px'}}>
+          <br /><br /><br /><br /><br />
+          <br /><br /><br /><br /><br />
+          <br /><br /><br /><br /><br />
+        </div>
+        {/* footer Starts Here */}
+        <footer className="footer">
+          <div className="footer-container">
+            <section className="subscription-section">
+              <div className="subscription">
+                <div className="row">
+                  <div className="col-lg-6 col-sm-12 col-12">
+                    <div className="subscribtion-text-group">
+                      <div className="subscribe">Subscribe to our newsletter</div>
+                      <span className="desc">Get our latest news and offers delivered right to your inbox</span>
+                    </div>
+                  </div>
+                  <div className="col-lg-6 col-sm-12 col-12">
+                    <form className="email-area" id="email-popup">
+                      <input type="email" name="email" placeholder="Enter email address" className="email" />
+                      <button type="submit" className="btn email-btn">Subscribe</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section className="footer-link">
+              <div className="row">
+                <div className="col-md-9">
+                  <div className="row">
+                    <div className="col-md-2 col-6">
+                      <h3>Cruise Deals</h3>
+                      <ul>
+                        <li><a href="#">All Cruise Deals</a></li>
+                        <li><a href="#">All Inclusive Cruise</a></li>
+                        <li><a href="#">Balcony Deals</a></li>
+                        <li><a href="#">Single Traveller</a></li>
+                        <li><a href="#">Christmas &amp; New Year</a></li>
+                        <li><a href="#">Cruise Deals 2026</a></li>
+                        <li><a href="#" className="view-all">VIEW ALL</a></li>
+                      </ul>
+                    </div>
+                    <div className="col-md-2 col-6">
+                      <h3>Cruise Region</h3>
+                      <ul>
+                        <li><a href="#">Caribbean Cruise</a></li>
+                        <li><a href="#">Maditerranean Cruise</a></li>
+                        <li><a href="#">Far East Cruise</a></li>
+                        <li><a href="#">Adriatic Cruise</a></li>
+                        <li><a href="#">Transatlantic Cruise</a></li>
+                        <li><a href="#">Fjords Cruise</a></li>
+                        <li><a href="#" className="view-all">VIEW ALL</a></li>
+                      </ul>
+                    </div>
+                    <div className="col-md-2 col-6">
+                      <h3>Cruise Line</h3>
+                      <ul>
+                        <li><a href="#">Norwegian Cruise</a></li>
+                        <li><a href="#">Royal Caribbean</a></li>
+                        <li><a href="#">Celebrity Cruises</a></li>
+                        <li><a href="#">Costa Cruise</a></li>
+                        <li><a href="#">CarnivalCruise</a></li>
+                        <li><a href="#">Oceania Cruise</a></li>
+                        <li><a href="#" className="view-all">VIEW ALL</a></li>
+                      </ul>
+                    </div>
+                    <div className="col-md-2 col-6">
+                      <h3> Other Cruises </h3>
+                      <ul>
+                        <li><a href="#">Gulet Cruise</a></li>
+                        <li><a href="#">Nile Cruise</a></li>
+                        <li><a href="#">River Cruise</a></li>
+                        <li><a href="#">Small Yachts </a></li>
+                        <li><a href="#" className="view-all">VIEW ALL</a></li>
+                      </ul>
+                    </div>
+                    <div className="col-md-2 col-6">
+                      <h3>Holiday Destinations</h3>
+                      <ul>
+                        <li><a href="#">Europe</a></li>
+                        <li><a href="#">Americas</a></li>
+                        <li><a href="#">Africa</a></li>
+                        <li><a href="#">Asia</a></li>
+                        <li><a href="#">Middle East</a></li>
+                        <li><a href="#">Indian Ocean</a></li>
+                        <li><a href="#" className="view-all">VIEW ALL</a></li>
+                      </ul>
+                    </div>
+                    <div className="col-md-2 col-6">
+                      <h3>Holiday Collections</h3>
+                      <ul>
+                        <li><a href="#">Italian Lakes</a></li>
+                        <li><a href="#">New &amp; Exclusive Offers</a></li>
+                        <li><a href="#">City Breaks</a></li>
+                        <li><a href="#">All Inclusive</a></li>
+                        <li><a href="#">Beach</a></li>
+                        <li><a href="#">European Tours</a></li>
+                        <li><a href="#">Multi Center</a></li>
+                        <li><a href="#">WorldWide Tours</a></li>
+                        <li><a href="#" className="view-all">VIEW ALL</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div className="row">
+                    <div className="col-md-6 bdr-footer">
+                      <h3>About the site</h3>
+                      <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">Terms &amp; Conditions</a></li>
+                        <li><a href="#">Work for us</a></li>
+                        <li><a href="#">Testimonials</a></li>
+                        <li><a href="#">Reviews</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Sitemap</a></li>
+                      </ul>
+                    </div>
+                    <div className="col-md-6">
+                      <h3>Address</h3>
+                      <ul className="address">
+                        <li style={{borderBottom: '1px solid #0a4241'}}><a href="#"><i className="fa fa-clock-o" style={{color: '#0d9b8e', fontSize: '20px'}} /> Opening Hours</a></li>
+                        <li><a href="#">8am - 10pm<br /> Flight And Packages</a></li>
+                        <li style={{borderTop: '1px solid #0a4241'}}><a href="#"><i className="fa fa-map-marker" style={{color: '#0d9b8e', fontSize: '20px'}} /> Flights and Packages Ltd.<br /> Airport House, Purley Way, Croydon CR0 0XZ</a></li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="row">
+                <div className="col-md-12">
+                  <div className="contacts">
+                    <div className="contact-wrap">
+                      <a className="phone" href="tel:+44-203-011-1520"><i className="fa fa-phone" />  0208 183 0518</a>
+                      <a className="email" href="mailto:info@citrusholidays.co.uk"><span className="fa fa-envelope" /> holidayenq@flightsandpackages.com</a>
+                    </div>
+                    <div className="legal">
+                      <img src="assets/images/icon/atol_logo_white.png" alt="" />
+                      <img src="assets/images/icon/clia-logo.png" alt="" />
+                      <img src="assets/images/icon/travel-trust.png" alt="" />	
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-12">
+                  <div className="disclaimer">Many of the flights and flight-inclusive holidays on this website are financially protected by the ATOL scheme. But ATOL protection does not apply to all holiday and travel services listed on this website. Please ask us to confirm what protection may apply to your booking. If you do not receive an ATOL Certificate then the booking will not be ATOL protected. If you do receive an ATOL Certificate but all the parts of your trip are not listed on it, those parts will not be ATOL protected. Please see our booking conditions for information, or for more information about financial protection and the ATOL Certificate go to: <strong>www.atol.org.uk/ATOLCertificate</strong></div>
+                </div>
+                <div className="col-md-12">
+                  <div className="partners">
+                    <div className="marquee-container">
+                      <div className="marquee-box">
+                        <div id="mycrawler2">
+                          <img src="assets/images/icon/arosa.png" alt="" />
+                          <img src="assets/images/icon/costa.png" alt="" />
+                          <img src="assets/images/icon/croisi.png" alt="" />
+                          <img src="assets/images/icon/gulet.png" alt="" />
+                          <img src="assets/images/icon/msc.png" alt="" />
+                          <img src="assets/images/icon/ncl1.png" alt="" />
+                          <img src="assets/images/icon/p-o-cruises.png" alt="" />
+                          <img src="assets/images/icon/celebrity-cruises.png" alt="" />
+                          <img src="assets/images/icon/princess.png" alt="" />
+                          <img src="assets/images/icon/nile.png" alt="" />
+                          <img src="assets/images/icon/royal.png" alt="" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-12">
+                  <div className="copyright">
+                    <div className="citrus">
+                      Share with us <span style={{padding: '10px 5px 10px 10px'}}><i className="fa fa-facebook-f" /></span>  <span style={{padding: '10px 5px 10px 10px'}}><i className="fa fa-twitter" /></span>
+                      <span style={{padding: '10px 5px 10px 10px'}}><i className="fa fa-instagram" /></span> <span style={{padding: '10px 5px 10px 10px'}}><i className="fa fa-pinterest" /></span>
+                      <spa style={{padding: '10px 5px 10px 10px'}} n><i className="fa fa-wifi" /></spa>
+                    </div>
+                    <div className="zolv"><span className="icon">© </span> Flights and Packages 2025. All right reserved.</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <div className="return-top scroll">
+              <span className="icon-return" />
+              <div>Return to top</div>
+            </div>
+          </div>
+        </footer>
+        {/* Footer ends here */}
+      </div>
+    );
+  }
+});

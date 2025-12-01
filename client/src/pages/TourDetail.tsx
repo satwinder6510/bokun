@@ -366,6 +366,7 @@ export default function TourDetail() {
                       productTitle={product.title}
                       rates={product.rates}
                       bookableExtras={product.bookableExtras}
+                      startingPrice={product.price}
                     />
                   )}
               </div>

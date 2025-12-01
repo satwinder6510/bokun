@@ -1,6 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type CustomOffer, type InsertCustomOffer, customOffers } from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 // modify the interface with any CRUD methods
@@ -48,12 +46,6 @@ export interface IStorage {
   createBooking(booking: InsertBooking): Promise<Booking>;
   getBookingByReference(reference: string): Promise<Booking | undefined>;
   updateBooking(id: number, updates: Partial<Booking>): Promise<Booking | undefined>;
-  
-  // Custom offers methods (stored in database)
-  getPublishedCustomOffers(): Promise<CustomOffer[]>;
-  getFeaturedCustomOffers(): Promise<CustomOffer[]>;
-  getCustomOfferBySlug(slug: string): Promise<CustomOffer | undefined>;
-  createCustomOffer(offer: InsertCustomOffer): Promise<CustomOffer>;
 }
 
 // In-memory storage with per-currency product caching
@@ -544,30 +536,6 @@ export class MemStorage implements IStorage {
     };
     this.bookings.set(id, updated);
     return updated;
-  }
-
-  // Custom offers methods (using database)
-  async getPublishedCustomOffers(): Promise<CustomOffer[]> {
-    return await db.select().from(customOffers)
-      .where(eq(customOffers.isPublished, true))
-      .orderBy(desc(customOffers.displayOrder), desc(customOffers.createdAt));
-  }
-
-  async getFeaturedCustomOffers(): Promise<CustomOffer[]> {
-    return await db.select().from(customOffers)
-      .where(and(eq(customOffers.isPublished, true), eq(customOffers.isFeatured, true)))
-      .orderBy(desc(customOffers.displayOrder), desc(customOffers.createdAt));
-  }
-
-  async getCustomOfferBySlug(slug: string): Promise<CustomOffer | undefined> {
-    const results = await db.select().from(customOffers)
-      .where(eq(customOffers.slug, slug));
-    return results[0];
-  }
-
-  async createCustomOffer(offer: InsertCustomOffer): Promise<CustomOffer> {
-    const results = await db.insert(customOffers).values(offer).returning();
-    return results[0];
   }
 }
 

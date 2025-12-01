@@ -1091,47 +1091,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ===== Custom Offers API (non-API tours from holidays.flightsandpackages.com) =====
-  
-  // Get all published custom offers
-  app.get("/api/offers", async (req, res) => {
-    try {
-      const offers = await storage.getPublishedCustomOffers();
-      res.json(offers);
-    } catch (error: any) {
-      console.error("Error fetching custom offers:", error);
-      res.status(500).json({ error: "Failed to fetch offers" });
-    }
-  });
-
-  // Get featured custom offers
-  app.get("/api/offers/featured", async (req, res) => {
-    try {
-      const offers = await storage.getFeaturedCustomOffers();
-      res.json(offers);
-    } catch (error: any) {
-      console.error("Error fetching featured offers:", error);
-      res.status(500).json({ error: "Failed to fetch featured offers" });
-    }
-  });
-
-  // Get single custom offer by slug
-  app.get("/api/offers/:slug", async (req, res) => {
-    try {
-      const { slug } = req.params;
-      const offer = await storage.getCustomOfferBySlug(slug);
-      
-      if (!offer) {
-        return res.status(404).json({ error: "Offer not found" });
-      }
-      
-      res.json(offer);
-    } catch (error: any) {
-      console.error("Error fetching custom offer:", error);
-      res.status(500).json({ error: "Failed to fetch offer" });
-    }
-  });
-
   const httpServer = createServer(app);
 
   return httpServer;

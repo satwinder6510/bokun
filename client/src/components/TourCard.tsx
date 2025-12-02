@@ -51,10 +51,10 @@ export function TourCard({ product }: TourCardProps) {
           </div>
         )}
 
-        {/* "DISCOVER" label */}
+        {/* "LAND TOUR" label */}
         <div className="absolute top-4 right-4 z-10">
           <span className="text-white/80 text-xs font-bold tracking-wider">
-            DISCOVER
+            LAND TOUR
           </span>
         </div>
 

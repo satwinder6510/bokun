@@ -180,6 +180,11 @@ export default function TourDetail() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             {/* Title Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1">
+                  LAND TOUR
+                </Badge>
+              </div>
               <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-tour-title-overlay">
                 {product.title}
               </h1>

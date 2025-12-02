@@ -4,7 +4,7 @@ import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBo
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { randomBytes } from "crypto";
 
@@ -1088,6 +1088,193 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating booking:", error);
       res.status(500).json({ error: "Failed to update booking" });
+    }
+  });
+
+  // ============= FLIGHT INCLUSIVE PACKAGES ROUTES =============
+
+  // Get all published packages (public)
+  app.get("/api/packages", async (req, res) => {
+    try {
+      const { category } = req.query;
+      const packages = await storage.getPublishedFlightPackages(category as string | undefined);
+      res.json(packages);
+    } catch (error: any) {
+      console.error("Error fetching packages:", error);
+      res.status(500).json({ error: "Failed to fetch packages" });
+    }
+  });
+
+  // Get single package by slug (public)
+  app.get("/api/packages/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const pkg = await storage.getFlightPackageBySlug(slug);
+      
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      res.json(pkg);
+    } catch (error: any) {
+      console.error("Error fetching package:", error);
+      res.status(500).json({ error: "Failed to fetch package" });
+    }
+  });
+
+  // Get all packages including unpublished (admin)
+  app.get("/api/admin/packages", async (req, res) => {
+    try {
+      const packages = await storage.getAllFlightPackages();
+      res.json(packages);
+    } catch (error: any) {
+      console.error("Error fetching packages:", error);
+      res.status(500).json({ error: "Failed to fetch packages" });
+    }
+  });
+
+  // Create new package (admin)
+  app.post("/api/admin/packages", async (req, res) => {
+    try {
+      const parseResult = insertFlightPackageSchema.safeParse(req.body);
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: parseResult.error.errors 
+        });
+      }
+      
+      const pkg = await storage.createFlightPackage(parseResult.data);
+      res.status(201).json(pkg);
+    } catch (error: any) {
+      console.error("Error creating package:", error);
+      res.status(500).json({ error: error.message || "Failed to create package" });
+    }
+  });
+
+  // Update package (admin)
+  app.patch("/api/admin/packages/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parseResult = updateFlightPackageSchema.safeParse(req.body);
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: parseResult.error.errors 
+        });
+      }
+      
+      const pkg = await storage.updateFlightPackage(parseInt(id), parseResult.data);
+      
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      res.json(pkg);
+    } catch (error: any) {
+      console.error("Error updating package:", error);
+      res.status(500).json({ error: error.message || "Failed to update package" });
+    }
+  });
+
+  // Delete package (admin)
+  app.delete("/api/admin/packages/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteFlightPackage(parseInt(id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting package:", error);
+      res.status(500).json({ error: "Failed to delete package" });
+    }
+  });
+
+  // Submit package enquiry (public)
+  app.post("/api/packages/:slug/enquiry", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const pkg = await storage.getFlightPackageBySlug(slug);
+      
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      const parseResult = insertPackageEnquirySchema.safeParse({
+        ...req.body,
+        packageId: pkg.id,
+        packageTitle: pkg.title,
+      });
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: parseResult.error.errors 
+        });
+      }
+      
+      // Create enquiry record
+      const enquiry = await storage.createPackageEnquiry(parseResult.data);
+      
+      // Also send to Privyr webhook if configured
+      if (process.env.PRIVYR_WEBHOOK_URL) {
+        try {
+          await fetch(process.env.PRIVYR_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              firstName: req.body.firstName,
+              lastName: req.body.lastName,
+              email: req.body.email,
+              phone: req.body.phone,
+              message: `Package Enquiry: ${pkg.title}\n\nPreferred Dates: ${req.body.preferredDates || 'Not specified'}\nNumber of Travelers: ${req.body.numberOfTravelers || 'Not specified'}\n\n${req.body.message || ''}`,
+            }),
+          });
+        } catch (webhookError) {
+          console.error("Failed to send to Privyr:", webhookError);
+        }
+      }
+      
+      res.status(201).json({ success: true, enquiry });
+    } catch (error: any) {
+      console.error("Error submitting enquiry:", error);
+      res.status(500).json({ error: "Failed to submit enquiry" });
+    }
+  });
+
+  // Get all enquiries (admin)
+  app.get("/api/admin/enquiries", async (req, res) => {
+    try {
+      const enquiries = await storage.getAllPackageEnquiries();
+      res.json(enquiries);
+    } catch (error: any) {
+      console.error("Error fetching enquiries:", error);
+      res.status(500).json({ error: "Failed to fetch enquiries" });
+    }
+  });
+
+  // Update enquiry status (admin)
+  app.patch("/api/admin/enquiries/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      const enquiry = await storage.updatePackageEnquiryStatus(parseInt(id), status);
+      res.json(enquiry);
+    } catch (error: any) {
+      console.error("Error updating enquiry:", error);
+      res.status(500).json({ error: "Failed to update enquiry" });
+    }
+  });
+
+  // Get package categories (for navigation)
+  app.get("/api/packages/categories", async (req, res) => {
+    try {
+      const categories = await storage.getFlightPackageCategories();
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ error: "Failed to fetch categories" });
     }
   });
 

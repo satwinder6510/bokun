@@ -1,5 +1,7 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, flightPackages, packageEnquiries } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, desc, asc, sql } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -46,6 +48,20 @@ export interface IStorage {
   createBooking(booking: InsertBooking): Promise<Booking>;
   getBookingByReference(reference: string): Promise<Booking | undefined>;
   updateBooking(id: number, updates: Partial<Booking>): Promise<Booking | undefined>;
+  
+  // Flight packages methods
+  getPublishedFlightPackages(category?: string): Promise<FlightPackage[]>;
+  getAllFlightPackages(): Promise<FlightPackage[]>;
+  getFlightPackageBySlug(slug: string): Promise<FlightPackage | undefined>;
+  createFlightPackage(pkg: InsertFlightPackage): Promise<FlightPackage>;
+  updateFlightPackage(id: number, pkg: UpdateFlightPackage): Promise<FlightPackage | undefined>;
+  deleteFlightPackage(id: number): Promise<boolean>;
+  getFlightPackageCategories(): Promise<string[]>;
+  
+  // Package enquiry methods
+  createPackageEnquiry(enquiry: InsertPackageEnquiry): Promise<PackageEnquiry>;
+  getAllPackageEnquiries(): Promise<PackageEnquiry[]>;
+  updatePackageEnquiryStatus(id: number, status: string): Promise<PackageEnquiry | undefined>;
 }
 
 // In-memory storage with per-currency product caching
@@ -535,6 +551,107 @@ export class MemStorage implements IStorage {
       updatedAt: new Date(),
     };
     this.bookings.set(id, updated);
+    return updated;
+  }
+
+  // Flight packages methods (using database)
+  async getPublishedFlightPackages(category?: string): Promise<FlightPackage[]> {
+    try {
+      let query = db.select().from(flightPackages)
+        .where(eq(flightPackages.isPublished, true))
+        .orderBy(asc(flightPackages.displayOrder), desc(flightPackages.createdAt));
+      
+      const results = await query;
+      
+      if (category) {
+        return results.filter(pkg => pkg.category === category);
+      }
+      
+      return results;
+    } catch (error) {
+      console.error("Error fetching published packages:", error);
+      return [];
+    }
+  }
+
+  async getAllFlightPackages(): Promise<FlightPackage[]> {
+    try {
+      return await db.select().from(flightPackages)
+        .orderBy(asc(flightPackages.displayOrder), desc(flightPackages.createdAt));
+    } catch (error) {
+      console.error("Error fetching all packages:", error);
+      return [];
+    }
+  }
+
+  async getFlightPackageBySlug(slug: string): Promise<FlightPackage | undefined> {
+    try {
+      const results = await db.select().from(flightPackages)
+        .where(eq(flightPackages.slug, slug))
+        .limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching package by slug:", error);
+      return undefined;
+    }
+  }
+
+  async createFlightPackage(pkg: InsertFlightPackage): Promise<FlightPackage> {
+    const [created] = await db.insert(flightPackages).values(pkg).returning();
+    return created;
+  }
+
+  async updateFlightPackage(id: number, updates: UpdateFlightPackage): Promise<FlightPackage | undefined> {
+    const updateData: Record<string, any> = { ...updates, updatedAt: new Date() };
+    const [updated] = await db.update(flightPackages)
+      .set(updateData)
+      .where(eq(flightPackages.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteFlightPackage(id: number): Promise<boolean> {
+    const result = await db.delete(flightPackages)
+      .where(eq(flightPackages.id, id));
+    return true;
+  }
+
+  async getFlightPackageCategories(): Promise<string[]> {
+    try {
+      const results = await db.selectDistinct({ category: flightPackages.category })
+        .from(flightPackages)
+        .where(eq(flightPackages.isPublished, true));
+      return results.map(r => r.category);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      return [];
+    }
+  }
+
+  // Package enquiry methods
+  async createPackageEnquiry(enquiry: InsertPackageEnquiry): Promise<PackageEnquiry> {
+    const [created] = await db.insert(packageEnquiries).values({
+      ...enquiry,
+      createdAt: new Date(),
+    }).returning();
+    return created;
+  }
+
+  async getAllPackageEnquiries(): Promise<PackageEnquiry[]> {
+    try {
+      return await db.select().from(packageEnquiries)
+        .orderBy(desc(packageEnquiries.createdAt));
+    } catch (error) {
+      console.error("Error fetching enquiries:", error);
+      return [];
+    }
+  }
+
+  async updatePackageEnquiryStatus(id: number, status: string): Promise<PackageEnquiry | undefined> {
+    const [updated] = await db.update(packageEnquiries)
+      .set({ status })
+      .where(eq(packageEnquiries.id, id))
+      .returning();
     return updated;
   }
 }

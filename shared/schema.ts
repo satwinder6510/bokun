@@ -344,3 +344,111 @@ export const insertBookingSchema = createInsertSchema(bookings).omit({
 
 export type Booking = typeof bookings.$inferSelect;
 export type InsertBooking = z.infer<typeof insertBookingSchema>;
+
+// Flight Inclusive Packages schema
+export const flightPackages = pgTable("flight_packages", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  category: text("category").notNull(), // e.g., "India", "Maldives", "Dubai"
+  
+  // Pricing
+  price: real("price").notNull(),
+  currency: text("currency").notNull().default("GBP"),
+  priceLabel: text("price_label").notNull().default("per adult"),
+  
+  // Content
+  description: text("description").notNull(), // HTML content for overview
+  excerpt: text("excerpt"), // Short summary for cards
+  
+  // Structured data as JSON
+  whatsIncluded: jsonb("whats_included").$type<string[]>().notNull().default([]),
+  highlights: jsonb("highlights").$type<string[]>().notNull().default([]),
+  itinerary: jsonb("itinerary").$type<{
+    day: number;
+    title: string;
+    description: string;
+  }[]>().notNull().default([]),
+  accommodations: jsonb("accommodations").$type<{
+    name: string;
+    images: string[];
+    description: string;
+  }[]>().notNull().default([]),
+  otherInfo: text("other_info"), // HTML content for terms, conditions, etc.
+  
+  // Images
+  featuredImage: text("featured_image"),
+  gallery: jsonb("gallery").$type<string[]>().default([]),
+  
+  // Duration info
+  duration: text("duration"), // e.g., "11 Nights / 12 Days"
+  
+  // Meta
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  
+  // Status
+  isPublished: boolean("is_published").notNull().default(false),
+  displayOrder: integer("display_order").notNull().default(0),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFlightPackageSchema = createInsertSchema(flightPackages).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+}).extend({
+  slug: z.string()
+    .min(1, "Slug is required")
+    .max(200, "Slug too long")
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers, and hyphens only"),
+  title: z.string().min(1, "Title is required").max(300, "Title too long"),
+  category: z.string().min(1, "Category is required"),
+  price: z.number().positive("Price must be positive"),
+  description: z.string().min(1, "Description is required"),
+});
+
+export const updateFlightPackageSchema = insertFlightPackageSchema.partial();
+
+export type FlightPackage = typeof flightPackages.$inferSelect;
+export type InsertFlightPackage = z.infer<typeof insertFlightPackageSchema>;
+export type UpdateFlightPackage = z.infer<typeof updateFlightPackageSchema>;
+
+// Package Enquiries schema
+export const packageEnquiries = pgTable("package_enquiries", {
+  id: serial("id").primaryKey(),
+  packageId: integer("package_id").references(() => flightPackages.id),
+  packageTitle: text("package_title"),
+  
+  // Customer info
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  
+  // Enquiry details
+  preferredDates: text("preferred_dates"),
+  numberOfTravelers: integer("number_of_travelers"),
+  message: text("message"),
+  
+  // Status
+  status: text("status").notNull().default("new"), // new, contacted, converted, closed
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPackageEnquirySchema = createInsertSchema(packageEnquiries).omit({ 
+  id: true, 
+  createdAt: true,
+  status: true
+}).extend({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(7, "Phone number is required"),
+});
+
+export type PackageEnquiry = typeof packageEnquiries.$inferSelect;
+export type InsertPackageEnquiry = z.infer<typeof insertPackageEnquirySchema>;

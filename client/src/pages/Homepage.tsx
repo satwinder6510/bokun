@@ -77,9 +77,9 @@ const trustFeatures = [
     description: "Competitive prices with no hidden fees"
   },
   {
-    icon: Plane,
-    title: "Flights Included",
-    description: "Convenient packages with flights from UK airports"
+    icon: Shield,
+    title: "Trust Account",
+    description: "Your land tour is 100% financially protected"
   }
 ];
 

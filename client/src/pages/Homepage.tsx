@@ -25,7 +25,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import type { BokunProductSearchResponse, BokunProduct, FlightPackage } from "@shared/schema";
+import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } from "@shared/schema";
 
 // Fallback hero images (used when no products/packages have images)
 const fallbackHeroImages = [
@@ -37,24 +37,24 @@ const fallbackHeroImages = [
 // Placeholder image for destinations without images
 const placeholderImage = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=75";
 
-// Testimonials data
-const testimonials = [
+// Fallback testimonials (used when no reviews in database)
+const fallbackTestimonials = [
   {
-    name: "Sarah Mitchell",
+    customerName: "Sarah Mitchell",
     location: "London, UK",
-    text: "Absolutely incredible experience! The team at Flights and Packages made our dream honeymoon a reality. Every detail was perfectly planned.",
+    reviewText: "Absolutely incredible experience! The team at Flights and Packages made our dream honeymoon a reality. Every detail was perfectly planned.",
     rating: 5
   },
   {
-    name: "James Thompson",
+    customerName: "James Thompson",
     location: "Manchester, UK",
-    text: "Best travel agency we've ever used. The flight-inclusive packages offer amazing value and the customer service is outstanding.",
+    reviewText: "Best travel agency we've ever used. The flight-inclusive packages offer amazing value and the customer service is outstanding.",
     rating: 5
   },
   {
-    name: "Emily Roberts",
+    customerName: "Emily Roberts",
     location: "Birmingham, UK",
-    text: "From booking to return, everything was seamless. The tours were well-organized and our guide was exceptional. Highly recommend!",
+    reviewText: "From booking to return, everything was seamless. The tours were well-organized and our guide was exceptional. Highly recommend!",
     rating: 5
   }
 ];
@@ -111,6 +111,14 @@ export default function Homepage() {
     .slice(0, 3)
     .concat(flightPackages.filter(pkg => !pkg.featuredImage))
     .slice(0, 3);
+
+  // Fetch customer reviews from database
+  const { data: reviews = [] } = useQuery<Review[]>({
+    queryKey: ['/api/reviews'],
+  });
+
+  // Use database reviews if available, otherwise fallback to defaults
+  const testimonials = reviews.length > 0 ? reviews : fallbackTestimonials;
 
   const fetchProductsMutation = useMutation<BokunProductSearchResponse, Error, string>({
     mutationFn: async (currency: string) => {
@@ -918,18 +926,18 @@ export default function Homepage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="p-6">
+              <Card key={index} className="p-6" data-testid={`card-testimonial-${index}`}>
                 <div className="flex gap-1 mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <span key={i} className="text-yellow-500">★</span>
                   ))}
                 </div>
                 <p className="text-muted-foreground mb-4 italic">
-                  "{testimonial.text}"
+                  "{testimonial.reviewText}"
                 </p>
                 <div>
-                  <p className="font-semibold">{testimonial.name}</p>
-                  <p className="text-sm text-muted-foreground">{testimonial.location}</p>
+                  <p className="font-semibold">{testimonial.customerName}</p>
+                  <p className="text-sm text-muted-foreground">{testimonial.location || ""}</p>
                 </div>
               </Card>
             ))}

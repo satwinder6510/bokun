@@ -873,8 +873,19 @@ export default function PackageDetail() {
                       className="w-full" 
                       size="lg" 
                       onClick={() => {
-                        if (typeof window !== 'undefined' && (window as any).tidioChatApi) {
-                          (window as any).tidioChatApi.open();
+                        const win = window as any;
+                        if (win.tidioChatApi) {
+                          win.tidioChatApi.open();
+                        } else {
+                          // Tidio not loaded yet, set up callback for when it's ready
+                          document.addEventListener("tidioChat-ready", function() {
+                            win.tidioChatApi.open();
+                          });
+                          // Also try clicking the Tidio button if it exists
+                          const tidioButton = document.querySelector('#tidio-chat-iframe, [data-testid="tidio-chat"]');
+                          if (tidioButton) {
+                            (tidioButton as HTMLElement).click();
+                          }
                         }
                       }}
                       data-testid="button-chat"

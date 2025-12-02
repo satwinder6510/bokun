@@ -1,0 +1,911 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
+  GripVertical, Plane, Save, X, Clock, MapPin
+} from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { FlightPackage, InsertFlightPackage } from "@shared/schema";
+
+type ItineraryDay = {
+  day: number;
+  title: string;
+  description: string;
+};
+
+type Accommodation = {
+  name: string;
+  images: string[];
+  description: string;
+};
+
+type PackageFormData = {
+  title: string;
+  slug: string;
+  category: string;
+  price: number;
+  currency: string;
+  priceLabel: string;
+  description: string;
+  excerpt: string;
+  whatsIncluded: string[];
+  highlights: string[];
+  itinerary: ItineraryDay[];
+  accommodations: Accommodation[];
+  otherInfo: string;
+  featuredImage: string;
+  gallery: string[];
+  duration: string;
+  metaTitle: string;
+  metaDescription: string;
+  isPublished: boolean;
+  displayOrder: number;
+};
+
+const emptyPackage: PackageFormData = {
+  title: "",
+  slug: "",
+  category: "",
+  price: 0,
+  currency: "GBP",
+  priceLabel: "per adult",
+  description: "",
+  excerpt: "",
+  whatsIncluded: [],
+  highlights: [],
+  itinerary: [],
+  accommodations: [],
+  otherInfo: "",
+  featuredImage: "",
+  gallery: [],
+  duration: "",
+  metaTitle: "",
+  metaDescription: "",
+  isPublished: false,
+  displayOrder: 0,
+};
+
+export default function AdminPackages() {
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingPackage, setEditingPackage] = useState<FlightPackage | null>(null);
+  const [formData, setFormData] = useState<PackageFormData>(emptyPackage);
+  const [newIncluded, setNewIncluded] = useState("");
+  const [newHighlight, setNewHighlight] = useState("");
+  const [newGalleryUrl, setNewGalleryUrl] = useState("");
+
+  const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
+    queryKey: ["/api/admin/packages"],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: PackageFormData) => {
+      return apiRequest("POST", "/api/admin/packages", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/packages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
+      toast({ title: "Package created successfully" });
+      setIsCreating(false);
+      setFormData(emptyPackage);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error creating package", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<PackageFormData> }) => {
+      return apiRequest("PATCH", `/api/admin/packages/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/packages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
+      toast({ title: "Package updated successfully" });
+      setEditingPackage(null);
+      setFormData(emptyPackage);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error updating package", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      return apiRequest("DELETE", `/api/admin/packages/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/packages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
+      toast({ title: "Package deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error deleting package", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const togglePublishMutation = useMutation({
+    mutationFn: async ({ id, isPublished }: { id: number; isPublished: boolean }) => {
+      return apiRequest("PATCH", `/api/admin/packages/${id}`, { isPublished });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/packages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error updating package", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const filteredPackages = packages.filter(pkg =>
+    pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    pkg.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleOpenCreate = () => {
+    setFormData(emptyPackage);
+    setIsCreating(true);
+    setEditingPackage(null);
+  };
+
+  const handleOpenEdit = (pkg: FlightPackage) => {
+    setFormData({
+      title: pkg.title,
+      slug: pkg.slug,
+      category: pkg.category,
+      price: pkg.price,
+      currency: pkg.currency,
+      priceLabel: pkg.priceLabel,
+      description: pkg.description,
+      excerpt: pkg.excerpt || "",
+      whatsIncluded: (pkg.whatsIncluded || []) as string[],
+      highlights: (pkg.highlights || []) as string[],
+      itinerary: (pkg.itinerary || []) as ItineraryDay[],
+      accommodations: (pkg.accommodations || []) as Accommodation[],
+      otherInfo: pkg.otherInfo || "",
+      featuredImage: pkg.featuredImage || "",
+      gallery: (pkg.gallery || []) as string[],
+      duration: pkg.duration || "",
+      metaTitle: pkg.metaTitle || "",
+      metaDescription: pkg.metaDescription || "",
+      isPublished: pkg.isPublished,
+      displayOrder: pkg.displayOrder,
+    });
+    setEditingPackage(pkg);
+    setIsCreating(false);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingPackage) {
+      updateMutation.mutate({ id: editingPackage.id, data: formData });
+    } else {
+      createMutation.mutate(formData);
+    }
+  };
+
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  const addItineraryDay = () => {
+    const nextDay = (formData.itinerary?.length || 0) + 1;
+    setFormData({
+      ...formData,
+      itinerary: [...(formData.itinerary || []), { day: nextDay, title: "", description: "" }],
+    });
+  };
+
+  const updateItineraryDay = (index: number, field: keyof ItineraryDay, value: string | number) => {
+    const updated = [...(formData.itinerary || [])];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, itinerary: updated });
+  };
+
+  const removeItineraryDay = (index: number) => {
+    const updated = (formData.itinerary || []).filter((_, i) => i !== index);
+    setFormData({ ...formData, itinerary: updated });
+  };
+
+  const addAccommodation = () => {
+    setFormData({
+      ...formData,
+      accommodations: [...(formData.accommodations || []), { name: "", images: [], description: "" }],
+    });
+  };
+
+  const updateAccommodation = (index: number, field: keyof Accommodation, value: string | string[]) => {
+    const updated = [...(formData.accommodations || [])];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData({ ...formData, accommodations: updated });
+  };
+
+  const removeAccommodation = (index: number) => {
+    const updated = (formData.accommodations || []).filter((_, i) => i !== index);
+    setFormData({ ...formData, accommodations: updated });
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const isEditing = isCreating || editingPackage !== null;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b sticky top-0 bg-background z-50">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard">
+              <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back">
+                <ArrowLeft className="w-4 h-4" />
+                Dashboard
+              </Button>
+            </Link>
+            <Separator orientation="vertical" className="h-6" />
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5" />
+              <h1 className="text-xl font-semibold">Flight Packages</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search packages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-64"
+                data-testid="input-search"
+              />
+            </div>
+            <Button onClick={handleOpenCreate} data-testid="button-create">
+              <Plus className="w-4 h-4 mr-2" />
+              Add Package
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-6 py-8">
+        {isEditing ? (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>{editingPackage ? "Edit Package" : "Create New Package"}</CardTitle>
+                <CardDescription>
+                  {editingPackage ? `Editing: ${editingPackage.title}` : "Fill in the details for your new package"}
+                </CardDescription>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => { setIsCreating(false); setEditingPackage(null); }}
+                data-testid="button-cancel"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <Tabs defaultValue="basic" className="w-full">
+                  <TabsList className="grid w-full grid-cols-5">
+                    <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                    <TabsTrigger value="content">Content</TabsTrigger>
+                    <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
+                    <TabsTrigger value="accommodation">Hotels</TabsTrigger>
+                    <TabsTrigger value="seo">SEO</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="basic" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="title">Title *</Label>
+                        <Input
+                          id="title"
+                          value={formData.title}
+                          onChange={(e) => {
+                            setFormData({
+                              ...formData,
+                              title: e.target.value,
+                              slug: formData.slug || generateSlug(e.target.value),
+                            });
+                          }}
+                          required
+                          data-testid="input-title"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="slug">URL Slug *</Label>
+                        <Input
+                          id="slug"
+                          value={formData.slug}
+                          onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                          required
+                          data-testid="input-slug"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="category">Category/Destination *</Label>
+                        <Input
+                          id="category"
+                          value={formData.category}
+                          onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                          placeholder="e.g., India, Maldives"
+                          required
+                          data-testid="input-category"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="price">Price (GBP) *</Label>
+                        <Input
+                          id="price"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.price}
+                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                          required
+                          data-testid="input-price"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="priceLabel">Price Label</Label>
+                        <Input
+                          id="priceLabel"
+                          value={formData.priceLabel}
+                          onChange={(e) => setFormData({ ...formData, priceLabel: e.target.value })}
+                          placeholder="per adult"
+                          data-testid="input-price-label"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="duration">Duration</Label>
+                        <Input
+                          id="duration"
+                          value={formData.duration || ""}
+                          onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                          placeholder="e.g., 11 Nights / 12 Days"
+                          data-testid="input-duration"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="displayOrder">Display Order</Label>
+                        <Input
+                          id="displayOrder"
+                          type="number"
+                          value={formData.displayOrder}
+                          onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
+                          data-testid="input-display-order"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="featuredImage">Featured Image URL</Label>
+                      <Input
+                        id="featuredImage"
+                        value={formData.featuredImage || ""}
+                        onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
+                        placeholder="https://..."
+                        data-testid="input-featured-image"
+                      />
+                      {formData.featuredImage && (
+                        <img src={formData.featuredImage} alt="Preview" className="mt-2 h-32 w-auto rounded-md object-cover" />
+                      )}
+                    </div>
+
+                    <div>
+                      <Label>Gallery Images</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          value={newGalleryUrl}
+                          onChange={(e) => setNewGalleryUrl(e.target.value)}
+                          placeholder="Image URL"
+                          data-testid="input-gallery-url"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            if (newGalleryUrl) {
+                              setFormData({ ...formData, gallery: [...(formData.gallery || []), newGalleryUrl] });
+                              setNewGalleryUrl("");
+                            }
+                          }}
+                          data-testid="button-add-gallery"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {(formData.gallery || []).map((url, i) => (
+                          <div key={i} className="relative group">
+                            <img src={url} alt="" className="h-16 w-24 object-cover rounded-md" />
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, gallery: (formData.gallery || []).filter((_, idx) => idx !== i) })}
+                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="isPublished"
+                          checked={formData.isPublished}
+                          onCheckedChange={(checked) => setFormData({ ...formData, isPublished: checked })}
+                          data-testid="switch-published"
+                        />
+                        <Label htmlFor="isPublished">Published</Label>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="content" className="space-y-4 mt-4">
+                    <div>
+                      <Label htmlFor="excerpt">Short Description (Excerpt)</Label>
+                      <Textarea
+                        id="excerpt"
+                        value={formData.excerpt || ""}
+                        onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                        placeholder="Brief summary for cards..."
+                        rows={2}
+                        data-testid="input-excerpt"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="description">Full Description (HTML) *</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="<p>Detailed description...</p>"
+                        rows={8}
+                        required
+                        data-testid="input-description"
+                      />
+                    </div>
+
+                    <div>
+                      <Label>Highlights</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          value={newHighlight}
+                          onChange={(e) => setNewHighlight(e.target.value)}
+                          placeholder="Add a highlight..."
+                          data-testid="input-highlight"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            if (newHighlight) {
+                              setFormData({ ...formData, highlights: [...(formData.highlights || []), newHighlight] });
+                              setNewHighlight("");
+                            }
+                          }}
+                          data-testid="button-add-highlight"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <ul className="mt-2 space-y-1">
+                        {(formData.highlights || []).map((item, i) => (
+                          <li key={i} className="flex items-center justify-between bg-muted px-3 py-1.5 rounded-md text-sm">
+                            <span>{item}</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, highlights: (formData.highlights || []).filter((_, idx) => idx !== i) })}
+                              className="text-destructive hover:text-destructive/80"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <Label>What's Included</Label>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          value={newIncluded}
+                          onChange={(e) => setNewIncluded(e.target.value)}
+                          placeholder="Add item..."
+                          data-testid="input-included"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            if (newIncluded) {
+                              setFormData({ ...formData, whatsIncluded: [...(formData.whatsIncluded || []), newIncluded] });
+                              setNewIncluded("");
+                            }
+                          }}
+                          data-testid="button-add-included"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <ul className="mt-2 space-y-1">
+                        {(formData.whatsIncluded || []).map((item, i) => (
+                          <li key={i} className="flex items-center justify-between bg-muted px-3 py-1.5 rounded-md text-sm">
+                            <span>{item}</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormData({ ...formData, whatsIncluded: (formData.whatsIncluded || []).filter((_, idx) => idx !== i) })}
+                              className="text-destructive hover:text-destructive/80"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="otherInfo">Other Information (HTML)</Label>
+                      <Textarea
+                        id="otherInfo"
+                        value={formData.otherInfo || ""}
+                        onChange={(e) => setFormData({ ...formData, otherInfo: e.target.value })}
+                        placeholder="Terms, conditions, visa info..."
+                        rows={6}
+                        data-testid="input-other-info"
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="itinerary" className="space-y-4 mt-4">
+                    <div className="flex items-center justify-between">
+                      <Label>Day-by-Day Itinerary</Label>
+                      <Button type="button" variant="outline" onClick={addItineraryDay} data-testid="button-add-day">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Day
+                      </Button>
+                    </div>
+                    {(formData.itinerary || []).map((day, index) => (
+                      <Card key={index}>
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline">Day {day.day}</Badge>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeItineraryDay(index)}
+                              data-testid={`button-remove-day-${index}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <Input
+                            value={day.title}
+                            onChange={(e) => updateItineraryDay(index, 'title', e.target.value)}
+                            placeholder="Day title..."
+                            data-testid={`input-day-title-${index}`}
+                          />
+                          <Textarea
+                            value={day.description}
+                            onChange={(e) => updateItineraryDay(index, 'description', e.target.value)}
+                            placeholder="Day description..."
+                            rows={3}
+                            data-testid={`input-day-description-${index}`}
+                          />
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {(formData.itinerary || []).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No itinerary days added yet</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="accommodation" className="space-y-4 mt-4">
+                    <div className="flex items-center justify-between">
+                      <Label>Accommodations</Label>
+                      <Button type="button" variant="outline" onClick={addAccommodation} data-testid="button-add-hotel">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Hotel
+                      </Button>
+                    </div>
+                    {(formData.accommodations || []).map((hotel, index) => (
+                      <Card key={index}>
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">{hotel.name || `Hotel ${index + 1}`}</CardTitle>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeAccommodation(index)}
+                              data-testid={`button-remove-hotel-${index}`}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <Input
+                            value={hotel.name}
+                            onChange={(e) => updateAccommodation(index, 'name', e.target.value)}
+                            placeholder="Hotel name..."
+                            data-testid={`input-hotel-name-${index}`}
+                          />
+                          <Textarea
+                            value={hotel.description}
+                            onChange={(e) => updateAccommodation(index, 'description', e.target.value)}
+                            placeholder="Hotel description..."
+                            rows={2}
+                            data-testid={`input-hotel-description-${index}`}
+                          />
+                          <div>
+                            <Label className="text-sm">Hotel Images (comma-separated URLs)</Label>
+                            <Input
+                              value={(hotel.images || []).join(", ")}
+                              onChange={(e) => updateAccommodation(index, 'images', e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+                              placeholder="https://..., https://..."
+                              data-testid={`input-hotel-images-${index}`}
+                            />
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {(hotel.images || []).map((img, imgIdx) => (
+                                <img key={imgIdx} src={img} alt="" className="h-12 w-16 object-cover rounded" />
+                              ))}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                    {(formData.accommodations || []).length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No accommodations added yet</p>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="seo" className="space-y-4 mt-4">
+                    <div>
+                      <Label htmlFor="metaTitle">Meta Title</Label>
+                      <Input
+                        id="metaTitle"
+                        value={formData.metaTitle || ""}
+                        onChange={(e) => setFormData({ ...formData, metaTitle: e.target.value })}
+                        placeholder="SEO title..."
+                        data-testid="input-meta-title"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="metaDescription">Meta Description</Label>
+                      <Textarea
+                        id="metaDescription"
+                        value={formData.metaDescription || ""}
+                        onChange={(e) => setFormData({ ...formData, metaDescription: e.target.value })}
+                        placeholder="SEO description..."
+                        rows={3}
+                        data-testid="input-meta-description"
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                <Separator />
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => { setIsCreating(false); setEditingPackage(null); }}
+                    data-testid="button-cancel-form"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                    data-testid="button-save"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {createMutation.isPending || updateMutation.isPending ? "Saving..." : "Save Package"}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : (
+          <div>
+            {isLoading ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="animate-pulse bg-muted h-20 rounded-lg" />
+                ))}
+              </div>
+            ) : filteredPackages.length === 0 ? (
+              <div className="text-center py-16">
+                <Package className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No packages yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  {searchQuery ? "No packages match your search" : "Get started by adding your first flight package"}
+                </p>
+                <Button onClick={handleOpenCreate} data-testid="button-create-first">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Your First Package
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Package</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPackages.map((pkg) => (
+                    <TableRow key={pkg.id} data-testid={`row-package-${pkg.id}`}>
+                      <TableCell className="text-muted-foreground">
+                        {pkg.displayOrder}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {pkg.featuredImage ? (
+                            <img 
+                              src={pkg.featuredImage} 
+                              alt="" 
+                              className="h-10 w-14 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="h-10 w-14 bg-muted rounded flex items-center justify-center">
+                              <Plane className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-medium line-clamp-1">{pkg.title}</p>
+                            <p className="text-xs text-muted-foreground">{pkg.duration}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{pkg.category}</Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatPrice(pkg.price)}
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={pkg.isPublished}
+                          onCheckedChange={(checked) => togglePublishMutation.mutate({ id: pkg.id, isPublished: checked })}
+                          data-testid={`switch-publish-${pkg.id}`}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                            data-testid={`button-view-${pkg.id}`}
+                          >
+                            <Link href={`/packages/${pkg.slug}`}>
+                              <Eye className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenEdit(pkg)}
+                            data-testid={`button-edit-${pkg.id}`}
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                data-testid={`button-delete-${pkg.id}`}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Package</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{pkg.title}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteMutation.mutate(pkg.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}

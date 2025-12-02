@@ -269,28 +269,53 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card data-testid="card-faq-management">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
-                    <Activity className="h-6 w-6 text-primary" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card data-testid="card-faq-management">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <Activity className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">FAQ Management</CardTitle>
+                      <CardDescription>
+                        Manage frequently asked questions
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-lg">FAQ Management</CardTitle>
-                    <CardDescription>
-                      Manage frequently asked questions for your visitors
-                    </CardDescription>
-                  </div>
+                  <a href="/admin/faq">
+                    <Button variant="outline" size="sm" data-testid="button-manage-faqs">
+                      Manage FAQs
+                    </Button>
+                  </a>
                 </div>
-                <a href="/admin/faq">
-                  <Button variant="outline" size="sm" data-testid="button-manage-faqs">
-                    Manage FAQs
-                  </Button>
-                </a>
-              </div>
-            </CardHeader>
-          </Card>
+              </CardHeader>
+            </Card>
+
+            <Card data-testid="card-packages-management">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <ExternalLink className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Flight Packages</CardTitle>
+                      <CardDescription>
+                        Manage flight-inclusive packages
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <a href="/admin/packages">
+                    <Button variant="outline" size="sm" data-testid="button-manage-packages">
+                      Manage Packages
+                    </Button>
+                  </a>
+                </div>
+              </CardHeader>
+            </Card>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1">

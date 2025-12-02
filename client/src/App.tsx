@@ -18,6 +18,7 @@ import BookingConfirmation from "@/pages/BookingConfirmation";
 import Packages from "@/pages/Packages";
 import PackageDetail from "@/pages/PackageDetail";
 import AdminFAQ from "@/pages/AdminFAQ";
+import AdminPackages from "@/pages/AdminPackages";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import TwoFactorSetup from "@/pages/TwoFactorSetup";
@@ -47,6 +48,11 @@ function Router() {
       <Route path="/admin/faq">
         <ProtectedRoute>
           <AdminFAQ />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/packages">
+        <ProtectedRoute>
+          <AdminPackages />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

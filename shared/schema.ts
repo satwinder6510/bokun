@@ -479,3 +479,35 @@ export const insertPackagePricingSchema = createInsertSchema(packagePricing).omi
 
 export type PackagePricing = typeof packagePricing.$inferSelect;
 export type InsertPackagePricing = z.infer<typeof insertPackagePricingSchema>;
+
+// Customer Reviews schema
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  customerName: text("customer_name").notNull(),
+  location: text("location"), // e.g., "London, UK"
+  rating: integer("rating").notNull().default(5), // 1-5 stars
+  reviewText: text("review_text").notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  isPublished: boolean("is_published").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+}).extend({
+  customerName: z.string().min(1, "Customer name is required").max(100),
+  location: z.string().max(100).optional(),
+  rating: z.number().min(1).max(5).default(5),
+  reviewText: z.string().min(10, "Review must be at least 10 characters").max(1000),
+  displayOrder: z.number().default(0),
+  isPublished: z.boolean().default(true),
+});
+
+export const updateReviewSchema = insertReviewSchema.partial();
+
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type UpdateReview = z.infer<typeof updateReviewSchema>;

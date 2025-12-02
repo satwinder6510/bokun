@@ -4,7 +4,7 @@ import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBo
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { randomBytes } from "crypto";
 import multer from "multer";
@@ -1379,6 +1379,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating enquiry:", error);
       res.status(500).json({ error: "Failed to update enquiry" });
+    }
+  });
+
+  // ===== REVIEWS ROUTES =====
+  
+  // Get published reviews (public)
+  app.get("/api/reviews", async (req, res) => {
+    try {
+      const reviews = await storage.getPublishedReviews();
+      res.json(reviews);
+    } catch (error: any) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  // Get all reviews (admin)
+  app.get("/api/admin/reviews", async (req, res) => {
+    try {
+      const reviews = await storage.getAllReviews();
+      res.json(reviews);
+    } catch (error: any) {
+      console.error("Error fetching reviews:", error);
+      res.status(500).json({ error: "Failed to fetch reviews" });
+    }
+  });
+
+  // Get single review (admin)
+  app.get("/api/admin/reviews/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const review = await storage.getReviewById(parseInt(id));
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      res.json(review);
+    } catch (error: any) {
+      console.error("Error fetching review:", error);
+      res.status(500).json({ error: "Failed to fetch review" });
+    }
+  });
+
+  // Create review (admin)
+  app.post("/api/admin/reviews", async (req, res) => {
+    try {
+      const parsed = insertReviewSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid review data", details: parsed.error.errors });
+      }
+      const review = await storage.createReview(parsed.data);
+      res.status(201).json(review);
+    } catch (error: any) {
+      console.error("Error creating review:", error);
+      res.status(500).json({ error: "Failed to create review" });
+    }
+  });
+
+  // Update review (admin)
+  app.patch("/api/admin/reviews/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parsed = updateReviewSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid review data", details: parsed.error.errors });
+      }
+      const review = await storage.updateReview(parseInt(id), parsed.data);
+      if (!review) {
+        return res.status(404).json({ error: "Review not found" });
+      }
+      res.json(review);
+    } catch (error: any) {
+      console.error("Error updating review:", error);
+      res.status(500).json({ error: "Failed to update review" });
+    }
+  });
+
+  // Delete review (admin)
+  app.delete("/api/admin/reviews/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteReview(parseInt(id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting review:", error);
+      res.status(500).json({ error: "Failed to delete review" });
     }
   });
 

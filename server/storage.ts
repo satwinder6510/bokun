@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, flightPackages, packageEnquiries, packagePricing } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, flightPackages, packageEnquiries, packagePricing, reviews } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql } from "drizzle-orm";
@@ -69,6 +69,14 @@ export interface IStorage {
   createPackagePricingBatch(pricings: InsertPackagePricing[]): Promise<PackagePricing[]>;
   deletePackagePricing(id: number): Promise<boolean>;
   deletePackagePricingByPackage(packageId: number): Promise<boolean>;
+  
+  // Review methods
+  getAllReviews(): Promise<Review[]>;
+  getPublishedReviews(): Promise<Review[]>;
+  getReviewById(id: number): Promise<Review | undefined>;
+  createReview(review: InsertReview): Promise<Review>;
+  updateReview(id: number, review: UpdateReview): Promise<Review | undefined>;
+  deleteReview(id: number): Promise<boolean>;
 }
 
 // In-memory storage with per-currency product caching
@@ -692,6 +700,62 @@ export class MemStorage implements IStorage {
 
   async deletePackagePricingByPackage(packageId: number): Promise<boolean> {
     await db.delete(packagePricing).where(eq(packagePricing.packageId, packageId));
+    return true;
+  }
+
+  // Review methods
+  async getAllReviews(): Promise<Review[]> {
+    try {
+      return await db.select().from(reviews)
+        .orderBy(asc(reviews.displayOrder), desc(reviews.createdAt));
+    } catch (error) {
+      console.error("Error fetching all reviews:", error);
+      return [];
+    }
+  }
+
+  async getPublishedReviews(): Promise<Review[]> {
+    try {
+      return await db.select().from(reviews)
+        .where(eq(reviews.isPublished, true))
+        .orderBy(asc(reviews.displayOrder), desc(reviews.createdAt));
+    } catch (error) {
+      console.error("Error fetching published reviews:", error);
+      return [];
+    }
+  }
+
+  async getReviewById(id: number): Promise<Review | undefined> {
+    try {
+      const results = await db.select().from(reviews)
+        .where(eq(reviews.id, id))
+        .limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching review by id:", error);
+      return undefined;
+    }
+  }
+
+  async createReview(review: InsertReview): Promise<Review> {
+    const [created] = await db.insert(reviews).values({
+      ...review,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return created;
+  }
+
+  async updateReview(id: number, updates: UpdateReview): Promise<Review | undefined> {
+    const [updated] = await db.update(reviews)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(reviews.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteReview(id: number): Promise<boolean> {
+    await db.delete(reviews).where(eq(reviews.id, id));
     return true;
   }
 }

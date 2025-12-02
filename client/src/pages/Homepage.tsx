@@ -244,8 +244,16 @@ export default function Homepage() {
                     </div>
                   </div>
                   <a 
-                    href="/blog" 
+                    href="/packages" 
                     className="text-base font-medium hover:text-primary transition-colors py-2 border-t pt-4"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="mobile-link-packages"
+                  >
+                    Flight Packages
+                  </a>
+                  <a 
+                    href="/blog" 
+                    className="text-base font-medium hover:text-primary transition-colors py-2"
                     onClick={() => setMobileMenuOpen(false)}
                     data-testid="mobile-link-blog"
                   >
@@ -305,6 +313,9 @@ export default function Homepage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+            <a href="/packages" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-packages">
+              Flight Packages
+            </a>
             <a href="/blog" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-blog">
               Blog
             </a>

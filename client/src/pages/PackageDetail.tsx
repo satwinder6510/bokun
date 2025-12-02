@@ -268,6 +268,21 @@ export default function PackageDetail() {
       })
     : undefined;
 
+  // Auto-populate form with selected date from calendar
+  useEffect(() => {
+    if (selectedDate) {
+      const formattedDate = selectedDate.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      });
+      setFormData(prev => ({
+        ...prev,
+        preferredDates: formattedDate
+      }));
+    }
+  }, [selectedDate]);
+
   // Auto-select airport if only one
   useEffect(() => {
     if (airports.length === 1 && !selectedAirport) {

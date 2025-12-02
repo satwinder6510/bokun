@@ -1278,6 +1278,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import sample packages (admin)
+  app.post("/api/admin/packages/import-samples", async (req, res) => {
+    try {
+      const { samplePackages } = await import("./scraper");
+      const imported: any[] = [];
+      const errors: string[] = [];
+      
+      for (const pkg of samplePackages) {
+        try {
+          // Check if package with this slug already exists
+          const existing = await storage.getFlightPackageBySlug(pkg.slug);
+          if (existing) {
+            errors.push(`Package "${pkg.title}" already exists`);
+            continue;
+          }
+          
+          const created = await storage.createFlightPackage(pkg);
+          imported.push(created);
+        } catch (err: any) {
+          errors.push(`Failed to import "${pkg.title}": ${err.message}`);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        imported: imported.length,
+        errors 
+      });
+    } catch (error: any) {
+      console.error("Error importing samples:", error);
+      res.status(500).json({ error: "Failed to import sample packages" });
+    }
+  });
+
+  // Bulk import packages from JSON (admin)
+  app.post("/api/admin/packages/import", async (req, res) => {
+    try {
+      const { packages } = req.body;
+      
+      if (!Array.isArray(packages)) {
+        return res.status(400).json({ error: "Expected 'packages' array in request body" });
+      }
+      
+      const imported: any[] = [];
+      const errors: string[] = [];
+      
+      for (const pkg of packages) {
+        try {
+          const parseResult = insertFlightPackageSchema.safeParse(pkg);
+          if (!parseResult.success) {
+            errors.push(`Invalid package data for "${pkg.title || 'Unknown'}": ${parseResult.error.message}`);
+            continue;
+          }
+          
+          // Check if package with this slug already exists
+          const existing = await storage.getFlightPackageBySlug(parseResult.data.slug);
+          if (existing) {
+            errors.push(`Package "${parseResult.data.title}" already exists`);
+            continue;
+          }
+          
+          const created = await storage.createFlightPackage(parseResult.data);
+          imported.push(created);
+        } catch (err: any) {
+          errors.push(`Failed to import "${pkg.title || 'Unknown'}": ${err.message}`);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        imported: imported.length,
+        errors 
+      });
+    } catch (error: any) {
+      console.error("Error importing packages:", error);
+      res.status(500).json({ error: "Failed to import packages" });
+    }
+  });
+
+  // Scrape demo site homepage (admin)
+  app.post("/api/admin/packages/scrape", async (req, res) => {
+    try {
+      const { scrapeHomepage, validatePackageData } = await import("./scraper");
+      const scrapedPackages = await scrapeHomepage();
+      
+      res.json({ 
+        success: true, 
+        count: scrapedPackages.length,
+        packages: scrapedPackages.map(p => ({
+          title: p.title,
+          slug: p.slug,
+          category: p.category,
+          price: p.price,
+          currency: p.currency,
+          duration: p.duration,
+          featuredImage: p.featuredImage,
+        }))
+      });
+    } catch (error: any) {
+      console.error("Error scraping:", error);
+      res.status(500).json({ error: "Failed to scrape packages" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

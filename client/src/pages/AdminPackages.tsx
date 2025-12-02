@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
-  GripVertical, Plane, Save, X, Clock, MapPin
+  GripVertical, Plane, Save, X, Clock, MapPin, Download
 } from "lucide-react";
 import {
   Dialog,
@@ -178,6 +178,23 @@ export default function AdminPackages() {
     },
   });
 
+  const importSamplesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/admin/packages/import-samples", {});
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/packages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
+      toast({ 
+        title: "Sample packages imported", 
+        description: `Imported ${data.imported} packages${data.errors?.length ? `. ${data.errors.length} skipped.` : ''}`
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error importing samples", description: error.message, variant: "destructive" });
+    },
+  });
+
   const filteredPackages = packages.filter(pkg =>
     pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     pkg.category.toLowerCase().includes(searchQuery.toLowerCase())
@@ -307,6 +324,15 @@ export default function AdminPackages() {
                 data-testid="input-search"
               />
             </div>
+            <Button 
+              variant="outline" 
+              onClick={() => importSamplesMutation.mutate()}
+              disabled={importSamplesMutation.isPending}
+              data-testid="button-import-samples"
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {importSamplesMutation.isPending ? "Importing..." : "Import Samples"}
+            </Button>
             <Button onClick={handleOpenCreate} data-testid="button-create">
               <Plus className="w-4 h-4 mr-2" />
               Add Package

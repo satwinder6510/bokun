@@ -14,7 +14,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
-  Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2
+  Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
+  Globe, CheckCircle2, AlertCircle
 } from "lucide-react";
 import {
   Dialog,
@@ -105,6 +106,19 @@ const emptyPackage: PackageFormData = {
   displayOrder: 0,
 };
 
+type ScrapedData = {
+  title: string;
+  price: number;
+  category: string;
+  slug: string;
+  overview: string;
+  whatsIncluded: string[];
+  highlights: string[];
+  itinerary: { day: number; title: string; description: string }[];
+  hotelImages: string[];
+  featuredImage: string;
+};
+
 export default function AdminPackages() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -117,6 +131,12 @@ export default function AdminPackages() {
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
+  
+  // Scraper test state
+  const [scraperDialogOpen, setScraperDialogOpen] = useState(false);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scrapedData, setScrapedData] = useState<ScrapedData | null>(null);
+  const [isScraping, setIsScraping] = useState(false);
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
@@ -202,6 +222,63 @@ export default function AdminPackages() {
     pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     pkg.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleScrapeTest = async () => {
+    if (!scrapeUrl) {
+      toast({ title: "Please enter a URL", variant: "destructive" });
+      return;
+    }
+    
+    setIsScraping(true);
+    setScrapedData(null);
+    
+    try {
+      const response = await fetch('/api/admin/scrape-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: scrapeUrl }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Scrape failed');
+      }
+      
+      const result = await response.json();
+      if (result.success) {
+        setScrapedData(result.extracted);
+        toast({ title: "Scrape successful!" });
+      } else {
+        throw new Error(result.error || 'Unknown error');
+      }
+    } catch (error: any) {
+      toast({ title: "Scrape failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
+  const handleImportScrapedData = () => {
+    if (!scrapedData) return;
+    
+    setFormData({
+      ...emptyPackage,
+      title: scrapedData.title,
+      slug: scrapedData.slug,
+      category: scrapedData.category,
+      price: scrapedData.price,
+      description: scrapedData.overview,
+      whatsIncluded: scrapedData.whatsIncluded,
+      highlights: scrapedData.highlights,
+      itinerary: scrapedData.itinerary,
+      featuredImage: scrapedData.featuredImage,
+      gallery: scrapedData.hotelImages,
+    });
+    
+    setScraperDialogOpen(false);
+    setIsCreating(true);
+    setEditingPackage(null);
+    toast({ title: "Data imported to form", description: "Review and save the package" });
+  };
 
   const handleOpenCreate = () => {
     setFormData(emptyPackage);
@@ -392,6 +469,160 @@ export default function AdminPackages() {
                 data-testid="input-search"
               />
             </div>
+            <Dialog open={scraperDialogOpen} onOpenChange={setScraperDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="button-scrape-test">
+                  <Globe className="w-4 h-4 mr-2" />
+                  Test Scraper
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Test URL Scraper</DialogTitle>
+                  <DialogDescription>
+                    Enter a URL from holidays.flightsandpackages.com to test the scraper
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="https://holidays.flightsandpackages.com/Holidays/India/..."
+                      value={scrapeUrl}
+                      onChange={(e) => setScrapeUrl(e.target.value)}
+                      className="flex-1"
+                      data-testid="input-scrape-url"
+                    />
+                    <Button 
+                      onClick={handleScrapeTest} 
+                      disabled={isScraping}
+                      data-testid="button-run-scrape"
+                    >
+                      {isScraping ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Scraping...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-4 h-4 mr-2" />
+                          Test Scrape
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {scrapedData && (
+                    <div className="space-y-4 border rounded-lg p-4 bg-muted/50" data-testid="scrape-results">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-lg flex items-center gap-2" data-testid="status-scrape-success">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          Extracted Data
+                        </h3>
+                        <Button onClick={handleImportScrapedData} data-testid="button-import-scraped">
+                          <Upload className="w-4 h-4 mr-2" />
+                          Import to Form
+                        </Button>
+                      </div>
+                      
+                      {scrapedData.featuredImage && (
+                        <div className="flex gap-4 items-start">
+                          <img 
+                            src={scrapedData.featuredImage} 
+                            alt="Featured" 
+                            className="w-32 h-24 object-cover rounded border"
+                            data-testid="img-featured-preview"
+                          />
+                          <div className="flex-1 space-y-2">
+                            <p className="font-semibold text-lg" data-testid="text-scraped-title">{scrapedData.title}</p>
+                            <div className="flex gap-4">
+                              <Badge variant="secondary" data-testid="badge-scraped-category">{scrapedData.category}</Badge>
+                              <span className="font-bold text-primary" data-testid="text-scraped-price">£{scrapedData.price}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {!scrapedData.featuredImage && (
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <Label className="text-muted-foreground">Title</Label>
+                            <p className="font-medium" data-testid="text-scraped-title">{scrapedData.title}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Price</Label>
+                            <p className="font-medium" data-testid="text-scraped-price">£{scrapedData.price}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Category</Label>
+                            <p className="font-medium" data-testid="text-scraped-category">{scrapedData.category}</p>
+                          </div>
+                          <div>
+                            <Label className="text-muted-foreground">Slug</Label>
+                            <p className="font-medium text-muted-foreground" data-testid="text-scraped-slug">{scrapedData.slug}</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <Separator />
+                      
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div>
+                          <Label className="text-muted-foreground">What's Included</Label>
+                          <p className="font-medium" data-testid="text-included-count">{scrapedData.whatsIncluded?.length || 0} items</p>
+                        </div>
+                        <div>
+                          <Label className="text-muted-foreground">Highlights</Label>
+                          <p className="font-medium" data-testid="text-highlights-count">{scrapedData.highlights?.length || 0} items</p>
+                        </div>
+                        <div>
+                          <Label className="text-muted-foreground">Itinerary Days</Label>
+                          <p className="font-medium" data-testid="text-itinerary-count">{scrapedData.itinerary?.length || 0} days</p>
+                        </div>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div>
+                        <Label className="text-muted-foreground">Overview (preview)</Label>
+                        <p className="text-sm mt-1 line-clamp-4" data-testid="text-overview-preview">{scrapedData.overview?.substring(0, 500)}...</p>
+                      </div>
+                      
+                      {scrapedData.whatsIncluded?.length > 0 && (
+                        <div>
+                          <Label className="text-muted-foreground">What's Included (first 5)</Label>
+                          <ul className="text-sm mt-1 list-disc list-inside space-y-1" data-testid="list-included-items">
+                            {scrapedData.whatsIncluded.slice(0, 5).map((item, i) => (
+                              <li key={i} className="line-clamp-1" data-testid={`text-included-item-${i}`}>{item}</li>
+                            ))}
+                            {scrapedData.whatsIncluded.length > 5 && (
+                              <li className="text-muted-foreground">...and {scrapedData.whatsIncluded.length - 5} more</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {scrapedData.hotelImages?.length > 0 && (
+                        <div>
+                          <Label className="text-muted-foreground">Hotel Images ({scrapedData.hotelImages.length})</Label>
+                          <div className="flex gap-2 mt-2 overflow-x-auto" data-testid="gallery-hotel-images">
+                            {scrapedData.hotelImages.slice(0, 5).map((img, i) => (
+                              <img 
+                                key={i} 
+                                src={img} 
+                                alt={`Hotel ${i + 1}`}
+                                className="w-20 h-20 object-cover rounded border"
+                                data-testid={`img-hotel-${i}`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button 
               variant="outline" 
               onClick={() => importSamplesMutation.mutate()}

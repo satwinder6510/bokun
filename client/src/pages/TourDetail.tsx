@@ -265,6 +265,9 @@ export default function TourDetail() {
                 </h1>
                 
                 <div className="flex flex-wrap gap-4 text-muted-foreground mb-6">
+                  <Badge variant="outline" className="text-muted-foreground border-muted-foreground/50">
+                    LAND TOUR
+                  </Badge>
                   {product.durationText && (
                     <div className="flex items-center gap-2" data-testid="text-duration">
                       <Clock className="w-4 h-4" />

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Clock, MapPin, Plane, Check, ChevronDown, Menu, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -197,9 +198,24 @@ export default function PackageDetail() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedAirport, setSelectedAirport] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  
+  // Embla carousel for gallery
+  const [emblaRef, emblaApi] = useEmblaCarousel({ 
+    loop: false, 
+    align: "start",
+    slidesToScroll: 1
+  });
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+  
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -453,33 +469,90 @@ export default function PackageDetail() {
         </div>
       </header>
 
-      {/* Hero Image */}
-      <section className="relative h-[60vh] min-h-[400px] pt-16 md:pt-20">
-        <img 
-          src={allImages[selectedImageIndex] || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
-          alt={pkg.title}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-12">
-          <div className="container mx-auto">
-            <Badge className="mb-4 bg-primary text-white" data-testid="badge-category">
-              {pkg.category}
-            </Badge>
-            <h1 className="text-3xl md:text-5xl font-bold text-white mb-4" data-testid="text-title">
+      {/* Gallery - Bokun Style */}
+      <section className="py-8 pt-24 md:pt-28">
+        <div className="container mx-auto px-6 md:px-8">
+          {/* Hero Image - 21:9 aspect ratio */}
+          <div className="rounded-xl overflow-hidden mb-4">
+            <img
+              src={allImages[0] || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
+              alt={pkg.title}
+              className="w-full aspect-[21/9] object-cover"
+              data-testid="img-package-hero"
+              loading="lazy"
+              decoding="async"
+            />
+          </div>
+          
+          {/* Gallery Carousel */}
+          {allImages.length > 1 && (
+            <div className="relative group">
+              <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex gap-4">
+                  {allImages.map((img, index) => (
+                    <div 
+                      key={index} 
+                      className="flex-[0_0_auto] w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3]"
+                    >
+                      <img
+                        src={img}
+                        alt={`${pkg.title} photo ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        data-testid={`img-gallery-${index}`}
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {allImages.length > 6 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur"
+                    onClick={scrollPrev}
+                    data-testid="button-gallery-prev"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur"
+                    onClick={scrollNext}
+                    data-testid="button-gallery-next"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+          
+          {/* Title and Info below gallery */}
+          <div className="mt-8">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <Badge className="bg-primary text-white" data-testid="badge-category">
+                {pkg.category}
+              </Badge>
+              <Badge variant="outline" className="gap-1">
+                <Plane className="w-3 h-3" />
+                Flights Included
+              </Badge>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4" data-testid="text-title">
               {pkg.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-4 text-white/90">
+            <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
               {pkg.duration && (
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5" />
                   <span data-testid="text-duration">{pkg.duration}</span>
                 </div>
               )}
-              <div className="flex items-center gap-2">
-                <Plane className="w-5 h-5" />
-                <span>Flights Included</span>
-              </div>
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
                 <span>{pkg.category}</span>
@@ -488,28 +561,6 @@ export default function PackageDetail() {
           </div>
         </div>
       </section>
-
-      {/* Image Gallery Thumbnails */}
-      {allImages.length > 1 && (
-        <section className="py-4 bg-muted/30 border-b">
-          <div className="container mx-auto px-4 md:px-8">
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              {allImages.map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImageIndex(index)}
-                  className={`flex-shrink-0 w-20 h-14 rounded-md overflow-hidden border-2 transition-all ${
-                    selectedImageIndex === index ? 'border-primary' : 'border-transparent'
-                  }`}
-                  data-testid={`button-thumbnail-${index}`}
-                >
-                  <img src={img} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Main Content */}
       <section className="py-8 md:py-12">

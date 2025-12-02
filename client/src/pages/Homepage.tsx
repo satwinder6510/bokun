@@ -600,7 +600,8 @@ export default function Homepage() {
       <section className="py-16 md:py-24 bg-muted/30">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-12">
-            <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">
+            <p className="text-secondary text-sm font-bold tracking-wider uppercase mb-2 flex items-center justify-center gap-2">
+              <Plane className="w-4 h-4" />
               FLIGHTS INCLUDED
             </p>
             <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-packages-title">

@@ -334,7 +334,7 @@ export default function PackageDetail() {
     setIsSubmitting(true);
 
     try {
-      await apiRequest("POST", "/api/packages/enquiry", {
+      await apiRequest("POST", `/api/packages/${slug}/enquiry`, {
         packageId: pkg?.id,
         packageTitle: pkg?.title,
         ...formData,

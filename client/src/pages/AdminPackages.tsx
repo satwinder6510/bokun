@@ -1061,7 +1061,10 @@ export default function AdminPackages() {
                     </div>
 
                     <div>
-                      <Label>Featured Image</Label>
+                      <Label>Featured Image (Hero)</Label>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Recommended: <strong>1920 x 823 px</strong> (21:9 ratio). Landscape only. Keep important content centered.
+                      </p>
                       <div className="mt-2 space-y-3">
                         <input
                           ref={featuredImageRef}

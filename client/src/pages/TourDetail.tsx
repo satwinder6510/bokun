@@ -166,7 +166,8 @@ export default function TourDetail() {
       {/* Gallery */}
       <section className="py-8">
         <div className="container mx-auto px-6 md:px-8">
-          <div className="rounded-xl overflow-hidden mb-4">
+          {/* Hero Image with Title Overlay */}
+          <div className="relative rounded-xl overflow-hidden mb-4">
             <img
               src={product.keyPhoto?.originalUrl || imagePlaceholder}
               alt={product.title}
@@ -175,6 +176,28 @@ export default function TourDetail() {
               loading="lazy"
               decoding="async"
             />
+            {/* Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            {/* Title Overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+              <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-tour-title-overlay">
+                {product.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-3 text-white/90">
+                {product.durationText && (
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <Clock className="w-4 h-4" />
+                    <span>{product.durationText}</span>
+                  </div>
+                )}
+                {product.locationCode?.name && (
+                  <div className="flex items-center gap-1.5 text-sm">
+                    <MapPin className="w-4 h-4" />
+                    <span>{product.locationCode.name}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
           {photos.length > 0 && (
             <div className="relative group">

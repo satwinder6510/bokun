@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Plane, Check, ChevronDown, Menu, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Plane, Check, ChevronDown, Menu, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -867,6 +867,20 @@ export default function PackageDetail() {
                         <Phone className="w-5 h-5 mr-2" />
                         {phoneNumber}
                       </a>
+                    </Button>
+                    <Button 
+                      variant="secondary" 
+                      className="w-full" 
+                      size="lg" 
+                      onClick={() => {
+                        if (typeof window !== 'undefined' && (window as any).tidioChatApi) {
+                          (window as any).tidioChatApi.open();
+                        }
+                      }}
+                      data-testid="button-chat"
+                    >
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      Chat with us
                     </Button>
                     <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                       <DialogTrigger asChild>

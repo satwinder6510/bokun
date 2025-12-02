@@ -232,6 +232,16 @@ export default function AdminPackages() {
       return;
     }
     
+    // Validate URL domain
+    if (!scrapeUrl.includes('holidays.flightsandpackages.com')) {
+      toast({ 
+        title: "Invalid URL", 
+        description: "Please use a URL from holidays.flightsandpackages.com (not tours.flightsandpackages.com)", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     setIsScraping(true);
     setScrapedData(null);
     
@@ -576,14 +586,21 @@ export default function AdminPackages() {
                 <DialogHeader>
                   <DialogTitle>Test URL Scraper</DialogTitle>
                   <DialogDescription>
-                    Enter a URL from holidays.flightsandpackages.com to test the scraper
+                    Scrape package data from the external holidays website
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-4">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg text-sm">
+                    <p className="font-medium text-amber-800 dark:text-amber-200">Use URLs from holidays.flightsandpackages.com</p>
+                    <p className="text-amber-700 dark:text-amber-300 text-xs mt-1">
+                      Example: https://holidays.flightsandpackages.com/Holidays/India/Golden-Triangle-Tour
+                    </p>
+                  </div>
+                  
                   <div className="flex gap-2">
                     <Input
-                      placeholder="https://holidays.flightsandpackages.com/Holidays/India/..."
+                      placeholder="https://holidays.flightsandpackages.com/Holidays/..."
                       value={scrapeUrl}
                       onChange={(e) => setScrapeUrl(e.target.value)}
                       className="flex-1"

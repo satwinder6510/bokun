@@ -2,6 +2,46 @@ import * as cheerio from 'cheerio';
 import type { InsertFlightPackage } from '@shared/schema';
 
 const DEMO_BASE_URL = 'https://demo.flightsandpackages.com/flightsandpackages';
+const FETCH_TIMEOUT = 30000;
+
+interface ScrapeResult {
+  success: boolean;
+  packages: ScrapedPackage[];
+  errors: string[];
+  message: string;
+}
+
+async function fetchWithTimeout(url: string, timeout: number = FETCH_TIMEOUT): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.text();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function normalizeUrl(url: string, baseUrl: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('//')) return 'https:' + url;
+  if (url.startsWith('/')) return new URL(url, baseUrl).href;
+  return new URL(url, baseUrl).href;
+}
 
 function generateSlug(title: string): string {
   return title
@@ -211,6 +251,218 @@ export function validatePackageData(data: Partial<ScrapedPackage>): InsertFlight
     isPublished: data.isPublished ?? false,
     displayOrder: data.displayOrder ?? 0,
   };
+}
+
+export async function scrapeFromUrl(url: string): Promise<ScrapeResult> {
+  const packages: ScrapedPackage[] = [];
+  const errors: string[] = [];
+  
+  try {
+    const baseUrl = new URL(url).origin;
+    console.log(`Starting scrape from: ${url}`);
+    
+    const html = await fetchWithTimeout(url);
+    const $ = cheerio.load(html);
+    
+    let displayOrder = 0;
+    const packageLinks: string[] = [];
+    
+    $('a[href*="itinerary"], a[href*="package"], a[href*="holiday"], a[href*="cruise"], a[href*="offer"]').each((_, el) => {
+      const href = $(el).attr('href');
+      if (href && !href.includes('#') && !href.includes('javascript:')) {
+        const fullUrl = normalizeUrl(href, url);
+        if (!packageLinks.includes(fullUrl) && fullUrl.includes(baseUrl)) {
+          packageLinks.push(fullUrl);
+        }
+      }
+    });
+    
+    $('.package-card, .cruise-card, .holiday-card, .offer-card, .slide-item, [class*="itinerary-card"], [class*="package-item"]').each((_, el) => {
+      const $el = $(el);
+      const link = $el.find('a').first().attr('href');
+      if (link) {
+        const fullUrl = normalizeUrl(link, url);
+        if (!packageLinks.includes(fullUrl) && fullUrl.includes(baseUrl)) {
+          packageLinks.push(fullUrl);
+        }
+      }
+    });
+    
+    console.log(`Found ${packageLinks.length} potential package links`);
+    
+    if (packageLinks.length > 0) {
+      const limit = Math.min(packageLinks.length, 20);
+      
+      for (let i = 0; i < limit; i++) {
+        const packageUrl = packageLinks[i];
+        console.log(`Scraping package ${i + 1}/${limit}: ${packageUrl}`);
+        
+        try {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          const packageHtml = await fetchWithTimeout(packageUrl);
+          const $pkg = cheerio.load(packageHtml);
+          
+          const title = $pkg('h1, .page-title, .package-title, .itinerary-title').first().text().trim();
+          if (!title || title.length < 3) {
+            console.log(`Skipping ${packageUrl} - no valid title found`);
+            continue;
+          }
+          
+          const priceText = $pkg('.price, [class*="price"], .cost').first().text();
+          const price = parsePrice(priceText) || 1999;
+          const currency = parseCurrency(priceText);
+          
+          const description = $pkg('.overview, .description, [class*="overview"], .content p').first().text().trim();
+          const excerpt = description.substring(0, 200) + (description.length > 200 ? '...' : '');
+          
+          const durationText = $pkg('.duration, [class*="duration"], [class*="nights"], [class*="days"]').first().text().trim();
+          
+          let category = $pkg('.category, .region, .destination, [class*="category"]').first().text().trim();
+          if (!category) {
+            if (title.toLowerCase().includes('africa') || title.toLowerCase().includes('safari')) category = 'Africa';
+            else if (title.toLowerCase().includes('asia') || title.toLowerCase().includes('thai') || title.toLowerCase().includes('bali')) category = 'Asia';
+            else if (title.toLowerCase().includes('europ') || title.toLowerCase().includes('italy') || title.toLowerCase().includes('spain')) category = 'Europe';
+            else if (title.toLowerCase().includes('cruise')) category = 'Cruises';
+            else category = 'Holidays';
+          }
+          
+          const featuredImage = $pkg('img.hero, .hero img, .banner img, .featured-image img, header img').first().attr('src') || 
+                               $pkg('img').first().attr('src') || '';
+          
+          const gallery: string[] = [];
+          $pkg('.gallery img, .slider img, .carousel img, .photos img').each((_, img) => {
+            const src = $pkg(img).attr('src');
+            if (src) gallery.push(normalizeUrl(src, packageUrl));
+          });
+          
+          const highlights: string[] = [];
+          $pkg('.highlights li, .highlight-item, [class*="highlight"] li').each((_, li) => {
+            const text = $pkg(li).text().trim();
+            if (text && text.length > 3) highlights.push(text);
+          });
+          
+          const whatsIncluded: string[] = [];
+          $pkg('.whats-included li, .included-item, [class*="include"] li, .inclusions li').each((_, li) => {
+            const text = $pkg(li).text().trim();
+            if (text && text.length > 3) whatsIncluded.push(text);
+          });
+          
+          const itinerary: ScrapedPackage['itinerary'] = [];
+          $pkg('.itinerary-day, .day-item, [class*="itinerary"] .day, .timeline-item, [class*="day-"]').each((j, day) => {
+            const $day = $pkg(day);
+            const dayTitle = $day.find('h3, h4, .day-title, .title').first().text().trim();
+            const dayDesc = $day.find('p, .description, .content').first().text().trim();
+            
+            if (dayTitle || dayDesc) {
+              itinerary.push({
+                day: j + 1,
+                title: dayTitle || `Day ${j + 1}`,
+                description: dayDesc,
+              });
+            }
+          });
+          
+          const accommodations: ScrapedPackage['accommodations'] = [];
+          $pkg('.accommodation-item, .hotel-card, [class*="accommodation"], .hotel-item, [class*="hotel"]').each((_, acc) => {
+            const $acc = $pkg(acc);
+            const name = $acc.find('h3, h4, .hotel-name, .name').first().text().trim();
+            const accDesc = $acc.find('p, .description').first().text().trim();
+            const accImages: string[] = [];
+            
+            $acc.find('img').each((_, img) => {
+              const src = $pkg(img).attr('src');
+              if (src) accImages.push(normalizeUrl(src, packageUrl));
+            });
+            
+            if (name && name.length > 2) {
+              accommodations.push({
+                name,
+                description: accDesc,
+                images: accImages,
+              });
+            }
+          });
+          
+          packages.push({
+            title,
+            slug: generateSlug(title),
+            category,
+            price,
+            currency,
+            priceLabel: 'per person',
+            duration: durationText || '7 Days / 6 Nights',
+            excerpt,
+            description,
+            featuredImage: normalizeUrl(featuredImage, packageUrl),
+            gallery,
+            highlights,
+            whatsIncluded,
+            itinerary,
+            accommodations,
+            isPublished: false,
+            displayOrder: displayOrder++,
+          });
+          
+          console.log(`Successfully scraped: ${title}`);
+          
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+          errors.push(`Failed to scrape ${packageUrl}: ${errorMsg}`);
+          console.error(`Error scraping ${packageUrl}:`, errorMsg);
+        }
+      }
+    }
+    
+    if (packages.length === 0) {
+      console.log('No package links found, trying to scrape current page as a single package...');
+      
+      const title = $('h1, .page-title, .package-title').first().text().trim();
+      const priceText = $('.price, [class*="price"]').first().text();
+      const description = $('.overview, .description, [class*="overview"]').first().text().trim();
+      
+      if (title && title.length > 3) {
+        packages.push({
+          title,
+          slug: generateSlug(title),
+          category: 'Holidays',
+          price: parsePrice(priceText) || 1999,
+          currency: parseCurrency(priceText),
+          priceLabel: 'per person',
+          duration: '7 Days / 6 Nights',
+          excerpt: description.substring(0, 200),
+          description,
+          featuredImage: $('img').first().attr('src') || '',
+          gallery: [],
+          highlights: [],
+          whatsIncluded: [],
+          itinerary: [],
+          accommodations: [],
+          isPublished: false,
+          displayOrder: 0,
+        });
+      }
+    }
+    
+    return {
+      success: packages.length > 0,
+      packages,
+      errors,
+      message: packages.length > 0 
+        ? `Successfully scraped ${packages.length} package(s)` 
+        : 'No packages could be extracted from the URL. The page structure may not be compatible.',
+    };
+    
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Scrape error:', errorMsg);
+    return {
+      success: false,
+      packages: [],
+      errors: [errorMsg],
+      message: `Failed to scrape URL: ${errorMsg}`,
+    };
+  }
 }
 
 export const samplePackages: InsertFlightPackage[] = [

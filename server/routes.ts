@@ -1457,6 +1457,214 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test scraper endpoint - validates extraction from holidays.flightsandpackages.com
+  app.post("/api/admin/scrape-test", async (req, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: "URL is required" });
+      }
+      
+      // Import cheerio and node-fetch dynamically
+      const cheerio = await import("cheerio");
+      const fetch = (await import("node-fetch")).default;
+      
+      console.log(`Scraping test URL: ${url}`);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      if (!response.ok) {
+        return res.status(400).json({ error: `Failed to fetch URL: ${response.status}` });
+      }
+      
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      
+      // Extract data based on the structure of holidays.flightsandpackages.com
+      const extracted = {
+        // Title - extract from URL slug as fallback, or from page title tag
+        title: '',
+        
+        // Price - look for currency symbols
+        priceText: $('[class*="price"]').first().text().trim() || 
+                   $('*:contains("£")').filter((_, el) => $(el).text().match(/£\d+/)).first().text().trim(),
+        price: 0,
+        
+        // Category from URL or breadcrumb
+        category: url.match(/\/Holidays\/([^\/]+)/)?.[1]?.replace(/-/g, ' ') || '',
+        
+        // Slug from URL
+        slug: url.split('/').pop()?.toLowerCase() || '',
+        
+        // Overview section
+        overview: '',
+        
+        // What's Included
+        whatsIncluded: [] as string[],
+        
+        // Highlights  
+        highlights: [] as string[],
+        
+        // Itinerary
+        itinerary: [] as { day: number; title: string; description: string }[],
+        
+        // Hotel images
+        hotelImages: [] as string[],
+        
+        // Featured image
+        featuredImage: '',
+        
+        // Raw sections for debugging
+        _debug: {
+          h1Count: $('h1').length,
+          h2Count: $('h2').length,
+          h3Texts: [] as string[],
+          sectionTexts: [] as string[],
+        }
+      };
+      
+      // Extract h3 headings for debugging
+      $('h3').each((_, el) => {
+        extracted._debug.h3Texts.push($(el).text().trim());
+      });
+      
+      // Find Overview section
+      const overviewSection = $('h3:contains("Overview")').parent();
+      if (overviewSection.length) {
+        // Get all paragraph text after Overview heading
+        let overviewText = '';
+        overviewSection.find('p').each((_, el) => {
+          overviewText += $(el).text().trim() + '\n\n';
+        });
+        extracted.overview = overviewText.trim();
+      }
+      
+      // Alternative: Look for #overview section
+      if (!extracted.overview) {
+        const overviewDiv = $('#overview, [id*="overview"]');
+        if (overviewDiv.length) {
+          extracted.overview = overviewDiv.text().trim().substring(0, 2000);
+        }
+      }
+      
+      // Find What's Included section
+      const includedSection = $('h3:contains("Included"), h3:contains("included")').parent();
+      if (includedSection.length) {
+        includedSection.find('li').each((_, el) => {
+          const text = $(el).text().trim();
+          if (text) extracted.whatsIncluded.push(text);
+        });
+      }
+      
+      // Find Highlights section
+      const highlightsSection = $('h3:contains("Highlight"), h3:contains("highlight")').parent();
+      if (highlightsSection.length) {
+        highlightsSection.find('li').each((_, el) => {
+          const text = $(el).text().trim();
+          if (text) extracted.highlights.push(text);
+        });
+      }
+      
+      // Find Itinerary section - look for Day 1, Day 2 patterns
+      $('*').each((_, el) => {
+        const text = $(el).text();
+        const dayMatch = text.match(/Day\s*(\d+)/i);
+        if (dayMatch) {
+          const dayNum = parseInt(dayMatch[1]);
+          if (dayNum <= 20 && !extracted.itinerary.find(i => i.day === dayNum)) {
+            // Get the title (next sibling or nearby text)
+            const parent = $(el).parent();
+            const title = parent.find('h4, strong').first().text().trim() || 
+                         text.split('\n')[0]?.replace(/Day\s*\d+\s*/i, '').trim() || `Day ${dayNum}`;
+            const desc = parent.find('p').text().trim().substring(0, 500);
+            
+            if (title || desc) {
+              extracted.itinerary.push({
+                day: dayNum,
+                title: title.substring(0, 100),
+                description: desc
+              });
+            }
+          }
+        }
+      });
+      
+      // Sort itinerary by day
+      extracted.itinerary.sort((a, b) => a.day - b.day);
+      
+      // Extract hotel/accommodation images
+      $('img').each((_, el) => {
+        const src = $(el).attr('src');
+        if (src && (src.includes('Hotel') || src.includes('hotel') || src.includes('accommodation') || 
+            src.includes('PackageImages') || src.includes('.webp') || src.includes('.jpg'))) {
+          if (!extracted.hotelImages.includes(src)) {
+            extracted.hotelImages.push(src);
+          }
+        }
+      });
+      
+      // Get featured image (first large image or og:image)
+      extracted.featuredImage = $('meta[property="og:image"]').attr('content') || 
+                                $('img[class*="hero"], img[class*="featured"]').first().attr('src') ||
+                                extracted.hotelImages[0] || '';
+      
+      // Parse price
+      const priceMatch = extracted.priceText.match(/[£$€]?\s*([\d,]+)/);
+      if (priceMatch) {
+        extracted.price = parseInt(priceMatch[1].replace(/,/g, '')) || 0;
+      }
+      
+      // Get section content for debugging
+      $('section, div[class*="section"]').each((i, el) => {
+        if (i < 5) {
+          extracted._debug.sectionTexts.push($(el).text().trim().substring(0, 200));
+        }
+      });
+      
+      // Extract title - try multiple methods
+      // Method 1: Page title tag (before |)
+      const pageTitle = $('title').text().split('|')[0]?.trim();
+      if (pageTitle && pageTitle.length > 5 && !pageTitle.includes('Europe') && !pageTitle.includes('Asia')) {
+        extracted.title = pageTitle;
+      }
+      
+      // Method 2: First h1 that's not in navigation
+      if (!extracted.title) {
+        $('h1').each((_, el) => {
+          const text = $(el).text().trim();
+          // Skip navigation items
+          if (text.length > 10 && !['Europe', 'Asia', 'Africa', 'Americas', 'Middle East'].includes(text)) {
+            extracted.title = text;
+            return false; // break
+          }
+        });
+      }
+      
+      // Method 3: From URL slug (convert to title case)
+      if (!extracted.title || extracted.title.length < 5) {
+        const slugFromUrl = url.split('/').pop() || '';
+        extracted.title = slugFromUrl
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, (c: string) => c.toUpperCase());
+      }
+      
+      res.json({
+        success: true,
+        url,
+        extracted
+      });
+      
+    } catch (error: any) {
+      console.error("Scrape test error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

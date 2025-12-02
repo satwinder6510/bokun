@@ -175,7 +175,7 @@ export default function Packages() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
-          <p className="text-secondary text-sm font-bold tracking-wider uppercase mb-4 flex items-center gap-2" data-testid="badge-flights-included">
+          <p className="text-white text-sm font-bold tracking-wider uppercase mb-4 flex items-center gap-2" data-testid="badge-flights-included">
             <Plane className="w-4 h-4" />
             FLIGHTS INCLUDED
           </p>

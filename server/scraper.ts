@@ -254,9 +254,17 @@ export function validatePackageData(data: Partial<ScrapedPackage>): InsertFlight
   };
 }
 
+function cleanScrapedText(text: string): string {
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/Gallery|View More|DISCOVER|from|\/pp|per adult/gi, '')
+    .trim();
+}
+
 export async function scrapeFromUrl(url: string): Promise<ScrapeResult> {
   const packages: ScrapedPackage[] = [];
   const errors: string[] = [];
+  const seenTitles = new Set<string>();
   
   try {
     const baseUrl = new URL(url).origin;
@@ -266,192 +274,100 @@ export async function scrapeFromUrl(url: string): Promise<ScrapeResult> {
     const $ = cheerio.load(html);
     
     let displayOrder = 0;
-    const packageLinks: string[] = [];
     
-    $('a[href*="itinerary"], a[href*="package"], a[href*="holiday"], a[href*="cruise"], a[href*="offer"]').each((_, el) => {
-      const href = $(el).attr('href');
-      if (href && !href.includes('#') && !href.includes('javascript:')) {
-        const fullUrl = normalizeUrl(href, url);
-        if (!packageLinks.includes(fullUrl) && fullUrl.includes(baseUrl)) {
-          packageLinks.push(fullUrl);
+    const extractPackageFromCard = ($card: cheerio.Cheerio<any>): ScrapedPackage | null => {
+      const titleEl = $card.find('h2, h3, h4, .title, [class*="title"]').first();
+      let title = cleanScrapedText(titleEl.text());
+      
+      if (!title || title.length < 5 || seenTitles.has(title.toLowerCase())) {
+        return null;
+      }
+      
+      seenTitles.add(title.toLowerCase());
+      
+      const priceText = $card.text();
+      const priceMatch = priceText.match(/£([\d,]+)/);
+      const price = priceMatch ? parseInt(priceMatch[1].replace(/,/g, ''), 10) : 1999;
+      
+      const durationMatch = priceText.match(/(\d+)\s*(?:Days?|Nights?)\s*[\/&]\s*(\d+)\s*(?:Days?|Nights?)/i);
+      const duration = durationMatch ? `${durationMatch[1]} Days / ${durationMatch[2]} Nights` : '';
+      
+      const imgSrc = $card.find('img').first().attr('src') || '';
+      const featuredImage = normalizeUrl(imgSrc, url);
+      
+      let category = 'Holidays';
+      const titleLower = title.toLowerCase();
+      if (titleLower.includes('cruise') || titleLower.includes('sailing')) category = 'Cruises';
+      else if (titleLower.includes('africa') || titleLower.includes('safari') || titleLower.includes('kenya')) category = 'Africa';
+      else if (titleLower.includes('asia') || titleLower.includes('thai') || titleLower.includes('bali') || titleLower.includes('vietnam') || titleLower.includes('cambodia') || titleLower.includes('malaysia') || titleLower.includes('singapore')) category = 'Asia';
+      else if (titleLower.includes('italy') || titleLower.includes('spain') || titleLower.includes('france') || titleLower.includes('rome') || titleLower.includes('florence') || titleLower.includes('venice') || titleLower.includes('europe') || titleLower.includes('mediterranean')) category = 'Europe';
+      else if (titleLower.includes('india') || titleLower.includes('golden triangle') || titleLower.includes('nepal')) category = 'India';
+      else if (titleLower.includes('caribbean') || titleLower.includes('mexico')) category = 'Americas';
+      
+      const excerpt = `Discover the wonders of ${title}. An unforgettable journey awaits.`;
+      
+      return {
+        title,
+        slug: generateSlug(title),
+        category,
+        price,
+        currency: 'GBP',
+        priceLabel: 'per person',
+        duration: duration || '7 Days / 6 Nights',
+        excerpt,
+        description: excerpt,
+        featuredImage,
+        gallery: featuredImage ? [featuredImage] : [],
+        highlights: [],
+        whatsIncluded: [],
+        itinerary: [],
+        accommodations: [],
+        isPublished: false,
+        displayOrder: displayOrder++,
+      };
+    }
+    
+    $('.slide-item, .swiper-slide').each((_, el) => {
+      const $card = $(el);
+      const pkg = extractPackageFromCard($card);
+      if (pkg) {
+        console.log(`Found package from hero: ${pkg.title}`);
+        packages.push(pkg);
+      }
+    });
+    
+    $('[class*="cruise-offer"], [class*="holiday-offer"], [class*="package-card"], [class*="offer-card"]').each((_, el) => {
+      const $card = $(el);
+      const pkg = extractPackageFromCard($card);
+      if (pkg) {
+        console.log(`Found package from card: ${pkg.title}`);
+        packages.push(pkg);
+      }
+    });
+    
+    $('article, .card, [class*="item"]').each((_, el) => {
+      const $card = $(el);
+      const hasPrice = $card.text().includes('£');
+      const hasTitle = $card.find('h2, h3, h4').length > 0;
+      
+      if (hasPrice && hasTitle) {
+        const pkg = extractPackageFromCard($card);
+        if (pkg) {
+          console.log(`Found package from article: ${pkg.title}`);
+          packages.push(pkg);
         }
       }
     });
     
-    $('.package-card, .cruise-card, .holiday-card, .offer-card, .slide-item, [class*="itinerary-card"], [class*="package-item"]').each((_, el) => {
-      const $el = $(el);
-      const link = $el.find('a').first().attr('href');
-      if (link) {
-        const fullUrl = normalizeUrl(link, url);
-        if (!packageLinks.includes(fullUrl) && fullUrl.includes(baseUrl)) {
-          packageLinks.push(fullUrl);
-        }
-      }
-    });
-    
-    console.log(`Found ${packageLinks.length} potential package links`);
-    
-    if (packageLinks.length > 0) {
-      const limit = Math.min(packageLinks.length, 20);
-      
-      for (let i = 0; i < limit; i++) {
-        const packageUrl = packageLinks[i];
-        console.log(`Scraping package ${i + 1}/${limit}: ${packageUrl}`);
-        
-        try {
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          const packageHtml = await fetchWithTimeout(packageUrl);
-          const $pkg = cheerio.load(packageHtml);
-          
-          const title = $pkg('h1, .page-title, .package-title, .itinerary-title').first().text().trim();
-          if (!title || title.length < 3) {
-            console.log(`Skipping ${packageUrl} - no valid title found`);
-            continue;
-          }
-          
-          const priceText = $pkg('.price, [class*="price"], .cost').first().text();
-          const price = parsePrice(priceText) || 1999;
-          const currency = parseCurrency(priceText);
-          
-          const description = $pkg('.overview, .description, [class*="overview"], .content p').first().text().trim();
-          const excerpt = description.substring(0, 200) + (description.length > 200 ? '...' : '');
-          
-          const durationText = $pkg('.duration, [class*="duration"], [class*="nights"], [class*="days"]').first().text().trim();
-          
-          let category = $pkg('.category, .region, .destination, [class*="category"]').first().text().trim();
-          if (!category) {
-            if (title.toLowerCase().includes('africa') || title.toLowerCase().includes('safari')) category = 'Africa';
-            else if (title.toLowerCase().includes('asia') || title.toLowerCase().includes('thai') || title.toLowerCase().includes('bali')) category = 'Asia';
-            else if (title.toLowerCase().includes('europ') || title.toLowerCase().includes('italy') || title.toLowerCase().includes('spain')) category = 'Europe';
-            else if (title.toLowerCase().includes('cruise')) category = 'Cruises';
-            else category = 'Holidays';
-          }
-          
-          const featuredImage = $pkg('img.hero, .hero img, .banner img, .featured-image img, header img').first().attr('src') || 
-                               $pkg('img').first().attr('src') || '';
-          
-          const gallery: string[] = [];
-          $pkg('.gallery img, .slider img, .carousel img, .photos img').each((_, img) => {
-            const src = $pkg(img).attr('src');
-            if (src) gallery.push(normalizeUrl(src, packageUrl));
-          });
-          
-          const highlights: string[] = [];
-          $pkg('.highlights li, .highlight-item, [class*="highlight"] li').each((_, li) => {
-            const text = $pkg(li).text().trim();
-            if (text && text.length > 3) highlights.push(text);
-          });
-          
-          const whatsIncluded: string[] = [];
-          $pkg('.whats-included li, .included-item, [class*="include"] li, .inclusions li').each((_, li) => {
-            const text = $pkg(li).text().trim();
-            if (text && text.length > 3) whatsIncluded.push(text);
-          });
-          
-          const itinerary: ScrapedPackage['itinerary'] = [];
-          $pkg('.itinerary-day, .day-item, [class*="itinerary"] .day, .timeline-item, [class*="day-"]').each((j, day) => {
-            const $day = $pkg(day);
-            const dayTitle = $day.find('h3, h4, .day-title, .title').first().text().trim();
-            const dayDesc = $day.find('p, .description, .content').first().text().trim();
-            
-            if (dayTitle || dayDesc) {
-              itinerary.push({
-                day: j + 1,
-                title: dayTitle || `Day ${j + 1}`,
-                description: dayDesc,
-              });
-            }
-          });
-          
-          const accommodations: ScrapedPackage['accommodations'] = [];
-          $pkg('.accommodation-item, .hotel-card, [class*="accommodation"], .hotel-item, [class*="hotel"]').each((_, acc) => {
-            const $acc = $pkg(acc);
-            const name = $acc.find('h3, h4, .hotel-name, .name').first().text().trim();
-            const accDesc = $acc.find('p, .description').first().text().trim();
-            const accImages: string[] = [];
-            
-            $acc.find('img').each((_, img) => {
-              const src = $pkg(img).attr('src');
-              if (src) accImages.push(normalizeUrl(src, packageUrl));
-            });
-            
-            if (name && name.length > 2) {
-              accommodations.push({
-                name,
-                description: accDesc,
-                images: accImages,
-              });
-            }
-          });
-          
-          packages.push({
-            title,
-            slug: generateSlug(title),
-            category,
-            price,
-            currency,
-            priceLabel: 'per person',
-            duration: durationText || '7 Days / 6 Nights',
-            excerpt,
-            description,
-            featuredImage: normalizeUrl(featuredImage, packageUrl),
-            gallery,
-            highlights,
-            whatsIncluded,
-            itinerary,
-            accommodations,
-            isPublished: false,
-            displayOrder: displayOrder++,
-          });
-          
-          console.log(`Successfully scraped: ${title}`);
-          
-        } catch (err) {
-          const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-          errors.push(`Failed to scrape ${packageUrl}: ${errorMsg}`);
-          console.error(`Error scraping ${packageUrl}:`, errorMsg);
-        }
-      }
-    }
-    
-    if (packages.length === 0) {
-      console.log('No package links found, trying to scrape current page as a single package...');
-      
-      const title = $('h1, .page-title, .package-title').first().text().trim();
-      const priceText = $('.price, [class*="price"]').first().text();
-      const description = $('.overview, .description, [class*="overview"]').first().text().trim();
-      
-      if (title && title.length > 3) {
-        packages.push({
-          title,
-          slug: generateSlug(title),
-          category: 'Holidays',
-          price: parsePrice(priceText) || 1999,
-          currency: parseCurrency(priceText),
-          priceLabel: 'per person',
-          duration: '7 Days / 6 Nights',
-          excerpt: description.substring(0, 200),
-          description,
-          featuredImage: $('img').first().attr('src') || '',
-          gallery: [],
-          highlights: [],
-          whatsIncluded: [],
-          itinerary: [],
-          accommodations: [],
-          isPublished: false,
-          displayOrder: 0,
-        });
-      }
-    }
+    console.log(`Total packages found: ${packages.length}`);
     
     return {
       success: packages.length > 0,
       packages,
       errors,
       message: packages.length > 0 
-        ? `Successfully scraped ${packages.length} package(s)` 
-        : 'No packages could be extracted from the URL. The page structure may not be compatible.',
+        ? `Successfully scraped ${packages.length} package(s) from listing page` 
+        : 'No packages could be extracted. This may be a template site without real package data.',
     };
     
   } catch (error) {

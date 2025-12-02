@@ -1382,6 +1382,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import packages from URL (admin) - scrapes and imports directly
+  app.post("/api/admin/packages/import-url", async (req, res) => {
+    try {
+      const { url } = req.body;
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: "URL is required" });
+      }
+      
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+      
+      const { scrapeFromUrl, validatePackageData } = await import("./scraper");
+      const result = await scrapeFromUrl(url);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          success: false,
+          message: result.message,
+          errors: result.errors
+        });
+      }
+      
+      // Import the scraped packages
+      const imported: any[] = [];
+      const importErrors: string[] = [...result.errors];
+      
+      for (const pkg of result.packages) {
+        try {
+          const validatedPkg = validatePackageData(pkg);
+          if (!validatedPkg) {
+            importErrors.push(`Invalid package data for "${pkg.title}"`);
+            continue;
+          }
+          
+          // Check if package with this slug already exists
+          const existing = await storage.getFlightPackageBySlug(validatedPkg.slug);
+          if (existing) {
+            importErrors.push(`Package "${validatedPkg.title}" already exists (slug: ${validatedPkg.slug})`);
+            continue;
+          }
+          
+          const created = await storage.createFlightPackage(validatedPkg);
+          imported.push(created);
+        } catch (err: any) {
+          importErrors.push(`Failed to import "${pkg.title}": ${err.message}`);
+        }
+      }
+      
+      res.json({ 
+        success: imported.length > 0,
+        message: imported.length > 0 
+          ? `Successfully imported ${imported.length} package(s)` 
+          : 'No packages were imported',
+        scraped: result.packages.length,
+        imported: imported.length,
+        errors: importErrors
+      });
+    } catch (error: any) {
+      console.error("Error importing from URL:", error);
+      res.status(500).json({ error: "Failed to import packages from URL", message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

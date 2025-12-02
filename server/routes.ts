@@ -1810,6 +1810,238 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Batch import packages from URLs (scrape + import)
+  app.post("/api/admin/batch-import", async (req, res) => {
+    try {
+      const { urls } = req.body;
+      
+      if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({ error: "urls array is required" });
+      }
+      
+      const cheerio = await import("cheerio");
+      const fetch = (await import("node-fetch")).default;
+      
+      const results: { imported: string[]; skipped: string[]; failed: string[] } = {
+        imported: [],
+        skipped: [],
+        failed: []
+      };
+      
+      console.log(`Starting batch import of ${urls.length} packages...`);
+      
+      // Helper function to convert HTML to text while preserving paragraphs
+      const htmlToText = ($: any, element: any): string => {
+        let html = $(element).html() || '';
+        html = html.replace(/<\/p>/gi, '\n\n');
+        html = html.replace(/<p[^>]*>/gi, '');
+        html = html.replace(/<br\s*\/?>/gi, '\n');
+        html = html.replace(/<\/div>/gi, '\n');
+        html = html.replace(/<div[^>]*>/gi, '');
+        html = html.replace(/<[^>]+>/g, '');
+        html = html.replace(/\n\s*\n\s*\n/g, '\n\n');
+        html = html.replace(/[ \t]+/g, ' ');
+        return html.trim();
+      };
+      
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[i];
+        
+        try {
+          // Extract slug from URL
+          const slug = url.split('/').pop()?.toLowerCase().replace(/%[0-9a-f]{2}/gi, '-') || '';
+          
+          // Check if package already exists
+          const existing = await storage.getFlightPackageBySlug(slug);
+          if (existing) {
+            results.skipped.push(`${slug} (already exists)`);
+            console.log(`[${i+1}/${urls.length}] Skipped: ${slug} (exists)`);
+            continue;
+          }
+          
+          // Fetch the page
+          const response = await fetch(url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+          
+          if (!response.ok) {
+            results.failed.push(`${slug} (HTTP ${response.status})`);
+            console.log(`[${i+1}/${urls.length}] Failed: ${slug} (HTTP ${response.status})`);
+            continue;
+          }
+          
+          const html = await response.text();
+          const $ = cheerio.load(html);
+          
+          // Extract data
+          let title = $('title').text().split('|')[0]?.trim() || '';
+          if (!title || title.length < 5) {
+            title = slug.replace(/-/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+          }
+          
+          const category = url.match(/\/Holidays\/([^\/]+)/)?.[1]?.replace(/-/g, ' ') || 'Europe';
+          
+          // Get price
+          const priceText = $('[class*="price"]').first().text().trim() || 
+                           $('*:contains("£")').filter((_, el) => !!$(el).text().match(/£\d+/)).first().text().trim();
+          const priceMatch = priceText.match(/[£$€]?\s*([\d,]+)/);
+          const price = priceMatch ? parseInt(priceMatch[1].replace(/,/g, '')) : 999;
+          
+          // Get overview
+          let overview = '';
+          const overviewSection = $('h3:contains("Overview")').parent();
+          if (overviewSection.length) {
+            overview = htmlToText($, overviewSection.find('p').parent());
+          }
+          if (!overview) {
+            const overviewDiv = $('#overview, [id*="overview"]');
+            if (overviewDiv.length) {
+              overview = htmlToText($, overviewDiv).substring(0, 2000);
+            }
+          }
+          
+          // Get what's included
+          const whatsIncluded: string[] = [];
+          const includedSection = $('h3:contains("Included"), h3:contains("included")').parent();
+          if (includedSection.length) {
+            includedSection.find('li').each((_, el) => {
+              const text = $(el).text().trim();
+              if (text) whatsIncluded.push(text);
+            });
+          }
+          
+          // Get highlights
+          const highlights: string[] = [];
+          const highlightsSection = $('h3:contains("Highlight"), h3:contains("highlight")').parent();
+          if (highlightsSection.length) {
+            highlightsSection.find('li').each((_, el) => {
+              const text = $(el).text().trim();
+              if (text) highlights.push(text);
+            });
+          }
+          
+          // Get itinerary
+          const itinerary: { day: number; title: string; description: string }[] = [];
+          const itinerarySection = $('#itinerary, .itinerary-section');
+          if (itinerarySection.length) {
+            itinerarySection.find('.accordion-panel').each((_, panel) => {
+              const dayText = $(panel).find('.day').first().text().trim();
+              const dayMatch = dayText.match(/Day\s*(\d+)/i);
+              
+              if (dayMatch) {
+                const dayNum = parseInt(dayMatch[1]);
+                const dayTitle = $(panel).find('.description').first().text().trim() || `Day ${dayNum}`;
+                const descElement = $(panel).find('.panel-content .desc');
+                const desc = htmlToText($, descElement).substring(0, 2000);
+                
+                if (!itinerary.find(i => i.day === dayNum)) {
+                  itinerary.push({
+                    day: dayNum,
+                    title: dayTitle.substring(0, 150),
+                    description: desc
+                  });
+                }
+              }
+            });
+          }
+          
+          // Get images
+          const hotelImages: string[] = [];
+          $('img').each((_, el) => {
+            const src = $(el).attr('src');
+            if (src && (src.includes('Hotel') || src.includes('hotel') || src.includes('accommodation') || 
+                src.includes('PackageImages') || src.includes('.webp') || src.includes('.jpg'))) {
+              if (!hotelImages.includes(src)) {
+                hotelImages.push(src);
+              }
+            }
+          });
+          
+          // Get featured image
+          const featuredImage = $('meta[property="og:image"]').attr('content') || 
+                               $('img[class*="hero"], img[class*="featured"]').first().attr('src') ||
+                               hotelImages[0] || '';
+          
+          // Get accommodations
+          const accommodations: { name: string; description: string; images: string[] }[] = [];
+          const accommodationSection = $('#accommodation, .accommodation-section');
+          if (accommodationSection.length) {
+            accommodationSection.find('.accordion-panel').each((_, panel) => {
+              const hotelName = $(panel).find('.hotel-name, .description').first().text().trim();
+              if (hotelName && !hotelName.match(/Day\s*\d+/i)) {
+                const hotelDesc = htmlToText($, $(panel).find('.panel-content .desc')).substring(0, 800);
+                const images: string[] = [];
+                $(panel).find('img').each((_, img) => {
+                  const src = $(img).attr('src');
+                  if (src && !images.includes(src)) {
+                    images.push(src);
+                  }
+                });
+                accommodations.push({
+                  name: hotelName,
+                  description: hotelDesc,
+                  images: images.slice(0, 5)
+                });
+              }
+            });
+          }
+          
+          // Create the package
+          const description = overview || `Discover the beauty of ${category} with this amazing package.`;
+          const packageData = {
+            title,
+            slug,
+            category,
+            destination: category,
+            duration: `${itinerary.length || 7} Days`,
+            price,
+            originalPrice: Math.round(price * 1.15),
+            currency: 'GBP' as const,
+            featuredImage,
+            galleryImages: hotelImages.slice(0, 10),
+            description,
+            overview: description,
+            highlights: highlights.length > 0 ? highlights : ['Expert local guides', 'Comfortable accommodations', 'Unforgettable experiences'],
+            whatsIncluded: whatsIncluded.length > 0 ? whatsIncluded : ['Accommodation', 'Breakfast', 'Transfers'],
+            itinerary,
+            accommodations,
+            departureInfo: 'Departures available year-round',
+            isPublished: true,
+            displayOrder: i
+          };
+          
+          await storage.createFlightPackage(packageData);
+          results.imported.push(title);
+          console.log(`[${i+1}/${urls.length}] Imported: ${title}`);
+          
+          // Small delay to avoid overwhelming the server
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+        } catch (err: any) {
+          results.failed.push(`${url.split('/').pop() || url}: ${err.message}`);
+          console.log(`[${i+1}/${urls.length}] Error: ${err.message}`);
+        }
+      }
+      
+      console.log(`Batch import complete: ${results.imported.length} imported, ${results.skipped.length} skipped, ${results.failed.length} failed`);
+      
+      res.json({
+        success: true,
+        total: urls.length,
+        imported: results.imported.length,
+        skipped: results.skipped.length,
+        failed: results.failed.length,
+        details: results
+      });
+      
+    } catch (error: any) {
+      console.error("Batch import error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

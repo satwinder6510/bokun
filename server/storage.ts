@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, flightPackages, packageEnquiries, packagePricing, reviews } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql } from "drizzle-orm";
@@ -77,6 +77,17 @@ export interface IStorage {
   createReview(review: InsertReview): Promise<Review>;
   updateReview(id: number, review: UpdateReview): Promise<Review | undefined>;
   deleteReview(id: number): Promise<boolean>;
+  
+  // Tracking number methods (DNI)
+  getAllTrackingNumbers(): Promise<TrackingNumber[]>;
+  getActiveTrackingNumbers(): Promise<TrackingNumber[]>;
+  getTrackingNumberById(id: number): Promise<TrackingNumber | undefined>;
+  getTrackingNumberBySource(source: string | null, campaign: string | null, medium: string | null): Promise<TrackingNumber | undefined>;
+  getDefaultTrackingNumber(): Promise<TrackingNumber | undefined>;
+  createTrackingNumber(number: InsertTrackingNumber): Promise<TrackingNumber>;
+  updateTrackingNumber(id: number, updates: UpdateTrackingNumber): Promise<TrackingNumber | undefined>;
+  deleteTrackingNumber(id: number): Promise<boolean>;
+  incrementTrackingNumberImpressions(id: number): Promise<void>;
 }
 
 // In-memory storage with per-currency product caching
@@ -757,6 +768,145 @@ export class MemStorage implements IStorage {
   async deleteReview(id: number): Promise<boolean> {
     await db.delete(reviews).where(eq(reviews.id, id));
     return true;
+  }
+
+  // Tracking number methods (DNI)
+  async getAllTrackingNumbers(): Promise<TrackingNumber[]> {
+    try {
+      return await db.select().from(trackingNumbers)
+        .orderBy(asc(trackingNumbers.displayOrder), desc(trackingNumbers.createdAt));
+    } catch (error) {
+      console.error("Error fetching all tracking numbers:", error);
+      return [];
+    }
+  }
+
+  async getActiveTrackingNumbers(): Promise<TrackingNumber[]> {
+    try {
+      return await db.select().from(trackingNumbers)
+        .where(eq(trackingNumbers.isActive, true))
+        .orderBy(asc(trackingNumbers.displayOrder), desc(trackingNumbers.createdAt));
+    } catch (error) {
+      console.error("Error fetching active tracking numbers:", error);
+      return [];
+    }
+  }
+
+  async getTrackingNumberById(id: number): Promise<TrackingNumber | undefined> {
+    try {
+      const results = await db.select().from(trackingNumbers)
+        .where(eq(trackingNumbers.id, id))
+        .limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching tracking number by id:", error);
+      return undefined;
+    }
+  }
+
+  async getTrackingNumberBySource(source: string | null, campaign: string | null, medium: string | null): Promise<TrackingNumber | undefined> {
+    try {
+      // Get all active numbers and find the best match
+      const numbers = await this.getActiveTrackingNumbers();
+      
+      // Priority matching:
+      // 1. Exact match on source + campaign + medium
+      // 2. Match on source + campaign (any medium)
+      // 3. Match on source + medium (any campaign)
+      // 4. Match on source only
+      // 5. Default number
+      
+      for (const num of numbers) {
+        if (num.source === source && num.campaign === campaign && num.medium === medium) {
+          return num;
+        }
+      }
+      
+      for (const num of numbers) {
+        if (num.source === source && num.campaign === campaign && !num.medium) {
+          return num;
+        }
+      }
+      
+      for (const num of numbers) {
+        if (num.source === source && num.medium === medium && !num.campaign) {
+          return num;
+        }
+      }
+      
+      for (const num of numbers) {
+        if (num.source === source && !num.campaign && !num.medium) {
+          return num;
+        }
+      }
+      
+      // Return default
+      return this.getDefaultTrackingNumber();
+    } catch (error) {
+      console.error("Error finding tracking number by source:", error);
+      return this.getDefaultTrackingNumber();
+    }
+  }
+
+  async getDefaultTrackingNumber(): Promise<TrackingNumber | undefined> {
+    try {
+      const results = await db.select().from(trackingNumbers)
+        .where(eq(trackingNumbers.isDefault, true))
+        .limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching default tracking number:", error);
+      return undefined;
+    }
+  }
+
+  async createTrackingNumber(number: InsertTrackingNumber): Promise<TrackingNumber> {
+    // If this is marked as default, unset any existing default
+    if (number.isDefault) {
+      await db.update(trackingNumbers)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(eq(trackingNumbers.isDefault, true));
+    }
+    
+    const [created] = await db.insert(trackingNumbers).values({
+      ...number,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return created;
+  }
+
+  async updateTrackingNumber(id: number, updates: UpdateTrackingNumber): Promise<TrackingNumber | undefined> {
+    // If setting as default, unset any existing default
+    if (updates.isDefault) {
+      await db.update(trackingNumbers)
+        .set({ isDefault: false, updatedAt: new Date() })
+        .where(eq(trackingNumbers.isDefault, true));
+    }
+    
+    const [updated] = await db.update(trackingNumbers)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(trackingNumbers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTrackingNumber(id: number): Promise<boolean> {
+    await db.delete(trackingNumbers).where(eq(trackingNumbers.id, id));
+    return true;
+  }
+
+  async incrementTrackingNumberImpressions(id: number): Promise<void> {
+    try {
+      await db.update(trackingNumbers)
+        .set({ 
+          impressions: sql`${trackingNumbers.impressions} + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(trackingNumbers.id, id));
+    } catch (error) {
+      console.error("Error incrementing impressions:", error);
+    }
   }
 }
 

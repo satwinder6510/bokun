@@ -511,3 +511,41 @@ export const updateReviewSchema = insertReviewSchema.partial();
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type UpdateReview = z.infer<typeof updateReviewSchema>;
+
+// Dynamic Number Insertion (DNI) - Tracking Numbers schema
+export const trackingNumbers = pgTable("tracking_numbers", {
+  id: serial("id").primaryKey(),
+  phoneNumber: text("phone_number").notNull(),
+  label: text("label").notNull(), // e.g., "Google Ads - Summer Sale"
+  source: text("source"), // e.g., "google", "facebook", "bing", null for default
+  campaign: text("campaign"), // e.g., "summer_sale", "brand", null for any campaign from that source
+  medium: text("medium"), // e.g., "cpc", "organic", "social"
+  isDefault: boolean("is_default").notNull().default(false), // Fallback number when no source matches
+  isActive: boolean("is_active").notNull().default(true),
+  impressions: integer("impressions").notNull().default(0), // Track how many times number was displayed
+  displayOrder: integer("display_order").notNull().default(0), // For priority matching
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertTrackingNumberSchema = createInsertSchema(trackingNumbers).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  impressions: true
+}).extend({
+  phoneNumber: z.string().min(1, "Phone number is required").max(30),
+  label: z.string().min(1, "Label is required").max(100),
+  source: z.string().max(50).optional().nullable(),
+  campaign: z.string().max(100).optional().nullable(),
+  medium: z.string().max(50).optional().nullable(),
+  isDefault: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  displayOrder: z.number().default(0),
+});
+
+export const updateTrackingNumberSchema = insertTrackingNumberSchema.partial();
+
+export type TrackingNumber = typeof trackingNumbers.$inferSelect;
+export type InsertTrackingNumber = z.infer<typeof insertTrackingNumberSchema>;
+export type UpdateTrackingNumber = z.infer<typeof updateTrackingNumberSchema>;

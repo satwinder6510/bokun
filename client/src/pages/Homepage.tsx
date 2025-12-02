@@ -64,7 +64,7 @@ const trustFeatures = [
   {
     icon: Shield,
     title: "ATOL Protected",
-    description: "Your holiday is 100% financially protected"
+    description: "Your Flight Inclusive Package is 100% financially protected"
   },
   {
     icon: Users,

@@ -1659,7 +1659,13 @@ export default function AdminPackages() {
                         {pkg.displayOrder}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-3">
+                        <a 
+                          href={`/packages/${pkg.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                          data-testid={`link-package-${pkg.id}`}
+                        >
                           {pkg.featuredImage ? (
                             <img 
                               src={pkg.featuredImage} 
@@ -1672,10 +1678,10 @@ export default function AdminPackages() {
                             </div>
                           )}
                           <div>
-                            <p className="font-medium line-clamp-1">{pkg.title}</p>
+                            <p className="font-medium line-clamp-1 hover:underline">{pkg.title}</p>
                             <p className="text-xs text-muted-foreground">{pkg.duration}</p>
                           </div>
-                        </div>
+                        </a>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">{pkg.category}</Badge>
@@ -1698,9 +1704,9 @@ export default function AdminPackages() {
                             asChild
                             data-testid={`button-view-${pkg.id}`}
                           >
-                            <Link href={`/packages/${pkg.slug}`}>
+                            <a href={`/packages/${pkg.slug}`} target="_blank" rel="noopener noreferrer">
                               <Eye className="w-4 h-4" />
-                            </Link>
+                            </a>
                           </Button>
                           <Button
                             variant="ghost"

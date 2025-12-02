@@ -865,7 +865,7 @@ export default function PackageDetail() {
                     <Button className="w-full" size="lg" asChild>
                       <a href={`tel:${phoneNumber.replace(/\s/g, "")}`} data-testid="button-call">
                         <Phone className="w-5 h-5 mr-2" />
-                        Call Us
+                        {phoneNumber}
                       </a>
                     </Button>
                     <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>

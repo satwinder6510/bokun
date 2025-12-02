@@ -806,42 +806,53 @@ export class MemStorage implements IStorage {
 
   async getTrackingNumberBySource(source: string | null, campaign: string | null, medium: string | null): Promise<TrackingNumber | undefined> {
     try {
-      // Get all active numbers and find the best match
+      // Get all active numbers
       const numbers = await this.getActiveTrackingNumbers();
       
-      // Priority matching:
-      // 1. Exact match on source + campaign + medium
-      // 2. Match on source + campaign (any medium)
-      // 3. Match on source + medium (any campaign)
-      // 4. Match on source only
-      // 5. Default number
+      // Score-based matching with priority levels:
+      // Priority 4 (highest): Exact match on source + campaign + medium
+      // Priority 3: Match on source + campaign (tracking number has no medium)
+      // Priority 2: Match on source + medium (tracking number has no campaign)
+      // Priority 1: Match on source only (tracking number has no campaign or medium)
+      // Priority 0: No match (will fall back to default)
+      
+      let bestMatch: TrackingNumber | undefined = undefined;
+      let bestScore = 0;
       
       for (const num of numbers) {
+        let score = 0;
+        
+        // Source must match for any score > 0
+        if (num.source !== source) {
+          continue;
+        }
+        
+        // Check for exact match (all three match, including nulls)
         if (num.source === source && num.campaign === campaign && num.medium === medium) {
-          return num;
+          score = 4;
+        }
+        // Check for source + campaign match (tracking number has no medium specified)
+        else if (num.campaign === campaign && !num.medium && campaign !== null) {
+          score = 3;
+        }
+        // Check for source + medium match (tracking number has no campaign specified)
+        else if (num.medium === medium && !num.campaign && medium !== null) {
+          score = 2;
+        }
+        // Check for source only match (tracking number has no campaign or medium)
+        else if (!num.campaign && !num.medium) {
+          score = 1;
+        }
+        
+        // Update best match if this score is higher, or same score but better displayOrder
+        if (score > bestScore || (score === bestScore && score > 0 && (!bestMatch || num.displayOrder < (bestMatch.displayOrder || 0)))) {
+          bestScore = score;
+          bestMatch = num;
         }
       }
       
-      for (const num of numbers) {
-        if (num.source === source && num.campaign === campaign && !num.medium) {
-          return num;
-        }
-      }
-      
-      for (const num of numbers) {
-        if (num.source === source && num.medium === medium && !num.campaign) {
-          return num;
-        }
-      }
-      
-      for (const num of numbers) {
-        if (num.source === source && !num.campaign && !num.medium) {
-          return num;
-        }
-      }
-      
-      // Return default
-      return this.getDefaultTrackingNumber();
+      // Return best match or fall back to default
+      return bestMatch || this.getDefaultTrackingNumber();
     } catch (error) {
       console.error("Error finding tracking number by source:", error);
       return this.getDefaultTrackingNumber();

@@ -10,7 +10,7 @@ import { ProductDetailsModal } from "@/components/ProductDetailsModal";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink, RefreshCw, Database, LogOut } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -310,6 +310,52 @@ export default function Dashboard() {
                   <a href="/admin/packages">
                     <Button variant="outline" size="sm" data-testid="button-manage-packages">
                       Manage Packages
+                    </Button>
+                  </a>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card data-testid="card-reviews-management">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <Star className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Reviews</CardTitle>
+                      <CardDescription>
+                        Manage customer testimonials
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <a href="/admin/reviews">
+                    <Button variant="outline" size="sm" data-testid="button-manage-reviews">
+                      Manage Reviews
+                    </Button>
+                  </a>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card data-testid="card-tracking-management">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <Phone className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Tracking Numbers</CardTitle>
+                      <CardDescription>
+                        Dynamic number insertion for calls
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <a href="/admin/tracking-numbers">
+                    <Button variant="outline" size="sm" data-testid="button-manage-tracking">
+                      Manage Numbers
                     </Button>
                   </a>
                 </div>

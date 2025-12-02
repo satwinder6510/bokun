@@ -21,10 +21,12 @@ import { contactLeadSchema, type ContactLead } from "@shared/schema";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import { ArrowLeft, Mail, Phone, MapPin, Loader2 } from "lucide-react";
+import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 
 export default function Contact() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const phoneNumber = useDynamicPhoneNumber();
 
   useEffect(() => {
     setMetaTags(
@@ -123,6 +125,19 @@ export default function Contact() {
               <div>
                 <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
                 <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-primary mt-1" />
+                    <div>
+                      <p className="font-medium">Phone</p>
+                      <a 
+                        href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+                        className="text-muted-foreground hover:text-primary transition-colors"
+                        data-testid="link-contact-phone"
+                      >
+                        {phoneNumber}
+                      </a>
+                    </div>
+                  </div>
                   <div className="flex items-start gap-3">
                     <Mail className="w-5 h-5 text-primary mt-1" />
                     <div>

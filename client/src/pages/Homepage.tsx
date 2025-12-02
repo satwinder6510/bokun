@@ -26,6 +26,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } from "@shared/schema";
+import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 
 // Fallback hero images (used when no products/packages have images)
 const fallbackHeroImages = [
@@ -86,6 +87,7 @@ const trustFeatures = [
 export default function Homepage() {
   const { selectedCurrency } = useCurrency();
   const { toast } = useToast();
+  const phoneNumber = useDynamicPhoneNumber();
   const [products, setProducts] = useState<BokunProduct[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -1065,7 +1067,15 @@ export default function Homepage() {
               <h4 className="font-semibold mb-4">Contact Us</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>Email: info@flightsandpackages.com</li>
-                <li>Phone: +44 (0) 123 456 7890</li>
+                <li>
+                  <a 
+                    href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+                    className="hover:text-primary transition-colors"
+                    data-testid="link-footer-phone"
+                  >
+                    Phone: {phoneNumber}
+                  </a>
+                </li>
               </ul>
               <div className="flex gap-2 mt-4">
                 <img 

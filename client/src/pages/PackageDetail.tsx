@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Plane, Check, ChevronDown, Menu, Calendar, Users, Phone, Mail } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Plane, Check, ChevronDown, Menu, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,162 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { FlightPackage, PackagePricing } from "@shared/schema";
+
+// Price Calendar Widget Component
+function PriceCalendarWidget({ 
+  pricingData, 
+  selectedDate, 
+  onDateSelect,
+  formatPrice 
+}: { 
+  pricingData: PackagePricing[];
+  selectedDate: Date | undefined;
+  onDateSelect: (date: Date | undefined) => void;
+  formatPrice: (price: number) => string;
+}) {
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    if (pricingData.length > 0) {
+      return new Date(pricingData[0].departureDate);
+    }
+    return new Date();
+  });
+
+  // Get price for a specific date
+  const getPriceForDate = (date: Date) => {
+    const pricing = pricingData.find(p => {
+      const pDate = new Date(p.departureDate);
+      return pDate.toDateString() === date.toDateString();
+    });
+    return pricing?.price;
+  };
+
+  // Check if date has pricing
+  const hasPrice = (date: Date) => {
+    return pricingData.some(p => {
+      const pDate = new Date(p.departureDate);
+      return pDate.toDateString() === date.toDateString();
+    });
+  };
+
+  // Get days in month
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    const day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1; // Convert to Monday = 0
+  };
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+  const monthName = currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const prevMonth = () => {
+    setCurrentMonth(new Date(year, month - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(year, month + 1, 1));
+  };
+
+  // Check if there are prices in adjacent months for navigation
+  const hasPricesInPrevMonth = pricingData.some(p => {
+    const d = new Date(p.departureDate);
+    return d.getFullYear() < year || (d.getFullYear() === year && d.getMonth() < month);
+  });
+
+  const hasPricesInNextMonth = pricingData.some(p => {
+    const d = new Date(p.departureDate);
+    return d.getFullYear() > year || (d.getFullYear() === year && d.getMonth() > month);
+  });
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      {/* Month Navigation */}
+      <div className="flex items-center justify-between p-2 bg-muted/50">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={prevMonth}
+          disabled={!hasPricesInPrevMonth}
+          className="h-8 w-8"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="font-semibold">{monthName}</span>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={nextMonth}
+          disabled={!hasPricesInNextMonth}
+          className="h-8 w-8"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Day Headers */}
+      <div className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground border-b">
+        {days.map(day => (
+          <div key={day} className="py-2">{day}</div>
+        ))}
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7">
+        {/* Empty cells for days before first of month */}
+        {Array.from({ length: firstDay }).map((_, i) => (
+          <div key={`empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
+        ))}
+
+        {/* Days of the month */}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const dayNum = i + 1;
+          const date = new Date(year, month, dayNum);
+          const price = getPriceForDate(date);
+          const isSelected = selectedDate?.toDateString() === date.toDateString();
+          const isToday = new Date().toDateString() === date.toDateString();
+          const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+
+          return (
+            <div
+              key={dayNum}
+              onClick={() => price && !isPast && onDateSelect(date)}
+              className={`
+                h-14 border-b border-r flex flex-col items-center justify-center text-xs
+                ${price && !isPast ? 'cursor-pointer hover:bg-primary/10' : ''}
+                ${isSelected ? 'bg-primary text-primary-foreground' : ''}
+                ${isPast ? 'text-muted-foreground/50' : ''}
+                ${isToday && !isSelected ? 'font-bold' : ''}
+              `}
+              data-testid={`calendar-day-${dayNum}`}
+            >
+              <span className={`${isSelected ? 'text-primary-foreground' : ''}`}>
+                {dayNum}
+              </span>
+              {price && !isPast && (
+                <span className={`text-[10px] font-semibold ${isSelected ? 'text-primary-foreground' : 'text-primary'}`}>
+                  {formatPrice(price)}
+                </span>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Fill remaining cells */}
+        {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
+          <div key={`end-empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function PackageDetail() {
   const { toast } = useToast();
@@ -427,7 +583,7 @@ export default function PackageDetail() {
                   {itinerary.length === 0 ? (
                     <Card>
                       <CardContent className="py-12 text-center">
-                        <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">Detailed itinerary coming soon</p>
                       </CardContent>
                     </Card>
@@ -551,13 +707,13 @@ export default function PackageDetail() {
                         <Separator />
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-primary" />
+                            <CalendarIcon className="w-5 h-5 text-primary" />
                             <p className="font-medium">Check Availability</p>
                           </div>
                           
                           {airports.length > 0 && (
                             <div>
-                              <Label className="text-sm text-muted-foreground mb-1 block">Departure Airport</Label>
+                              <Label className="text-sm text-muted-foreground mb-1 block">Departing from</Label>
                               <select
                                 value={selectedAirport}
                                 onChange={(e) => {
@@ -570,7 +726,7 @@ export default function PackageDetail() {
                                 {airports.length > 1 && <option value="">Select Airport</option>}
                                 {airports.map(airport => (
                                   <option key={airport.code} value={airport.code}>
-                                    {airport.name} ({airport.code})
+                                    {airport.name}
                                   </option>
                                 ))}
                               </select>
@@ -579,8 +735,8 @@ export default function PackageDetail() {
 
                           {selectedAirport && (
                             <div className="space-y-3">
-                              <PricingCalendar 
-                                pricingData={filteredPricing}
+                              <PriceCalendarWidget
+                                pricingData={sortedPricing}
                                 selectedDate={selectedDate}
                                 onDateSelect={setSelectedDate}
                                 formatPrice={formatPrice}
@@ -591,7 +747,7 @@ export default function PackageDetail() {
                                   <div className="flex justify-between items-center">
                                     <div>
                                       <p className="font-medium">
-                                        {new Date(selectedDate).toLocaleDateString('en-GB', { 
+                                        {selectedDate.toLocaleDateString('en-GB', { 
                                           weekday: 'long',
                                           day: 'numeric', 
                                           month: 'long',

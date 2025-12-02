@@ -1335,17 +1335,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Also send to Privyr webhook if configured
       if (process.env.PRIVYR_WEBHOOK_URL) {
         try {
+          // Build the package URL
+          const baseUrl = `${req.protocol}://${req.get('host')}`;
+          const packageUrl = `${baseUrl}/packages/${slug}`;
+          
+          // Prepare payload for Privyr webhook with proper structure
+          const privyrPayload = {
+            name: `${req.body.firstName} ${req.body.lastName}`,
+            email: req.body.email,
+            phone: req.body.phone,
+            display_name: req.body.firstName,
+            other_fields: {
+              "First Name": req.body.firstName,
+              "Last Name": req.body.lastName,
+              "Package Name": pkg.title,
+              "Package URL": packageUrl,
+              "Preferred Dates": req.body.preferredDates || "Not specified",
+              "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
+              "Additional Requirements": req.body.message || "None",
+              "Source": "Package Enquiry Form",
+              "Submitted At": new Date().toISOString(),
+            },
+          };
+          
           await fetch(process.env.PRIVYR_WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              firstName: req.body.firstName,
-              lastName: req.body.lastName,
-              email: req.body.email,
-              phone: req.body.phone,
-              message: `Package Enquiry: ${pkg.title}\n\nPreferred Dates: ${req.body.preferredDates || 'Not specified'}\nNumber of Travelers: ${req.body.numberOfTravelers || 'Not specified'}\n\n${req.body.message || ''}`,
-            }),
+            body: JSON.stringify(privyrPayload),
           });
+          console.log("Package enquiry sent to Privyr successfully");
         } catch (webhookError) {
           console.error("Failed to send to Privyr:", webhookError);
         }

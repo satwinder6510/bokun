@@ -1531,27 +1531,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
       
+      // Helper function to convert HTML to text while preserving paragraphs
+      const htmlToText = (element: any): string => {
+        // Replace <p>, <br>, <div> with newlines, then get text
+        let html = $(element).html() || '';
+        // Add double newlines for paragraphs
+        html = html.replace(/<\/p>/gi, '\n\n');
+        html = html.replace(/<p[^>]*>/gi, '');
+        // Add single newlines for line breaks and divs
+        html = html.replace(/<br\s*\/?>/gi, '\n');
+        html = html.replace(/<\/div>/gi, '\n');
+        html = html.replace(/<div[^>]*>/gi, '');
+        // Remove other HTML tags
+        html = html.replace(/<[^>]+>/g, '');
+        // Clean up excessive whitespace while preserving paragraph breaks
+        html = html.replace(/\n\s*\n\s*\n/g, '\n\n');
+        html = html.replace(/[ \t]+/g, ' ');
+        return html.trim();
+      };
+      
       // Extract h3 headings for debugging
       $('h3').each((_, el) => {
         extracted._debug.h3Texts.push($(el).text().trim());
       });
       
-      // Find Overview section
+      // Find Overview section - preserve paragraph formatting
       const overviewSection = $('h3:contains("Overview")').parent();
       if (overviewSection.length) {
-        // Get all paragraph text after Overview heading
-        let overviewText = '';
-        overviewSection.find('p').each((_, el) => {
-          overviewText += $(el).text().trim() + '\n\n';
-        });
-        extracted.overview = overviewText.trim();
+        extracted.overview = htmlToText(overviewSection.find('p').parent());
       }
       
       // Alternative: Look for #overview section
       if (!extracted.overview) {
         const overviewDiv = $('#overview, [id*="overview"]');
         if (overviewDiv.length) {
-          extracted.overview = overviewDiv.text().trim().substring(0, 2000);
+          extracted.overview = htmlToText(overviewDiv).substring(0, 2000);
         }
       }
       
@@ -1584,8 +1598,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const dayNum = parseInt(dayMatch[1]);
             // Get title from .description div
             const title = $(panel).find('.description').first().text().trim() || `Day ${dayNum}`;
-            // Get full description from .panel-content .desc
-            const desc = $(panel).find('.panel-content .desc').text().trim().substring(0, 1000);
+            // Get full description from .panel-content .desc - preserve paragraph formatting
+            const descElement = $(panel).find('.panel-content .desc');
+            const desc = htmlToText(descElement).substring(0, 2000);
             
             if (!extracted.itinerary.find(i => i.day === dayNum)) {
               extracted.itinerary.push({
@@ -1634,14 +1649,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                            $(panel).find('.title').first().text().trim();
           
           if (hotelName) {
-            // Get hotel description from paragraphs in .desc
-            let hotelDesc = '';
-            $(panel).find('.panel-content .desc p').each((i, p) => {
-              const pText = $(p).text().trim();
-              if (pText && pText.length > 5 && i < 3) {
-                hotelDesc += pText + ' ';
-              }
-            });
+            // Get hotel description from .desc - preserve paragraph formatting
+            const descElement = $(panel).find('.panel-content .desc');
+            const hotelDesc = htmlToText(descElement);
             
             // Get hotel images from carousel
             const hotelImages: string[] = [];

@@ -862,9 +862,15 @@ export default function PackageDetail() {
                     )}
 
                     <Separator />
+                    <Button className="w-full" size="lg" asChild>
+                      <a href={`tel:${phoneNumber.replace(/\s/g, "")}`} data-testid="button-call">
+                        <Phone className="w-5 h-5 mr-2" />
+                        Call Us
+                      </a>
+                    </Button>
                     <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                       <DialogTrigger asChild>
-                        <Button className="w-full" size="lg" data-testid="button-enquire">
+                        <Button variant="outline" className="w-full" size="lg" data-testid="button-enquire">
                           <Mail className="w-5 h-5 mr-2" />
                           Enquire Now
                         </Button>
@@ -965,12 +971,6 @@ export default function PackageDetail() {
                         </form>
                       </DialogContent>
                     </Dialog>
-                    <Button variant="outline" className="w-full" size="lg" asChild>
-                      <a href="tel:+442074000000" data-testid="button-call">
-                        <Phone className="w-5 h-5 mr-2" />
-                        Call Us
-                      </a>
-                    </Button>
                     <p className="text-xs text-center text-muted-foreground">
                       No payment required until booking is confirmed
                     </p>

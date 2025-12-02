@@ -1736,39 +1736,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
       extracted.itinerary.sort((a, b) => a.day - b.day);
       
       // Extract accommodations section - hotels with names, descriptions, and images
-      const accommodationSection = $('#accommodation, .accommodation-section');
+      // Try multiple selectors for accommodation section
+      const accommodationSelectors = [
+        '#accommodation',
+        '.accommodation-section',
+        '#Accommodation',
+        '[data-section="accommodation"]',
+        'section:contains("Accommodation")',
+        'div[class*="accommodation"]',
+        'div[class*="hotel"]'
+      ];
+      
+      let accommodationSection = $();
+      for (const selector of accommodationSelectors) {
+        const found = $(selector);
+        if (found.length) {
+          accommodationSection = found.first();
+          break;
+        }
+      }
+      
       if (accommodationSection.length) {
-        accommodationSection.find('.accordion-panel').each((_, panel) => {
+        // Try multiple patterns for hotel panels
+        const panelSelectors = [
+          '.accordion-panel',
+          '.hotel-panel',
+          '.accommodation-item',
+          '.hotel-item',
+          '[class*="accordion"]'
+        ];
+        
+        let panels = $();
+        for (const selector of panelSelectors) {
+          panels = accommodationSection.find(selector);
+          if (panels.length) break;
+        }
+        
+        panels.each((_, panel) => {
+          // Try multiple selectors for hotel name
           const hotelName = $(panel).find('.label').first().text().trim() ||
-                           $(panel).find('.title').first().text().trim();
+                           $(panel).find('.title').first().text().trim() ||
+                           $(panel).find('.hotel-name').first().text().trim() ||
+                           $(panel).find('h3, h4, h5').first().text().trim() ||
+                           $(panel).find('.description').first().text().trim();
           
-          if (hotelName) {
-            // Get hotel description from .desc - preserve paragraph formatting
-            const descElement = $(panel).find('.panel-content .desc');
-            const hotelDesc = htmlToText(descElement);
+          if (hotelName && hotelName.length > 2 && !hotelName.match(/^Day\s*\d+$/i)) {
+            // Get hotel description - try multiple selectors
+            let hotelDesc = '';
+            const descSelectors = ['.panel-content .desc', '.desc', '.hotel-desc', '.description', 'p'];
+            for (const sel of descSelectors) {
+              const descEl = $(panel).find(sel);
+              if (descEl.length) {
+                hotelDesc = htmlToText(descEl);
+                if (hotelDesc.length > 20) break;
+              }
+            }
             
             // Get hotel images from carousel
             const hotelImages: string[] = [];
-            $(panel).find('.accommodation-carousel img, .panel-content img').each((_, img) => {
+            $(panel).find('.accommodation-carousel img, .panel-content img, .hotel-images img, img').each((_, img) => {
               const src = $(img).attr('src');
-              if (src && !hotelImages.includes(src) && src.includes('HotelImages')) {
+              if (src && !hotelImages.includes(src) && (src.includes('Hotel') || src.includes('hotel') || src.includes('Accommodation'))) {
                 hotelImages.push(src);
               }
             });
             
             // Also check for images in anchor hrefs (higher quality)
-            $(panel).find('.accommodation-carousel a.img-url').each((_, a) => {
+            $(panel).find('.accommodation-carousel a.img-url, a[href*="Hotel"], a[href*="hotel"]').each((_, a) => {
               const href = $(a).attr('href');
-              if (href && !hotelImages.includes(href)) {
+              if (href && !hotelImages.includes(href) && (href.includes('.jpg') || href.includes('.webp') || href.includes('.png'))) {
                 hotelImages.push(href);
               }
             });
             
             extracted.accommodations.push({
-              name: hotelName,
+              name: hotelName.substring(0, 150),
               description: hotelDesc.trim().substring(0, 800),
-              images: hotelImages.slice(0, 5)  // Limit to 5 images per hotel
+              images: hotelImages.slice(0, 5)
             });
+          }
+        });
+      }
+      
+      // Fallback: Look for any hotel-related content if no accommodations found
+      if (extracted.accommodations.length === 0) {
+        // Try to find hotel names in the page
+        $('*:contains("Hotel"), *:contains("Resort"), *:contains("Lodge")').each((_, el) => {
+          const text = $(el).text().trim();
+          // Look for patterns like "Hotel Name" or "The Resort"
+          const hotelMatch = text.match(/^([\w\s]+(?:Hotel|Resort|Lodge|Villa|Inn|Suites?)[\w\s]*)/i);
+          if (hotelMatch && hotelMatch[1].length > 5 && hotelMatch[1].length < 100) {
+            const name = hotelMatch[1].trim();
+            // Check if we already have this hotel
+            if (!extracted.accommodations.find(a => a.name.toLowerCase() === name.toLowerCase())) {
+              const parent = $(el).closest('.panel, .card, .item, section, article');
+              const desc = parent.find('p').text().trim().substring(0, 400);
+              const images: string[] = [];
+              parent.find('img').each((_, img) => {
+                const src = $(img).attr('src');
+                if (src && src.includes('Hotel')) images.push(src);
+              });
+              
+              if (name && extracted.accommodations.length < 5) {
+                extracted.accommodations.push({
+                  name,
+                  description: desc,
+                  images: images.slice(0, 3)
+                });
+              }
+            }
           }
         });
       }

@@ -11,8 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CurrencySelector } from "@/components/CurrencySelector";
-import { CartButton } from "@/components/CartButton";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -434,8 +432,6 @@ export default function PackageDetail() {
             </nav>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <CurrencySelector />
-            <CartButton />
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden" data-testid="button-mobile-menu">

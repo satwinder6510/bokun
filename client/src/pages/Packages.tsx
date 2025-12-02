@@ -5,8 +5,6 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { Search, MapPin, Clock, ChevronDown, Plane, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CurrencySelector } from "@/components/CurrencySelector";
-import { CartButton } from "@/components/CartButton";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import {
@@ -129,8 +127,6 @@ export default function Packages() {
             </nav>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
-            <CurrencySelector />
-            <CartButton />
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden" data-testid="button-mobile-menu">

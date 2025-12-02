@@ -858,7 +858,7 @@ export default function PackageDetail() {
                         <DialogHeader>
                           <DialogTitle>Request Quote</DialogTitle>
                           <DialogDescription>
-                            Fill in your details and our team will contact you within 24 hours with a personalized quote.
+                            Fill in your details and our team will contact you within 24 hours with a personalised quote.
                           </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleSubmitEnquiry} className="space-y-4 mt-4">

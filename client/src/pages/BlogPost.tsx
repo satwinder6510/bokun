@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, ArrowLeft, Share2 } from "lucide-react";
+import { Calendar, Clock, ArrowLeft, Share2, Phone } from "lucide-react";
+import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 export default function BlogPostPage() {
   const [, params] = useRoute("/blog/:slug");
   const { toast } = useToast();
+  const phoneNumber = useDynamicPhoneNumber();
   const slug = params?.slug;
 
   const { data: post, isLoading, error } = useQuery<BlogPost>({
@@ -94,6 +96,14 @@ export default function BlogPostPage() {
             />
           </a>
           <div className="flex items-center gap-3">
+            <a 
+              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+              className="hidden md:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
+              data-testid="link-header-phone"
+            >
+              <Phone className="w-4 h-4" />
+              {phoneNumber}
+            </a>
             <Button 
               variant="ghost" 
               size="icon"

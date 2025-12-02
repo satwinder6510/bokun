@@ -1,12 +1,15 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Phone } from "lucide-react";
+import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import { useEffect } from "react";
 import { setMetaTags } from "@/lib/meta-tags";
 
 export default function Terms() {
+  const phoneNumber = useDynamicPhoneNumber();
+  
   useEffect(() => {
     setMetaTags(
       "Terms & Conditions | Flights and Packages",
@@ -26,7 +29,15 @@ export default function Terms() {
               Back to Home
             </Button>
           </Link>
-          <div className="flex items-center gap-5 md:gap-6">
+          <div className="flex items-center gap-3 md:gap-6">
+            <a 
+              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+              className="hidden md:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
+              data-testid="link-header-phone"
+            >
+              <Phone className="w-4 h-4" />
+              {phoneNumber}
+            </a>
             <Link href="/">
               <img 
                 src={logoImage} 

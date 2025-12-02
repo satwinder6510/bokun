@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
-import { Search, MapPin, Clock, ChevronDown, Plane, Menu } from "lucide-react";
+import { Search, MapPin, Clock, ChevronDown, Plane, Menu, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import {
@@ -27,6 +28,7 @@ export default function Packages() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const phoneNumber = useDynamicPhoneNumber();
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/packages"],
@@ -127,6 +129,14 @@ export default function Packages() {
             </nav>
           </div>
           <div className="flex items-center gap-2 md:gap-4">
+            <a 
+              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+              className="hidden lg:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
+              data-testid="link-header-phone"
+            >
+              <Phone className="w-4 h-4" />
+              {phoneNumber}
+            </a>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="lg:hidden" data-testid="button-mobile-menu">
@@ -156,6 +166,15 @@ export default function Packages() {
                   <Link href="/contact" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full justify-start">Contact</Button>
                   </Link>
+                  <a 
+                    href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium mt-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="mobile-link-phone"
+                  >
+                    <Phone className="w-4 h-4" />
+                    {phoneNumber}
+                  </a>
                 </nav>
               </SheetContent>
             </Sheet>

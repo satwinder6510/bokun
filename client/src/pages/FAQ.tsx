@@ -3,11 +3,13 @@ import { setMetaTags } from "@/lib/meta-tags";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Mail } from "lucide-react";
+import { ChevronDown, ChevronUp, Mail, Phone } from "lucide-react";
+import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import type { Faq } from "@shared/schema";
 
 export default function FAQ() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const phoneNumber = useDynamicPhoneNumber();
 
   // Fetch published FAQs
   const { data: faqs = [], isLoading } = useQuery<Faq[]>({
@@ -38,11 +40,21 @@ export default function FAQ() {
               data-testid="img-logo"
             />
           </a>
-          <a href="/">
-            <Button variant="outline" size="sm" data-testid="button-back-home">
-              Back to Home
-            </Button>
-          </a>
+          <div className="flex items-center gap-3">
+            <a 
+              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
+              data-testid="link-header-phone"
+            >
+              <Phone className="w-4 h-4" />
+              {phoneNumber}
+            </a>
+            <a href="/">
+              <Button variant="outline" size="sm" data-testid="button-back-home">
+                Back to Home
+              </Button>
+            </a>
+          </div>
         </div>
       </header>
 

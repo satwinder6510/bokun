@@ -1,7 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Calendar, Users, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Calendar, Users, ChevronLeft, ChevronRight, ChevronDown, Phone } from "lucide-react";
+import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 
 export default function TourDetail() {
   const { selectedCurrency } = useCurrency();
+  const phoneNumber = useDynamicPhoneNumber();
   const [, params] = useRoute("/tour/:id");
   const productId = params?.id;
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
@@ -141,7 +143,15 @@ export default function TourDetail() {
               Back to Tours
             </Button>
           </Link>
-          <div className="flex items-center gap-5 md:gap-6">
+          <div className="flex items-center gap-3 md:gap-6">
+            <a 
+              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+              className="hidden md:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
+              data-testid="link-header-phone"
+            >
+              <Phone className="w-4 h-4" />
+              {phoneNumber}
+            </a>
             <Link href="/">
               <img 
                 src={logoImage} 

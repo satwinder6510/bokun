@@ -3,11 +3,13 @@ import { setMetaTags } from "@/lib/meta-tags";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { Calendar, Clock, ArrowRight, Phone } from "lucide-react";
+import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
 
 export default function Blog() {
+  const phoneNumber = useDynamicPhoneNumber();
   const { data: posts = [], isLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/blog"],
   });
@@ -30,11 +32,21 @@ export default function Blog() {
               data-testid="img-logo"
             />
           </a>
-          <a href="/">
-            <Button variant="outline" size="sm" data-testid="button-back-home">
-              Back to Home
-            </Button>
-          </a>
+          <div className="flex items-center gap-3">
+            <a 
+              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
+              data-testid="link-header-phone"
+            >
+              <Phone className="w-4 h-4" />
+              {phoneNumber}
+            </a>
+            <a href="/">
+              <Button variant="outline" size="sm" data-testid="button-back-home">
+                Back to Home
+              </Button>
+            </a>
+          </div>
         </div>
       </header>
 

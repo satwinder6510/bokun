@@ -15,6 +15,8 @@ import Blog from "@/pages/Blog";
 import BlogPost from "@/pages/BlogPost";
 import Checkout from "@/pages/Checkout";
 import BookingConfirmation from "@/pages/BookingConfirmation";
+import Packages from "@/pages/Packages";
+import PackageDetail from "@/pages/PackageDetail";
 import AdminFAQ from "@/pages/AdminFAQ";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -26,6 +28,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Homepage} />
       <Route path="/tour/:id" component={TourDetail} />
+      <Route path="/packages" component={Packages} />
+      <Route path="/packages/:slug" component={PackageDetail} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/booking/:reference" component={BookingConfirmation} />
       <Route path="/terms" component={Terms} />

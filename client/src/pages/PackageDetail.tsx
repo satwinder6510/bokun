@@ -397,7 +397,12 @@ export default function PackageDetail() {
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-muted-foreground">{day.description}</p>
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground whitespace-pre-line"
+                            data-testid={`content-day-${day.day}`}
+                          >
+                            {day.description}
+                          </div>
                         </CardContent>
                       </Card>
                     ))
@@ -419,7 +424,11 @@ export default function PackageDetail() {
                           <CardTitle>{hotel.name}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-muted-foreground mb-4">{hotel.description}</p>
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground mb-4 whitespace-pre-line"
+                          >
+                            {hotel.description}
+                          </div>
                           {hotel.images && hotel.images.length > 0 && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                               {hotel.images.map((img, imgIndex) => (

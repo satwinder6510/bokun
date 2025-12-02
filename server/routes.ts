@@ -1492,7 +1492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Price - look for currency symbols
         priceText: $('[class*="price"]').first().text().trim() || 
-                   $('*:contains("£")').filter((_, el) => $(el).text().match(/£\d+/)).first().text().trim(),
+                   $('*:contains("£")').filter((_, el) => !!$(el).text().match(/£\d+/)).first().text().trim(),
         price: 0,
         
         // Category from URL or breadcrumb
@@ -1515,6 +1515,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Hotel images
         hotelImages: [] as string[],
+        
+        // Accommodations (hotels with name, description, images)
+        accommodations: [] as { name: string; description: string; images: string[] }[],
         
         // Featured image
         featuredImage: '',
@@ -1570,34 +1573,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Find Itinerary section - look for Day 1, Day 2 patterns
-      $('*').each((_, el) => {
-        const text = $(el).text();
-        const dayMatch = text.match(/Day\s*(\d+)/i);
-        if (dayMatch) {
-          const dayNum = parseInt(dayMatch[1]);
-          if (dayNum <= 20 && !extracted.itinerary.find(i => i.day === dayNum)) {
-            // Get the title (next sibling or nearby text)
-            const parent = $(el).parent();
-            const title = parent.find('h4, strong').first().text().trim() || 
-                         text.split('\n')[0]?.replace(/Day\s*\d+\s*/i, '').trim() || `Day ${dayNum}`;
-            const desc = parent.find('p').text().trim().substring(0, 500);
+      // Find Itinerary section - use proper selectors for holidays.flightsandpackages.com structure
+      const itinerarySection = $('#itinerary, .itinerary-section');
+      if (itinerarySection.length) {
+        itinerarySection.find('.accordion-panel').each((_, panel) => {
+          const dayText = $(panel).find('.day').first().text().trim();
+          const dayMatch = dayText.match(/Day\s*(\d+)/i);
+          
+          if (dayMatch) {
+            const dayNum = parseInt(dayMatch[1]);
+            // Get title from .description div
+            const title = $(panel).find('.description').first().text().trim() || `Day ${dayNum}`;
+            // Get full description from .panel-content .desc
+            const desc = $(panel).find('.panel-content .desc').text().trim().substring(0, 1000);
             
-            if (title || desc) {
+            if (!extracted.itinerary.find(i => i.day === dayNum)) {
               extracted.itinerary.push({
                 day: dayNum,
-                title: title.substring(0, 100),
+                title: title.substring(0, 150),
                 description: desc
               });
             }
           }
-        }
-      });
+        });
+      }
+      
+      // Fallback: search for Day patterns if no itinerary section found
+      if (extracted.itinerary.length === 0) {
+        $('*').each((_, el) => {
+          const text = $(el).text();
+          const dayMatch = text.match(/Day\s*(\d+)/i);
+          if (dayMatch) {
+            const dayNum = parseInt(dayMatch[1]);
+            if (dayNum <= 20 && !extracted.itinerary.find(i => i.day === dayNum)) {
+              const parent = $(el).parent();
+              const title = parent.find('h4, strong').first().text().trim() || 
+                           text.split('\n')[0]?.replace(/Day\s*\d+\s*/i, '').trim() || `Day ${dayNum}`;
+              const desc = parent.find('p').text().trim().substring(0, 500);
+              
+              if (title || desc) {
+                extracted.itinerary.push({
+                  day: dayNum,
+                  title: title.substring(0, 100),
+                  description: desc
+                });
+              }
+            }
+          }
+        });
+      }
       
       // Sort itinerary by day
       extracted.itinerary.sort((a, b) => a.day - b.day);
       
-      // Extract hotel/accommodation images
+      // Extract accommodations section - hotels with names, descriptions, and images
+      const accommodationSection = $('#accommodation, .accommodation-section');
+      if (accommodationSection.length) {
+        accommodationSection.find('.accordion-panel').each((_, panel) => {
+          const hotelName = $(panel).find('.label').first().text().trim() ||
+                           $(panel).find('.title').first().text().trim();
+          
+          if (hotelName) {
+            // Get hotel description from paragraphs in .desc
+            let hotelDesc = '';
+            $(panel).find('.panel-content .desc p').each((i, p) => {
+              const pText = $(p).text().trim();
+              if (pText && pText.length > 5 && i < 3) {
+                hotelDesc += pText + ' ';
+              }
+            });
+            
+            // Get hotel images from carousel
+            const hotelImages: string[] = [];
+            $(panel).find('.accommodation-carousel img, .panel-content img').each((_, img) => {
+              const src = $(img).attr('src');
+              if (src && !hotelImages.includes(src) && src.includes('HotelImages')) {
+                hotelImages.push(src);
+              }
+            });
+            
+            // Also check for images in anchor hrefs (higher quality)
+            $(panel).find('.accommodation-carousel a.img-url').each((_, a) => {
+              const href = $(a).attr('href');
+              if (href && !hotelImages.includes(href)) {
+                hotelImages.push(href);
+              }
+            });
+            
+            extracted.accommodations.push({
+              name: hotelName,
+              description: hotelDesc.trim().substring(0, 800),
+              images: hotelImages.slice(0, 5)  // Limit to 5 images per hotel
+            });
+          }
+        });
+      }
+      
+      // Extract hotel/accommodation images (all images combined)
       $('img').each((_, el) => {
         const src = $(el).attr('src');
         if (src && (src.includes('Hotel') || src.includes('hotel') || src.includes('accommodation') || 

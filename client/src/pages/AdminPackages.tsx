@@ -116,6 +116,7 @@ type ScrapedData = {
   highlights: string[];
   itinerary: { day: number; title: string; description: string }[];
   hotelImages: string[];
+  accommodations: { name: string; description: string; images: string[] }[];
   featuredImage: string;
 };
 
@@ -260,6 +261,13 @@ export default function AdminPackages() {
   const handleImportScrapedData = () => {
     if (!scrapedData) return;
     
+    // Convert scraped accommodations to the form format
+    const formattedAccommodations = scrapedData.accommodations?.map(acc => ({
+      name: acc.name,
+      description: acc.description,
+      images: acc.images || [],
+    })) || [];
+    
     setFormData({
       ...emptyPackage,
       title: scrapedData.title,
@@ -270,6 +278,7 @@ export default function AdminPackages() {
       whatsIncluded: scrapedData.whatsIncluded,
       highlights: scrapedData.highlights,
       itinerary: scrapedData.itinerary,
+      accommodations: formattedAccommodations,
       featuredImage: scrapedData.featuredImage,
       gallery: scrapedData.hotelImages,
     });
@@ -566,7 +575,7 @@ export default function AdminPackages() {
                       
                       <Separator />
                       
-                      <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-4 gap-4 text-sm">
                         <div>
                           <Label className="text-muted-foreground">What's Included</Label>
                           <p className="font-medium" data-testid="text-included-count">{scrapedData.whatsIncluded?.length || 0} items</p>
@@ -578,6 +587,10 @@ export default function AdminPackages() {
                         <div>
                           <Label className="text-muted-foreground">Itinerary Days</Label>
                           <p className="font-medium" data-testid="text-itinerary-count">{scrapedData.itinerary?.length || 0} days</p>
+                        </div>
+                        <div>
+                          <Label className="text-muted-foreground">Accommodations</Label>
+                          <p className="font-medium" data-testid="text-accommodations-count">{scrapedData.accommodations?.length || 0} hotels</p>
                         </div>
                       </div>
                       
@@ -602,9 +615,51 @@ export default function AdminPackages() {
                         </div>
                       )}
                       
+                      {scrapedData.itinerary?.length > 0 && (
+                        <div>
+                          <Label className="text-muted-foreground">Itinerary Preview (first 3 days)</Label>
+                          <div className="space-y-2 mt-2" data-testid="list-itinerary-preview">
+                            {scrapedData.itinerary.slice(0, 3).map((day, i) => (
+                              <div key={i} className="bg-background p-2 rounded border text-sm" data-testid={`itinerary-day-${day.day}`}>
+                                <p className="font-medium">Day {day.day}: {day.title}</p>
+                                <p className="text-muted-foreground text-xs line-clamp-2">{day.description?.substring(0, 150)}...</p>
+                              </div>
+                            ))}
+                            {scrapedData.itinerary.length > 3 && (
+                              <p className="text-muted-foreground text-sm">...and {scrapedData.itinerary.length - 3} more days</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {scrapedData.accommodations?.length > 0 && (
+                        <div>
+                          <Label className="text-muted-foreground">Accommodations ({scrapedData.accommodations.length} hotels)</Label>
+                          <div className="space-y-2 mt-2" data-testid="list-accommodations-preview">
+                            {scrapedData.accommodations.map((hotel, i) => (
+                              <div key={i} className="flex gap-3 bg-background p-2 rounded border" data-testid={`accommodation-${i}`}>
+                                {hotel.images?.[0] && (
+                                  <img 
+                                    src={hotel.images[0]} 
+                                    alt={hotel.name}
+                                    className="w-16 h-16 object-cover rounded"
+                                    data-testid={`img-accommodation-${i}`}
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm" data-testid={`text-accommodation-name-${i}`}>{hotel.name}</p>
+                                  <p className="text-muted-foreground text-xs line-clamp-2">{hotel.description?.substring(0, 100)}...</p>
+                                  <p className="text-muted-foreground text-xs">{hotel.images?.length || 0} images</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       {scrapedData.hotelImages?.length > 0 && (
                         <div>
-                          <Label className="text-muted-foreground">Hotel Images ({scrapedData.hotelImages.length})</Label>
+                          <Label className="text-muted-foreground">All Hotel Images ({scrapedData.hotelImages.length})</Label>
                           <div className="flex gap-2 mt-2 overflow-x-auto" data-testid="gallery-hotel-images">
                             {scrapedData.hotelImages.slice(0, 5).map((img, i) => (
                               <img 

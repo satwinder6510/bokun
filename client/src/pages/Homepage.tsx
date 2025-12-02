@@ -5,7 +5,7 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
-import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu, Shield, Users, Award, Plane, Loader2 } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu, Shield, Users, Award, Plane, Loader2, MapPin, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -612,9 +612,9 @@ export default function Homepage() {
           </div>
 
           {packagesLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="aspect-[16/12] bg-muted rounded-xl animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="aspect-[3/4] bg-muted rounded-xl animate-pulse" />
               ))}
             </div>
           ) : packagesError ? (
@@ -630,7 +630,7 @@ export default function Homepage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                 {featuredPackages.map((pkg) => (
                   <a 
                     key={pkg.id} 
@@ -638,47 +638,80 @@ export default function Homepage() {
                     className="group"
                     data-testid={`card-package-${pkg.id}`}
                   >
-                    <Card className="overflow-hidden hover-elevate h-full">
-                      <div className="relative aspect-[16/10] overflow-hidden">
+                    <div className="relative overflow-hidden rounded-xl aspect-[3/4] cursor-pointer">
+                      {/* Background Image */}
+                      <div className="absolute inset-0">
                         {pkg.featuredImage ? (
                           <img
                             src={pkg.featuredImage}
                             alt={pkg.title}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            loading="lazy"
+                            decoding="async"
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                            <Plane className="w-12 h-12 text-muted-foreground" />
+                          <div className="w-full h-full bg-gradient-to-br from-primary/30 to-secondary/30 flex items-center justify-center">
+                            <Plane className="w-16 h-16 text-white/50" />
                           </div>
                         )}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <span className="inline-block bg-primary text-white text-xs font-semibold px-3 py-1 rounded-full mb-2">
-                            {pkg.category}
-                          </span>
-                          <h3 className="text-white text-xl font-bold line-clamp-2">
-                            {pkg.title}
-                          </h3>
+                      </div>
+
+                      {/* Dark gradient overlay for text readability */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
+                      {/* Top Badge - Category */}
+                      <div className="absolute top-4 left-4 z-10">
+                        <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-foreground">
+                          {pkg.category}
+                        </span>
+                      </div>
+
+                      {/* "FLIGHT +" label */}
+                      <div className="absolute top-4 right-4 z-10">
+                        <span className="text-white/80 text-xs font-bold tracking-wider flex items-center gap-1">
+                          <Plane className="w-3 h-3" />
+                          FLIGHT+
+                        </span>
+                      </div>
+
+                      {/* Bottom content overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                        {/* Package Title */}
+                        <h3 className="text-white text-2xl font-bold mb-3 line-clamp-2 leading-tight">
+                          {pkg.title}
+                        </h3>
+
+                        {/* Location and Duration info */}
+                        <div className="flex items-center gap-4 text-sm text-white/90 mb-4">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{pkg.category}</span>
+                          </div>
+                          {pkg.duration && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              <span>{pkg.duration}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Price */}
+                        <div className="flex items-baseline gap-1 mb-4">
+                          <span className="text-sm text-white/80">from</span>
+                          <div className="flex flex-col">
+                            <span className="text-3xl font-bold text-white">
+                              £{pkg.price.toFixed(0)}
+                            </span>
+                            <span className="text-xs text-white/60">{pkg.priceLabel || 'per person'}</span>
+                          </div>
+                        </div>
+                        
+                        {/* View More Button */}
+                        <div className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-4 py-2 rounded-md text-sm font-semibold transition-colors text-center">
+                          view more
                         </div>
                       </div>
-                      <CardContent className="p-4">
-                        <p className="text-muted-foreground text-sm line-clamp-2 mb-3">
-                          {pkg.excerpt || "Experience an unforgettable journey with flights and accommodation included."}
-                        </p>
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <span className="text-xs text-muted-foreground">From</span>
-                            <p className="text-2xl font-bold text-primary">
-                              £{pkg.price.toFixed(0)}
-                              <span className="text-sm font-normal text-muted-foreground ml-1">{pkg.priceLabel}</span>
-                            </p>
-                          </div>
-                          <Button variant="secondary" size="sm">
-                            View Details
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    </div>
                   </a>
                 ))}
               </div>

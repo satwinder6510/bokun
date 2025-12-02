@@ -368,7 +368,7 @@ export default function Homepage() {
                       </div>
                     )}
                     <a href={`/tour/${tour.id}`}>
-                      <Button size="default" className="text-xs md:text-lg px-4 md:px-8 py-2 md:py-6">
+                      <Button variant="secondary" size="default" className="text-xs md:text-lg px-4 md:px-8 py-2 md:py-6">
                         view more
                       </Button>
                     </a>

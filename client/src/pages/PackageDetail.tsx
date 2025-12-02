@@ -903,7 +903,7 @@ export default function PackageDetail() {
                               />
                             </div>
                             <div>
-                              <Label htmlFor="travelers">Number of Travelers</Label>
+                              <Label htmlFor="travelers">Number of Travellers</Label>
                               <Input 
                                 id="travelers"
                                 type="number"

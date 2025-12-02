@@ -54,7 +54,7 @@ const fallbackTestimonials = [
   {
     customerName: "Emily Roberts",
     location: "Birmingham, UK",
-    reviewText: "From booking to return, everything was seamless. The tours were well-organized and our guide was exceptional. Highly recommend!",
+    reviewText: "From booking to return, everything was seamless. The tours were well-organised and our guide was exceptional. Highly recommend!",
     rating: 5
   }
 ];

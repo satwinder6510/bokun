@@ -507,7 +507,7 @@ export default function Homepage() {
             <p className="text-xs md:text-base font-bold tracking-[0.3em] mb-3 md:mb-6 uppercase text-white/90">
               {heroSlides[currentSlide]?.type === 'package' ? 'FLIGHT INCLUSIVE PACKAGE' : 'YOUR JOURNEY BEGINS HERE'}
             </p>
-            <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold mb-4 md:mb-6 leading-tight" data-testid="text-hero-title">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 leading-tight" data-testid="text-hero-title">
               {heroSlides[currentSlide]?.title || 'Discover Paradise'}
             </h1>
             <p className="text-lg md:text-2xl font-medium mb-4 md:mb-6 text-white/90">

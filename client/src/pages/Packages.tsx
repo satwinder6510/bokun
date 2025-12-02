@@ -179,7 +179,7 @@ export default function Packages() {
             <Plane className="w-4 h-4" />
             FLIGHTS INCLUDED
           </p>
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4" data-testid="text-hero-title">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-4" data-testid="text-hero-title">
             Flight Inclusive Packages
           </h1>
           <p className="text-lg md:text-xl text-white/90 max-w-2xl mb-8" data-testid="text-hero-subtitle">

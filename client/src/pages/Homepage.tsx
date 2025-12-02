@@ -5,7 +5,7 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
-import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu, Shield, Users, Award, Plane, Loader2, MapPin, Clock } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -411,12 +411,13 @@ export default function Homepage() {
                     Blog
                   </a>
                   <a 
-                    href="/contact" 
-                    className="text-base font-medium hover:text-primary transition-colors py-2"
+                    href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium mt-2"
                     onClick={() => setMobileMenuOpen(false)}
-                    data-testid="mobile-link-contact"
+                    data-testid="mobile-link-phone"
                   >
-                    Contact
+                    <Phone className="w-4 h-4" />
+                    {phoneNumber}
                   </a>
                 </nav>
               </SheetContent>
@@ -473,10 +474,13 @@ export default function Homepage() {
             <a href="/blog" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-blog">
               Blog
             </a>
-            <a href="/contact">
-              <Button size="sm" variant="default" data-testid="button-contact">
-                Contact Us
-              </Button>
+            <a 
+              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
+              data-testid="link-header-phone"
+            >
+              <Phone className="w-4 h-4" />
+              {phoneNumber}
             </a>
           </nav>
         </div>

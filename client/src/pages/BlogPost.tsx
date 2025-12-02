@@ -161,7 +161,7 @@ export default function BlogPostPage() {
               </p>
               <a href="/">
                 <Button size="lg" data-testid="button-browse-tours">
-                  Browse Tours
+                  Browse Land Tours
                 </Button>
               </a>
             </CardContent>

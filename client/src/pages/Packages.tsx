@@ -360,7 +360,7 @@ export default function Packages() {
             <div>
               <h4 className="font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2 text-sm">
-                <li><Link href="/" className="text-muted-foreground hover:text-foreground">Tours</Link></li>
+                <li><Link href="/" className="text-muted-foreground hover:text-foreground">Land Tours</Link></li>
                 <li><Link href="/packages" className="text-muted-foreground hover:text-foreground">Flight Packages</Link></li>
                 <li><Link href="/faq" className="text-muted-foreground hover:text-foreground">FAQ</Link></li>
                 <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>

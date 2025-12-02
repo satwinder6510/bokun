@@ -371,7 +371,7 @@ export default function Homepage() {
                     onClick={() => setMobileMenuOpen(false)}
                     data-testid="mobile-link-tours"
                   >
-                    Tours
+                    Land Tours
                   </a>
                   <div className="border-t pt-4">
                     <p className="text-sm font-semibold mb-2 text-muted-foreground">Destinations</p>
@@ -422,7 +422,7 @@ export default function Homepage() {
               Flight Packages
             </a>
             <a href="#tours" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-tours">
-              Tours
+              Land Tours
             </a>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -536,7 +536,7 @@ export default function Homepage() {
                   className="text-base md:text-lg px-8 md:px-12 py-6 md:py-7 bg-secondary hover:bg-secondary/90 text-white border-secondary font-semibold"
                   data-testid="button-hero-alternate"
                 >
-                  {heroSlides[currentSlide]?.type === 'package' ? 'Browse Tours' : 'Flight Packages'}
+                  {heroSlides[currentSlide]?.type === 'package' ? 'Browse Land Tours' : 'Flight Packages'}
                 </Button>
               </a>
             </div>
@@ -687,7 +687,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Featured Tours Section */}
+      {/* Featured Land Tours Section */}
       <section id="tours" className="py-16 md:py-24 bg-background">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-8">
@@ -695,7 +695,7 @@ export default function Homepage() {
               700+ EXPERIENCES
             </p>
             <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-tours-title">
-              Explore Our Tours
+              Explore Our Land Tours
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Discover handpicked experiences from trusted local operators worldwide
@@ -781,7 +781,7 @@ export default function Homepage() {
             filteredProducts.length === 0 ? (
               <div className="text-center py-20">
                 <p className="text-xl font-semibold mb-2" data-testid="text-no-results">
-                  No tours found
+                  No land tours found
                 </p>
                 <p className="text-muted-foreground mb-6">
                   Try adjusting your search or filters
@@ -820,7 +820,7 @@ export default function Homepage() {
                   onClick={() => document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' })}
                   data-testid="button-view-all-tours"
                 >
-                  View All {products.length} Tours
+                  View All {products.length} Land Tours
                 </Button>
               </div>
             </>
@@ -997,7 +997,7 @@ export default function Homepage() {
               <ul className="space-y-2 text-sm">
                 <li><a href="/" className="text-muted-foreground hover:text-primary transition-colors">Home</a></li>
                 <li><a href="/packages" className="text-muted-foreground hover:text-primary transition-colors">Flight Packages</a></li>
-                <li><a href="#tours" className="text-muted-foreground hover:text-primary transition-colors">Tours</a></li>
+                <li><a href="#tours" className="text-muted-foreground hover:text-primary transition-colors">Land Tours</a></li>
                 <li><a href="/blog" className="text-muted-foreground hover:text-primary transition-colors">Blog</a></li>
               </ul>
             </div>

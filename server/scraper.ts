@@ -246,6 +246,7 @@ export function validatePackageData(data: Partial<ScrapedPackage>): InsertFlight
     whatsIncluded: data.whatsIncluded || [],
     itinerary: data.itinerary || [],
     accommodations: data.accommodations || [],
+    otherInfo: '',
     metaTitle: data.title,
     metaDescription: data.excerpt || data.description?.substring(0, 160) || '',
     isPublished: data.isPublished ?? false,

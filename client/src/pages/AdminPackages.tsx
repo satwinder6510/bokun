@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
-  GripVertical, Plane, Save, X, Clock, MapPin, Download
+  GripVertical, Plane, Save, X, Clock, MapPin, Download, Link2, Loader2
 } from "lucide-react";
 import {
   Dialog,
@@ -114,6 +114,7 @@ export default function AdminPackages() {
   const [newIncluded, setNewIncluded] = useState("");
   const [newHighlight, setNewHighlight] = useState("");
   const [newGalleryUrl, setNewGalleryUrl] = useState("");
+  const [importUrl, setImportUrl] = useState("");
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
@@ -192,6 +193,32 @@ export default function AdminPackages() {
     },
     onError: (error: Error) => {
       toast({ title: "Error importing samples", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const importUrlMutation = useMutation({
+    mutationFn: async (url: string) => {
+      return apiRequest("POST", "/api/admin/packages/import-url", { url });
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/packages"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
+      setImportUrl("");
+      if (data.imported > 0) {
+        toast({ 
+          title: "Packages imported from URL", 
+          description: `Scraped ${data.scraped} packages, imported ${data.imported}${data.errors?.length ? `. ${data.errors.length} errors.` : ''}`
+        });
+      } else {
+        toast({ 
+          title: "No packages imported", 
+          description: data.message || "Could not find packages at this URL",
+          variant: "destructive"
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error importing from URL", description: error.message, variant: "destructive" });
     },
   });
 
@@ -323,6 +350,33 @@ export default function AdminPackages() {
                 className="pl-9 w-64"
                 data-testid="input-search"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Paste URL to import packages..."
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                className="w-64"
+                data-testid="input-import-url"
+              />
+              <Button 
+                variant="outline" 
+                onClick={() => importUrl.trim() && importUrlMutation.mutate(importUrl.trim())}
+                disabled={importUrlMutation.isPending || !importUrl.trim()}
+                data-testid="button-import-url"
+              >
+                {importUrlMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="w-4 h-4 mr-2" />
+                    Import from URL
+                  </>
+                )}
+              </Button>
             </div>
             <Button 
               variant="outline" 

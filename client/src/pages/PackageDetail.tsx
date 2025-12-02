@@ -163,18 +163,18 @@ function PriceCalendarWidget({
               onClick={() => price && !isPast && onDateSelect(date)}
               className={`
                 h-14 border-b border-r flex flex-col items-center justify-center text-xs
-                ${price && !isPast ? 'cursor-pointer hover:bg-primary/10' : ''}
-                ${isSelected ? 'bg-primary text-primary-foreground' : ''}
+                ${price && !isPast ? 'cursor-pointer hover:bg-secondary/10' : ''}
+                ${isSelected ? 'bg-secondary text-white' : ''}
                 ${isPast ? 'text-muted-foreground/50' : ''}
                 ${isToday && !isSelected ? 'font-bold' : ''}
               `}
               data-testid={`calendar-day-${dayNum}`}
             >
-              <span className={`${isSelected ? 'text-primary-foreground' : ''}`}>
+              <span className={`${isSelected ? 'text-white' : ''}`}>
                 {dayNum}
               </span>
               {price && !isPast && (
-                <span className={`text-[10px] font-semibold ${isSelected ? 'text-primary-foreground' : 'text-primary'}`}>
+                <span className={`text-[10px] font-semibold ${isSelected ? 'text-white' : 'text-secondary'}`}>
                   {formatPrice(price)}
                 </span>
               )}
@@ -487,7 +487,7 @@ export default function PackageDetail() {
             {/* Title Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <Badge className="bg-primary text-white" data-testid="badge-category-overlay">
+                <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30" data-testid="badge-category-overlay">
                   {pkg.category}
                 </Badge>
                 <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1">
@@ -602,7 +602,7 @@ export default function PackageDetail() {
                         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           {highlights.map((highlight, index) => (
                             <li key={index} className="flex items-start gap-2" data-testid={`highlight-${index}`}>
-                              <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                              <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
                               <span>{highlight}</span>
                             </li>
                           ))}
@@ -719,17 +719,17 @@ export default function PackageDetail() {
             {/* Right Column - Booking Sidebar */}
             <div className="lg:col-span-1">
               <div className="sticky top-24">
-                <Card className="border-2 border-primary/20">
-                  <CardHeader className="bg-primary/5">
+                <Card className="border-2 border-secondary/30">
+                  <CardHeader className="bg-secondary/5">
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-sm text-muted-foreground">From</span>
-                        <p className="text-3xl font-bold text-primary" data-testid="text-price">
+                        <p className="text-3xl font-bold text-foreground" data-testid="text-price">
                           {formatPrice(pkg.price)}
                         </p>
                         <span className="text-sm text-muted-foreground">{pkg.priceLabel}</span>
                       </div>
-                      <Badge className="bg-primary text-white">
+                      <Badge className="bg-secondary text-white">
                         <Plane className="w-4 h-4 mr-1" />
                         Flights Included
                       </Badge>
@@ -759,7 +759,7 @@ export default function PackageDetail() {
                         <Separator />
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
-                            <CalendarIcon className="w-5 h-5 text-primary" />
+                            <CalendarIcon className="w-5 h-5 text-secondary" />
                             <p className="font-medium">Check Availability</p>
                           </div>
                           
@@ -795,7 +795,7 @@ export default function PackageDetail() {
                               />
                               
                               {selectedDate && selectedPricing && (
-                                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                                <div className="p-3 bg-secondary/10 rounded-lg border border-secondary/20">
                                   <div className="flex justify-between items-center">
                                     <div>
                                       <p className="font-medium">
@@ -811,7 +811,7 @@ export default function PackageDetail() {
                                       </p>
                                     </div>
                                     <div className="text-right">
-                                      <p className="text-2xl font-bold text-primary">
+                                      <p className="text-2xl font-bold text-secondary">
                                         {formatPrice(selectedPricing.price)}
                                       </p>
                                       <p className="text-xs text-muted-foreground">per person</p>

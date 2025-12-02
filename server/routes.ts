@@ -10,6 +10,7 @@ import { randomBytes } from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor";
 
 // Configure multer for image uploads
 const uploadDir = path.join(process.cwd(), 'public', 'uploads');
@@ -1743,6 +1744,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
     } catch (error: any) {
       console.error("Scrape test error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Process and optimize images from URLs
+  app.post("/api/admin/process-images", async (req, res) => {
+    try {
+      const { imageUrls, packageSlug, maxImages = 10 } = req.body;
+      
+      if (!imageUrls || !Array.isArray(imageUrls) || imageUrls.length === 0) {
+        return res.status(400).json({ error: "imageUrls array is required" });
+      }
+      
+      if (!packageSlug || typeof packageSlug !== 'string') {
+        return res.status(400).json({ error: "packageSlug is required" });
+      }
+      
+      console.log(`Processing ${imageUrls.length} images for package: ${packageSlug}`);
+      
+      const processedImages = await processMultipleImages(imageUrls, packageSlug, maxImages);
+      
+      res.json({
+        success: true,
+        processed: processedImages.length,
+        total: imageUrls.length,
+        images: processedImages
+      });
+      
+    } catch (error: any) {
+      console.error("Image processing error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Process a single image from URL
+  app.post("/api/admin/process-image", async (req, res) => {
+    try {
+      const { imageUrl, packageSlug } = req.body;
+      
+      if (!imageUrl || typeof imageUrl !== 'string') {
+        return res.status(400).json({ error: "imageUrl is required" });
+      }
+      
+      if (!packageSlug || typeof packageSlug !== 'string') {
+        return res.status(400).json({ error: "packageSlug is required" });
+      }
+      
+      console.log(`Processing image for package ${packageSlug}: ${imageUrl}`);
+      
+      const processedImage = await downloadAndProcessImage(imageUrl, packageSlug);
+      
+      if (!processedImage) {
+        return res.status(400).json({ error: "Failed to process image" });
+      }
+      
+      res.json({
+        success: true,
+        image: processedImage
+      });
+      
+    } catch (error: any) {
+      console.error("Image processing error:", error);
       res.status(500).json({ error: error.message });
     }
   });

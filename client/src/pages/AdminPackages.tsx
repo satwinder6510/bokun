@@ -138,6 +138,8 @@ export default function AdminPackages() {
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scrapedData, setScrapedData] = useState<ScrapedData | null>(null);
   const [isScraping, setIsScraping] = useState(false);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [imageProcessingProgress, setImageProcessingProgress] = useState({ current: 0, total: 0 });
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
@@ -258,15 +260,100 @@ export default function AdminPackages() {
     }
   };
 
-  const handleImportScrapedData = () => {
+  const handleImportScrapedData = async (optimizeImages: boolean = false) => {
     if (!scrapedData) return;
     
-    // Convert scraped accommodations to the form format
-    const formattedAccommodations = scrapedData.accommodations?.map(acc => ({
+    let processedGallery = scrapedData.hotelImages || [];
+    let processedFeaturedImage = scrapedData.featuredImage || '';
+    let processedAccommodations = scrapedData.accommodations?.map(acc => ({
       name: acc.name,
       description: acc.description,
       images: acc.images || [],
     })) || [];
+    
+    if (optimizeImages) {
+      setIsProcessingImages(true);
+      
+      try {
+        // Collect all images to process
+        const allImages = [
+          ...(scrapedData.hotelImages || []),
+          scrapedData.featuredImage,
+          ...(scrapedData.accommodations?.flatMap(acc => acc.images || []) || [])
+        ].filter(Boolean);
+        
+        setImageProcessingProgress({ current: 0, total: allImages.length });
+        
+        if (allImages.length > 0) {
+          toast({ title: "Processing images...", description: `Optimizing ${allImages.length} images` });
+          
+          const response = await fetch('/api/admin/process-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              imageUrls: allImages,
+              packageSlug: scrapedData.slug || 'package',
+              maxImages: 20
+            }),
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            
+            if (result.images && result.images.length > 0) {
+              // Map original URLs to processed URLs
+              const urlMap = new Map<string, string>();
+              allImages.forEach((url, index) => {
+                if (result.images[index]) {
+                  urlMap.set(url, result.images[index].card);
+                }
+              });
+              
+              // Update gallery with optimized card-size images
+              processedGallery = (scrapedData.hotelImages || []).map(url => 
+                urlMap.get(url) || url
+              );
+              
+              // Update featured image
+              if (scrapedData.featuredImage && urlMap.has(scrapedData.featuredImage)) {
+                const featuredIndex = allImages.indexOf(scrapedData.featuredImage);
+                if (featuredIndex >= 0 && result.images[featuredIndex]) {
+                  processedFeaturedImage = result.images[featuredIndex].hero;
+                }
+              }
+              
+              // Update accommodation images
+              processedAccommodations = scrapedData.accommodations?.map(acc => ({
+                name: acc.name,
+                description: acc.description,
+                images: (acc.images || []).map(url => urlMap.get(url) || url),
+              })) || [];
+              
+              toast({ 
+                title: "Images optimized!", 
+                description: `Processed ${result.processed} of ${result.total} images` 
+              });
+            }
+          } else {
+            toast({ 
+              title: "Image processing failed", 
+              description: "Using original image URLs",
+              variant: "destructive"
+            });
+          }
+        }
+      } catch (error: any) {
+        console.error("Image processing error:", error);
+        toast({ 
+          title: "Image processing error", 
+          description: error.message,
+          variant: "destructive"
+        });
+      } finally {
+        setIsProcessingImages(false);
+        setImageProcessingProgress({ current: 0, total: 0 });
+      }
+    }
     
     setFormData({
       ...emptyPackage,
@@ -278,9 +365,9 @@ export default function AdminPackages() {
       whatsIncluded: scrapedData.whatsIncluded,
       highlights: scrapedData.highlights,
       itinerary: scrapedData.itinerary,
-      accommodations: formattedAccommodations,
-      featuredImage: scrapedData.featuredImage,
-      gallery: scrapedData.hotelImages,
+      accommodations: processedAccommodations,
+      featuredImage: processedFeaturedImage,
+      gallery: processedGallery,
     });
     
     setScraperDialogOpen(false);
@@ -528,10 +615,34 @@ export default function AdminPackages() {
                           <CheckCircle2 className="w-5 h-5 text-green-500" />
                           Extracted Data
                         </h3>
-                        <Button onClick={handleImportScrapedData} data-testid="button-import-scraped">
-                          <Upload className="w-4 h-4 mr-2" />
-                          Import to Form
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => handleImportScrapedData(false)} 
+                            variant="outline"
+                            disabled={isProcessingImages}
+                            data-testid="button-import-scraped"
+                          >
+                            <Upload className="w-4 h-4 mr-2" />
+                            Import (Original URLs)
+                          </Button>
+                          <Button 
+                            onClick={() => handleImportScrapedData(true)}
+                            disabled={isProcessingImages}
+                            data-testid="button-import-optimized"
+                          >
+                            {isProcessingImages ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <ImagePlus className="w-4 h-4 mr-2" />
+                                Import & Optimize Images
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                       
                       {scrapedData.featuredImage && (

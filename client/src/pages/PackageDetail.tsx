@@ -43,6 +43,7 @@ export default function PackageDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [selectedAirport, setSelectedAirport] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -83,6 +84,24 @@ export default function PackageDetail() {
   const sortedPricing = [...filteredPricing].sort((a, b) => 
     new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime()
   );
+
+  // Get available dates for calendar
+  const availableDates = sortedPricing.map(p => new Date(p.departureDate));
+
+  // Get selected pricing based on selected date
+  const selectedPricing = selectedDate 
+    ? sortedPricing.find(p => {
+        const pDate = new Date(p.departureDate);
+        return pDate.toDateString() === selectedDate.toDateString();
+      })
+    : undefined;
+
+  // Auto-select airport if only one
+  useEffect(() => {
+    if (airports.length === 1 && !selectedAirport) {
+      setSelectedAirport(airports[0].code);
+    }
+  }, [airports, selectedAirport]);
 
   useEffect(() => {
     if (pkg) {
@@ -533,19 +552,22 @@ export default function PackageDetail() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-5 h-5 text-primary" />
-                            <p className="font-medium">Available Departure Dates</p>
+                            <p className="font-medium">Check Availability</p>
                           </div>
                           
-                          {airports.length > 1 && (
+                          {airports.length > 0 && (
                             <div>
-                              <Label className="text-sm text-muted-foreground">Departure Airport</Label>
+                              <Label className="text-sm text-muted-foreground mb-1 block">Departure Airport</Label>
                               <select
                                 value={selectedAirport}
-                                onChange={(e) => setSelectedAirport(e.target.value)}
-                                className="w-full mt-1 p-2 border rounded-md bg-background text-foreground text-sm"
+                                onChange={(e) => {
+                                  setSelectedAirport(e.target.value);
+                                  setSelectedDate(undefined);
+                                }}
+                                className="w-full p-2 border rounded-md bg-background text-foreground text-sm"
                                 data-testid="select-airport"
                               >
-                                <option value="">All Airports</option>
+                                {airports.length > 1 && <option value="">Select Airport</option>}
                                 {airports.map(airport => (
                                   <option key={airport.code} value={airport.code}>
                                     {airport.name} ({airport.code})
@@ -555,32 +577,48 @@ export default function PackageDetail() {
                             </div>
                           )}
 
-                          <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
-                            {sortedPricing.map((p) => (
-                              <div 
-                                key={p.id}
-                                className="flex items-center justify-between p-2 bg-muted/50 rounded-md hover:bg-muted transition-colors"
-                                data-testid={`pricing-entry-${p.id}`}
-                              >
-                                <div>
-                                  <p className="font-medium text-sm">
-                                    {new Date(p.departureDate).toLocaleDateString('en-GB', { 
-                                      weekday: 'short',
-                                      day: 'numeric', 
-                                      month: 'short',
-                                      year: 'numeric'
-                                    })}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {p.departureAirportName}
-                                  </p>
+                          {selectedAirport && (
+                            <div className="space-y-3">
+                              <PricingCalendar 
+                                pricingData={filteredPricing}
+                                selectedDate={selectedDate}
+                                onDateSelect={setSelectedDate}
+                                formatPrice={formatPrice}
+                              />
+                              
+                              {selectedDate && selectedPricing && (
+                                <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <p className="font-medium">
+                                        {new Date(selectedDate).toLocaleDateString('en-GB', { 
+                                          weekday: 'long',
+                                          day: 'numeric', 
+                                          month: 'long',
+                                          year: 'numeric'
+                                        })}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        From {selectedPricing.departureAirportName}
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-2xl font-bold text-primary">
+                                        {formatPrice(selectedPricing.price)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">per person</p>
+                                    </div>
+                                  </div>
                                 </div>
-                                <Badge variant="secondary" className="font-bold">
-                                  {formatPrice(p.price)}
-                                </Badge>
-                              </div>
-                            ))}
-                          </div>
+                              )}
+                            </div>
+                          )}
+
+                          {!selectedAirport && airports.length > 1 && (
+                            <p className="text-sm text-muted-foreground text-center py-2">
+                              Please select a departure airport to see available dates
+                            </p>
+                          )}
                         </div>
                       </>
                     )}

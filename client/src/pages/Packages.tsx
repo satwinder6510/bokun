@@ -5,8 +5,6 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { Search, MapPin, Clock, ChevronDown, Plane, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { CurrencySelector } from "@/components/CurrencySelector";
 import { CartButton } from "@/components/CartButton";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
@@ -169,18 +167,18 @@ export default function Packages() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Hero Section - Dark wash over image */}
       <section className="relative h-[50vh] min-h-[400px] pt-16 md:pt-20">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-primary/70" />
         <div 
-          className="absolute inset-0 bg-cover bg-center opacity-30"
+          className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url('https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1920&q=80')` }}
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
         <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
-          <Badge className="mb-4 bg-white/20 text-white border-white/40" data-testid="badge-flights-included">
-            <Plane className="w-4 h-4 mr-1" />
-            Flights Included
-          </Badge>
+          <p className="text-secondary text-sm font-bold tracking-wider uppercase mb-4 flex items-center gap-2" data-testid="badge-flights-included">
+            <Plane className="w-4 h-4" />
+            FLIGHTS INCLUDED
+          </p>
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-4" data-testid="text-hero-title">
             Flight Inclusive Packages
           </h1>
@@ -189,8 +187,8 @@ export default function Packages() {
           </p>
           <div className="flex flex-wrap gap-2 justify-center">
             <Button 
-              variant={selectedCategory === null ? "default" : "outline"} 
-              className={selectedCategory === null ? "bg-white text-primary hover:bg-white/90" : "border-white text-white hover:bg-white/20"}
+              variant="outline"
+              className={`border-white/60 backdrop-blur-sm ${selectedCategory === null ? "bg-white text-foreground hover:bg-white/90" : "text-white hover:bg-white/20"}`}
               onClick={() => setSelectedCategory(null)}
               data-testid="button-filter-all"
             >
@@ -199,8 +197,8 @@ export default function Packages() {
             {categories.slice(0, 4).map((cat) => (
               <Button 
                 key={cat}
-                variant={selectedCategory === cat ? "default" : "outline"}
-                className={selectedCategory === cat ? "bg-white text-primary hover:bg-white/90" : "border-white text-white hover:bg-white/20"}
+                variant="outline"
+                className={`border-white/60 backdrop-blur-sm ${selectedCategory === cat ? "bg-white text-foreground hover:bg-white/90" : "text-white hover:bg-white/20"}`}
                 onClick={() => setSelectedCategory(cat)}
                 data-testid={`button-filter-${cat.toLowerCase()}`}
               >
@@ -231,16 +229,9 @@ export default function Packages() {
       <section className="py-12 md:py-16">
         <div className="container mx-auto px-4 md:px-8">
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-64 bg-muted rounded-t-xl" />
-                  <div className="p-4 bg-card rounded-b-xl space-y-3">
-                    <div className="h-6 bg-muted rounded w-3/4" />
-                    <div className="h-4 bg-muted rounded w-1/2" />
-                    <div className="h-8 bg-muted rounded w-1/3" />
-                  </div>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="aspect-[3/4] bg-muted rounded-xl animate-pulse" />
               ))}
             </div>
           ) : filteredPackages.length === 0 ? (
@@ -269,72 +260,86 @@ export default function Packages() {
                   Showing {filteredPackages.length} package{filteredPackages.length !== 1 ? 's' : ''}
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredPackages.map((pkg) => (
                   <Link key={pkg.id} href={`/packages/${pkg.slug}`}>
-                    <Card 
-                      className="group overflow-hidden cursor-pointer hover-elevate"
+                    <div 
+                      className="relative overflow-hidden rounded-xl aspect-[3/4] group cursor-pointer"
                       data-testid={`card-package-${pkg.id}`}
                     >
-                      <div className="relative aspect-[4/3] overflow-hidden">
+                      {/* Background Image */}
+                      <div className="absolute inset-0">
                         <img 
                           src={pkg.featuredImage || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80"}
                           alt={pkg.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                          decoding="async"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                        <Badge 
-                          className="absolute top-4 left-4 bg-primary text-white"
-                          data-testid={`badge-category-${pkg.id}`}
-                        >
-                          {pkg.category}
-                        </Badge>
-                        {pkg.duration && (
-                          <Badge 
-                            variant="outline" 
-                            className="absolute top-4 right-4 bg-white/90 text-foreground"
-                            data-testid={`badge-duration-${pkg.id}`}
-                          >
-                            <Clock className="w-3 h-3 mr-1" />
-                            {pkg.duration}
-                          </Badge>
-                        )}
-                        <div className="absolute bottom-4 left-4 right-4">
-                          <h3 
-                            className="text-xl font-bold text-white line-clamp-2 mb-1"
-                            data-testid={`text-title-${pkg.id}`}
-                          >
-                            {pkg.title}
-                          </h3>
-                        </div>
                       </div>
-                      <CardContent className="p-4">
-                        {pkg.excerpt && (
-                          <p 
-                            className="text-sm text-muted-foreground line-clamp-2 mb-4"
-                            data-testid={`text-excerpt-${pkg.id}`}
-                          >
-                            {pkg.excerpt}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                            <Plane className="w-4 h-4" />
-                            <span>Flights Included</span>
+
+                      {/* Dark gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+
+                      {/* Top Badge - Category */}
+                      <div className="absolute top-4 left-4 z-10">
+                        <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-foreground">
+                          {pkg.category}
+                        </span>
+                      </div>
+
+                      {/* "FLIGHT +" label */}
+                      <div className="absolute top-4 right-4 z-10">
+                        <span className="text-white/80 text-xs font-bold tracking-wider flex items-center gap-1">
+                          <Plane className="w-3 h-3" />
+                          FLIGHT+
+                        </span>
+                      </div>
+
+                      {/* Bottom content overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                        {/* Package Title */}
+                        <h3 
+                          className="text-white text-2xl font-bold mb-3 line-clamp-2 leading-tight"
+                          data-testid={`text-title-${pkg.id}`}
+                        >
+                          {pkg.title}
+                        </h3>
+
+                        {/* Location and Duration */}
+                        <div className="flex items-center gap-4 text-sm text-white/90 mb-4">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{pkg.category}</span>
                           </div>
-                          <div className="text-right">
-                            <span className="text-xs text-muted-foreground">From</span>
-                            <p 
-                              className="text-xl font-bold text-primary"
+                          {pkg.duration && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              <span>{pkg.duration}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Price */}
+                        <div className="flex items-baseline gap-1 mb-4">
+                          <span className="text-sm text-white/80">from</span>
+                          <div className="flex flex-col">
+                            <span 
+                              className="text-3xl font-bold text-white"
                               data-testid={`text-price-${pkg.id}`}
                             >
                               {formatPrice(pkg.price)}
-                            </p>
-                            <span className="text-xs text-muted-foreground">{pkg.priceLabel}</span>
+                            </span>
+                            <span className="text-xs text-white/60">{pkg.priceLabel}</span>
                           </div>
                         </div>
-                      </CardContent>
-                    </Card>
+                        
+                        {/* View More Button */}
+                        <div className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-4 py-2 rounded-md text-sm font-semibold transition-colors text-center">
+                          view more
+                        </div>
+                      </div>
+                    </div>
                   </Link>
                 ))}
               </div>

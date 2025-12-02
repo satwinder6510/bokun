@@ -1227,6 +1227,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get package pricing (admin)
+  app.get("/api/admin/packages/:id/pricing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const pricing = await storage.getPackagePricing(parseInt(id));
+      res.json(pricing);
+    } catch (error: any) {
+      console.error("Error fetching package pricing:", error);
+      res.status(500).json({ error: "Failed to fetch pricing" });
+    }
+  });
+
+  // Add package pricing entries (admin)
+  app.post("/api/admin/packages/:id/pricing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { entries } = req.body;
+      
+      if (!entries || !Array.isArray(entries) || entries.length === 0) {
+        return res.status(400).json({ error: "No pricing entries provided" });
+      }
+      
+      // Validate and prepare entries
+      const pricingEntries = entries.map((entry: any) => ({
+        packageId: parseInt(id),
+        departureAirport: entry.departureAirport,
+        departureAirportName: entry.departureAirportName,
+        departureDate: entry.departureDate,
+        price: entry.price,
+        currency: entry.currency || 'GBP',
+        isAvailable: entry.isAvailable !== false,
+      }));
+      
+      const created = await storage.createPackagePricingBatch(pricingEntries);
+      res.status(201).json({ success: true, created: created.length, entries: created });
+    } catch (error: any) {
+      console.error("Error creating package pricing:", error);
+      res.status(500).json({ error: "Failed to create pricing" });
+    }
+  });
+
+  // Delete a single pricing entry (admin)
+  app.delete("/api/admin/packages/:packageId/pricing/:pricingId", async (req, res) => {
+    try {
+      const { pricingId } = req.params;
+      await storage.deletePackagePricing(parseInt(pricingId));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting pricing entry:", error);
+      res.status(500).json({ error: "Failed to delete pricing" });
+    }
+  });
+
+  // Delete all pricing for a package (admin)
+  app.delete("/api/admin/packages/:id/pricing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deletePackagePricingByPackage(parseInt(id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting package pricing:", error);
+      res.status(500).json({ error: "Failed to delete pricing" });
+    }
+  });
+
   // Submit package enquiry (public)
   app.post("/api/packages/:slug/enquiry", async (req, res) => {
     try {

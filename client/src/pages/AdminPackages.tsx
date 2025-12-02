@@ -15,8 +15,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
   Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
-  Globe, CheckCircle2, AlertCircle
+  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling
 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -46,7 +48,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { FlightPackage, InsertFlightPackage } from "@shared/schema";
+import type { FlightPackage, InsertFlightPackage, PackagePricing } from "@shared/schema";
+
+// UK Airports list
+const UK_AIRPORTS = [
+  { code: "LHR", name: "London Heathrow" },
+  { code: "LGW", name: "London Gatwick" },
+  { code: "STN", name: "London Stansted" },
+  { code: "LTN", name: "London Luton" },
+  { code: "MAN", name: "Manchester" },
+  { code: "BHX", name: "Birmingham" },
+  { code: "EDI", name: "Edinburgh" },
+  { code: "GLA", name: "Glasgow" },
+  { code: "BRS", name: "Bristol" },
+  { code: "NCL", name: "Newcastle" },
+  { code: "LPL", name: "Liverpool" },
+  { code: "EMA", name: "East Midlands" },
+  { code: "LBA", name: "Leeds Bradford" },
+  { code: "BFS", name: "Belfast International" },
+  { code: "CWL", name: "Cardiff" },
+];
 
 type ItineraryDay = {
   day: number;
@@ -140,6 +161,14 @@ export default function AdminPackages() {
   const [isScraping, setIsScraping] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
   const [imageProcessingProgress, setImageProcessingProgress] = useState({ current: 0, total: 0 });
+
+  // Pricing calendar state
+  const [pricingAirport, setPricingAirport] = useState("");
+  const [pricingPrice, setPricingPrice] = useState<number>(0);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [existingPricing, setExistingPricing] = useState<PackagePricing[]>([]);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
+  const [isSavingPricing, setIsSavingPricing] = useState(false);
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
@@ -392,7 +421,7 @@ export default function AdminPackages() {
     setEditingPackage(null);
   };
 
-  const handleOpenEdit = (pkg: FlightPackage) => {
+  const handleOpenEdit = async (pkg: FlightPackage) => {
     setFormData({
       title: pkg.title,
       slug: pkg.slug,
@@ -417,6 +446,93 @@ export default function AdminPackages() {
     });
     setEditingPackage(pkg);
     setIsCreating(false);
+    
+    // Reset pricing state
+    setPricingAirport("");
+    setPricingPrice(pkg.price || 0);
+    setSelectedDates([]);
+    
+    // Load existing pricing for this package
+    await loadPackagePricing(pkg.id);
+  };
+
+  const loadPackagePricing = async (packageId: number) => {
+    setIsLoadingPricing(true);
+    try {
+      const response = await fetch(`/api/admin/packages/${packageId}/pricing`);
+      if (response.ok) {
+        const pricing = await response.json();
+        setExistingPricing(pricing);
+      }
+    } catch (error) {
+      console.error("Failed to load pricing:", error);
+    } finally {
+      setIsLoadingPricing(false);
+    }
+  };
+
+  const handleAddPricingEntries = async () => {
+    if (!editingPackage || !pricingAirport || !pricingPrice || selectedDates.length === 0) {
+      toast({ 
+        title: "Missing information", 
+        description: "Please select an airport, enter a price, and pick at least one date",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    const airport = UK_AIRPORTS.find(a => a.code === pricingAirport);
+    if (!airport) return;
+    
+    setIsSavingPricing(true);
+    try {
+      const entries = selectedDates.map(date => ({
+        departureAirport: airport.code,
+        departureAirportName: airport.name,
+        departureDate: format(date, "yyyy-MM-dd"),
+        price: pricingPrice,
+        currency: "GBP",
+      }));
+      
+      const response = await fetch(`/api/admin/packages/${editingPackage.id}/pricing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ entries }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        toast({ 
+          title: "Pricing added", 
+          description: `Added ${result.created} price entries for ${airport.name}` 
+        });
+        setSelectedDates([]);
+        await loadPackagePricing(editingPackage.id);
+      } else {
+        throw new Error("Failed to save pricing");
+      }
+    } catch (error) {
+      toast({ title: "Error saving pricing", variant: "destructive" });
+    } finally {
+      setIsSavingPricing(false);
+    }
+  };
+
+  const handleDeletePricingEntry = async (pricingId: number) => {
+    if (!editingPackage) return;
+    
+    try {
+      const response = await fetch(`/api/admin/packages/${editingPackage.id}/pricing/${pricingId}`, {
+        method: "DELETE",
+      });
+      
+      if (response.ok) {
+        toast({ title: "Pricing entry deleted" });
+        await loadPackagePricing(editingPackage.id);
+      }
+    } catch (error) {
+      toast({ title: "Error deleting pricing", variant: "destructive" });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -845,11 +961,12 @@ export default function AdminPackages() {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <Tabs defaultValue="basic" className="w-full">
-                  <TabsList className="grid w-full grid-cols-5">
+                  <TabsList className="grid w-full grid-cols-6">
                     <TabsTrigger value="basic">Basic Info</TabsTrigger>
                     <TabsTrigger value="content">Content</TabsTrigger>
                     <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
                     <TabsTrigger value="accommodation">Hotels</TabsTrigger>
+                    <TabsTrigger value="pricing" disabled={!editingPackage}>Pricing</TabsTrigger>
                     <TabsTrigger value="seo">SEO</TabsTrigger>
                   </TabsList>
 
@@ -1289,6 +1406,169 @@ export default function AdminPackages() {
                         <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
                         <p>No accommodations added yet</p>
                       </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="pricing" className="space-y-6 mt-4">
+                    {!editingPackage ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <CalendarIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>Save the package first to add pricing</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                          {/* Add New Pricing */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Add Pricing Entries
+                              </CardTitle>
+                              <CardDescription>
+                                Select airport, enter price, then pick departure dates
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label>Departure Airport</Label>
+                                  <select
+                                    value={pricingAirport}
+                                    onChange={(e) => setPricingAirport(e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-md bg-background"
+                                    data-testid="select-airport"
+                                  >
+                                    <option value="">Select airport...</option>
+                                    {UK_AIRPORTS.map(airport => (
+                                      <option key={airport.code} value={airport.code}>
+                                        {airport.code} - {airport.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <Label>Price (GBP)</Label>
+                                  <div className="relative mt-1">
+                                    <PoundSterling className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      value={pricingPrice}
+                                      onChange={(e) => setPricingPrice(parseFloat(e.target.value) || 0)}
+                                      className="pl-9"
+                                      data-testid="input-pricing-price"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <Label className="mb-2 block">Select Departure Dates</Label>
+                                <div className="border rounded-lg p-3 flex justify-center">
+                                  <Calendar
+                                    mode="multiple"
+                                    selected={selectedDates}
+                                    onSelect={(dates) => setSelectedDates(dates || [])}
+                                    disabled={(date) => date < new Date()}
+                                    className="rounded-md"
+                                    data-testid="calendar-dates"
+                                  />
+                                </div>
+                                {selectedDates.length > 0 && (
+                                  <p className="text-sm text-muted-foreground mt-2">
+                                    {selectedDates.length} date(s) selected
+                                  </p>
+                                )}
+                              </div>
+
+                              <Button
+                                type="button"
+                                onClick={handleAddPricingEntries}
+                                disabled={isSavingPricing || !pricingAirport || !pricingPrice || selectedDates.length === 0}
+                                className="w-full"
+                                data-testid="button-add-pricing"
+                              >
+                                {isSavingPricing ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Adding...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add {selectedDates.length} Price Entries
+                                  </>
+                                )}
+                              </Button>
+                            </CardContent>
+                          </Card>
+
+                          {/* Existing Pricing Entries */}
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <CalendarIcon className="w-4 h-4" />
+                                Existing Pricing ({existingPricing.length})
+                              </CardTitle>
+                              <CardDescription>
+                                All pricing entries for this package
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              {isLoadingPricing ? (
+                                <div className="flex items-center justify-center py-8">
+                                  <Loader2 className="w-6 h-6 animate-spin" />
+                                </div>
+                              ) : existingPricing.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                  <CalendarIcon className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                                  <p className="text-sm">No pricing entries yet</p>
+                                </div>
+                              ) : (
+                                <div className="max-h-[400px] overflow-y-auto space-y-2">
+                                  {existingPricing.map((entry) => (
+                                    <div
+                                      key={entry.id}
+                                      className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                                      data-testid={`pricing-entry-${entry.id}`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <Badge variant="outline" className="font-mono">
+                                          {entry.departureAirport}
+                                        </Badge>
+                                        <div>
+                                          <p className="text-sm font-medium">
+                                            {format(new Date(entry.departureDate), "EEE, MMM d, yyyy")}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {entry.departureAirportName}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-primary">
+                                          £{entry.price.toLocaleString()}
+                                        </span>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          onClick={() => handleDeletePricingEntry(entry.id)}
+                                          data-testid={`button-delete-pricing-${entry.id}`}
+                                        >
+                                          <Trash2 className="w-4 h-4 text-destructive" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </div>
+                      </>
                     )}
                   </TabsContent>
 

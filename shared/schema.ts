@@ -452,3 +452,30 @@ export const insertPackageEnquirySchema = createInsertSchema(packageEnquiries).o
 
 export type PackageEnquiry = typeof packageEnquiries.$inferSelect;
 export type InsertPackageEnquiry = z.infer<typeof insertPackageEnquirySchema>;
+
+// Package Pricing Calendar schema
+export const packagePricing = pgTable("package_pricing", {
+  id: serial("id").primaryKey(),
+  packageId: integer("package_id").notNull().references(() => flightPackages.id, { onDelete: 'cascade' }),
+  departureAirport: text("departure_airport").notNull(), // e.g., "LHR", "MAN", "BHX"
+  departureAirportName: text("departure_airport_name").notNull(), // e.g., "London Heathrow"
+  departureDate: text("departure_date").notNull(), // ISO date string YYYY-MM-DD
+  price: real("price").notNull(),
+  currency: text("currency").notNull().default("GBP"),
+  isAvailable: boolean("is_available").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPackagePricingSchema = createInsertSchema(packagePricing).omit({ 
+  id: true, 
+  createdAt: true 
+}).extend({
+  packageId: z.number().positive("Package ID is required"),
+  departureAirport: z.string().min(2, "Airport code is required").max(10),
+  departureAirportName: z.string().min(1, "Airport name is required"),
+  departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  price: z.number().positive("Price must be positive"),
+});
+
+export type PackagePricing = typeof packagePricing.$inferSelect;
+export type InsertPackagePricing = z.infer<typeof insertPackagePricingSchema>;

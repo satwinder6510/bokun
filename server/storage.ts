@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, flightPackages, packageEnquiries } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, flightPackages, packageEnquiries, packagePricing } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql } from "drizzle-orm";
@@ -62,6 +62,13 @@ export interface IStorage {
   createPackageEnquiry(enquiry: InsertPackageEnquiry): Promise<PackageEnquiry>;
   getAllPackageEnquiries(): Promise<PackageEnquiry[]>;
   updatePackageEnquiryStatus(id: number, status: string): Promise<PackageEnquiry | undefined>;
+  
+  // Package pricing methods
+  getPackagePricing(packageId: number): Promise<PackagePricing[]>;
+  createPackagePricing(pricing: InsertPackagePricing): Promise<PackagePricing>;
+  createPackagePricingBatch(pricings: InsertPackagePricing[]): Promise<PackagePricing[]>;
+  deletePackagePricing(id: number): Promise<boolean>;
+  deletePackagePricingByPackage(packageId: number): Promise<boolean>;
 }
 
 // In-memory storage with per-currency product caching
@@ -653,6 +660,39 @@ export class MemStorage implements IStorage {
       .where(eq(packageEnquiries.id, id))
       .returning();
     return updated;
+  }
+
+  // Package pricing methods
+  async getPackagePricing(packageId: number): Promise<PackagePricing[]> {
+    try {
+      return await db.select().from(packagePricing)
+        .where(eq(packagePricing.packageId, packageId))
+        .orderBy(asc(packagePricing.departureDate));
+    } catch (error) {
+      console.error("Error fetching package pricing:", error);
+      return [];
+    }
+  }
+
+  async createPackagePricing(pricing: InsertPackagePricing): Promise<PackagePricing> {
+    const [created] = await db.insert(packagePricing).values(pricing).returning();
+    return created;
+  }
+
+  async createPackagePricingBatch(pricings: InsertPackagePricing[]): Promise<PackagePricing[]> {
+    if (pricings.length === 0) return [];
+    const created = await db.insert(packagePricing).values(pricings).returning();
+    return created;
+  }
+
+  async deletePackagePricing(id: number): Promise<boolean> {
+    await db.delete(packagePricing).where(eq(packagePricing.id, id));
+    return true;
+  }
+
+  async deletePackagePricingByPackage(packageId: number): Promise<boolean> {
+    await db.delete(packagePricing).where(eq(packagePricing.packageId, packageId));
+    return true;
   }
 }
 

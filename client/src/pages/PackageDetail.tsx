@@ -533,7 +533,7 @@ export default function PackageDetail() {
                     </CardHeader>
                     <CardContent>
                       <div 
-                        className="prose prose-sm max-w-none dark:prose-invert"
+                        className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
                         dangerouslySetInnerHTML={{ __html: pkg.description }}
                         data-testid="content-description"
                       />
@@ -649,7 +649,7 @@ export default function PackageDetail() {
                     <CardContent>
                       {pkg.otherInfo ? (
                         <div 
-                          className="prose prose-sm max-w-none dark:prose-invert"
+                          className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
                           dangerouslySetInnerHTML={{ __html: pkg.otherInfo }}
                           data-testid="content-other-info"
                         />

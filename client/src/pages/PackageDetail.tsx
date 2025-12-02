@@ -874,18 +874,18 @@ export default function PackageDetail() {
                       size="lg" 
                       onClick={() => {
                         const win = window as any;
+                        const openTidio = () => {
+                          if (win.tidioChatApi) {
+                            win.tidioChatApi.show();
+                            win.tidioChatApi.open();
+                          }
+                        };
+                        
                         if (win.tidioChatApi) {
-                          win.tidioChatApi.open();
+                          openTidio();
                         } else {
                           // Tidio not loaded yet, set up callback for when it's ready
-                          document.addEventListener("tidioChat-ready", function() {
-                            win.tidioChatApi.open();
-                          });
-                          // Also try clicking the Tidio button if it exists
-                          const tidioButton = document.querySelector('#tidio-chat-iframe, [data-testid="tidio-chat"]');
-                          if (tidioButton) {
-                            (tidioButton as HTMLElement).click();
-                          }
+                          document.addEventListener("tidioChat-ready", openTidio);
                         }
                       }}
                       data-testid="button-chat"

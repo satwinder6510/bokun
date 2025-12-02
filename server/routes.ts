@@ -7,6 +7,41 @@ import QRCode from "qrcode";
 import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { randomBytes } from "crypto";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// Configure multer for image uploads
+const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const imageStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `package-${uniqueSuffix}${ext}`);
+  }
+});
+
+const imageFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files (JPEG, PNG, WebP, GIF) are allowed'));
+  }
+};
+
+const upload = multer({
+  storage: imageStorage,
+  fileFilter: imageFilter,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dynamic sitemap.xml endpoint
@@ -1278,6 +1313,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload image (admin)
+  app.post("/api/admin/upload", upload.single('image'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      
+      const imageUrl = `/uploads/${req.file.filename}`;
+      res.json({ 
+        success: true, 
+        url: imageUrl,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimetype: req.file.mimetype
+      });
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      res.status(500).json({ error: "Failed to upload image" });
+    }
+  });
+
+  // Upload multiple images (admin)
+  app.post("/api/admin/upload-multiple", upload.array('images', 20), (req, res) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No image files provided" });
+      }
+      
+      const uploadedImages = files.map(file => ({
+        url: `/uploads/${file.filename}`,
+        filename: file.filename,
+        size: file.size,
+        mimetype: file.mimetype
+      }));
+      
+      res.json({ 
+        success: true, 
+        images: uploadedImages,
+        count: uploadedImages.length
+      });
+    } catch (error: any) {
+      console.error("Error uploading images:", error);
+      res.status(500).json({ error: "Failed to upload images" });
+    }
+  });
+
+  // Delete uploaded image (admin)
+  app.delete("/api/admin/upload/:filename", (req, res) => {
+    try {
+      const { filename } = req.params;
+      const filePath = path.join(uploadDir, filename);
+      
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "Image not found" });
+      }
+    } catch (error: any) {
+      console.error("Error deleting image:", error);
+      res.status(500).json({ error: "Failed to delete image" });
+    }
+  });
+
   // Import sample packages (admin)
   app.post("/api/admin/packages/import-samples", async (req, res) => {
     try {
@@ -1354,99 +1454,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error importing packages:", error);
       res.status(500).json({ error: "Failed to import packages" });
-    }
-  });
-
-  // Scrape demo site homepage (admin)
-  app.post("/api/admin/packages/scrape", async (req, res) => {
-    try {
-      const { scrapeHomepage, validatePackageData } = await import("./scraper");
-      const scrapedPackages = await scrapeHomepage();
-      
-      res.json({ 
-        success: true, 
-        count: scrapedPackages.length,
-        packages: scrapedPackages.map(p => ({
-          title: p.title,
-          slug: p.slug,
-          category: p.category,
-          price: p.price,
-          currency: p.currency,
-          duration: p.duration,
-          featuredImage: p.featuredImage,
-        }))
-      });
-    } catch (error: any) {
-      console.error("Error scraping:", error);
-      res.status(500).json({ error: "Failed to scrape packages" });
-    }
-  });
-
-  // Import packages from URL (admin) - scrapes and imports directly
-  app.post("/api/admin/packages/import-url", async (req, res) => {
-    try {
-      const { url } = req.body;
-      
-      if (!url || typeof url !== 'string') {
-        return res.status(400).json({ error: "URL is required" });
-      }
-      
-      // Validate URL format
-      try {
-        new URL(url);
-      } catch {
-        return res.status(400).json({ error: "Invalid URL format" });
-      }
-      
-      const { scrapeFromUrl, validatePackageData } = await import("./scraper");
-      const result = await scrapeFromUrl(url);
-      
-      if (!result.success) {
-        return res.status(400).json({ 
-          success: false,
-          message: result.message,
-          errors: result.errors
-        });
-      }
-      
-      // Import the scraped packages
-      const imported: any[] = [];
-      const importErrors: string[] = [...result.errors];
-      
-      for (const pkg of result.packages) {
-        try {
-          const validatedPkg = validatePackageData(pkg);
-          if (!validatedPkg) {
-            importErrors.push(`Invalid package data for "${pkg.title}"`);
-            continue;
-          }
-          
-          // Check if package with this slug already exists
-          const existing = await storage.getFlightPackageBySlug(validatedPkg.slug);
-          if (existing) {
-            importErrors.push(`Package "${validatedPkg.title}" already exists (slug: ${validatedPkg.slug})`);
-            continue;
-          }
-          
-          const created = await storage.createFlightPackage(validatedPkg);
-          imported.push(created);
-        } catch (err: any) {
-          importErrors.push(`Failed to import "${pkg.title}": ${err.message}`);
-        }
-      }
-      
-      res.json({ 
-        success: imported.length > 0,
-        message: imported.length > 0 
-          ? `Successfully imported ${imported.length} package(s)` 
-          : 'No packages were imported',
-        scraped: result.packages.length,
-        imported: imported.length,
-        errors: importErrors
-      });
-    } catch (error: any) {
-      console.error("Error importing from URL:", error);
-      res.status(500).json({ error: "Failed to import packages from URL", message: error.message });
     }
   });
 

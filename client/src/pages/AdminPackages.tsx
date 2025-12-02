@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
-  GripVertical, Plane, Save, X, Clock, MapPin, Download, Link2, Loader2
+  Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2
 } from "lucide-react";
 import {
   Dialog,
@@ -113,8 +113,10 @@ export default function AdminPackages() {
   const [formData, setFormData] = useState<PackageFormData>(emptyPackage);
   const [newIncluded, setNewIncluded] = useState("");
   const [newHighlight, setNewHighlight] = useState("");
-  const [newGalleryUrl, setNewGalleryUrl] = useState("");
-  const [importUrl, setImportUrl] = useState("");
+  const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
+  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const featuredImageRef = useRef<HTMLInputElement>(null);
+  const galleryImagesRef = useRef<HTMLInputElement>(null);
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
@@ -193,32 +195,6 @@ export default function AdminPackages() {
     },
     onError: (error: Error) => {
       toast({ title: "Error importing samples", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const importUrlMutation = useMutation({
-    mutationFn: async (url: string) => {
-      return apiRequest("POST", "/api/admin/packages/import-url", { url });
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/packages"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
-      setImportUrl("");
-      if (data.imported > 0) {
-        toast({ 
-          title: "Packages imported from URL", 
-          description: `Scraped ${data.scraped} packages, imported ${data.imported}${data.errors?.length ? `. ${data.errors.length} errors.` : ''}`
-        });
-      } else {
-        toast({ 
-          title: "No packages imported", 
-          description: data.message || "Could not find packages at this URL",
-          variant: "destructive"
-        });
-      }
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error importing from URL", description: error.message, variant: "destructive" });
     },
   });
 
@@ -321,6 +297,71 @@ export default function AdminPackages() {
     }).format(price);
   };
 
+  const handleFeaturedImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploadingFeatured(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', file);
+      
+      const response = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      setFormData({ ...formData, featuredImage: data.url });
+      toast({ title: "Image uploaded successfully" });
+    } catch (error) {
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploadingFeatured(false);
+      if (featuredImageRef.current) {
+        featuredImageRef.current.value = '';
+      }
+    }
+  };
+
+  const handleGalleryImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploadingGallery(true);
+    try {
+      const formDataUpload = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formDataUpload.append('images', files[i]);
+      }
+      
+      const response = await fetch('/api/admin/upload-multiple', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      const newUrls = data.images.map((img: any) => img.url);
+      setFormData({ ...formData, gallery: [...(formData.gallery || []), ...newUrls] });
+      toast({ title: `${data.count} image(s) uploaded successfully` });
+    } catch (error) {
+      toast({ title: "Failed to upload images", variant: "destructive" });
+    } finally {
+      setIsUploadingGallery(false);
+      if (galleryImagesRef.current) {
+        galleryImagesRef.current.value = '';
+      }
+    }
+  };
+
   const isEditing = isCreating || editingPackage !== null;
 
   return (
@@ -350,33 +391,6 @@ export default function AdminPackages() {
                 className="pl-9 w-64"
                 data-testid="input-search"
               />
-            </div>
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Paste URL to import packages..."
-                value={importUrl}
-                onChange={(e) => setImportUrl(e.target.value)}
-                className="w-64"
-                data-testid="input-import-url"
-              />
-              <Button 
-                variant="outline" 
-                onClick={() => importUrl.trim() && importUrlMutation.mutate(importUrl.trim())}
-                disabled={importUrlMutation.isPending || !importUrl.trim()}
-                data-testid="button-import-url"
-              >
-                {importUrlMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <Link2 className="w-4 h-4 mr-2" />
-                    Import from URL
-                  </>
-                )}
-              </Button>
             </div>
             <Button 
               variant="outline" 
@@ -516,55 +530,109 @@ export default function AdminPackages() {
                     </div>
 
                     <div>
-                      <Label htmlFor="featuredImage">Featured Image URL</Label>
-                      <Input
-                        id="featuredImage"
-                        value={formData.featuredImage || ""}
-                        onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                        placeholder="https://..."
-                        data-testid="input-featured-image"
-                      />
-                      {formData.featuredImage && (
-                        <img src={formData.featuredImage} alt="Preview" className="mt-2 h-32 w-auto rounded-md object-cover" />
-                      )}
+                      <Label>Featured Image</Label>
+                      <div className="mt-2 space-y-3">
+                        <input
+                          ref={featuredImageRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFeaturedImageUpload}
+                          className="hidden"
+                          data-testid="input-featured-image-file"
+                        />
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => featuredImageRef.current?.click()}
+                            disabled={isUploadingFeatured}
+                            className="flex-1"
+                            data-testid="button-upload-featured"
+                          >
+                            {isUploadingFeatured ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4 mr-2" />
+                                Upload Image
+                              </>
+                            )}
+                          </Button>
+                          {formData.featuredImage && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setFormData({ ...formData, featuredImage: "" })}
+                              data-testid="button-remove-featured"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        {formData.featuredImage && (
+                          <div className="relative">
+                            <img src={formData.featuredImage} alt="Featured" className="h-40 w-auto rounded-md object-cover" />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <Label>Gallery Images</Label>
-                      <div className="flex gap-2 mt-2">
-                        <Input
-                          value={newGalleryUrl}
-                          onChange={(e) => setNewGalleryUrl(e.target.value)}
-                          placeholder="Image URL"
-                          data-testid="input-gallery-url"
+                      <div className="mt-2 space-y-3">
+                        <input
+                          ref={galleryImagesRef}
+                          type="file"
+                          accept="image/*"
+                          multiple
+                          onChange={handleGalleryImagesUpload}
+                          className="hidden"
+                          data-testid="input-gallery-files"
                         />
                         <Button
                           type="button"
-                          variant="secondary"
-                          onClick={() => {
-                            if (newGalleryUrl) {
-                              setFormData({ ...formData, gallery: [...(formData.gallery || []), newGalleryUrl] });
-                              setNewGalleryUrl("");
-                            }
-                          }}
-                          data-testid="button-add-gallery"
+                          variant="outline"
+                          onClick={() => galleryImagesRef.current?.click()}
+                          disabled={isUploadingGallery}
+                          className="w-full"
+                          data-testid="button-upload-gallery"
                         >
-                          Add
+                          {isUploadingGallery ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <ImagePlus className="w-4 h-4 mr-2" />
+                              Add Gallery Images
+                            </>
+                          )}
                         </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {(formData.gallery || []).map((url, i) => (
-                          <div key={i} className="relative group">
-                            <img src={url} alt="" className="h-16 w-24 object-cover rounded-md" />
-                            <button
-                              type="button"
-                              onClick={() => setFormData({ ...formData, gallery: (formData.gallery || []).filter((_, idx) => idx !== i) })}
-                              className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))}
+                        <div className="flex flex-wrap gap-2">
+                          {(formData.gallery || []).map((url, i) => (
+                            <div key={i} className="relative group">
+                              <img src={url} alt="" className="h-20 w-28 object-cover rounded-md" />
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, gallery: (formData.gallery || []).filter((_, idx) => idx !== i) })}
+                                className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                data-testid={`button-remove-gallery-${i}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {(formData.gallery || []).length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No gallery images yet. Click to upload.
+                          </p>
+                        )}
                       </div>
                     </div>
 

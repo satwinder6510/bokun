@@ -1610,6 +1610,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         html = html.replace(/<div[^>]*>/gi, '');
         // Remove other HTML tags
         html = html.replace(/<[^>]+>/g, '');
+        // Decode HTML entities
+        html = html.replace(/&nbsp;/gi, ' ');
+        html = html.replace(/&amp;/gi, '&');
+        html = html.replace(/&lt;/gi, '<');
+        html = html.replace(/&gt;/gi, '>');
+        html = html.replace(/&quot;/gi, '"');
+        html = html.replace(/&#39;/gi, "'");
+        html = html.replace(/&rsquo;/gi, "'");
+        html = html.replace(/&lsquo;/gi, "'");
+        html = html.replace(/&rdquo;/gi, '"');
+        html = html.replace(/&ldquo;/gi, '"');
+        html = html.replace(/&ndash;/gi, '–');
+        html = html.replace(/&mdash;/gi, '—');
+        html = html.replace(/&hellip;/gi, '...');
         // Clean up excessive whitespace while preserving paragraph breaks
         html = html.replace(/\n\s*\n\s*\n/g, '\n\n');
         html = html.replace(/[ \t]+/g, ' ');
@@ -1904,6 +1918,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         html = html.replace(/<\/div>/gi, '\n');
         html = html.replace(/<div[^>]*>/gi, '');
         html = html.replace(/<[^>]+>/g, '');
+        // Decode HTML entities
+        html = html.replace(/&nbsp;/gi, ' ');
+        html = html.replace(/&amp;/gi, '&');
+        html = html.replace(/&lt;/gi, '<');
+        html = html.replace(/&gt;/gi, '>');
+        html = html.replace(/&quot;/gi, '"');
+        html = html.replace(/&#39;/gi, "'");
+        html = html.replace(/&rsquo;/gi, "'");
+        html = html.replace(/&lsquo;/gi, "'");
+        html = html.replace(/&rdquo;/gi, '"');
+        html = html.replace(/&ldquo;/gi, '"');
+        html = html.replace(/&ndash;/gi, '–');
+        html = html.replace(/&mdash;/gi, '—');
+        html = html.replace(/&hellip;/gi, '...');
         html = html.replace(/\n\s*\n\s*\n/g, '\n\n');
         html = html.replace(/[ \t]+/g, ' ');
         return html.trim();

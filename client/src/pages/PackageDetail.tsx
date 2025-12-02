@@ -32,7 +32,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { FlightPackage } from "@shared/schema";
+import type { FlightPackage, PackagePricing } from "@shared/schema";
 
 export default function PackageDetail() {
   const { toast } = useToast();
@@ -42,6 +42,7 @@ export default function PackageDetail() {
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedAirport, setSelectedAirport] = useState<string>("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -56,6 +57,32 @@ export default function PackageDetail() {
     queryKey: ["/api/packages", slug],
     enabled: !!slug,
   });
+
+  const { data: pricing = [] } = useQuery<PackagePricing[]>({
+    queryKey: ["/api/packages", pkg?.id, "pricing"],
+    queryFn: async () => {
+      const response = await fetch(`/api/packages/${pkg?.id}/pricing`);
+      if (!response.ok) throw new Error("Failed to fetch pricing");
+      return response.json();
+    },
+    enabled: !!pkg?.id,
+  });
+
+  // Get unique airports from pricing data
+  const airports = Array.from(new Set(pricing.map(p => p.departureAirport))).map(code => {
+    const entry = pricing.find(p => p.departureAirport === code);
+    return { code, name: entry?.departureAirportName || code };
+  });
+
+  // Filter pricing by selected airport
+  const filteredPricing = selectedAirport 
+    ? pricing.filter(p => p.departureAirport === selectedAirport)
+    : pricing;
+
+  // Sort by date
+  const sortedPricing = [...filteredPricing].sort((a, b) => 
+    new Date(a.departureDate).getTime() - new Date(b.departureDate).getTime()
+  );
 
   useEffect(() => {
     if (pkg) {
@@ -498,6 +525,66 @@ export default function PackageDetail() {
                         <p className="text-sm text-muted-foreground">{pkg.category}</p>
                       </div>
                     </div>
+
+                    {/* Pricing Calendar */}
+                    {pricing.length > 0 && (
+                      <>
+                        <Separator />
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-primary" />
+                            <p className="font-medium">Available Departure Dates</p>
+                          </div>
+                          
+                          {airports.length > 1 && (
+                            <div>
+                              <Label className="text-sm text-muted-foreground">Departure Airport</Label>
+                              <select
+                                value={selectedAirport}
+                                onChange={(e) => setSelectedAirport(e.target.value)}
+                                className="w-full mt-1 p-2 border rounded-md bg-background text-foreground text-sm"
+                                data-testid="select-airport"
+                              >
+                                <option value="">All Airports</option>
+                                {airports.map(airport => (
+                                  <option key={airport.code} value={airport.code}>
+                                    {airport.name} ({airport.code})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                            {sortedPricing.map((p) => (
+                              <div 
+                                key={p.id}
+                                className="flex items-center justify-between p-2 bg-muted/50 rounded-md hover:bg-muted transition-colors"
+                                data-testid={`pricing-entry-${p.id}`}
+                              >
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {new Date(p.departureDate).toLocaleDateString('en-GB', { 
+                                      weekday: 'short',
+                                      day: 'numeric', 
+                                      month: 'short',
+                                      year: 'numeric'
+                                    })}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {p.departureAirportName}
+                                  </p>
+                                </div>
+                                <Badge variant="secondary" className="font-bold">
+                                  {formatPrice(p.price)}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
                     <Separator />
                     <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                       <DialogTrigger asChild>

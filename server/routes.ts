@@ -1158,6 +1158,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get package pricing by package ID (public)
+  app.get("/api/packages/:id/pricing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const pricing = await storage.getPackagePricing(parseInt(id));
+      // Only return available pricing entries
+      const availablePricing = pricing.filter(p => p.isAvailable);
+      res.json(availablePricing);
+    } catch (error: any) {
+      console.error("Error fetching package pricing:", error);
+      res.status(500).json({ error: "Failed to fetch pricing" });
+    }
+  });
+
   // Get all packages including unpublished (admin)
   app.get("/api/admin/packages", async (req, res) => {
     try {

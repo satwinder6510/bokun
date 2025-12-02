@@ -20,6 +20,7 @@ import PackageDetail from "@/pages/PackageDetail";
 import AdminFAQ from "@/pages/AdminFAQ";
 import AdminPackages from "@/pages/AdminPackages";
 import AdminReviews from "@/pages/AdminReviews";
+import AdminTrackingNumbers from "@/pages/AdminTrackingNumbers";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import TwoFactorSetup from "@/pages/TwoFactorSetup";
@@ -59,6 +60,11 @@ function Router() {
       <Route path="/admin/reviews">
         <ProtectedRoute>
           <AdminReviews />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/tracking-numbers">
+        <ProtectedRoute>
+          <AdminTrackingNumbers />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

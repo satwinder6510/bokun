@@ -3,8 +3,6 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
-import { CurrencySelector } from "@/components/CurrencySelector";
-import { CartButton } from "@/components/CartButton";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -188,12 +186,6 @@ export default function Homepage() {
           </div>
           {/* Mobile Menu */}
           <div className="lg:hidden flex items-center gap-2 flex-shrink-0">
-            <div className="flex-shrink-0">
-              <CurrencySelector />
-            </div>
-            <div className="flex-shrink-0">
-              <CartButton />
-            </div>
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" data-testid="button-mobile-menu" className="flex-shrink-0">
@@ -250,6 +242,14 @@ export default function Homepage() {
                     data-testid="mobile-link-packages"
                   >
                     Flight Packages
+                  </a>
+                  <a 
+                    href="#tours" 
+                    className="text-base font-medium hover:text-primary transition-colors py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                    data-testid="mobile-link-tours"
+                  >
+                    Tours
                   </a>
                   <a 
                     href="/blog" 
@@ -316,11 +316,12 @@ export default function Homepage() {
             <a href="/packages" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-packages">
               Flight Packages
             </a>
+            <a href="#tours" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-tours">
+              Tours
+            </a>
             <a href="/blog" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-blog">
               Blog
             </a>
-            <CurrencySelector />
-            <CartButton />
             <a href="/contact">
               <Button size="sm" variant="default" data-testid="button-contact">
                 Contact Us

@@ -34,6 +34,13 @@ The backend is an **Express.js** application written in TypeScript, providing RE
 
 An in-memory storage system (`MemStorage`) is used for initial development, with an interface-based design to facilitate future migration to a persistent database. **Drizzle ORM** is configured for PostgreSQL integration (using Neon Serverless PostgreSQL), with schema definitions in TypeScript and **Zod** for runtime validation.
 
+**Flight Packages & Pricing:** Flight packages are stored in the `flight_packages` table with comprehensive fields for itinerary, accommodations, and media. A dedicated `package_pricing` table enables date-specific pricing with fields for departure airport, date, and price. The admin panel (/admin/packages) includes a "Pricing" tab with:
+- UK airport dropdown (15 major airports)
+- Price input in GBP
+- Multi-date calendar picker for batch date selection
+- Existing pricing entries display with delete functionality
+- API endpoints: GET/POST/DELETE for /api/admin/packages/:id/pricing
+
 ### Build & Deployment
 
 Development uses `tsx` for the backend and Vite for the frontend, with concurrent processes. Production builds involve Vite for the frontend (output to `dist/public`) and `esbuild` for the backend (output to `dist/index.js`), served by a single Node.js process.

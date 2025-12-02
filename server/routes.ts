@@ -1467,6 +1467,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== TRACKING NUMBERS (DNI) =====
+  
+  // Get tracking number for visitor (public) - based on UTM params
+  app.get("/api/tracking-number", async (req, res) => {
+    try {
+      const { source, campaign, medium } = req.query;
+      
+      // Find matching number or default
+      const number = await storage.getTrackingNumberBySource(
+        source as string || null,
+        campaign as string || null,
+        medium as string || null
+      );
+      
+      if (number) {
+        // Increment impressions asynchronously
+        storage.incrementTrackingNumberImpressions(number.id);
+        res.json({ 
+          phoneNumber: number.phoneNumber,
+          id: number.id 
+        });
+      } else {
+        // Return hardcoded default if no numbers in database
+        res.json({ phoneNumber: "0208 183 0518", id: null });
+      }
+    } catch (error: any) {
+      console.error("Error getting tracking number:", error);
+      res.json({ phoneNumber: "0208 183 0518", id: null });
+    }
+  });
+
+  // Get all tracking numbers (admin)
+  app.get("/api/admin/tracking-numbers", async (req, res) => {
+    try {
+      const numbers = await storage.getAllTrackingNumbers();
+      res.json(numbers);
+    } catch (error: any) {
+      console.error("Error fetching tracking numbers:", error);
+      res.status(500).json({ error: "Failed to fetch tracking numbers" });
+    }
+  });
+
+  // Get single tracking number (admin)
+  app.get("/api/admin/tracking-numbers/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const number = await storage.getTrackingNumberById(parseInt(id));
+      if (!number) {
+        return res.status(404).json({ error: "Tracking number not found" });
+      }
+      res.json(number);
+    } catch (error: any) {
+      console.error("Error fetching tracking number:", error);
+      res.status(500).json({ error: "Failed to fetch tracking number" });
+    }
+  });
+
+  // Create tracking number (admin)
+  app.post("/api/admin/tracking-numbers", async (req, res) => {
+    try {
+      const { insertTrackingNumberSchema } = await import("@shared/schema");
+      const parsed = insertTrackingNumberSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid tracking number data", details: parsed.error.errors });
+      }
+      const number = await storage.createTrackingNumber(parsed.data);
+      res.status(201).json(number);
+    } catch (error: any) {
+      console.error("Error creating tracking number:", error);
+      res.status(500).json({ error: "Failed to create tracking number" });
+    }
+  });
+
+  // Update tracking number (admin)
+  app.patch("/api/admin/tracking-numbers/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { updateTrackingNumberSchema } = await import("@shared/schema");
+      const parsed = updateTrackingNumberSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid tracking number data", details: parsed.error.errors });
+      }
+      const number = await storage.updateTrackingNumber(parseInt(id), parsed.data);
+      if (!number) {
+        return res.status(404).json({ error: "Tracking number not found" });
+      }
+      res.json(number);
+    } catch (error: any) {
+      console.error("Error updating tracking number:", error);
+      res.status(500).json({ error: "Failed to update tracking number" });
+    }
+  });
+
+  // Delete tracking number (admin)
+  app.delete("/api/admin/tracking-numbers/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteTrackingNumber(parseInt(id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting tracking number:", error);
+      res.status(500).json({ error: "Failed to delete tracking number" });
+    }
+  });
+
   // Get package categories (for navigation)
   app.get("/api/packages/categories", async (req, res) => {
     try {

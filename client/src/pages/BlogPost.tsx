@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, ArrowLeft, Share2, Phone } from "lucide-react";
-import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
+import { Calendar, Clock, ArrowLeft, Share2 } from "lucide-react";
+import { Header } from "@/components/Header";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -13,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 export default function BlogPostPage() {
   const [, params] = useRoute("/blog/:slug");
   const { toast } = useToast();
-  const phoneNumber = useDynamicPhoneNumber();
   const slug = params?.slug;
 
   const { data: post, isLoading, error } = useQuery<BlogPost>({
@@ -85,42 +84,7 @@ export default function BlogPostPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
-        <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center" data-testid="link-logo">
-            <img
-              src="/attached_assets/flights-and-packages-logo_1763744942036.png"
-              alt="Flights and Packages"
-              className="h-10 md:h-12 w-auto"
-              data-testid="img-logo"
-            />
-          </a>
-          <div className="flex items-center gap-3">
-            <a 
-              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-              className="hidden md:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
-              data-testid="link-header-phone"
-            >
-              <Phone className="w-4 h-4" />
-              {phoneNumber}
-            </a>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={handleShare}
-              data-testid="button-share"
-            >
-              <Share2 className="w-4 h-4" />
-            </Button>
-            <a href="/blog">
-              <Button variant="outline" size="sm" data-testid="button-back-blog">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                All Posts
-              </Button>
-            </a>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="pt-20">
         <article className="container mx-auto px-6 md:px-8 py-16 max-w-4xl">

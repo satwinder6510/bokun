@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Plane, Check, ChevronDown, Menu, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,16 +14,10 @@ import { Label } from "@/components/ui/label";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { useToast } from "@/hooks/use-toast";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
+import { Header } from "@/components/Header";
 import { apiRequest } from "@/lib/queryClient";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -195,7 +189,6 @@ export default function PackageDetail() {
   const phoneNumber = useDynamicPhoneNumber();
   const [, params] = useRoute("/packages/:slug");
   const slug = params?.slug;
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string>("");
@@ -416,88 +409,7 @@ export default function PackageDetail() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
-        <div className="container mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between gap-2 md:gap-6">
-          <div className="flex items-center gap-3 md:gap-6 flex-shrink-0 min-w-0">
-            <a href="/" className="flex items-center flex-shrink-0" data-testid="link-logo">
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-8 md:h-10 w-auto"
-              />
-            </a>
-            <nav className="hidden lg:flex items-center gap-1">
-              <Link href="/">
-                <Button variant="ghost" size="sm" data-testid="link-home">Home</Button>
-              </Link>
-              <Link href="/packages">
-                <Button variant="ghost" size="sm" className="text-primary font-semibold" data-testid="link-packages">
-                  <Plane className="w-4 h-4 mr-1" />
-                  Packages
-                </Button>
-              </Link>
-              <Link href="/faq">
-                <Button variant="ghost" size="sm" data-testid="link-faq">FAQ</Button>
-              </Link>
-              <Link href="/blog">
-                <Button variant="ghost" size="sm" data-testid="link-blog">Blog</Button>
-              </Link>
-              <Link href="/contact">
-                <Button variant="ghost" size="sm" data-testid="link-contact">Contact</Button>
-              </Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-2 md:gap-4">
-            <a 
-              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-              className="hidden lg:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
-              data-testid="link-header-phone"
-            >
-              <Phone className="w-4 h-4" />
-              {phoneNumber}
-            </a>
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="lg:hidden" data-testid="button-mobile-menu">
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-80">
-                <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <nav className="flex flex-col gap-4 mt-8">
-                  <Link href="/" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">Home</Button>
-                  </Link>
-                  <Link href="/packages" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start text-primary">
-                      <Plane className="w-4 h-4 mr-2" />
-                      Flight Packages
-                    </Button>
-                  </Link>
-                  <Link href="/faq" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">FAQ</Button>
-                  </Link>
-                  <Link href="/contact" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="ghost" className="w-full justify-start">Contact</Button>
-                  </Link>
-                  <a 
-                    href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium mt-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                    data-testid="mobile-link-phone"
-                  >
-                    <Phone className="w-4 h-4" />
-                    {phoneNumber}
-                  </a>
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Gallery - Bokun Style */}
       <section className="py-8 pt-24 md:pt-28">

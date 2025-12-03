@@ -22,6 +22,17 @@ The design follows a clean, minimal aesthetic with a focus on user experience. A
 
 The frontend is built with **React 18** and **TypeScript**, using **Vite** for fast HMR and optimized builds. **Wouter** handles client-side routing. The UI component system leverages **shadcn/ui** (New York style variant) built on Radix UI primitives, styled with **Tailwind CSS**. **TanStack Query v5** manages server state, API caching, and data synchronization. The architecture is component-based, emphasizing reusability and separation of concerns, with a responsive, mobile-first design.
 
+**Shared Header Component:** A unified `Header` component (`client/src/components/Header.tsx`) is used across all pages for consistent navigation. The header includes:
+- Flights and Packages logo
+- Travel Trust Association (TTA) logo
+- Navigation links: Home, Flight Packages, Land Tours, Destinations dropdown, Blog
+- Dynamic phone number with call tracking (DNI system)
+- Tidio chat integration trigger button
+- Mobile-responsive hamburger menu for smaller screens
+- Fixed positioning with backdrop blur effect
+
+All pages use this shared component: Homepage, Packages, PackageDetail, Blog, BlogPost, FAQ, Terms, Contact, and TourDetail.
+
 ### Backend Architecture
 
 The backend is an **Express.js** application written in TypeScript, providing RESTful API endpoints under the `/api` namespace. It acts as a secure intermediary (proxy pattern) for interactions with the Bokun API, protecting credentials and generating HMAC-SHA1 signatures server-side. Key integration points include connection testing, product search with pagination, product details retrieval, and availability/pricing queries. API credentials are stored as environment variables.

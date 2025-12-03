@@ -1,15 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { setMetaTags } from "@/lib/meta-tags";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, Clock, ArrowRight, Phone } from "lucide-react";
-import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
+import { Calendar, Clock, ArrowRight } from "lucide-react";
+import { Header } from "@/components/Header";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
 
 export default function Blog() {
-  const phoneNumber = useDynamicPhoneNumber();
   const { data: posts = [], isLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/blog"],
   });
@@ -22,33 +20,7 @@ export default function Blog() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
-        <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center" data-testid="link-logo">
-            <img
-              src="/attached_assets/flights-and-packages-logo_1763744942036.png"
-              alt="Flights and Packages"
-              className="h-10 md:h-12 w-auto"
-              data-testid="img-logo"
-            />
-          </a>
-          <div className="flex items-center gap-3">
-            <a 
-              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
-              data-testid="link-header-phone"
-            >
-              <Phone className="w-4 h-4" />
-              {phoneNumber}
-            </a>
-            <a href="/">
-              <Button variant="outline" size="sm" data-testid="button-back-home">
-                Back to Home
-              </Button>
-            </a>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="pt-20">
         <div className="container mx-auto px-6 md:px-8 py-16 max-w-6xl">

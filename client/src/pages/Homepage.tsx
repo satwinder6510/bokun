@@ -5,26 +5,13 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
-import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Menu, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Header } from "@/components/Header";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } from "@shared/schema";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 
@@ -94,7 +81,6 @@ export default function Homepage() {
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
 
@@ -326,165 +312,7 @@ export default function Homepage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Fixed Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
-        <div className="container mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between gap-2 md:gap-6">
-          <div className="flex items-center gap-3 md:gap-6 flex-shrink-0 min-w-0">
-            <a href="/" className="flex items-center flex-shrink-0" data-testid="link-logo">
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-8 md:h-12 w-auto object-contain"
-                data-testid="img-logo"
-              />
-            </a>
-            <img 
-              src={travelTrustLogo} 
-              alt="Travel Trust Association - Your Holidays 100% Financially Protected" 
-              className="h-6 md:h-10 w-auto object-contain hidden sm:block"
-              aria-label="Travel Trust Association member"
-            />
-          </div>
-          
-          {/* Mobile Menu */}
-          <div className="lg:hidden flex items-center gap-2 flex-shrink-0">
-            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" data-testid="button-mobile-menu" className="flex-shrink-0">
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[280px]">
-                <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <nav className="flex flex-col gap-4 mt-6">
-                  <a 
-                    href="/" 
-                    className="text-base font-medium hover:text-primary transition-colors py-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                    data-testid="mobile-link-home"
-                  >
-                    Home
-                  </a>
-                  <a 
-                    href="/packages" 
-                    className="text-base font-medium hover:text-primary transition-colors py-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                    data-testid="mobile-link-packages"
-                  >
-                    Flight Packages
-                  </a>
-                  <a 
-                    href="#tours" 
-                    className="text-base font-medium hover:text-primary transition-colors py-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                    data-testid="mobile-link-tours"
-                  >
-                    Land Tours
-                  </a>
-                  <div className="border-t pt-4">
-                    <p className="text-sm font-semibold mb-2 text-muted-foreground">Destinations</p>
-                    <div className="max-h-[200px] overflow-y-auto space-y-1">
-                      {allCountries.slice(0, 15).map((country) => (
-                        <button
-                          key={country}
-                          onClick={() => {
-                            setSelectedCountry(country);
-                            setMobileMenuOpen(false);
-                            document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
-                          }}
-                          className="text-sm hover:text-primary transition-colors py-1.5 block w-full text-left"
-                          data-testid={`mobile-menu-${country.toLowerCase().replace(/\s+/g, '-')}`}
-                        >
-                          {country}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <a 
-                    href="/blog" 
-                    className="text-base font-medium hover:text-primary transition-colors py-2 border-t pt-4"
-                    onClick={() => setMobileMenuOpen(false)}
-                    data-testid="mobile-link-blog"
-                  >
-                    Blog
-                  </a>
-                  <a 
-                    href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium mt-2"
-                    onClick={() => setMobileMenuOpen(false)}
-                    data-testid="mobile-link-phone"
-                  >
-                    <Phone className="w-4 h-4" />
-                    {phoneNumber}
-                  </a>
-                </nav>
-              </SheetContent>
-            </Sheet>
-          </div>
-
-          {/* Desktop Menu */}
-          <nav className="hidden lg:flex items-center gap-4 lg:gap-6 flex-shrink-0">
-            <a href="/" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-home">
-              Home
-            </a>
-            <a href="/packages" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-packages">
-              Flight Packages
-            </a>
-            <a href="#tours" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-tours">
-              Land Tours
-            </a>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button 
-                  className="text-base font-medium hover:text-primary transition-colors inline-flex items-center gap-1" 
-                  data-testid="button-destinations-menu"
-                >
-                  Destinations
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 max-h-[400px] overflow-y-auto">
-                <DropdownMenuItem 
-                  onClick={() => {
-                    setSelectedCountry(null);
-                    document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="font-medium"
-                  data-testid="menu-item-all-destinations"
-                >
-                  All Destinations
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {allCountries.map((country) => (
-                  <DropdownMenuItem 
-                    key={country}
-                    onClick={() => {
-                      setSelectedCountry(country);
-                      document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    data-testid={`menu-item-${country.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    {country}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <a href="/blog" className="text-base font-medium hover:text-primary transition-colors" data-testid="link-blog">
-              Blog
-            </a>
-            <a 
-              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
-              data-testid="link-header-phone"
-            >
-              <Phone className="w-4 h-4" />
-              {phoneNumber}
-            </a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero Section with Dual CTAs */}
       <section className="relative h-screen w-full overflow-hidden">

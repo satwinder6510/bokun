@@ -3,13 +3,12 @@ import { setMetaTags } from "@/lib/meta-tags";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Mail, Phone } from "lucide-react";
-import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
+import { ChevronDown, ChevronUp, Mail } from "lucide-react";
+import { Header } from "@/components/Header";
 import type { Faq } from "@shared/schema";
 
 export default function FAQ() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const phoneNumber = useDynamicPhoneNumber();
 
   // Fetch published FAQs
   const { data: faqs = [], isLoading } = useQuery<Faq[]>({
@@ -29,34 +28,7 @@ export default function FAQ() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
-        <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <a href="/" className="flex items-center" data-testid="link-logo">
-            <img
-              src="/attached_assets/flights-and-packages-logo_1763744942036.png"
-              alt="Flights and Packages"
-              className="h-10 md:h-12 w-auto"
-              data-testid="img-logo"
-            />
-          </a>
-          <div className="flex items-center gap-3">
-            <a 
-              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
-              data-testid="link-header-phone"
-            >
-              <Phone className="w-4 h-4" />
-              {phoneNumber}
-            </a>
-            <a href="/">
-              <Button variant="outline" size="sm" data-testid="button-back-home">
-                Back to Home
-              </Button>
-            </a>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Main Content */}
       <main className="pt-20">

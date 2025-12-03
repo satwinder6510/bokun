@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -19,8 +19,8 @@ import { useToast } from "@/hooks/use-toast";
 import { setMetaTags } from "@/lib/meta-tags";
 import { contactLeadSchema, type ContactLead } from "@shared/schema";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
-import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
-import { ArrowLeft, Mail, Phone, MapPin, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, Loader2 } from "lucide-react";
+import { Header } from "@/components/Header";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 
 export default function Contact() {
@@ -58,7 +58,6 @@ export default function Contact() {
         description: "We'll get back to you soon. Thank you for contacting us.",
       });
       form.reset();
-      // Redirect to homepage after 2 seconds
       setTimeout(() => {
         setLocation("/");
       }, 2000);
@@ -78,41 +77,7 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
-        <div className="container mx-auto px-6 md:px-8 h-20 flex items-center justify-between">
-          <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Home
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3 md:gap-6">
-            <a 
-              href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-              className="hidden md:inline-flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-medium hover-elevate transition-colors"
-              data-testid="link-header-phone"
-            >
-              <Phone className="w-4 h-4" />
-              {phoneNumber}
-            </a>
-            <Link href="/">
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-10 md:h-12 w-auto"
-                data-testid="img-logo"
-              />
-            </Link>
-            <img 
-              src={travelTrustLogo} 
-              alt="Travel Trust Association - Your Holidays 100% Financially Protected" 
-              className="hidden md:block h-8 md:h-10 w-auto"
-              aria-label="Travel Trust Association member"
-            />
-          </div>
-        </div>
-      </header>
+      <Header />
 
       {/* Spacer for fixed header */}
       <div className="h-20" />

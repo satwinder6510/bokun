@@ -352,6 +352,9 @@ export const flightPackages = pgTable("flight_packages", {
   slug: text("slug").notNull().unique(),
   category: text("category").notNull(), // e.g., "India", "Maldives", "Dubai"
   
+  // Bokun integration - link to a Bokun land tour for content import
+  bokunProductId: text("bokun_product_id"), // Optional: links to a Bokun tour for content/pricing reference
+  
   // Pricing
   price: real("price").notNull(),
   currency: text("currency").notNull().default("GBP"),
@@ -411,6 +414,7 @@ export const insertFlightPackageSchema = createInsertSchema(flightPackages).omit
   category: z.string().min(1, "Category is required"),
   price: z.number().positive("Price must be positive"),
   description: z.string().min(1, "Description is required"),
+  bokunProductId: z.string().optional().nullable(),
 });
 
 export const updateFlightPackageSchema = insertFlightPackageSchema.partial();

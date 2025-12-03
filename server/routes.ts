@@ -1999,6 +1999,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Search Bokun tours for import into flight packages (admin)
+  app.get("/api/admin/packages/bokun-search", async (req, res) => {
+    try {
+      const { query } = req.query;
+      
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+      
+      // Search Bokun products with the query
+      const results = await searchBokunProducts({ keyword: query, pageSize: 20, page: 1 });
+      
+      // Return simplified results for the search dropdown
+      const tours = results.items.map(item => ({
+        id: item.id,
+        title: item.title,
+        excerpt: item.excerpt || item.summary || '',
+        price: item.price,
+        durationText: item.durationText,
+        keyPhotoUrl: item.keyPhoto?.derived?.find(d => d.name === 'medium')?.url || item.keyPhoto?.originalUrl,
+        location: item.googlePlace?.city || item.locationCode?.location || item.googlePlace?.country || '',
+      }));
+      
+      res.json({ tours, total: results.totalHits });
+    } catch (error: any) {
+      console.error("Error searching Bokun tours:", error);
+      res.status(500).json({ error: "Failed to search Bokun tours" });
+    }
+  });
+
+  // Get Bokun tour details for import (admin)
+  app.get("/api/admin/packages/bokun-tour/:productId", async (req, res) => {
+    try {
+      const { productId } = req.params;
+      
+      // Fetch full product details from Bokun
+      const details = await getBokunProductDetails(productId, 'GBP');
+      
+      if (!details) {
+        return res.status(404).json({ error: "Bokun tour not found" });
+      }
+      
+      // Transform Bokun data into flight package format
+      const importData = {
+        bokunProductId: productId,
+        title: details.title,
+        excerpt: details.excerpt || details.summary || '',
+        description: details.description || details.summary || '',
+        price: details.nextDefaultPriceMoney?.amount || details.price || 0,
+        duration: details.durationText || '',
+        category: details.googlePlace?.country || details.locationCode?.country || 'Worldwide',
+        slug: details.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, ''),
+        highlights: details.customFields
+          ?.filter(f => f.code === 'HIGHLIGHT' || f.code === 'HIGHLIGHTS')
+          ?.map(f => f.value || '')
+          ?.filter(Boolean) || [],
+        whatsIncluded: details.customFields
+          ?.filter(f => f.code === 'INCLUDED' || f.code === 'WHATS_INCLUDED')
+          ?.map(f => f.value || '')
+          ?.filter(Boolean) || [],
+        itinerary: details.itinerary?.map(day => ({
+          day: day.day || 1,
+          title: day.title || `Day ${day.day}`,
+          description: day.body || day.excerpt || '',
+        })) || [],
+        featuredImage: details.keyPhoto?.derived?.find(d => d.name === 'large')?.url || 
+                       details.keyPhoto?.originalUrl || '',
+        gallery: details.photos?.map(p => 
+          p.derived?.find(d => d.name === 'medium')?.url || p.originalUrl || ''
+        ).filter(Boolean) || [],
+      };
+      
+      res.json(importData);
+    } catch (error: any) {
+      console.error("Error fetching Bokun tour details:", error);
+      res.status(500).json({ error: "Failed to fetch Bokun tour details" });
+    }
+  });
+
+  // Export pricing CSV with Bokun net prices (admin)
+  app.get("/api/admin/packages/:id/pricing/export-csv", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const packageId = parseInt(id);
+      
+      // Get the package
+      const allPackages = await storage.getAllFlightPackages();
+      const pkg = allPackages.find(p => p.id === packageId);
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      // Get existing pricing
+      const pricing = await storage.getPackagePricing(packageId);
+      
+      // If linked to Bokun, fetch Bokun pricing for reference
+      let bokunPrices: Map<string, number> = new Map();
+      if (pkg.bokunProductId) {
+        try {
+          // Fetch availability for the next 12 months
+          const today = new Date();
+          const startDate = today.toISOString().split('T')[0];
+          const endDate = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate())
+            .toISOString().split('T')[0];
+          
+          const availability = await getBokunAvailability(pkg.bokunProductId, startDate, endDate, 'GBP');
+          
+          // Build a map of date -> lowest Bokun price
+          availability.availabilities?.forEach(avail => {
+            if (avail.date && avail.pricesByRate && avail.pricesByRate.length > 0) {
+              const lowestPrice = Math.min(...avail.pricesByRate.map(r => r.price || Infinity));
+              if (lowestPrice !== Infinity) {
+                bokunPrices.set(avail.date, lowestPrice);
+              }
+            }
+          });
+        } catch (error) {
+          console.error("Error fetching Bokun availability for export:", error);
+        }
+      }
+      
+      // Build CSV content
+      let csvContent = "Departure Airport,Date,Your Price (GBP),Bokun Net Price (GBP),Flight Price Estimate (GBP)\n";
+      
+      // Group pricing by airport
+      const byAirport = new Map<string, typeof pricing>();
+      pricing.forEach(p => {
+        if (!byAirport.has(p.departureAirport)) {
+          byAirport.set(p.departureAirport, []);
+        }
+        byAirport.get(p.departureAirport)!.push(p);
+      });
+      
+      // Add each pricing entry
+      byAirport.forEach((entries, airport) => {
+        entries.sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+        entries.forEach(entry => {
+          const bokunPrice = bokunPrices.get(entry.departureDate) || '';
+          const flightEstimate = bokunPrice ? (entry.price - bokunPrice).toFixed(2) : '';
+          csvContent += `${airport},${entry.departureDate},${entry.price},${bokunPrice},${flightEstimate}\n`;
+        });
+      });
+      
+      // If no existing pricing but linked to Bokun, show available Bokun dates
+      if (pricing.length === 0 && bokunPrices.size > 0) {
+        csvContent = "Date,Bokun Net Price (GBP),Your Price (GBP) - FILL IN,Departure Airport - FILL IN\n";
+        const sortedDates = Array.from(bokunPrices.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+        sortedDates.forEach(([date, price]) => {
+          csvContent += `${date},${price},,\n`;
+        });
+      }
+      
+      // Send as CSV file
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${pkg.slug}-pricing.csv"`);
+      res.send(csvContent);
+    } catch (error: any) {
+      console.error("Error exporting pricing CSV:", error);
+      res.status(500).json({ error: "Failed to export pricing" });
+    }
+  });
+
   // Submit package enquiry (public)
   app.post("/api/packages/:slug/enquiry", async (req, res) => {
     try {

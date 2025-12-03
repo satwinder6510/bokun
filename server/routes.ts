@@ -2163,6 +2163,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("\n=== BOKUN TOUR IMPORT DATA ===");
       console.log("Product ID:", productId);
       console.log("Available top-level fields:", Object.keys(details));
+      
+      // DETAILED PRICE LOGGING
+      console.log("\n=== PRICE FIELDS ===");
+      console.log("price:", details.price);
+      console.log("nextDefaultPriceMoney:", JSON.stringify(details.nextDefaultPriceMoney, null, 2));
+      console.log("pricingCategories:", details.pricingCategories ? JSON.stringify(details.pricingCategories.slice(0, 2), null, 2) : 'none');
+      console.log("rates:", details.rates ? `${details.rates.length} rates` : 'none');
+      if (details.rates && details.rates.length > 0) {
+        console.log("First rate:", JSON.stringify(details.rates[0], null, 2));
+      }
+      console.log("retailPrice:", details.retailPrice);
+      console.log("netPrice:", details.netPrice);
+      console.log("basePrice:", details.basePrice);
+      console.log("===================\n");
+      
       console.log("Has itinerary:", !!details.itinerary, "length:", details.itinerary?.length || 0);
       console.log("Has agendaItems:", !!details.agendaItems, "length:", details.agendaItems?.length || 0);
       console.log("Has schedule:", !!details.schedule);

@@ -838,11 +838,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Clear any active sessions for this user
-      for (const [token, session] of adminSessions.entries()) {
+      Array.from(adminSessions.entries()).forEach(([token, session]) => {
         if (session.userId === userId) {
           adminSessions.delete(token);
         }
-      }
+      });
 
       res.json({ 
         success: true, 
@@ -877,11 +877,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteAdminUser(userId);
 
       // Clear any active sessions for this user
-      for (const [token, session] of adminSessions.entries()) {
+      Array.from(adminSessions.entries()).forEach(([token, session]) => {
         if (session.userId === userId) {
           adminSessions.delete(token);
         }
-      }
+      });
 
       res.json({ success: true });
     } catch (error: any) {
@@ -1940,8 +1940,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (!dateStr || !priceStr) continue;
           
-          // Parse date from DD-MM-YYYY to YYYY-MM-DD
-          const dateParts = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+          // Parse date from DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
+          const dateParts = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
           if (!dateParts) continue;
           
           const day = dateParts[1].padStart(2, '0');

@@ -465,10 +465,14 @@ export default function AdminPackages() {
   const loadPackagePricing = async (packageId: number) => {
     setIsLoadingPricing(true);
     try {
+      console.log("Loading pricing for package:", packageId);
       const response = await fetch(`/api/admin/packages/${packageId}/pricing`);
       if (response.ok) {
         const pricing = await response.json();
+        console.log("Pricing loaded:", pricing.length, "entries");
         setExistingPricing(pricing);
+      } else {
+        console.error("Failed to load pricing, status:", response.status);
       }
     } catch (error) {
       console.error("Failed to load pricing:", error);
@@ -561,12 +565,15 @@ export default function AdminPackages() {
       
       if (response.ok) {
         toast({ 
-          title: "CSV pricing imported", 
-          description: result.message || `Imported ${result.created} pricing entries`
+          title: "CSV pricing imported successfully", 
+          description: result.message || `Imported ${result.created} pricing entries from ${result.airports} airports`
         });
+        console.log("CSV upload success, reloading pricing...", result);
         await loadPackagePricing(editingPackage.id);
+        console.log("Pricing reloaded successfully");
       } else {
-        throw new Error(result.error || "Failed to upload CSV");
+        console.error("CSV upload failed:", result);
+        throw new Error(result.error || result.details || "Failed to upload CSV");
       }
     } catch (error: any) {
       toast({ 

@@ -389,6 +389,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // DIAGNOSTIC: Compare USD vs GBP prices from Bokun using product details API
+  app.get("/api/bokun/currency-test/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log("\n=== CURRENCY COMPARISON TEST ===");
+      console.log(`Testing product ID: ${id}`);
+      
+      // Fetch same product details with USD and GBP
+      const usdProduct = await getBokunProductDetails(id, "USD");
+      const gbpProduct = await getBokunProductDetails(id, "GBP");
+      
+      const usdPrice = usdProduct.nextDefaultPriceMoney?.amount || usdProduct.price;
+      const gbpPrice = gbpProduct.nextDefaultPriceMoney?.amount || gbpProduct.price;
+      
+      const result = {
+        productId: id,
+        title: usdProduct.title,
+        usd: {
+          requestedCurrency: "USD",
+          nextDefaultPriceMoney: usdProduct.nextDefaultPriceMoney,
+          price: usdPrice
+        },
+        gbp: {
+          requestedCurrency: "GBP", 
+          nextDefaultPriceMoney: gbpProduct.nextDefaultPriceMoney,
+          price: gbpPrice
+        },
+        pricesMatch: usdPrice === gbpPrice,
+        conclusion: usdPrice === gbpPrice 
+          ? "BOKUN IS NOT CONVERTING PRICES - same value returned for both USD and GBP. This is a Bokun booking channel configuration issue."
+          : `Bokun IS converting prices - USD: ${usdPrice}, GBP: ${gbpPrice}`
+      };
+      
+      console.log("Currency test result:", JSON.stringify(result, null, 2));
+      console.log("=================================\n");
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/bokun/availability/:id", async (req, res) => {
     try {
       const { id } = req.params;

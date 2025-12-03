@@ -149,6 +149,10 @@ export default function AdminPackages() {
   const [formData, setFormData] = useState<PackageFormData>(emptyPackage);
   const [newIncluded, setNewIncluded] = useState("");
   const [newHighlight, setNewHighlight] = useState("");
+  const [editingHighlightIndex, setEditingHighlightIndex] = useState<number | null>(null);
+  const [editingHighlightValue, setEditingHighlightValue] = useState("");
+  const [editingIncludedIndex, setEditingIncludedIndex] = useState<number | null>(null);
+  const [editingIncludedValue, setEditingIncludedValue] = useState("");
   const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const featuredImageRef = useRef<HTMLInputElement>(null);
@@ -1216,6 +1220,13 @@ export default function AdminPackages() {
                           value={newHighlight}
                           onChange={(e) => setNewHighlight(e.target.value)}
                           placeholder="Add a highlight..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newHighlight) {
+                              e.preventDefault();
+                              setFormData({ ...formData, highlights: [...(formData.highlights || []), newHighlight] });
+                              setNewHighlight("");
+                            }
+                          }}
                           data-testid="input-highlight"
                         />
                         <Button
@@ -1234,15 +1245,65 @@ export default function AdminPackages() {
                       </div>
                       <ul className="mt-2 space-y-1">
                         {(formData.highlights || []).map((item, i) => (
-                          <li key={i} className="flex items-center justify-between bg-muted px-3 py-1.5 rounded-md text-sm">
-                            <span>{item}</span>
-                            <button
-                              type="button"
-                              onClick={() => setFormData({ ...formData, highlights: (formData.highlights || []).filter((_, idx) => idx !== i) })}
-                              className="text-destructive hover:text-destructive/80"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                          <li key={i} className="flex items-center justify-between gap-2 bg-muted px-3 py-1.5 rounded-md text-sm">
+                            {editingHighlightIndex === i ? (
+                              <Input
+                                value={editingHighlightValue}
+                                onChange={(e) => setEditingHighlightValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const updated = [...(formData.highlights || [])];
+                                    updated[i] = editingHighlightValue;
+                                    setFormData({ ...formData, highlights: updated });
+                                    setEditingHighlightIndex(null);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingHighlightIndex(null);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  const updated = [...(formData.highlights || [])];
+                                  updated[i] = editingHighlightValue;
+                                  setFormData({ ...formData, highlights: updated });
+                                  setEditingHighlightIndex(null);
+                                }}
+                                autoFocus
+                                className="h-7 flex-1"
+                                data-testid={`input-edit-highlight-${i}`}
+                              />
+                            ) : (
+                              <span 
+                                className="flex-1 cursor-pointer hover:text-primary"
+                                onClick={() => {
+                                  setEditingHighlightIndex(i);
+                                  setEditingHighlightValue(item);
+                                }}
+                                data-testid={`text-highlight-${i}`}
+                              >
+                                {item}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingHighlightIndex(i);
+                                  setEditingHighlightValue(item);
+                                }}
+                                className="text-muted-foreground hover:text-foreground"
+                                data-testid={`button-edit-highlight-${i}`}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, highlights: (formData.highlights || []).filter((_, idx) => idx !== i) })}
+                                className="text-destructive hover:text-destructive/80"
+                                data-testid={`button-remove-highlight-${i}`}
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -1255,6 +1316,13 @@ export default function AdminPackages() {
                           value={newIncluded}
                           onChange={(e) => setNewIncluded(e.target.value)}
                           placeholder="Add item..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newIncluded) {
+                              e.preventDefault();
+                              setFormData({ ...formData, whatsIncluded: [...(formData.whatsIncluded || []), newIncluded] });
+                              setNewIncluded("");
+                            }
+                          }}
                           data-testid="input-included"
                         />
                         <Button
@@ -1273,15 +1341,65 @@ export default function AdminPackages() {
                       </div>
                       <ul className="mt-2 space-y-1">
                         {(formData.whatsIncluded || []).map((item, i) => (
-                          <li key={i} className="flex items-center justify-between bg-muted px-3 py-1.5 rounded-md text-sm">
-                            <span>{item}</span>
-                            <button
-                              type="button"
-                              onClick={() => setFormData({ ...formData, whatsIncluded: (formData.whatsIncluded || []).filter((_, idx) => idx !== i) })}
-                              className="text-destructive hover:text-destructive/80"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                          <li key={i} className="flex items-center justify-between gap-2 bg-muted px-3 py-1.5 rounded-md text-sm">
+                            {editingIncludedIndex === i ? (
+                              <Input
+                                value={editingIncludedValue}
+                                onChange={(e) => setEditingIncludedValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const updated = [...(formData.whatsIncluded || [])];
+                                    updated[i] = editingIncludedValue;
+                                    setFormData({ ...formData, whatsIncluded: updated });
+                                    setEditingIncludedIndex(null);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingIncludedIndex(null);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  const updated = [...(formData.whatsIncluded || [])];
+                                  updated[i] = editingIncludedValue;
+                                  setFormData({ ...formData, whatsIncluded: updated });
+                                  setEditingIncludedIndex(null);
+                                }}
+                                autoFocus
+                                className="h-7 flex-1"
+                                data-testid={`input-edit-included-${i}`}
+                              />
+                            ) : (
+                              <span 
+                                className="flex-1 cursor-pointer hover:text-primary"
+                                onClick={() => {
+                                  setEditingIncludedIndex(i);
+                                  setEditingIncludedValue(item);
+                                }}
+                                data-testid={`text-included-${i}`}
+                              >
+                                {item}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingIncludedIndex(i);
+                                  setEditingIncludedValue(item);
+                                }}
+                                className="text-muted-foreground hover:text-foreground"
+                                data-testid={`button-edit-included-${i}`}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, whatsIncluded: (formData.whatsIncluded || []).filter((_, idx) => idx !== i) })}
+                                className="text-destructive hover:text-destructive/80"
+                                data-testid={`button-remove-included-${i}`}
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
                           </li>
                         ))}
                       </ul>

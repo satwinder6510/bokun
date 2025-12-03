@@ -2159,38 +2159,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Bokun tour not found" });
       }
       
+      // Log all available fields for debugging
+      console.log("\n=== BOKUN TOUR IMPORT DATA ===");
+      console.log("Product ID:", productId);
+      console.log("Available top-level fields:", Object.keys(details));
+      console.log("Has itinerary:", !!details.itinerary, "length:", details.itinerary?.length || 0);
+      console.log("Has agendaItems:", !!details.agendaItems, "length:", details.agendaItems?.length || 0);
+      console.log("Has schedule:", !!details.schedule);
+      console.log("Has customFields:", !!details.customFields, "length:", details.customFields?.length || 0);
+      console.log("Has included/excluded:", !!details.included, !!details.excluded);
+      console.log("Has photos:", !!details.photos, "length:", details.photos?.length || 0);
+      console.log("Has keyPhoto:", !!details.keyPhoto);
+      
+      if (details.customFields?.length > 0) {
+        console.log("Custom field codes:", details.customFields.map((f: any) => f.code));
+      }
+      
+      if (details.itinerary?.length > 0) {
+        console.log("First itinerary item:", JSON.stringify(details.itinerary[0], null, 2));
+      }
+      
+      if (details.agendaItems?.length > 0) {
+        console.log("First agenda item:", JSON.stringify(details.agendaItems[0], null, 2));
+      }
+      
+      // Extract highlights from multiple possible sources
+      const highlights: string[] = [];
+      // From customFields
+      (details.customFields || []).forEach((f: any) => {
+        if (f.code?.toUpperCase().includes('HIGHLIGHT') && f.value) {
+          highlights.push(f.value);
+        }
+      });
+      // From flags
+      if (details.flags?.length > 0) {
+        highlights.push(...details.flags.filter((f: string) => f && !highlights.includes(f)));
+      }
+      
+      // Extract what's included from multiple sources
+      const whatsIncluded: string[] = [];
+      // From customFields
+      (details.customFields || []).forEach((f: any) => {
+        if ((f.code?.toUpperCase().includes('INCLUDED') || f.code?.toUpperCase().includes('INCLUDE')) && f.value) {
+          whatsIncluded.push(f.value);
+        }
+      });
+      // From included field (Bokun standard)
+      if (details.included) {
+        if (Array.isArray(details.included)) {
+          whatsIncluded.push(...details.included.map((i: any) => typeof i === 'string' ? i : i.title || i.description || '').filter(Boolean));
+        } else if (typeof details.included === 'string') {
+          // Split by newlines or bullets
+          whatsIncluded.push(...details.included.split(/[\n•\-]/).map((s: string) => s.trim()).filter(Boolean));
+        }
+      }
+      
+      // Extract itinerary from multiple possible sources
+      let itinerary: { day: number; title: string; description: string }[] = [];
+      
+      // Primary: Bokun's standard itinerary field
+      if (details.itinerary?.length > 0) {
+        itinerary = details.itinerary.map((day: any) => ({
+          day: day.day || day.dayNumber || 1,
+          title: day.title || day.name || `Day ${day.day || day.dayNumber || 1}`,
+          description: day.body || day.description || day.excerpt || day.content || '',
+        }));
+      }
+      // Fallback: agendaItems (some Bokun products use this)
+      else if (details.agendaItems?.length > 0) {
+        itinerary = details.agendaItems.map((item: any, idx: number) => ({
+          day: item.day || item.dayNumber || idx + 1,
+          title: item.title || item.name || `Day ${idx + 1}`,
+          description: item.body || item.description || item.excerpt || '',
+        }));
+      }
+      // Fallback: schedule field
+      else if (details.schedule?.length > 0) {
+        itinerary = details.schedule.map((item: any, idx: number) => ({
+          day: item.day || idx + 1,
+          title: item.title || item.time || `Day ${idx + 1}`,
+          description: item.description || item.activity || '',
+        }));
+      }
+      // Fallback: look in customFields for ITINERARY or DAY fields
+      else {
+        const itineraryFields = (details.customFields || [])
+          .filter((f: any) => f.code?.toUpperCase().includes('ITINERARY') || f.code?.toUpperCase().includes('DAY'))
+          .sort((a: any, b: any) => (a.code || '').localeCompare(b.code || ''));
+        
+        if (itineraryFields.length > 0) {
+          itinerary = itineraryFields.map((f: any, idx: number) => ({
+            day: idx + 1,
+            title: f.title || `Day ${idx + 1}`,
+            description: f.value || '',
+          }));
+        }
+      }
+      
+      // Extract gallery images
+      const gallery: string[] = [];
+      if (details.photos?.length > 0) {
+        details.photos.forEach((p: any) => {
+          const url = p.derived?.find((d: any) => d.name === 'large' || d.name === 'medium')?.url || p.originalUrl;
+          if (url) gallery.push(url);
+        });
+      }
+      if (details.images?.length > 0) {
+        details.images.forEach((img: any) => {
+          const url = typeof img === 'string' ? img : img.url || img.originalUrl;
+          if (url && !gallery.includes(url)) gallery.push(url);
+        });
+      }
+      
       // Transform Bokun data into flight package format
       const importData = {
         bokunProductId: productId,
         title: details.title,
         excerpt: details.excerpt || details.summary || '',
-        description: details.description || details.summary || '',
+        description: details.description || details.summary || details.longDescription || '',
         price: details.nextDefaultPriceMoney?.amount || details.price || 0,
-        duration: details.durationText || '',
+        duration: details.durationText || details.duration || '',
         category: details.googlePlace?.country || details.locationCode?.country || 'Worldwide',
         slug: (details.title || '')
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, ''),
-        highlights: (details.customFields || [])
-          .filter((f: any) => f.code === 'HIGHLIGHT' || f.code === 'HIGHLIGHTS')
-          .map((f: any) => f.value || '')
-          .filter(Boolean) || [],
-        whatsIncluded: (details.customFields || [])
-          .filter((f: any) => f.code === 'INCLUDED' || f.code === 'WHATS_INCLUDED')
-          .map((f: any) => f.value || '')
-          .filter(Boolean) || [],
-        itinerary: (details.itinerary || []).map((day: any) => ({
-          day: day.day || 1,
-          title: day.title || `Day ${day.day}`,
-          description: day.body || day.excerpt || '',
-        })) || [],
+        highlights,
+        whatsIncluded,
+        itinerary,
         featuredImage: details.keyPhoto?.derived?.find((d: any) => d.name === 'large')?.url || 
                        details.keyPhoto?.originalUrl || '',
-        gallery: (details.photos || []).map((p: any) => 
-          p.derived?.find((d: any) => d.name === 'medium')?.url || p.originalUrl || ''
-        ).filter(Boolean) || [],
+        gallery,
+        // Include raw Bokun response for debugging (only in dev)
+        _rawBokunFields: process.env.NODE_ENV === 'development' ? Object.keys(details) : undefined,
+        _hasItinerary: itinerary.length > 0,
+        _hasHighlights: highlights.length > 0,
+        _hasWhatsIncluded: whatsIncluded.length > 0,
+        _photosCount: gallery.length,
       };
+      
+      console.log("Import data summary:", {
+        title: importData.title,
+        itineraryDays: importData.itinerary.length,
+        highlights: importData.highlights.length,
+        whatsIncluded: importData.whatsIncluded.length,
+        photos: importData.gallery.length,
+      });
+      console.log("=== END BOKUN IMPORT ===\n");
       
       res.json(importData);
     } catch (error: any) {

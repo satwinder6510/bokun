@@ -674,9 +674,21 @@ export default function AdminPackages() {
       setBokunSearchOpen(false);
       setIsCreating(true);
       setEditingPackage(null);
+      
+      // Build import summary showing what was found
+      const importedItems = [];
+      if (tourData.itinerary?.length > 0) importedItems.push(`${tourData.itinerary.length} itinerary days`);
+      if (tourData.highlights?.length > 0) importedItems.push(`${tourData.highlights.length} highlights`);
+      if (tourData.whatsIncluded?.length > 0) importedItems.push(`${tourData.whatsIncluded.length} included items`);
+      if (tourData.gallery?.length > 0) importedItems.push(`${tourData.gallery.length} photos`);
+      
+      const summaryText = importedItems.length > 0 
+        ? `Imported: ${importedItems.join(', ')}. Review and add flight pricing.`
+        : `Basic info imported. Note: This tour has no itinerary data in Bokun. You may need to add itinerary manually.`;
+      
       toast({ 
         title: "Tour content imported", 
-        description: `Content from "${tourData.title}" has been imported. Review and add flight pricing.` 
+        description: summaryText
       });
     } catch (error: any) {
       toast({ title: "Import failed", description: error.message, variant: "destructive" });

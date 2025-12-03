@@ -2008,50 +2008,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (panels.length) break;
         }
         
-        panels.each((_, panel) => {
-          // Try multiple selectors for hotel name
-          const hotelName = $(panel).find('.label').first().text().trim() ||
-                           $(panel).find('.title').first().text().trim() ||
-                           $(panel).find('.hotel-name').first().text().trim() ||
-                           $(panel).find('h3, h4, h5').first().text().trim() ||
-                           $(panel).find('.description').first().text().trim();
+        if (panels.length) {
+          // Panel-based structure
+          console.log(`Found ${panels.length} accommodation panels`);
+          panels.each((_, panel) => {
+            // Try multiple selectors for hotel name
+            const hotelName = $(panel).find('.label').first().text().trim() ||
+                             $(panel).find('.title').first().text().trim() ||
+                             $(panel).find('.hotel-name').first().text().trim() ||
+                             $(panel).find('h3, h4, h5').first().text().trim() ||
+                             $(panel).find('.description').first().text().trim();
+            
+            console.log(`Panel hotel name: "${hotelName}"`);
+            
+            if (hotelName && hotelName.length > 2 && !hotelName.match(/^Day\s*\d+$/i)) {
+              // Get hotel description - try multiple selectors including p.MsoNormal
+              let hotelDesc = '';
+              const descSelectors = ['.panel-content p.MsoNormal', '.panel-content .desc', '.desc', '.hotel-desc', '.description', 'p'];
+              for (const sel of descSelectors) {
+                const descEl = $(panel).find(sel);
+                if (descEl.length) {
+                  hotelDesc = htmlToText(descEl);
+                  if (hotelDesc.length > 20) break;
+                }
+              }
+              
+              console.log(`Panel description length: ${hotelDesc.length}`);
+              
+              // Get hotel images from carousel - less restrictive matching
+              const hotelImages: string[] = [];
+              
+              // First try anchor hrefs (higher quality images)
+              $(panel).find('.accommodation-carousel a.img-url, a[href*="HotelImages"], a[href*="PackageImages"]').each((_, a) => {
+                const href = $(a).attr('href');
+                if (href && !hotelImages.includes(href)) {
+                  hotelImages.push(href);
+                }
+              });
+              
+              // Fallback to img src if no anchors found
+              if (hotelImages.length === 0) {
+                $(panel).find('.accommodation-carousel img, .panel-content img').each((_, img) => {
+                  const src = $(img).attr('src');
+                  if (src && !hotelImages.includes(src)) {
+                    hotelImages.push(src);
+                  }
+                });
+              }
+              
+              console.log(`Panel images found: ${hotelImages.length}`);
+              
+              extracted.accommodations.push({
+                name: hotelName.substring(0, 150),
+                description: hotelDesc.trim().substring(0, 800),
+                images: hotelImages.slice(0, 10)
+              });
+            }
+          });
+        } else {
+          // Flat structure - hotel data directly in accommodation section
+          // Look for hotel name in .label or .title elements (but not section headers)
+          let hotelName = '';
           
-          if (hotelName && hotelName.length > 2 && !hotelName.match(/^Day\s*\d+$/i)) {
-            // Get hotel description - try multiple selectors
-            let hotelDesc = '';
-            const descSelectors = ['.panel-content .desc', '.desc', '.hotel-desc', '.description', 'p'];
-            for (const sel of descSelectors) {
-              const descEl = $(panel).find(sel);
-              if (descEl.length) {
-                hotelDesc = htmlToText(descEl);
-                if (hotelDesc.length > 20) break;
+          // First try .title which often has the hotel name
+          const titleEl = accommodationSection.find('.title').first();
+          if (titleEl.length) {
+            hotelName = titleEl.text().trim();
+          }
+          
+          // Fallback to .label if no title found
+          if (!hotelName) {
+            const labelEl = accommodationSection.find('.label').first();
+            if (labelEl.length) {
+              hotelName = labelEl.text().trim();
+            }
+          }
+          
+          // Last fallback to h3/h4
+          if (!hotelName) {
+            const headerEl = accommodationSection.find('h3, h4').first();
+            if (headerEl.length) {
+              const text = headerEl.text().trim();
+              if (!text.match(/Accommodation/i) && !text.match(/Facilities/i)) {
+                hotelName = text;
               }
             }
-            
-            // Get hotel images from carousel
-            const hotelImages: string[] = [];
-            $(panel).find('.accommodation-carousel img, .panel-content img, .hotel-images img, img').each((_, img) => {
-              const src = $(img).attr('src');
-              if (src && !hotelImages.includes(src) && (src.includes('Hotel') || src.includes('hotel') || src.includes('Accommodation'))) {
-                hotelImages.push(src);
+          }
+          
+          if (hotelName && hotelName.length > 2 && !hotelName.match(/^Day\s*\d+$/i) && !hotelName.match(/^Accommodation/i)) {
+            // Get hotel description from paragraphs (MsoNormal class or regular p tags)
+            let hotelDesc = '';
+            accommodationSection.find('p.MsoNormal, p').each((_, p) => {
+              const text = $(p).text().trim();
+              // Include description text even if it mentions Hotel/Resort - the first line might be about the hotel
+              if (text.length > 30) {
+                hotelDesc += text + ' ';
               }
             });
             
-            // Also check for images in anchor hrefs (higher quality)
-            $(panel).find('.accommodation-carousel a.img-url, a[href*="Hotel"], a[href*="hotel"]').each((_, a) => {
+            // Get hotel images from carousel links (higher quality than img src)
+            const hotelImages: string[] = [];
+            accommodationSection.find('.accommodation-carousel a.img-url, a[href*="HotelImages"], a[href*="PackageImages"]').each((_, a) => {
               const href = $(a).attr('href');
-              if (href && !hotelImages.includes(href) && (href.includes('.jpg') || href.includes('.webp') || href.includes('.png'))) {
+              if (href && !hotelImages.includes(href)) {
                 hotelImages.push(href);
               }
             });
             
-            extracted.accommodations.push({
-              name: hotelName.substring(0, 150),
-              description: hotelDesc.trim().substring(0, 800),
-              images: hotelImages.slice(0, 5)
-            });
+            // Fallback to img src if no anchor hrefs found
+            if (hotelImages.length === 0) {
+              accommodationSection.find('.accommodation-carousel img, img[src*="Hotel"], img[src*="PackageImages"]').each((_, img) => {
+                const src = $(img).attr('src');
+                if (src && !hotelImages.includes(src)) {
+                  hotelImages.push(src);
+                }
+              });
+            }
+            
+            if (hotelName || hotelImages.length > 0) {
+              extracted.accommodations.push({
+                name: hotelName.substring(0, 150),
+                description: hotelDesc.trim().substring(0, 800),
+                images: hotelImages.slice(0, 10)
+              });
+            }
           }
-        });
+        }
       }
       
       // Fallback: Look for any hotel-related content if no accommodations found

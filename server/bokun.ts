@@ -129,6 +129,39 @@ export async function searchBokunProducts(page: number = 1, pageSize: number = 2
   }
 }
 
+export async function searchBokunProductsByKeyword(keyword: string, page: number = 1, pageSize: number = 20, currency: string = "GBP") {
+  const path = "/activity.json/search";
+  const queryParams = `?currency=${currency}`;
+  const fullPath = `${path}${queryParams}`;
+  const method = "POST";
+
+  try {
+    const headers = getBokunHeaders(method, fullPath);
+    const response = await fetch(`${BOKUN_API_BASE}${fullPath}`, {
+      method,
+      headers,
+      body: JSON.stringify({ 
+        page, 
+        pageSize,
+        filter: {
+          textSearch: keyword
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API returned status ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("Bokun keyword search for:", keyword, "found:", data.totalHits, "results");
+    return data;
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to search products from Bokun API");
+  }
+}
+
 export async function getBokunProductDetails(productId: string, currency: string = "GBP") {
   const path = `/activity.json/${productId}`;
   const queryParams = `?currency=${currency}`;

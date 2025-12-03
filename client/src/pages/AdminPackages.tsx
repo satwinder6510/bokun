@@ -102,6 +102,17 @@ type PackageFormData = {
   metaDescription: string;
   isPublished: boolean;
   displayOrder: number;
+  bokunProductId: string | null;
+};
+
+type BokunTourResult = {
+  id: string;
+  title: string;
+  excerpt: string;
+  price: number;
+  durationText: string;
+  keyPhotoUrl: string;
+  location: string;
 };
 
 const emptyPackage: PackageFormData = {
@@ -125,6 +136,7 @@ const emptyPackage: PackageFormData = {
   metaDescription: "",
   isPublished: false,
   displayOrder: 0,
+  bokunProductId: null,
 };
 
 type ScrapedData = {
@@ -175,6 +187,13 @@ export default function AdminPackages() {
   const [isSavingPricing, setIsSavingPricing] = useState(false);
   const [isUploadingCsv, setIsUploadingCsv] = useState(false);
   const csvFileRef = useRef<HTMLInputElement>(null);
+
+  // Bokun tour import state
+  const [bokunSearchOpen, setBokunSearchOpen] = useState(false);
+  const [bokunSearchQuery, setBokunSearchQuery] = useState("");
+  const [bokunSearchResults, setBokunSearchResults] = useState<BokunTourResult[]>([]);
+  const [isSearchingBokun, setIsSearchingBokun] = useState(false);
+  const [isImportingBokun, setIsImportingBokun] = useState(false);
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
@@ -449,6 +468,7 @@ export default function AdminPackages() {
       metaDescription: pkg.metaDescription || "",
       isPublished: pkg.isPublished,
       displayOrder: pkg.displayOrder,
+      bokunProductId: pkg.bokunProductId || null,
     });
     setEditingPackage(pkg);
     setIsCreating(false);
@@ -595,6 +615,85 @@ export default function AdminPackages() {
       updateMutation.mutate({ id: editingPackage.id, data: formData });
     } else {
       createMutation.mutate(formData);
+    }
+  };
+
+  // Bokun tour search handler
+  const handleBokunSearch = async () => {
+    if (!bokunSearchQuery.trim()) {
+      toast({ title: "Please enter a search term", variant: "destructive" });
+      return;
+    }
+    
+    setIsSearchingBokun(true);
+    try {
+      const response = await fetch(`/api/admin/packages/bokun-search?query=${encodeURIComponent(bokunSearchQuery)}`);
+      if (!response.ok) {
+        throw new Error("Search failed");
+      }
+      const data = await response.json();
+      setBokunSearchResults(data.tours || []);
+      if (data.tours?.length === 0) {
+        toast({ title: "No tours found", description: "Try a different search term" });
+      }
+    } catch (error: any) {
+      toast({ title: "Search failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsSearchingBokun(false);
+    }
+  };
+
+  // Import content from a Bokun tour
+  const handleImportBokunTour = async (productId: string) => {
+    setIsImportingBokun(true);
+    try {
+      const response = await fetch(`/api/admin/packages/bokun-tour/${productId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch tour details");
+      }
+      const tourData = await response.json();
+      
+      // Update form with imported data
+      setFormData({
+        ...emptyPackage,
+        bokunProductId: tourData.bokunProductId,
+        title: tourData.title,
+        slug: tourData.slug,
+        category: tourData.category,
+        price: tourData.price || 0,
+        description: tourData.description,
+        excerpt: tourData.excerpt,
+        highlights: tourData.highlights || [],
+        whatsIncluded: tourData.whatsIncluded || [],
+        itinerary: tourData.itinerary || [],
+        duration: tourData.duration,
+        featuredImage: tourData.featuredImage,
+        gallery: tourData.gallery || [],
+      });
+      
+      setBokunSearchOpen(false);
+      setIsCreating(true);
+      setEditingPackage(null);
+      toast({ 
+        title: "Tour content imported", 
+        description: `Content from "${tourData.title}" has been imported. Review and add flight pricing.` 
+      });
+    } catch (error: any) {
+      toast({ title: "Import failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsImportingBokun(false);
+    }
+  };
+
+  // Export pricing with Bokun net prices
+  const handleExportPricingCsv = async () => {
+    if (!editingPackage) return;
+    
+    try {
+      window.location.href = `/api/admin/packages/${editingPackage.id}/pricing/export-csv`;
+      toast({ title: "Downloading pricing CSV" });
+    } catch (error: any) {
+      toast({ title: "Export failed", description: error.message, variant: "destructive" });
     }
   };
 
@@ -745,6 +844,105 @@ export default function AdminPackages() {
                 data-testid="input-search"
               />
             </div>
+            <Dialog open={bokunSearchOpen} onOpenChange={setBokunSearchOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="button-import-bokun">
+                  <Plane className="w-4 h-4 mr-2" />
+                  Import from Bokun
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Import from Bokun Land Tour</DialogTitle>
+                  <DialogDescription>
+                    Search for a Bokun land tour to import its content. You can then add flight pricing.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Search Bokun tours (e.g., India, Safari, Maldives...)"
+                      value={bokunSearchQuery}
+                      onChange={(e) => setBokunSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleBokunSearch()}
+                      className="flex-1"
+                      data-testid="input-bokun-search"
+                    />
+                    <Button 
+                      onClick={handleBokunSearch} 
+                      disabled={isSearchingBokun}
+                      data-testid="button-bokun-search"
+                    >
+                      {isSearchingBokun ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Searching...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="w-4 h-4 mr-2" />
+                          Search
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {bokunSearchResults.length > 0 && (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {bokunSearchResults.map((tour) => (
+                        <div 
+                          key={tour.id}
+                          className="flex items-center gap-4 p-3 border rounded-lg hover-elevate cursor-pointer"
+                          onClick={() => !isImportingBokun && handleImportBokunTour(tour.id)}
+                          data-testid={`card-bokun-tour-${tour.id}`}
+                        >
+                          {tour.keyPhotoUrl && (
+                            <img 
+                              src={tour.keyPhotoUrl} 
+                              alt={tour.title}
+                              className="w-20 h-16 object-cover rounded"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium truncate">{tour.title}</h4>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {tour.location} {tour.durationText && `• ${tour.durationText}`}
+                            </p>
+                            {tour.price > 0 && (
+                              <p className="text-sm font-medium text-primary">
+                                Bokun Net: {formatPrice(tour.price)}
+                              </p>
+                            )}
+                          </div>
+                          <Button 
+                            size="sm" 
+                            disabled={isImportingBokun}
+                            data-testid={`button-import-tour-${tour.id}`}
+                          >
+                            {isImportingBokun ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="w-4 h-4 mr-1" />
+                                Import
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {bokunSearchResults.length === 0 && bokunSearchQuery && !isSearchingBokun && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Search className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>No tours found. Try a different search term.</p>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
             <Dialog open={scraperDialogOpen} onOpenChange={setScraperDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" data-testid="button-scrape-test">
@@ -1694,26 +1892,46 @@ export default function AdminPackages() {
                                   className="hidden"
                                   data-testid="input-csv-upload"
                                 />
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={() => csvFileRef.current?.click()}
-                                  disabled={isUploadingCsv}
-                                  className="w-full"
-                                  data-testid="button-upload-csv"
-                                >
-                                  {isUploadingCsv ? (
-                                    <>
-                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Processing CSV...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="w-4 h-4 mr-2" />
-                                      Upload Pricing CSV
-                                    </>
-                                  )}
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => csvFileRef.current?.click()}
+                                    disabled={isUploadingCsv}
+                                    className="flex-1"
+                                    data-testid="button-upload-csv"
+                                  >
+                                    {isUploadingCsv ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Processing CSV...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Upload className="w-4 h-4 mr-2" />
+                                        Upload Pricing CSV
+                                      </>
+                                    )}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleExportPricingCsv}
+                                    disabled={existingPricing.length === 0 && !formData.bokunProductId}
+                                    data-testid="button-export-csv"
+                                  >
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Export CSV
+                                  </Button>
+                                </div>
+                                {formData.bokunProductId && (
+                                  <div className="p-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded text-xs">
+                                    <p className="text-blue-800 dark:text-blue-200 flex items-center gap-1">
+                                      <Plane className="w-3 h-3" />
+                                      Linked to Bokun tour. Export includes Bokun net prices for reference.
+                                    </p>
+                                  </div>
+                                )}
                               </div>
                             </CardContent>
                           </Card>

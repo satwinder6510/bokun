@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking } from "./bokun";
+import { testBokunConnection, searchBokunProducts, searchBokunProductsByKeyword, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking } from "./bokun";
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
@@ -2009,16 +2009,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Search Bokun products with the query
-      const results = await searchBokunProducts({ keyword: query, pageSize: 20, page: 1 });
+      const results = await searchBokunProductsByKeyword(query, 1, 20, 'GBP');
       
       // Return simplified results for the search dropdown
-      const tours = results.items.map(item => ({
+      const tours = (results.items || []).map((item: any) => ({
         id: item.id,
         title: item.title,
         excerpt: item.excerpt || item.summary || '',
         price: item.price,
         durationText: item.durationText,
-        keyPhotoUrl: item.keyPhoto?.derived?.find(d => d.name === 'medium')?.url || item.keyPhoto?.originalUrl,
+        keyPhotoUrl: item.keyPhoto?.derived?.find((d: any) => d.name === 'medium')?.url || item.keyPhoto?.originalUrl,
         location: item.googlePlace?.city || item.locationCode?.location || item.googlePlace?.country || '',
       }));
       
@@ -2035,7 +2035,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { productId } = req.params;
       
       // Fetch full product details from Bokun
-      const details = await getBokunProductDetails(productId, 'GBP');
+      const details: any = await getBokunProductDetails(productId, 'GBP');
       
       if (!details) {
         return res.status(404).json({ error: "Bokun tour not found" });
@@ -2050,27 +2050,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price: details.nextDefaultPriceMoney?.amount || details.price || 0,
         duration: details.durationText || '',
         category: details.googlePlace?.country || details.locationCode?.country || 'Worldwide',
-        slug: details.title
+        slug: (details.title || '')
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, ''),
-        highlights: details.customFields
-          ?.filter(f => f.code === 'HIGHLIGHT' || f.code === 'HIGHLIGHTS')
-          ?.map(f => f.value || '')
-          ?.filter(Boolean) || [],
-        whatsIncluded: details.customFields
-          ?.filter(f => f.code === 'INCLUDED' || f.code === 'WHATS_INCLUDED')
-          ?.map(f => f.value || '')
-          ?.filter(Boolean) || [],
-        itinerary: details.itinerary?.map(day => ({
+        highlights: (details.customFields || [])
+          .filter((f: any) => f.code === 'HIGHLIGHT' || f.code === 'HIGHLIGHTS')
+          .map((f: any) => f.value || '')
+          .filter(Boolean) || [],
+        whatsIncluded: (details.customFields || [])
+          .filter((f: any) => f.code === 'INCLUDED' || f.code === 'WHATS_INCLUDED')
+          .map((f: any) => f.value || '')
+          .filter(Boolean) || [],
+        itinerary: (details.itinerary || []).map((day: any) => ({
           day: day.day || 1,
           title: day.title || `Day ${day.day}`,
           description: day.body || day.excerpt || '',
         })) || [],
-        featuredImage: details.keyPhoto?.derived?.find(d => d.name === 'large')?.url || 
+        featuredImage: details.keyPhoto?.derived?.find((d: any) => d.name === 'large')?.url || 
                        details.keyPhoto?.originalUrl || '',
-        gallery: details.photos?.map(p => 
-          p.derived?.find(d => d.name === 'medium')?.url || p.originalUrl || ''
+        gallery: (details.photos || []).map((p: any) => 
+          p.derived?.find((d: any) => d.name === 'medium')?.url || p.originalUrl || ''
         ).filter(Boolean) || [],
       };
       
@@ -2107,12 +2107,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const endDate = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate())
             .toISOString().split('T')[0];
           
-          const availability = await getBokunAvailability(pkg.bokunProductId, startDate, endDate, 'GBP');
+          const availability: any = await getBokunAvailability(pkg.bokunProductId, startDate, endDate, 'GBP');
           
           // Build a map of date -> lowest Bokun price
-          availability.availabilities?.forEach(avail => {
+          // Bokun returns availability as an array directly
+          const availabilities = Array.isArray(availability) ? availability : availability.availabilities || [];
+          availabilities.forEach((avail: any) => {
             if (avail.date && avail.pricesByRate && avail.pricesByRate.length > 0) {
-              const lowestPrice = Math.min(...avail.pricesByRate.map(r => r.price || Infinity));
+              const lowestPrice = Math.min(...avail.pricesByRate.map((r: any) => r.price || Infinity));
               if (lowestPrice !== Infinity) {
                 bokunPrices.set(avail.date, lowestPrice);
               }

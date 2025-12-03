@@ -218,7 +218,7 @@ function CheckoutForm({ serverAmount, serverCurrency, paymentIntentId }: Checkou
               ) : (
                 <>
                   <Lock className="mr-2 h-4 w-4" />
-                  Pay {formatCurrency(subtotal, currency)}
+                  Pay {formatCurrency(subtotal)}
                 </>
               )}
             </Button>
@@ -249,7 +249,7 @@ function CheckoutForm({ serverAmount, serverCurrency, paymentIntentId }: Checkou
                       Quantity: {item.quantity}
                     </p>
                     <p className="text-sm font-semibold mt-1">
-                      {formatCurrency(item.productPrice, item.currency)}
+                      {formatCurrency(item.productPrice)}
                     </p>
                   </div>
                 </div>
@@ -261,11 +261,11 @@ function CheckoutForm({ serverAmount, serverCurrency, paymentIntentId }: Checkou
             <div className="space-y-2">
               <div className="flex justify-between text-base">
                 <span>Subtotal</span>
-                <span data-testid="text-subtotal">{formatCurrency(subtotal, currency)}</span>
+                <span data-testid="text-subtotal">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
-                <span data-testid="text-total">{formatCurrency(subtotal, currency)}</span>
+                <span data-testid="text-total">{formatCurrency(subtotal)}</span>
               </div>
             </div>
           </Card>
@@ -288,7 +288,7 @@ export default function Checkout() {
 
   // productPrice already includes quantity calculation (per-person price × number of people)
   const clientSubtotal = items.reduce((sum, item) => sum + item.productPrice, 0);
-  const currency = items[0]?.currency || 'USD';
+  const currency = items[0]?.currency || 'GBP';
 
   // Redirect if cart is empty - but only after cart has loaded to avoid race conditions
   useEffect(() => {

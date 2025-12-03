@@ -61,7 +61,7 @@ export function CartButton() {
                           {item.productTitle}
                         </h3>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {formatCurrency(item.productPrice, item.currency)}
+                          {formatCurrency(item.productPrice)}
                         </p>
                       </div>
                       <Button
@@ -82,7 +82,7 @@ export function CartButton() {
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total:</span>
                   <span data-testid="text-cart-total">
-                    {formatCurrency(total, items[0]?.currency || 'USD')}
+                    {formatCurrency(total)}
                   </span>
                 </div>
                 

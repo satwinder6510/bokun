@@ -42,21 +42,32 @@ function PriceCalendarWidget({
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
 
+  // Helper to parse date string without timezone issues (defined early for useEffect)
+  const parsePricingDate = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   // Navigate to first month with future pricing when data changes
   useEffect(() => {
+    console.log("[Calendar] useEffect triggered, pricingData length:", pricingData.length);
     if (pricingData.length > 0) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      // Find the first future date with pricing
+      // Find the first future date with pricing (using timezone-safe parsing)
       const futurePricing = pricingData
-        .map(p => new Date(p.departureDate))
+        .map(p => parsePricingDate(p.departureDate))
         .filter(d => d >= today)
         .sort((a, b) => a.getTime() - b.getTime());
       
+      console.log("[Calendar] Future pricing dates:", futurePricing.length, futurePricing.length > 0 ? futurePricing[0].toDateString() : "none");
+      
       if (futurePricing.length > 0) {
         // Navigate to the month of the first future pricing
-        setCurrentMonth(new Date(futurePricing[0].getFullYear(), futurePricing[0].getMonth(), 1));
+        const newMonth = new Date(futurePricing[0].getFullYear(), futurePricing[0].getMonth(), 1);
+        console.log("[Calendar] Setting current month to:", newMonth.toDateString());
+        setCurrentMonth(newMonth);
       }
     }
   }, [pricingData]);
@@ -64,7 +75,7 @@ function PriceCalendarWidget({
   // Get price for a specific date
   const getPriceForDate = (date: Date) => {
     const pricing = pricingData.find(p => {
-      const pDate = new Date(p.departureDate);
+      const pDate = parsePricingDate(p.departureDate);
       return pDate.toDateString() === date.toDateString();
     });
     return pricing?.price;
@@ -73,7 +84,7 @@ function PriceCalendarWidget({
   // Check if date has pricing
   const hasPrice = (date: Date) => {
     return pricingData.some(p => {
-      const pDate = new Date(p.departureDate);
+      const pDate = parsePricingDate(p.departureDate);
       return pDate.toDateString() === date.toDateString();
     });
   };
@@ -105,14 +116,14 @@ function PriceCalendarWidget({
     setCurrentMonth(new Date(year, month + 1, 1));
   };
 
-  // Check if there are prices in adjacent months for navigation
+  // Check if there are prices in adjacent months for navigation (using timezone-safe parsing)
   const hasPricesInPrevMonth = pricingData.some(p => {
-    const d = new Date(p.departureDate);
+    const d = parsePricingDate(p.departureDate);
     return d.getFullYear() < year || (d.getFullYear() === year && d.getMonth() < month);
   });
 
   const hasPricesInNextMonth = pricingData.some(p => {
-    const d = new Date(p.departureDate);
+    const d = parsePricingDate(p.departureDate);
     return d.getFullYear() > year || (d.getFullYear() === year && d.getMonth() > month);
   });
 
@@ -241,9 +252,12 @@ export default function PackageDetail() {
   const { data: pricing = [] } = useQuery<PackagePricing[]>({
     queryKey: ["/api/packages", pkg?.id, "pricing"],
     queryFn: async () => {
+      console.log("[Public Page] Fetching pricing for package:", pkg?.id);
       const response = await fetch(`/api/packages/${pkg?.id}/pricing`);
       if (!response.ok) throw new Error("Failed to fetch pricing");
-      return response.json();
+      const data = await response.json();
+      console.log("[Public Page] Pricing data received:", data.length, "entries");
+      return data;
     },
     enabled: !!pkg?.id,
   });
@@ -253,6 +267,11 @@ export default function PackageDetail() {
     const entry = pricing.find(p => p.departureAirport === code);
     return { code, name: entry?.departureAirportName || code };
   });
+  
+  // Debug: Log pricing and airport state
+  useEffect(() => {
+    console.log("[Public Page] Current state - pricing:", pricing.length, "airports:", airports.length, "selectedAirport:", selectedAirport);
+  }, [pricing, airports, selectedAirport]);
 
   // Filter pricing by selected airport
   const filteredPricing = selectedAirport 

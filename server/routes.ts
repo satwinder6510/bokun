@@ -2286,40 +2286,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Get the GBP price from the product search cache
+      // Get the GBP price from the cached products
       // The search endpoint properly returns GBP prices (unlike availability which may return USD
       // depending on booking channel currency settings)
       let importPrice = 0;
       try {
-        // Search for this specific product to get its GBP price
-        // Need to fetch all pages since products are spread across multiple pages
-        let allProducts: any[] = [];
-        let page = 1;
-        let hasMore = true;
+        // Use the cached GBP products from storage
+        const cachedProducts = await storage.getCachedProducts('GBP');
+        console.log(`Checking ${cachedProducts.length} cached GBP products for ID ${productId}`);
         
-        while (hasMore && page <= 10) { // Max 10 pages (1000 products)
-          const searchResults: any = await searchBokunProducts(page, 100, 'GBP');
-          const products = searchResults.items || [];
-          allProducts = allProducts.concat(products);
-          hasMore = products.length === 100;
-          page++;
-        }
-        
-        console.log(`Searched ${allProducts.length} products for ID ${productId}`);
-        const matchingProduct = allProducts.find((p: any) => String(p.id) === String(productId));
+        const matchingProduct = cachedProducts.find((p: any) => String(p.id) === String(productId));
         
         if (matchingProduct) {
-          console.log(`Found product in search: ${matchingProduct.title}, price: ${matchingProduct.price}`);
+          console.log(`Found product in cache: ${matchingProduct.title}, price: ${matchingProduct.price}`);
           if (matchingProduct.price) {
             importPrice = matchingProduct.price;
-            console.log(`Got GBP price from search: £${importPrice}`);
+            console.log(`Got GBP price from cache: £${importPrice}`);
           } else {
-            console.log(`Product found but has no price in search results`);
+            console.log(`Product found but has no price in cache`);
             // Fall back to product details price
             importPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
           }
         } else {
-          console.log(`Product ID ${productId} not found in search results`);
+          console.log(`Product ID ${productId} not found in cache`);
           // Fall back to product details price (may be in USD)
           importPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
           console.log(`Using product details price: ${importPrice} (may not be GBP)`);

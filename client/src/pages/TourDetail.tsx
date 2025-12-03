@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
+import { applyBokunMarkup } from "@/lib/pricing";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 
@@ -49,8 +50,9 @@ export default function TourDetail() {
       setMetaTags(title, description, ogImage);
 
       // Add structured data for rich snippets
-      // Use currency-adjusted price from API response
-      const priceAmount = product.nextDefaultPriceMoney?.amount ?? product.nextDefaultPrice ?? product.price ?? 0;
+      // Use currency-adjusted price from API response with 10% markup
+      const netPrice = product.nextDefaultPriceMoney?.amount ?? product.nextDefaultPrice ?? product.price ?? 0;
+      const priceAmount = applyBokunMarkup(netPrice);
       const priceCurrency = product.nextDefaultPriceMoney?.currency ?? selectedCurrency.code;
       
       const schema = {
@@ -61,7 +63,7 @@ export default function TourDetail() {
         image: ogImage,
         offers: {
           '@type': 'Offer',
-          price: priceAmount.toString(),
+          price: priceAmount.toFixed(2),
           priceCurrency: priceCurrency,
           availability: 'https://schema.org/InStock'
         },
@@ -370,7 +372,7 @@ export default function TourDetail() {
                       productTitle={product.title}
                       rates={product.rates}
                       bookableExtras={product.bookableExtras}
-                      startingPrice={product.price}
+                      startingPrice={product.price ? applyBokunMarkup(product.price) : undefined}
                     />
                   )}
               </div>
@@ -396,7 +398,7 @@ export default function TourDetail() {
                             </div>
                             {extra.price && !extra.free && (
                               <span className="font-semibold" data-testid={`text-extra-price-${extra.id}`}>
-                                £{extra.price.toFixed(2)}
+                                £{applyBokunMarkup(extra.price).toFixed(2)}
                               </span>
                             )}
                             {extra.free && (

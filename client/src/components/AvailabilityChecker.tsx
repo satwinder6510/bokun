@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useCart } from "@/contexts/CartContext";
 import { apiRequest } from "@/lib/queryClient";
+import { applyBokunMarkup } from "@/lib/pricing";
 import { format, addMonths } from "date-fns";
 import { useLocation } from "wouter";
 import {
@@ -307,14 +308,16 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
 
     if (!rate || !price || price.amount === undefined) return null;
 
+    // Apply 10% markup to Bokun net prices
+    const markedUpPricePerPerson = applyBokunMarkup(price.amount);
     const totalPrice = rate.pricedPerPerson 
-      ? price.amount * numberOfPeople
-      : price.amount;
+      ? markedUpPricePerPerson * numberOfPeople
+      : markedUpPricePerPerson;
 
     return {
       rateId: priceInfo.activityRateId!,
       rateTitle: rate.title!,
-      pricePerPerson: price.amount,
+      pricePerPerson: markedUpPricePerPerson,
       totalPrice,
       isPricedPerPerson: rate.pricedPerPerson,
     };

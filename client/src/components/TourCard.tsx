@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { MapPin, Clock } from "lucide-react";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { applyBokunMarkup } from "@/lib/pricing";
 import type { BokunProduct } from "@shared/schema";
 
 interface TourCardProps {
@@ -84,7 +85,7 @@ export function TourCard({ product }: TourCardProps) {
             )}
           </div>
 
-          {/* Price */}
+          {/* Price (with 10% markup on Bokun net prices) */}
           {product.price && (
             <div className="flex items-baseline gap-1 mb-4">
               <span className="text-sm text-white/80">from</span>
@@ -93,7 +94,7 @@ export function TourCard({ product }: TourCardProps) {
                   className="text-3xl font-bold text-white"
                   data-testid={`text-price-${product.id}`}
                 >
-                  {selectedCurrency.symbol}{product.price.toFixed(0)}
+                  {selectedCurrency.symbol}{applyBokunMarkup(product.price).toFixed(0)}
                 </span>
                 <span className="text-xs text-white/60">{selectedCurrency.code}</span>
               </div>

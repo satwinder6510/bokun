@@ -60,7 +60,7 @@ Development uses `tsx` for the backend and Vite for the frontend, with concurren
 
 ### Third-Party Services
 
--   **Bokun API:** Used for tour data, including searching, retrieving details, checking availability, and creating bookings. Authenticated via HMAC-SHA1 signatures. **Booking Flow:** After successful Stripe payment verification, bookings are reserved with Bokun using `RESERVE_FOR_EXTERNAL_PAYMENT` payment method, then immediately confirmed with the verified payment details. Bokun confirmation codes are stored in the booking record for reference.
+-   **Bokun API:** Used for tour data, including searching, retrieving details, checking availability, and creating bookings. Authenticated via HMAC-SHA1 signatures. **Pricing Markup:** Bokun API returns net prices; a flat 10% markup is applied on all per-person prices via the `applyBokunMarkup()` function in `client/src/lib/pricing.ts`. This markup is applied to tour listing cards, availability checker, add-ons, and SEO schema data. **Booking Flow:** After successful Stripe payment verification, bookings are reserved with Bokun using `RESERVE_FOR_EXTERNAL_PAYMENT` payment method, then immediately confirmed with the verified payment details. Bokun confirmation codes are stored in the booking record for reference.
 -   **Stripe:** Payment processing via Stripe Elements integration (TEST mode). Payment Intent creation derives amounts exclusively from server-side cart storage. Payment verification occurs before booking creation, ensuring all monetary values are server-authoritative with zero trust in client-supplied amounts.
 -   **Privyr CRM:** Integrated for handling contact form submissions via a secure webhook.
 

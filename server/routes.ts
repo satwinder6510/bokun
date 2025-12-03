@@ -1858,12 +1858,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload pricing CSV (admin)
+  // Supports two formats:
+  // 1. Simple row format: departure_airport,date,price (or with extra columns ignored)
+  // 2. Grid format: Departure Airport/Date/Price rows with multiple columns
   app.post("/api/admin/packages/:id/pricing/upload-csv", csvUpload.single('csv'), async (req, res) => {
     try {
       const { id } = req.params;
       const packageId = parseInt(id);
       
-      // Verify package exists by checking if we can get pricing for it (or checking all packages)
+      // Verify package exists
       const allPackages = await storage.getAllFlightPackages();
       const pkg = allPackages.find(p => p.id === packageId);
       if (!pkg) {
@@ -1876,20 +1879,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Parse CSV content
       const csvContent = req.file.buffer.toString('utf-8');
-      const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      const lines = csvContent.split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0 && !line.startsWith('#')); // Skip empty lines and comments
       
-      if (lines.length < 5) {
-        return res.status(400).json({ error: "CSV file is too short - expected at least 5 rows" });
+      if (lines.length < 2) {
+        return res.status(400).json({ error: "CSV file is too short - expected header + data rows" });
       }
       
-      // Parse header rows
       const parseRow = (line: string): string[] => {
         return line.split(',').map(cell => cell.trim());
       };
-      
-      // Row 0: Destination Airport (metadata, skip)
-      // Row 1: Board Basis (metadata, skip)
-      // Then groups of 3 rows: Departure Airport, Date, Price
       
       const pricingEntries: Array<{
         packageId: number;
@@ -1901,57 +1901,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAvailable: boolean;
       }> = [];
       
-      let currentRow = 2; // Start after Destination Airport and Board Basis rows
-      let airportGroupsProcessed = 0;
+      // Check header to determine format
+      const header = parseRow(lines[0]).map(h => h.toLowerCase());
       
-      while (currentRow + 2 <= lines.length) {
-        const airportRow = parseRow(lines[currentRow]);
-        const dateRow = parseRow(lines[currentRow + 1]);
-        const priceRow = parseRow(lines[currentRow + 2]);
+      // Simple row format: departure_airport,date,price[,optional columns]
+      const isSimpleFormat = header.includes('departure_airport') || 
+                             header.includes('airport') ||
+                             (header[0] === 'departure_airport' || header[0] === 'airport');
+      
+      if (isSimpleFormat) {
+        // Find column indices
+        const airportIdx = header.findIndex(h => h === 'departure_airport' || h === 'airport');
+        const dateIdx = header.findIndex(h => h === 'date');
+        const priceIdx = header.findIndex(h => h === 'price' || h === 'your price (gbp)');
         
-        // Validate row types
-        if (airportRow[0]?.toLowerCase() !== 'departure airport') {
-          currentRow++;
-          continue;
-        }
-        if (dateRow[0]?.toLowerCase() !== 'date') {
-          currentRow += 2;
-          continue;
-        }
-        if (priceRow[0]?.toLowerCase() !== 'price') {
-          currentRow += 3;
-          continue;
-        }
-        
-        // Get the departure airport code (first non-empty value after label)
-        const airportCode = airportRow[1]?.toUpperCase();
-        if (!airportCode) {
-          currentRow += 3;
-          continue;
+        if (dateIdx === -1 || priceIdx === -1) {
+          return res.status(400).json({ 
+            error: "CSV missing required columns",
+            details: "Expected columns: departure_airport (or airport), date, price"
+          });
         }
         
-        // Get airport name from mapping or use code
-        const airportName = UK_AIRPORTS_MAP[airportCode] || airportCode;
-        
-        // Process each date/price pair
-        for (let i = 1; i < Math.min(dateRow.length, priceRow.length); i++) {
-          const dateStr = dateRow[i];
-          const priceStr = priceRow[i];
+        // Process data rows
+        for (let i = 1; i < lines.length; i++) {
+          const row = parseRow(lines[i]);
           
-          if (!dateStr || !priceStr) continue;
+          const airportCode = (airportIdx >= 0 ? row[airportIdx] : '').toUpperCase();
+          const dateStr = row[dateIdx];
+          const priceStr = row[priceIdx];
           
-          // Parse date from DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
-          const dateParts = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-          if (!dateParts) continue;
+          // Skip rows without required data
+          if (!airportCode || !dateStr || !priceStr) continue;
           
-          const day = dateParts[1].padStart(2, '0');
-          const month = dateParts[2].padStart(2, '0');
-          const year = dateParts[3];
-          const isoDate = `${year}-${month}-${day}`;
+          // Parse date - supports DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD
+          let isoDate: string;
+          const ukDateMatch = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+          const isoDateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
           
-          // Parse price (remove any currency symbols or commas)
+          if (ukDateMatch) {
+            const day = ukDateMatch[1].padStart(2, '0');
+            const month = ukDateMatch[2].padStart(2, '0');
+            const year = ukDateMatch[3];
+            isoDate = `${year}-${month}-${day}`;
+          } else if (isoDateMatch) {
+            isoDate = dateStr;
+          } else {
+            console.log(`Skipping row ${i + 1}: invalid date format "${dateStr}"`);
+            continue;
+          }
+          
+          // Parse price
           const price = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
-          if (isNaN(price) || price <= 0) continue;
+          if (isNaN(price) || price <= 0) {
+            console.log(`Skipping row ${i + 1}: invalid price "${priceStr}"`);
+            continue;
+          }
+          
+          const airportName = UK_AIRPORTS_MAP[airportCode] || airportCode;
           
           pricingEntries.push({
             packageId,
@@ -1963,15 +1969,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isAvailable: true,
           });
         }
+      } else {
+        // Legacy grid format: Departure Airport/Date/Price rows
+        let currentRow = 2; // Start after metadata rows
+        let airportGroupsProcessed = 0;
         
-        airportGroupsProcessed++;
-        currentRow += 3;
+        while (currentRow + 2 <= lines.length) {
+          const airportRow = parseRow(lines[currentRow]);
+          const dateRow = parseRow(lines[currentRow + 1]);
+          const priceRow = parseRow(lines[currentRow + 2]);
+          
+          if (airportRow[0]?.toLowerCase() !== 'departure airport') {
+            currentRow++;
+            continue;
+          }
+          if (dateRow[0]?.toLowerCase() !== 'date') {
+            currentRow += 2;
+            continue;
+          }
+          if (priceRow[0]?.toLowerCase() !== 'price') {
+            currentRow += 3;
+            continue;
+          }
+          
+          const airportCode = airportRow[1]?.toUpperCase();
+          if (!airportCode) {
+            currentRow += 3;
+            continue;
+          }
+          
+          const airportName = UK_AIRPORTS_MAP[airportCode] || airportCode;
+          
+          for (let i = 1; i < Math.min(dateRow.length, priceRow.length); i++) {
+            const dateStr = dateRow[i];
+            const priceStr = priceRow[i];
+            
+            if (!dateStr || !priceStr) continue;
+            
+            const dateParts = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (!dateParts) continue;
+            
+            const day = dateParts[1].padStart(2, '0');
+            const month = dateParts[2].padStart(2, '0');
+            const year = dateParts[3];
+            const isoDate = `${year}-${month}-${day}`;
+            
+            const price = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
+            if (isNaN(price) || price <= 0) continue;
+            
+            pricingEntries.push({
+              packageId,
+              departureAirport: airportCode,
+              departureAirportName: airportName,
+              departureDate: isoDate,
+              price,
+              currency: 'GBP',
+              isAvailable: true,
+            });
+          }
+          
+          airportGroupsProcessed++;
+          currentRow += 3;
+        }
       }
       
       if (pricingEntries.length === 0) {
         return res.status(400).json({ 
           error: "No valid pricing entries found in CSV",
-          details: `Processed ${airportGroupsProcessed} airport groups but found no valid date/price pairs`
+          details: "Check that each row has: airport code, date (DD/MM/YYYY), and price"
         });
       }
       
@@ -1984,14 +2049,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Insert all pricing entries
       const created = await storage.createPackagePricingBatch(pricingEntries);
       
-      console.log(`CSV pricing upload for package ${packageId}: ${created.length} entries created from ${airportGroupsProcessed} airports`);
+      console.log(`CSV pricing upload for package ${packageId}: ${created.length} entries created`);
       
       res.status(201).json({ 
         success: true, 
         created: created.length,
-        airports: airportGroupsProcessed,
+        airports: Object.keys(airportSummary).length,
         summary: airportSummary,
-        message: `Successfully imported ${created.length} pricing entries from ${airportGroupsProcessed} departure airports`
+        message: `Successfully imported ${created.length} pricing entries`
       });
     } catch (error: any) {
       console.error("Error uploading pricing CSV:", error);
@@ -2143,14 +2208,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Build a map of date -> lowest Bokun price
           // Bokun returns availability as an array directly
           const availabilities = Array.isArray(availability) ? availability : availability.availabilities || [];
+          console.log(`Processing ${availabilities.length} availability entries for CSV export`);
+          
           availabilities.forEach((avail: any) => {
-            if (avail.date && avail.pricesByRate && avail.pricesByRate.length > 0) {
-              const lowestPrice = Math.min(...avail.pricesByRate.map((r: any) => r.price || Infinity));
-              if (lowestPrice !== Infinity) {
-                bokunPrices.set(avail.date, lowestPrice);
+            // Date can be a timestamp (milliseconds) or a string
+            let dateStr: string;
+            if (typeof avail.date === 'number') {
+              const d = new Date(avail.date);
+              dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+            } else if (typeof avail.date === 'string') {
+              dateStr = avail.date;
+            } else {
+              return; // Skip if no valid date
+            }
+            
+            if (avail.pricesByRate && avail.pricesByRate.length > 0) {
+              // Extract price from nested structure: pricesByRate[].pricePerCategoryUnit[].amount.amount
+              const prices: number[] = [];
+              avail.pricesByRate.forEach((rate: any) => {
+                if (rate.pricePerCategoryUnit && rate.pricePerCategoryUnit.length > 0) {
+                  rate.pricePerCategoryUnit.forEach((cat: any) => {
+                    if (cat.amount && typeof cat.amount.amount === 'number') {
+                      prices.push(cat.amount.amount);
+                    }
+                  });
+                }
+                // Also check for direct price field as fallback
+                if (typeof rate.price === 'number') {
+                  prices.push(rate.price);
+                }
+              });
+              
+              if (prices.length > 0) {
+                const lowestPrice = Math.min(...prices);
+                bokunPrices.set(dateStr, lowestPrice);
               }
             }
           });
+          
+          console.log(`Extracted ${bokunPrices.size} Bokun prices for export`);
         } catch (error) {
           console.error("Error fetching Bokun availability for export:", error);
         }
@@ -2179,11 +2275,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // If no existing pricing but linked to Bokun, show available Bokun dates
+      // Use a simple row format that can be imported directly
       if (pricing.length === 0 && bokunPrices.size > 0) {
-        csvContent = "Date,Bokun Net Price (GBP),Your Price (GBP) - FILL IN,Departure Airport - FILL IN\n";
+        // Simple format: departure_airport,date,price,bokun_net_price (reference only)
+        csvContent = "departure_airport,date,price,bokun_net_price\n";
+        csvContent += "# Fill in departure_airport (e.g. LHR) and price (your total including flights)\n";
+        csvContent += "# bokun_net_price is the land tour cost - add your flight cost to get total price\n";
         const sortedDates = Array.from(bokunPrices.entries()).sort((a, b) => a[0].localeCompare(b[0]));
         sortedDates.forEach(([date, price]) => {
-          csvContent += `${date},${price},,\n`;
+          // Convert YYYY-MM-DD to DD/MM/YYYY for user friendliness
+          const [year, month, day] = date.split('-');
+          const ukDate = `${day}/${month}/${year}`;
+          csvContent += `,${ukDate},,${price.toFixed(2)}\n`;
         });
       }
       

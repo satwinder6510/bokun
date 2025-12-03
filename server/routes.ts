@@ -1339,6 +1339,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const baseUrl = `${req.protocol}://${req.get('host')}`;
           const packageUrl = `${baseUrl}/packages/${slug}`;
           
+          // Format price for display
+          const formatPrice = (price: number | null | undefined): string => {
+            if (!price) return "Not specified";
+            return new Intl.NumberFormat('en-GB', {
+              style: 'currency',
+              currency: 'GBP',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }).format(price);
+          };
+
+          // Format departure date if provided
+          const formatDate = (dateStr: string | null | undefined): string => {
+            if (!dateStr) return "Not specified";
+            try {
+              const date = new Date(dateStr);
+              return date.toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              });
+            } catch {
+              return dateStr;
+            }
+          };
+
           // Prepare payload for Privyr webhook with proper structure
           const privyrPayload = {
             name: `${req.body.firstName} ${req.body.lastName}`,
@@ -1350,7 +1376,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               "Last Name": req.body.lastName,
               "Package Name": pkg.title,
               "Package URL": packageUrl,
-              "Preferred Dates": req.body.preferredDates || "Not specified",
+              "Departure Date": formatDate(req.body.selectedDate),
+              "Departure Airport": req.body.selectedAirportName || req.body.selectedAirport || "Not specified",
+              "Price Per Person": formatPrice(req.body.pricePerPerson),
               "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
               "Additional Requirements": req.body.message || "None",
               "Source": "Package Enquiry Form",

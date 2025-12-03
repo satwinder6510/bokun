@@ -332,6 +332,10 @@ export default function PackageDetail() {
         packageTitle: pkg?.title,
         ...formData,
         numberOfTravelers: formData.numberOfTravelers ? parseInt(formData.numberOfTravelers) : null,
+        selectedDate: selectedDate ? selectedDate.toISOString() : null,
+        selectedAirport: selectedAirport || null,
+        selectedAirportName: airports.find(a => a.code === selectedAirport)?.name || null,
+        pricePerPerson: selectedPricing?.price || pkg?.price || null,
       });
 
       toast({

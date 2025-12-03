@@ -44,6 +44,45 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+// Configure multer for CSV uploads
+const csvStorage = multer.memoryStorage();
+const csvFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'text/plain'];
+  const allowedExtensions = ['.csv'];
+  const ext = path.extname(file.originalname).toLowerCase();
+  
+  if (allowedTypes.includes(file.mimetype) || allowedExtensions.includes(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only CSV files are allowed'));
+  }
+};
+
+const csvUpload = multer({
+  storage: csvStorage,
+  fileFilter: csvFilter,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit for CSV
+});
+
+// UK Airports mapping for CSV parsing
+const UK_AIRPORTS_MAP: Record<string, string> = {
+  "LHR": "London Heathrow",
+  "LGW": "London Gatwick",
+  "STN": "London Stansted",
+  "LTN": "London Luton",
+  "MAN": "Manchester",
+  "BHX": "Birmingham",
+  "EDI": "Edinburgh",
+  "GLA": "Glasgow",
+  "BRS": "Bristol",
+  "NCL": "Newcastle",
+  "LPL": "Liverpool",
+  "EMA": "East Midlands",
+  "LBA": "Leeds Bradford",
+  "BFS": "Belfast International",
+  "CWL": "Cardiff",
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Dynamic sitemap.xml endpoint
   app.get("/sitemap.xml", async (req, res) => {
@@ -1303,6 +1342,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting package pricing:", error);
       res.status(500).json({ error: "Failed to delete pricing" });
+    }
+  });
+
+  // Upload pricing CSV (admin)
+  app.post("/api/admin/packages/:id/pricing/upload-csv", csvUpload.single('csv'), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const packageId = parseInt(id);
+      
+      // Verify package exists
+      const pkg = await storage.getFlightPackage(packageId);
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      if (!req.file) {
+        return res.status(400).json({ error: "No CSV file provided" });
+      }
+      
+      // Parse CSV content
+      const csvContent = req.file.buffer.toString('utf-8');
+      const lines = csvContent.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+      
+      if (lines.length < 5) {
+        return res.status(400).json({ error: "CSV file is too short - expected at least 5 rows" });
+      }
+      
+      // Parse header rows
+      const parseRow = (line: string): string[] => {
+        return line.split(',').map(cell => cell.trim());
+      };
+      
+      // Row 0: Destination Airport (metadata, skip)
+      // Row 1: Board Basis (metadata, skip)
+      // Then groups of 3 rows: Departure Airport, Date, Price
+      
+      const pricingEntries: Array<{
+        packageId: number;
+        departureAirport: string;
+        departureAirportName: string;
+        departureDate: string;
+        price: number;
+        currency: string;
+        isAvailable: boolean;
+      }> = [];
+      
+      let currentRow = 2; // Start after Destination Airport and Board Basis rows
+      let airportGroupsProcessed = 0;
+      
+      while (currentRow + 2 < lines.length) {
+        const airportRow = parseRow(lines[currentRow]);
+        const dateRow = parseRow(lines[currentRow + 1]);
+        const priceRow = parseRow(lines[currentRow + 2]);
+        
+        // Validate row types
+        if (airportRow[0]?.toLowerCase() !== 'departure airport') {
+          currentRow++;
+          continue;
+        }
+        if (dateRow[0]?.toLowerCase() !== 'date') {
+          currentRow += 2;
+          continue;
+        }
+        if (priceRow[0]?.toLowerCase() !== 'price') {
+          currentRow += 3;
+          continue;
+        }
+        
+        // Get the departure airport code (first non-empty value after label)
+        const airportCode = airportRow[1]?.toUpperCase();
+        if (!airportCode) {
+          currentRow += 3;
+          continue;
+        }
+        
+        // Get airport name from mapping or use code
+        const airportName = UK_AIRPORTS_MAP[airportCode] || airportCode;
+        
+        // Process each date/price pair
+        for (let i = 1; i < Math.min(dateRow.length, priceRow.length); i++) {
+          const dateStr = dateRow[i];
+          const priceStr = priceRow[i];
+          
+          if (!dateStr || !priceStr) continue;
+          
+          // Parse date from DD-MM-YYYY to YYYY-MM-DD
+          const dateParts = dateStr.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+          if (!dateParts) continue;
+          
+          const day = dateParts[1].padStart(2, '0');
+          const month = dateParts[2].padStart(2, '0');
+          const year = dateParts[3];
+          const isoDate = `${year}-${month}-${day}`;
+          
+          // Parse price (remove any currency symbols or commas)
+          const price = parseFloat(priceStr.replace(/[^0-9.]/g, ''));
+          if (isNaN(price) || price <= 0) continue;
+          
+          pricingEntries.push({
+            packageId,
+            departureAirport: airportCode,
+            departureAirportName: airportName,
+            departureDate: isoDate,
+            price,
+            currency: 'GBP',
+            isAvailable: true,
+          });
+        }
+        
+        airportGroupsProcessed++;
+        currentRow += 3;
+      }
+      
+      if (pricingEntries.length === 0) {
+        return res.status(400).json({ 
+          error: "No valid pricing entries found in CSV",
+          details: `Processed ${airportGroupsProcessed} airport groups but found no valid date/price pairs`
+        });
+      }
+      
+      // Group entries by airport for summary
+      const airportSummary: Record<string, number> = {};
+      pricingEntries.forEach(entry => {
+        airportSummary[entry.departureAirport] = (airportSummary[entry.departureAirport] || 0) + 1;
+      });
+      
+      // Insert all pricing entries
+      const created = await storage.createPackagePricingBatch(pricingEntries);
+      
+      console.log(`CSV pricing upload for package ${packageId}: ${created.length} entries created from ${airportGroupsProcessed} airports`);
+      
+      res.status(201).json({ 
+        success: true, 
+        created: created.length,
+        airports: airportGroupsProcessed,
+        summary: airportSummary,
+        message: `Successfully imported ${created.length} pricing entries from ${airportGroupsProcessed} departure airports`
+      });
+    } catch (error: any) {
+      console.error("Error uploading pricing CSV:", error);
+      res.status(500).json({ error: error.message || "Failed to process pricing CSV" });
     }
   });
 

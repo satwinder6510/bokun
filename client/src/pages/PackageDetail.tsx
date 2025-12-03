@@ -40,12 +40,26 @@ function PriceCalendarWidget({
   onDateSelect: (date: Date | undefined) => void;
   formatPrice: (price: number) => string;
 }) {
-  const [currentMonth, setCurrentMonth] = useState(() => {
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
+
+  // Navigate to first month with future pricing when data changes
+  useEffect(() => {
     if (pricingData.length > 0) {
-      return new Date(pricingData[0].departureDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Find the first future date with pricing
+      const futurePricing = pricingData
+        .map(p => new Date(p.departureDate))
+        .filter(d => d >= today)
+        .sort((a, b) => a.getTime() - b.getTime());
+      
+      if (futurePricing.length > 0) {
+        // Navigate to the month of the first future pricing
+        setCurrentMonth(new Date(futurePricing[0].getFullYear(), futurePricing[0].getMonth(), 1));
+      }
     }
-    return new Date();
-  });
+  }, [pricingData]);
 
   // Get price for a specific date
   const getPriceForDate = (date: Date) => {

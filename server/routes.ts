@@ -1351,8 +1351,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const packageId = parseInt(id);
       
-      // Verify package exists
-      const pkg = await storage.getFlightPackage(packageId);
+      // Verify package exists by checking if we can get pricing for it (or checking all packages)
+      const allPackages = await storage.getAllFlightPackages();
+      const pkg = allPackages.find(p => p.id === packageId);
       if (!pkg) {
         return res.status(404).json({ error: "Package not found" });
       }

@@ -2008,11 +2008,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Search query is required" });
       }
       
-      // Search Bokun products with the query
-      const results = await searchBokunProductsByKeyword(query, 1, 20, 'GBP');
+      // Get products from cache
+      let cachedProducts = await storage.getCachedProducts('GBP');
       
-      // Return simplified results for the search dropdown
-      const tours = (results.items || []).map((item: any) => ({
+      // If cache is empty, trigger a cache fill by fetching first page
+      if (cachedProducts.length === 0) {
+        console.log("Bokun cache empty - fetching products for search...");
+        const firstPageData = await searchBokunProducts(1, 100, 'GBP');
+        cachedProducts = firstPageData.items || [];
+        
+        // Cache for future use
+        if (cachedProducts.length > 0) {
+          await storage.setCachedProducts(cachedProducts, 'GBP');
+        }
+      }
+      
+      // Filter products by keyword in title, excerpt, or location
+      const searchTerm = query.toLowerCase();
+      const filteredItems = cachedProducts.filter((item: any) => {
+        const title = (item.title || '').toLowerCase();
+        const excerpt = (item.excerpt || '').toLowerCase();
+        const summary = (item.summary || '').toLowerCase();
+        const city = (item.googlePlace?.city || '').toLowerCase();
+        const country = (item.googlePlace?.country || '').toLowerCase();
+        const location = (item.locationCode?.location || '').toLowerCase();
+        
+        return title.includes(searchTerm) || 
+               excerpt.includes(searchTerm) ||
+               summary.includes(searchTerm) ||
+               city.includes(searchTerm) ||
+               country.includes(searchTerm) ||
+               location.includes(searchTerm);
+      });
+      
+      // Return simplified results for the search dropdown (limit to 30)
+      const tours = filteredItems.slice(0, 30).map((item: any) => ({
         id: item.id,
         title: item.title,
         excerpt: item.excerpt || item.summary || '',
@@ -2022,7 +2052,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location: item.googlePlace?.city || item.locationCode?.location || item.googlePlace?.country || '',
       }));
       
-      res.json({ tours, total: results.totalHits });
+      console.log(`Bokun admin search for "${query}": found ${filteredItems.length} tours, returning ${tours.length}`);
+      res.json({ tours, total: filteredItems.length });
     } catch (error: any) {
       console.error("Error searching Bokun tours:", error);
       res.status(500).json({ error: "Failed to search Bokun tours" });

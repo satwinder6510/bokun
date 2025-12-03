@@ -106,6 +106,6 @@ The platform features a comprehensive multi-user admin authentication system wit
 ### Bootstrap Process
 
 The first super admin is created via `POST /api/auth/admin/bootstrap` (one-time use). Default credentials:
--   Email: admin@flightsandpackages.com
+-   Email: satwinder@flightsandpackages.com
 -   Password: Set during bootstrap
 -   Role: super_admin

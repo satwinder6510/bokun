@@ -81,3 +81,31 @@ Development uses `tsx` for the backend and Vite for the frontend, with concurren
 -   **class-variance-authority:** For type-safe component variants.
 -   **nanoid:** For unique ID generation.
 -   **date-fns:** For date formatting and manipulation.
+
+## Admin Authentication System
+
+The platform features a comprehensive multi-user admin authentication system with role-based access control.
+
+### Admin User Management
+
+-   **Database-backed accounts:** Admin users are stored in the `admin_users` PostgreSQL table with email, bcrypt-hashed passwords (12 rounds), and individual TOTP secrets for 2FA.
+-   **Roles:** Two roles are supported: `super_admin` (full access including user management) and `editor` (content management only).
+-   **Session management:** 24-hour session tokens stored in localStorage with `X-Admin-Session` header authentication.
+-   **2FA flow:** New users set up 2FA on first login (QR code generation), returning users verify with their authenticator app.
+
+### Admin Routes
+
+-   `/admin/login` - Admin login page with email/password + 2FA
+-   `/admin/dashboard` - Main admin console for Bokun API, packages, reviews, FAQs
+-   `/admin/users` - User management (super admins only)
+-   `/admin/packages` - Flight package management with pricing calendar
+-   `/admin/reviews` - Customer reviews management
+-   `/admin/faq` - FAQ content management
+-   `/admin/tracking-numbers` - DNI phone tracking configuration
+
+### Bootstrap Process
+
+The first super admin is created via `POST /api/auth/admin/bootstrap` (one-time use). Default credentials:
+-   Email: admin@flightsandpackages.com
+-   Password: Set during bootstrap
+-   Role: super_admin

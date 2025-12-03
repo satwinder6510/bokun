@@ -42,7 +42,13 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/login" component={Login} />
+      <Route path="/admin/login" component={Login} />
       <Route path="/dashboard">
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/dashboard">
         <ProtectedRoute>
           <Dashboard />
         </ProtectedRoute>

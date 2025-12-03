@@ -683,8 +683,8 @@ export default function AdminPackages() {
       if (tourData.gallery?.length > 0) importedItems.push(`${tourData.gallery.length} photos`);
       
       const summaryText = importedItems.length > 0 
-        ? `Imported: ${importedItems.join(', ')}. Review and add flight pricing.`
-        : `Basic info imported. Note: This tour has no itinerary data in Bokun. You may need to add itinerary manually.`;
+        ? `Imported: ${importedItems.join(', ')}. Price set to £0 - use Pricing tab to set dates and prices.`
+        : `Basic info imported. Price set to £0 - use Pricing tab after saving to set dates and prices.`;
       
       toast({ 
         title: "Tour content imported", 

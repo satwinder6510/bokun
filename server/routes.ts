@@ -2286,13 +2286,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // For Bokun-linked flight packages, set price to 0
+      // The actual pricing is done via the CSV export/import workflow
+      // The Bokun price is just a reference price that may be in wrong currency
+      // Note: Bokun product details often returns USD even when GBP is requested
+      const importPrice = 0; // Admin will set price via pricing calendar
+      
       // Transform Bokun data into flight package format
       const importData = {
         bokunProductId: productId,
         title: details.title,
         excerpt: details.excerpt || details.summary || '',
         description: details.description || details.summary || details.longDescription || '',
-        price: details.nextDefaultPriceMoney?.amount || details.price || 0,
+        price: importPrice,
         duration: details.durationText || details.duration || '',
         category: details.googlePlace?.country || details.locationCode?.country || 'Worldwide',
         slug: (details.title || '')

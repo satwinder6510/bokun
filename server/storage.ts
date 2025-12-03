@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql } from "drizzle-orm";
@@ -88,6 +88,15 @@ export interface IStorage {
   updateTrackingNumber(id: number, updates: UpdateTrackingNumber): Promise<TrackingNumber | undefined>;
   deleteTrackingNumber(id: number): Promise<boolean>;
   incrementTrackingNumberImpressions(id: number): Promise<void>;
+  
+  // Admin user methods (stored in PostgreSQL)
+  getAllAdminUsers(): Promise<AdminUser[]>;
+  getAdminUserById(id: number): Promise<AdminUser | undefined>;
+  getAdminUserByEmail(email: string): Promise<AdminUser | undefined>;
+  createAdminUser(user: InsertAdminUser): Promise<AdminUser>;
+  updateAdminUser(id: number, updates: UpdateAdminUser): Promise<AdminUser | undefined>;
+  deleteAdminUser(id: number): Promise<boolean>;
+  updateAdminUserLastLogin(id: number): Promise<void>;
 }
 
 // In-memory storage with per-currency product caching
@@ -917,6 +926,75 @@ export class MemStorage implements IStorage {
         .where(eq(trackingNumbers.id, id));
     } catch (error) {
       console.error("Error incrementing impressions:", error);
+    }
+  }
+
+  // Admin User methods (stored in PostgreSQL)
+  async getAllAdminUsers(): Promise<AdminUser[]> {
+    try {
+      const results = await db.select().from(adminUsers).orderBy(asc(adminUsers.fullName));
+      return results;
+    } catch (error) {
+      console.error("Error fetching admin users:", error);
+      return [];
+    }
+  }
+
+  async getAdminUserById(id: number): Promise<AdminUser | undefined> {
+    try {
+      const results = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching admin user:", error);
+      return undefined;
+    }
+  }
+
+  async getAdminUserByEmail(email: string): Promise<AdminUser | undefined> {
+    try {
+      const results = await db.select().from(adminUsers).where(eq(adminUsers.email, email.toLowerCase()));
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching admin user by email:", error);
+      return undefined;
+    }
+  }
+
+  async createAdminUser(user: InsertAdminUser): Promise<AdminUser> {
+    const [created] = await db.insert(adminUsers).values({
+      ...user,
+      email: user.email.toLowerCase(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return created;
+  }
+
+  async updateAdminUser(id: number, updates: UpdateAdminUser): Promise<AdminUser | undefined> {
+    const updateData: any = { ...updates, updatedAt: new Date() };
+    if (updates.email) {
+      updateData.email = updates.email.toLowerCase();
+    }
+    
+    const [updated] = await db.update(adminUsers)
+      .set(updateData)
+      .where(eq(adminUsers.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteAdminUser(id: number): Promise<boolean> {
+    await db.delete(adminUsers).where(eq(adminUsers.id, id));
+    return true;
+  }
+
+  async updateAdminUserLastLogin(id: number): Promise<void> {
+    try {
+      await db.update(adminUsers)
+        .set({ lastLoginAt: new Date(), updatedAt: new Date() })
+        .where(eq(adminUsers.id, id));
+    } catch (error) {
+      console.error("Error updating last login:", error);
     }
   }
 }

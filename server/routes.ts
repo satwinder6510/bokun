@@ -1,16 +1,62 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { testBokunConnection, searchBokunProducts, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking } from "./bokun";
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema } from "@shared/schema";
+import bcrypt from "bcrypt";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { randomBytes } from "crypto";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor";
+
+// Password hashing constants
+const SALT_ROUNDS = 12;
+
+// Admin session tracking (in-memory for simplicity, would use Redis in production)
+const adminSessions = new Map<string, { userId: number; email: string; role: string; expiresAt: Date }>();
+
+// Generate session token
+function generateSessionToken(): string {
+  return randomBytes(32).toString('hex');
+}
+
+// Verify admin session middleware
+function verifyAdminSession(req: Request, res: Response, next: NextFunction) {
+  const sessionToken = req.headers['x-admin-session'] as string;
+  
+  if (!sessionToken) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  const session = adminSessions.get(sessionToken);
+  
+  if (!session || session.expiresAt < new Date()) {
+    adminSessions.delete(sessionToken);
+    return res.status(401).json({ error: "Session expired or invalid" });
+  }
+  
+  // Extend session on activity
+  session.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  
+  // Attach user info to request
+  (req as any).adminUser = session;
+  next();
+}
+
+// Super admin only middleware
+function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
+  const adminUser = (req as any).adminUser;
+  
+  if (!adminUser || adminUser.role !== 'super_admin') {
+    return res.status(403).json({ error: "Super admin access required" });
+  }
+  
+  next();
+}
 
 // Configure multer for image uploads
 const uploadDir = path.join(process.cwd(), 'public', 'uploads');
@@ -353,94 +399,560 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 2FA Setup - Generate QR code for initial setup
-  app.get("/api/auth/2fa/setup", async (req, res) => {
+  // ========================================
+  // ADMIN AUTHENTICATION ROUTES
+  // ========================================
+  
+  // Rate limiting for login attempts (simple in-memory, production should use Redis)
+  const loginAttempts = new Map<string, { count: number; lastAttempt: Date }>();
+  const MAX_LOGIN_ATTEMPTS = 5;
+  const LOCKOUT_MINUTES = 15;
+
+  // Admin Login - Step 1: Validate email and password
+  app.post("/api/auth/admin/login", async (req, res) => {
     try {
-      // Get or generate 2FA secret from environment
-      let secret = process.env.TOTP_SECRET;
-      
-      if (!secret) {
-        // Generate new secret if not configured
-        const totp = new OTPAuth.Secret({ size: 20 });
-        secret = totp.base32;
-        console.log("Generated new TOTP secret. Add to environment: TOTP_SECRET=" + secret);
+      const validation = adminLoginSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid email or password format" });
       }
 
-      // Create TOTP instance
-      const totp = new OTPAuth.TOTP({
-        issuer: "Tour Discoveries",
-        label: "Admin Dashboard",
-        algorithm: "SHA1",
-        digits: 6,
-        period: 30,
-        secret: secret,
-      });
+      const { email, password } = validation.data;
+      const normalizedEmail = email.toLowerCase();
 
-      // Generate otpauth URI
-      const uri = totp.toString();
+      // Check rate limiting
+      const attempts = loginAttempts.get(normalizedEmail);
+      if (attempts && attempts.count >= MAX_LOGIN_ATTEMPTS) {
+        const lockoutEnd = new Date(attempts.lastAttempt.getTime() + LOCKOUT_MINUTES * 60 * 1000);
+        if (new Date() < lockoutEnd) {
+          const minutesLeft = Math.ceil((lockoutEnd.getTime() - Date.now()) / 60000);
+          return res.status(429).json({ 
+            error: `Too many login attempts. Try again in ${minutesLeft} minutes.` 
+          });
+        }
+        // Reset after lockout period
+        loginAttempts.delete(normalizedEmail);
+      }
 
-      // Generate QR code
-      const qrCode = await QRCode.toDataURL(uri);
+      // Find user
+      const user = await storage.getAdminUserByEmail(normalizedEmail);
+      if (!user) {
+        // Increment failed attempts
+        const current = loginAttempts.get(normalizedEmail) || { count: 0, lastAttempt: new Date() };
+        loginAttempts.set(normalizedEmail, { count: current.count + 1, lastAttempt: new Date() });
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
 
-      res.json({
-        secret,
-        qrCode,
-        uri,
-      });
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(403).json({ error: "Account is deactivated. Contact an administrator." });
+      }
+
+      // Verify password
+      const validPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!validPassword) {
+        const current = loginAttempts.get(normalizedEmail) || { count: 0, lastAttempt: new Date() };
+        loginAttempts.set(normalizedEmail, { count: current.count + 1, lastAttempt: new Date() });
+        return res.status(401).json({ error: "Invalid email or password" });
+      }
+
+      // Clear failed attempts on successful password
+      loginAttempts.delete(normalizedEmail);
+
+      // Check if 2FA is enabled
+      if (user.twoFactorEnabled && user.twoFactorSecret) {
+        // Return pending 2FA status - client must complete 2FA
+        const pendingToken = generateSessionToken();
+        // Store pending session temporarily (expires in 5 minutes)
+        adminSessions.set(`pending_${pendingToken}`, {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes for 2FA
+        });
+        
+        return res.json({
+          requiresTwoFactor: true,
+          pendingToken,
+          message: "Please enter your 2FA code"
+        });
+      }
+
+      // If 2FA not enabled, check if this is first login (requires 2FA setup)
+      if (!user.twoFactorEnabled) {
+        const pendingToken = generateSessionToken();
+        adminSessions.set(`setup_${pendingToken}`, {
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes for setup
+        });
+        
+        return res.json({
+          requiresTwoFactorSetup: true,
+          pendingToken,
+          message: "Please set up two-factor authentication"
+        });
+      }
+
+      // This shouldn't be reached, but handle it
+      return res.status(500).json({ error: "Unexpected authentication state" });
     } catch (error: any) {
-      console.error("Error generating 2FA setup:", error);
-      res.status(500).json({
-        error: error.message || "Failed to generate 2FA setup",
-      });
+      console.error("Admin login error:", error);
+      res.status(500).json({ error: "Login failed" });
     }
   });
 
-  // Verify TOTP code
-  app.post("/api/auth/2fa/verify", async (req, res) => {
+  // Admin 2FA Setup - Generate QR code for user
+  app.post("/api/auth/admin/2fa/setup", async (req, res) => {
     try {
-      const { token } = req.body;
-
-      if (!token) {
-        return res.status(400).json({
-          error: "Token is required",
-        });
+      const { pendingToken } = req.body;
+      
+      if (!pendingToken) {
+        return res.status(400).json({ error: "Pending token required" });
       }
 
-      const secret = process.env.TOTP_SECRET;
-
-      if (!secret) {
-        return res.status(500).json({
-          error: "2FA is not configured. Please complete setup first.",
-        });
+      const session = adminSessions.get(`setup_${pendingToken}`);
+      if (!session || session.expiresAt < new Date()) {
+        adminSessions.delete(`setup_${pendingToken}`);
+        return res.status(401).json({ error: "Session expired. Please login again." });
       }
+
+      // Generate new 2FA secret for this user
+      const secret = new OTPAuth.Secret({ size: 20 });
 
       // Create TOTP instance
       const totp = new OTPAuth.TOTP({
-        issuer: "Tour Discoveries",
-        label: "Admin Dashboard",
+        issuer: "Flights and Packages Admin",
+        label: session.email,
         algorithm: "SHA1",
         digits: 6,
         period: 30,
         secret: secret,
       });
 
-      // Validate token (allow 1 window before/after for clock skew)
-      const delta = totp.validate({ token, window: 1 });
+      // Generate QR code
+      const qrCode = await QRCode.toDataURL(totp.toString());
 
-      if (delta !== null) {
-        res.json({
-          valid: true,
-        });
-      } else {
-        res.json({
-          valid: false,
+      res.json({
+        secret: secret.base32,
+        qrCode,
+        email: session.email
+      });
+    } catch (error: any) {
+      console.error("2FA setup error:", error);
+      res.status(500).json({ error: "Failed to generate 2FA setup" });
+    }
+  });
+
+  // Admin 2FA Verify and Complete Setup
+  app.post("/api/auth/admin/2fa/verify-setup", async (req, res) => {
+    try {
+      const { pendingToken, token, secret } = req.body;
+      
+      if (!pendingToken || !token || !secret) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const session = adminSessions.get(`setup_${pendingToken}`);
+      if (!session || session.expiresAt < new Date()) {
+        adminSessions.delete(`setup_${pendingToken}`);
+        return res.status(401).json({ error: "Session expired. Please login again." });
+      }
+
+      // Verify the token with the provided secret
+      const totp = new OTPAuth.TOTP({
+        issuer: "Flights and Packages Admin",
+        label: session.email,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: secret,
+      });
+
+      const delta = totp.validate({ token, window: 1 });
+      if (delta === null) {
+        return res.status(400).json({ error: "Invalid verification code" });
+      }
+
+      // Save the 2FA secret to the user
+      await storage.updateAdminUser(session.userId, {
+        twoFactorSecret: secret,
+        twoFactorEnabled: true
+      });
+
+      // Update last login
+      await storage.updateAdminUserLastLogin(session.userId);
+
+      // Create real session
+      const sessionToken = generateSessionToken();
+      adminSessions.set(sessionToken, {
+        userId: session.userId,
+        email: session.email,
+        role: session.role,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      });
+
+      // Clean up pending session
+      adminSessions.delete(`setup_${pendingToken}`);
+
+      res.json({
+        success: true,
+        sessionToken,
+        user: {
+          id: session.userId,
+          email: session.email,
+          role: session.role
+        }
+      });
+    } catch (error: any) {
+      console.error("2FA verify setup error:", error);
+      res.status(500).json({ error: "Failed to complete 2FA setup" });
+    }
+  });
+
+  // Admin 2FA Verify (for login with existing 2FA)
+  app.post("/api/auth/admin/2fa/verify", async (req, res) => {
+    try {
+      const { pendingToken, token } = req.body;
+      
+      if (!pendingToken || !token) {
+        return res.status(400).json({ error: "Pending token and verification code required" });
+      }
+
+      const session = adminSessions.get(`pending_${pendingToken}`);
+      if (!session || session.expiresAt < new Date()) {
+        adminSessions.delete(`pending_${pendingToken}`);
+        return res.status(401).json({ error: "Session expired. Please login again." });
+      }
+
+      // Get user's 2FA secret
+      const user = await storage.getAdminUserById(session.userId);
+      if (!user || !user.twoFactorSecret) {
+        return res.status(500).json({ error: "2FA not configured for this user" });
+      }
+
+      // Verify the token
+      const totp = new OTPAuth.TOTP({
+        issuer: "Flights and Packages Admin",
+        label: user.email,
+        algorithm: "SHA1",
+        digits: 6,
+        period: 30,
+        secret: user.twoFactorSecret,
+      });
+
+      const delta = totp.validate({ token, window: 1 });
+      if (delta === null) {
+        return res.status(400).json({ error: "Invalid verification code" });
+      }
+
+      // Update last login
+      await storage.updateAdminUserLastLogin(user.id);
+
+      // Create real session
+      const sessionToken = generateSessionToken();
+      adminSessions.set(sessionToken, {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      });
+
+      // Clean up pending session
+      adminSessions.delete(`pending_${pendingToken}`);
+
+      res.json({
+        success: true,
+        sessionToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role
+        }
+      });
+    } catch (error: any) {
+      console.error("2FA verify error:", error);
+      res.status(500).json({ error: "Failed to verify 2FA" });
+    }
+  });
+
+  // Admin Logout
+  app.post("/api/auth/admin/logout", (req, res) => {
+    const sessionToken = req.headers['x-admin-session'] as string;
+    if (sessionToken) {
+      adminSessions.delete(sessionToken);
+    }
+    res.json({ success: true });
+  });
+
+  // Get current admin user info
+  app.get("/api/auth/admin/me", verifyAdminSession, async (req, res) => {
+    try {
+      const adminUser = (req as any).adminUser;
+      const user = await storage.getAdminUserById(adminUser.userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        twoFactorEnabled: user.twoFactorEnabled,
+        lastLoginAt: user.lastLoginAt
+      });
+    } catch (error: any) {
+      console.error("Get admin user error:", error);
+      res.status(500).json({ error: "Failed to get user info" });
+    }
+  });
+
+  // ========================================
+  // ADMIN USER MANAGEMENT ROUTES
+  // ========================================
+
+  // List all admin users (super_admin only)
+  app.get("/api/auth/admin/users", verifyAdminSession, requireSuperAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAllAdminUsers();
+      // Don't return password hashes or 2FA secrets
+      const safeUsers = users.map(u => ({
+        id: u.id,
+        email: u.email,
+        fullName: u.fullName,
+        role: u.role,
+        isActive: u.isActive,
+        twoFactorEnabled: u.twoFactorEnabled,
+        lastLoginAt: u.lastLoginAt,
+        createdAt: u.createdAt
+      }));
+      res.json(safeUsers);
+    } catch (error: any) {
+      console.error("List admin users error:", error);
+      res.status(500).json({ error: "Failed to list users" });
+    }
+  });
+
+  // Create new admin user (super_admin only)
+  app.post("/api/auth/admin/users", verifyAdminSession, requireSuperAdmin, async (req, res) => {
+    try {
+      const { email, fullName, password, role } = req.body;
+      
+      if (!email || !fullName || !password) {
+        return res.status(400).json({ error: "Email, full name, and password are required" });
+      }
+
+      // Check if email already exists
+      const existing = await storage.getAdminUserByEmail(email);
+      if (existing) {
+        return res.status(409).json({ error: "An admin with this email already exists" });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+      // Create user
+      const user = await storage.createAdminUser({
+        email,
+        fullName,
+        passwordHash,
+        role: role || 'editor',
+        isActive: true,
+        twoFactorEnabled: false
+      });
+
+      res.status(201).json({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        isActive: user.isActive,
+        message: "User created. They will set up 2FA on first login."
+      });
+    } catch (error: any) {
+      console.error("Create admin user error:", error);
+      res.status(500).json({ error: "Failed to create user" });
+    }
+  });
+
+  // Update admin user (super_admin only)
+  app.patch("/api/auth/admin/users/:id", verifyAdminSession, requireSuperAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { email, fullName, role, isActive } = req.body;
+      const currentAdmin = (req as any).adminUser;
+
+      // Prevent deactivating yourself
+      if (userId === currentAdmin.userId && isActive === false) {
+        return res.status(400).json({ error: "You cannot deactivate your own account" });
+      }
+
+      const updates: any = {};
+      if (email) updates.email = email;
+      if (fullName) updates.fullName = fullName;
+      if (role) updates.role = role;
+      if (typeof isActive === 'boolean') updates.isActive = isActive;
+
+      const user = await storage.updateAdminUser(userId, updates);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        isActive: user.isActive
+      });
+    } catch (error: any) {
+      console.error("Update admin user error:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
+  });
+
+  // Reset admin user password (super_admin only)
+  app.post("/api/auth/admin/users/:id/reset-password", verifyAdminSession, requireSuperAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { newPassword } = req.body;
+
+      if (!newPassword || newPassword.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+      
+      // Reset password and clear 2FA (user must set up again)
+      const user = await storage.updateAdminUser(userId, {
+        passwordHash,
+        twoFactorSecret: null,
+        twoFactorEnabled: false
+      });
+
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Clear any active sessions for this user
+      for (const [token, session] of adminSessions.entries()) {
+        if (session.userId === userId) {
+          adminSessions.delete(token);
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: "Password reset. User must set up 2FA on next login." 
+      });
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  // Delete admin user (super_admin only)
+  app.delete("/api/auth/admin/users/:id", verifyAdminSession, requireSuperAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentAdmin = (req as any).adminUser;
+
+      // Prevent deleting yourself
+      if (userId === currentAdmin.userId) {
+        return res.status(400).json({ error: "You cannot delete your own account" });
+      }
+
+      // Check if this is the last super_admin
+      const allUsers = await storage.getAllAdminUsers();
+      const superAdmins = allUsers.filter(u => u.role === 'super_admin' && u.id !== userId);
+      const userToDelete = allUsers.find(u => u.id === userId);
+      
+      if (userToDelete?.role === 'super_admin' && superAdmins.length === 0) {
+        return res.status(400).json({ error: "Cannot delete the last super admin" });
+      }
+
+      await storage.deleteAdminUser(userId);
+
+      // Clear any active sessions for this user
+      for (const [token, session] of adminSessions.entries()) {
+        if (session.userId === userId) {
+          adminSessions.delete(token);
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Delete admin user error:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  // Legacy 2FA routes - redirect to per-user system
+  // Kept temporarily for backward compatibility during transition
+  app.get("/api/auth/2fa/setup", async (req, res) => {
+    res.status(410).json({ 
+      error: "This endpoint is deprecated. Please use the new admin login system at /api/auth/admin/login" 
+    });
+  });
+
+  app.post("/api/auth/2fa/verify", async (req, res) => {
+    res.status(410).json({ 
+      error: "This endpoint is deprecated. Please use the new admin login system at /api/auth/admin/login" 
+    });
+  });
+
+  // Bootstrap route - Create first super admin (only works if no admins exist)
+  app.post("/api/auth/admin/bootstrap", async (req, res) => {
+    try {
+      // Check if any admin users exist
+      const existingUsers = await storage.getAllAdminUsers();
+      if (existingUsers.length > 0) {
+        return res.status(403).json({ 
+          error: "Admin users already exist. Use the admin panel to manage users." 
         });
       }
-    } catch (error: any) {
-      console.error("Error verifying TOTP:", error);
-      res.status(500).json({
-        error: error.message || "Failed to verify TOTP",
+
+      const { email, password, fullName } = req.body;
+      
+      if (!email || !password || !fullName) {
+        return res.status(400).json({ error: "Email, password, and full name are required" });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+      // Create first super admin
+      const user = await storage.createAdminUser({
+        email,
+        fullName,
+        passwordHash,
+        role: 'super_admin',
+        isActive: true,
+        twoFactorEnabled: false
       });
+
+      console.log(`First admin user created: ${email}`);
+
+      res.status(201).json({
+        success: true,
+        message: "First admin user created. Please login at /admin/login",
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role
+        }
+      });
+    } catch (error: any) {
+      console.error("Bootstrap admin error:", error);
+      res.status(500).json({ error: "Failed to create admin user" });
     }
   });
 

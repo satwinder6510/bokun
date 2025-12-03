@@ -552,3 +552,57 @@ export const updateTrackingNumberSchema = insertTrackingNumberSchema.partial();
 export type TrackingNumber = typeof trackingNumbers.$inferSelect;
 export type InsertTrackingNumber = z.infer<typeof insertTrackingNumberSchema>;
 export type UpdateTrackingNumber = z.infer<typeof updateTrackingNumberSchema>;
+
+// Admin Users schema for multi-user admin access with individual 2FA
+export const adminUsers = pgTable("admin_users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  fullName: text("full_name").notNull(),
+  role: text("role").notNull().default("editor"), // "super_admin" or "editor"
+  isActive: boolean("is_active").notNull().default(true),
+  
+  // 2FA fields
+  twoFactorSecret: text("two_factor_secret"), // TOTP secret for this user
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  
+  // Session tracking
+  lastLoginAt: timestamp("last_login_at"),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  lastLoginAt: true
+}).extend({
+  email: z.string().email("Valid email is required"),
+  fullName: z.string().min(1, "Full name is required").max(100),
+  role: z.enum(["super_admin", "editor"]).default("editor"),
+  isActive: z.boolean().default(true),
+});
+
+export const updateAdminUserSchema = z.object({
+  email: z.string().email("Valid email is required").optional(),
+  fullName: z.string().min(1, "Full name is required").max(100).optional(),
+  role: z.enum(["super_admin", "editor"]).optional(),
+  isActive: z.boolean().optional(),
+  passwordHash: z.string().optional(),
+  twoFactorSecret: z.string().nullable().optional(),
+  twoFactorEnabled: z.boolean().optional(),
+});
+
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+export type UpdateAdminUser = z.infer<typeof updateAdminUserSchema>;
+
+// Admin login schema for validation
+export const adminLoginSchema = z.object({
+  email: z.string().email("Valid email is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export type AdminLogin = z.infer<typeof adminLoginSchema>;

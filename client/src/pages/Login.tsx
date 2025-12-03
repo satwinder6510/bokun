@@ -3,83 +3,119 @@ import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Lock, Shield } from "lucide-react";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { Lock, Shield, QrCode, Loader2 } from "lucide-react";
+
+type LoginStep = "credentials" | "2fa" | "2fa-setup";
 
 export default function Login() {
   const [, setLocation] = useLocation();
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [totpCode, setTotpCode] = useState("");
-  const [step, setStep] = useState<"password" | "totp">("password");
+  const [step, setStep] = useState<LoginStep>("credentials");
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [secret, setSecret] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { login, setup2FA, verify2FA, verify2FASetup, isAuthenticated } = useAdminAuth();
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  if (isAuthenticated) {
+    setLocation("/dashboard");
+    return null;
+  }
 
-    // Simple password check - in production, this would be server-side
-    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || "admin123";
-    
-    if (password === adminPassword) {
-      // Password is correct, move to TOTP verification
-      setStep("totp");
-      toast({
-        title: "Password Verified",
-        description: "Enter your 6-digit code from authenticator app",
-      });
-    } else {
-      toast({
-        title: "Access Denied",
-        description: "Incorrect password",
-        variant: "destructive",
-      });
-      setPassword("");
-    }
-    
-    setIsLoading(false);
-  };
-
-  const handleTotpSubmit = async (e: React.FormEvent) => {
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const result = await apiRequest("POST", "/api/auth/2fa/verify", {
-        token: totpCode,
-      }) as { valid: boolean };
+      const result = await login(email, password);
 
-      if (result.valid) {
-        sessionStorage.setItem("dashboard_auth", "true");
+      if (result.requiresTwoFactor) {
+        setPendingToken(result.pendingToken!);
+        setStep("2fa");
         toast({
-          title: "Access Granted",
-          description: "Welcome to the dashboard",
+          title: "Verification Required",
+          description: "Enter the 6-digit code from your authenticator app",
         });
-        setLocation("/dashboard");
-      } else {
+      } else if (result.requiresTwoFactorSetup) {
+        setPendingToken(result.pendingToken!);
+        const setupResult = await setup2FA(result.pendingToken!);
+        setQrCode(setupResult.qrCode);
+        setSecret(setupResult.secret);
+        setStep("2fa-setup");
         toast({
-          title: "Invalid Code",
-          description: "The verification code is incorrect",
-          variant: "destructive",
+          title: "Set Up Two-Factor Authentication",
+          description: "Scan the QR code with your authenticator app",
         });
-        setTotpCode("");
       }
     } catch (error: any) {
       toast({
+        title: "Login Failed",
+        description: error.message || "Invalid email or password",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handle2FASubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      await verify2FA(pendingToken!, totpCode);
+      toast({
+        title: "Welcome Back",
+        description: "You have been successfully logged in",
+      });
+      setLocation("/dashboard");
+    } catch (error: any) {
+      toast({
         title: "Verification Failed",
-        description: error.message || "Failed to verify code",
+        description: error.message || "Invalid code",
         variant: "destructive",
       });
       setTotpCode("");
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    setIsLoading(false);
+  const handle2FASetupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      await verify2FASetup(pendingToken!, totpCode, secret!);
+      toast({
+        title: "2FA Setup Complete",
+        description: "Your account is now secured with two-factor authentication",
+      });
+      setLocation("/dashboard");
+    } catch (error: any) {
+      toast({
+        title: "Setup Failed",
+        description: error.message || "Invalid code",
+        variant: "destructive",
+      });
+      setTotpCode("");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleBack = () => {
-    setStep("password");
+    setStep("credentials");
     setTotpCode("");
+    setPendingToken(null);
+    setQrCode(null);
+    setSecret(null);
   };
 
   return (
@@ -88,60 +124,74 @@ export default function Login() {
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              {step === "password" ? (
-                <Lock className="w-6 h-6 text-primary" />
-              ) : (
-                <Shield className="w-6 h-6 text-primary" />
-              )}
+              {step === "credentials" && <Lock className="w-6 h-6 text-primary" />}
+              {step === "2fa" && <Shield className="w-6 h-6 text-primary" />}
+              {step === "2fa-setup" && <QrCode className="w-6 h-6 text-primary" />}
             </div>
           </div>
           <CardTitle className="text-2xl" data-testid="text-login-title">
-            {step === "password" ? "Dashboard Access" : "Two-Factor Authentication"}
+            {step === "credentials" && "Admin Login"}
+            {step === "2fa" && "Two-Factor Authentication"}
+            {step === "2fa-setup" && "Set Up 2FA"}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-2">
-            {step === "password" 
-              ? "Enter the admin password to continue"
-              : "Enter the 6-digit code from your authenticator app"
-            }
+            {step === "credentials" && "Sign in with your admin account"}
+            {step === "2fa" && "Enter the 6-digit code from your authenticator app"}
+            {step === "2fa-setup" && "Scan the QR code with your authenticator app to secure your account"}
           </p>
         </CardHeader>
         <CardContent>
-          {step === "password" ? (
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
-              <div>
+          {step === "credentials" && (
+            <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  autoFocus
+                  data-testid="input-email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
                   type="password"
-                  placeholder="Enter password"
+                  placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  autoFocus
                   data-testid="input-password"
                 />
               </div>
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isLoading || !password}
+                disabled={isLoading || !email || !password}
                 data-testid="button-login"
               >
-                {isLoading ? "Verifying..." : "Continue"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </Button>
-              <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setLocation("/2fa-setup")}
-                  className="text-sm text-primary hover:underline"
-                  data-testid="link-setup-2fa"
-                >
-                  Need to set up 2FA?
-                </button>
-              </div>
             </form>
-          ) : (
-            <form onSubmit={handleTotpSubmit} className="space-y-4">
-              <div>
+          )}
+
+          {step === "2fa" && (
+            <form onSubmit={handle2FASubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="totp">Verification Code</Label>
                 <Input
+                  id="totp"
                   type="text"
                   placeholder="000000"
                   value={totpCode}
@@ -152,9 +202,6 @@ export default function Login() {
                   className="text-center text-2xl tracking-widest font-mono"
                   data-testid="input-totp"
                 />
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  Open your authenticator app to get the code
-                </p>
               </div>
               <div className="space-y-2">
                 <Button 
@@ -163,7 +210,14 @@ export default function Login() {
                   disabled={isLoading || totpCode.length !== 6}
                   data-testid="button-verify"
                 >
-                  {isLoading ? "Verifying..." : "Verify & Login"}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "Verify & Login"
+                  )}
                 </Button>
                 <Button
                   type="button"
@@ -173,7 +227,68 @@ export default function Login() {
                   disabled={isLoading}
                   data-testid="button-back"
                 >
-                  Back
+                  Back to Login
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {step === "2fa-setup" && (
+            <form onSubmit={handle2FASetupSubmit} className="space-y-4">
+              {qrCode && (
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="bg-white p-4 rounded-lg">
+                    <img src={qrCode} alt="2FA QR Code" className="w-48 h-48" data-testid="img-qr-code" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Or enter this code manually:
+                    </p>
+                    <code className="text-xs bg-muted px-2 py-1 rounded font-mono break-all" data-testid="text-secret">
+                      {secret}
+                    </code>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="setup-totp">Enter Code to Confirm</Label>
+                <Input
+                  id="setup-totp"
+                  type="text"
+                  placeholder="000000"
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  disabled={isLoading}
+                  maxLength={6}
+                  className="text-center text-2xl tracking-widest font-mono"
+                  data-testid="input-setup-totp"
+                />
+              </div>
+              <div className="space-y-2">
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading || totpCode.length !== 6}
+                  data-testid="button-complete-setup"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Setting up...
+                    </>
+                  ) : (
+                    "Complete Setup & Login"
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBack}
+                  className="w-full"
+                  disabled={isLoading}
+                  data-testid="button-cancel-setup"
+                >
+                  Cancel
                 </Button>
               </div>
             </form>

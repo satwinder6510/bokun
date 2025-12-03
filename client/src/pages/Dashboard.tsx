@@ -8,9 +8,10 @@ import { CredentialsPanel } from "@/components/CredentialsPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ProductDetailsModal } from "@/components/ProductDetailsModal";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,9 +26,10 @@ export default function Dashboard() {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [productsData, setProductsData] = useState<BokunProductSearchResponse | null>(null);
+  const { user, logout, isSuperAdmin } = useAdminAuth();
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("dashboard_auth");
+  const handleLogout = async () => {
+    await logout();
     toast({
       title: "Logged Out",
       description: "You have been logged out successfully",
@@ -203,6 +205,11 @@ export default function Dashboard() {
               </a>
             </Button>
             <ThemeToggle />
+            {user && (
+              <span className="text-sm text-muted-foreground" data-testid="text-user-name">
+                {user.fullName}
+              </span>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -361,6 +368,31 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
             </Card>
+
+            {isSuperAdmin() && (
+              <Card data-testid="card-users-management">
+                <CardHeader>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                        <Users className="h-6 w-6 text-primary" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">Admin Users</CardTitle>
+                        <CardDescription>
+                          Manage admin accounts and permissions
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <a href="/admin/users">
+                      <Button variant="outline" size="sm" data-testid="button-manage-users">
+                        Manage Users
+                      </Button>
+                    </a>
+                  </div>
+                </CardHeader>
+              </Card>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

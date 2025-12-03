@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import Homepage from "@/pages/Homepage";
 import TourDetail from "@/pages/TourDetail";
 import Terms from "@/pages/Terms";
@@ -21,9 +22,9 @@ import AdminFAQ from "@/pages/AdminFAQ";
 import AdminPackages from "@/pages/AdminPackages";
 import AdminReviews from "@/pages/AdminReviews";
 import AdminTrackingNumbers from "@/pages/AdminTrackingNumbers";
+import AdminUsers from "@/pages/AdminUsers";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
-import TwoFactorSetup from "@/pages/TwoFactorSetup";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -41,7 +42,6 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/login" component={Login} />
-      <Route path="/2fa-setup" component={TwoFactorSetup} />
       <Route path="/dashboard">
         <ProtectedRoute>
           <Dashboard />
@@ -67,6 +67,11 @@ function Router() {
           <AdminTrackingNumbers />
         </ProtectedRoute>
       </Route>
+      <Route path="/admin/users">
+        <ProtectedRoute requireSuperAdmin>
+          <AdminUsers />
+        </ProtectedRoute>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );
@@ -75,14 +80,16 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <CurrencyProvider>
-        <CartProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </CartProvider>
-      </CurrencyProvider>
+      <AdminAuthProvider>
+        <CurrencyProvider>
+          <CartProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+            </TooltipProvider>
+          </CartProvider>
+        </CurrencyProvider>
+      </AdminAuthProvider>
     </QueryClientProvider>
   );
 }

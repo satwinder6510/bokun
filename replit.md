@@ -90,8 +90,8 @@ The platform features a comprehensive multi-user admin authentication system wit
 
 -   **Database-backed accounts:** Admin users are stored in the `admin_users` PostgreSQL table with email, bcrypt-hashed passwords (12 rounds), and individual TOTP secrets for 2FA.
 -   **Roles:** Two roles are supported: `super_admin` (full access including user management) and `editor` (content management only).
--   **Session management:** 24-hour session tokens stored in localStorage with `X-Admin-Session` header authentication.
--   **2FA flow:** New users set up 2FA on first login (QR code generation), returning users verify with their authenticator app.
+-   **Session management:** 24-hour session tokens are persisted in the `admin_sessions` PostgreSQL table (not in-memory), ensuring sessions survive server restarts. Sessions are validated via `X-Admin-Session` header. Session expiry is automatically extended on each request. Expired sessions are cleaned up hourly.
+-   **2FA flow:** New users set up 2FA on first login (QR code generation), returning users verify with their authenticator app. Pending 2FA sessions are stored in-memory (5-10 minute expiry) since they are short-lived.
 
 ### Admin Routes
 

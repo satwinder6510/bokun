@@ -610,3 +610,16 @@ export const adminLoginSchema = z.object({
 });
 
 export type AdminLogin = z.infer<typeof adminLoginSchema>;
+
+// Admin Sessions table for persistent sessions across server restarts
+export const adminSessions = pgTable("admin_sessions", {
+  id: serial("id").primaryKey(),
+  sessionToken: text("session_token").notNull().unique(),
+  userId: integer("user_id").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type AdminSession = typeof adminSessions.$inferSelect;

@@ -5,7 +5,9 @@ import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import bcrypt from "bcrypt";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, adminSessions } from "@shared/schema";
+import { db } from "./db";
+import { eq, lt } from "drizzle-orm";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { randomBytes } from "crypto";
 import multer from "multer";
@@ -16,35 +18,51 @@ import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor
 // Password hashing constants
 const SALT_ROUNDS = 12;
 
-// Admin session tracking (in-memory for simplicity, would use Redis in production)
-const adminSessions = new Map<string, { userId: number; email: string; role: string; expiresAt: Date }>();
+// Pending sessions for 2FA (in-memory, short-lived - 5 minutes max)
+const pendingSessions = new Map<string, { userId: number; email: string; role: string; expiresAt: Date }>();
 
 // Generate session token
 function generateSessionToken(): string {
   return randomBytes(32).toString('hex');
 }
 
-// Verify admin session middleware
-function verifyAdminSession(req: Request, res: Response, next: NextFunction) {
+// Verify admin session middleware (using database-backed sessions)
+async function verifyAdminSession(req: Request, res: Response, next: NextFunction) {
   const sessionToken = req.headers['x-admin-session'] as string;
   
   if (!sessionToken) {
     return res.status(401).json({ error: "Authentication required" });
   }
   
-  const session = adminSessions.get(sessionToken);
-  
-  if (!session || session.expiresAt < new Date()) {
-    adminSessions.delete(sessionToken);
-    return res.status(401).json({ error: "Session expired or invalid" });
+  try {
+    // Get session from database
+    const [session] = await db.select().from(adminSessions).where(eq(adminSessions.sessionToken, sessionToken));
+    
+    if (!session || session.expiresAt < new Date()) {
+      // Delete expired session
+      if (session) {
+        await db.delete(adminSessions).where(eq(adminSessions.sessionToken, sessionToken));
+      }
+      return res.status(401).json({ error: "Session expired or invalid" });
+    }
+    
+    // Extend session on activity (update expiry in database)
+    const newExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await db.update(adminSessions)
+      .set({ expiresAt: newExpiry })
+      .where(eq(adminSessions.sessionToken, sessionToken));
+    
+    // Attach user info to request
+    (req as any).adminUser = {
+      userId: session.userId,
+      email: session.email,
+      role: session.role
+    };
+    next();
+  } catch (error) {
+    console.error('Session verification error:', error);
+    return res.status(500).json({ error: "Session verification failed" });
   }
-  
-  // Extend session on activity
-  session.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  
-  // Attach user info to request
-  (req as any).adminUser = session;
-  next();
 }
 
 // Super admin only middleware
@@ -462,8 +480,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.twoFactorEnabled && user.twoFactorSecret) {
         // Return pending 2FA status - client must complete 2FA
         const pendingToken = generateSessionToken();
-        // Store pending session temporarily (expires in 5 minutes)
-        adminSessions.set(`pending_${pendingToken}`, {
+        // Store pending session temporarily in memory (expires in 5 minutes)
+        pendingSessions.set(`pending_${pendingToken}`, {
           userId: user.id,
           email: user.email,
           role: user.role,
@@ -480,7 +498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If 2FA not enabled, check if this is first login (requires 2FA setup)
       if (!user.twoFactorEnabled) {
         const pendingToken = generateSessionToken();
-        adminSessions.set(`setup_${pendingToken}`, {
+        pendingSessions.set(`setup_${pendingToken}`, {
           userId: user.id,
           email: user.email,
           role: user.role,
@@ -511,9 +529,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Pending token required" });
       }
 
-      const session = adminSessions.get(`setup_${pendingToken}`);
+      const session = pendingSessions.get(`setup_${pendingToken}`);
       if (!session || session.expiresAt < new Date()) {
-        adminSessions.delete(`setup_${pendingToken}`);
+        pendingSessions.delete(`setup_${pendingToken}`);
         return res.status(401).json({ error: "Session expired. Please login again." });
       }
 
@@ -553,9 +571,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const session = adminSessions.get(`setup_${pendingToken}`);
+      const session = pendingSessions.get(`setup_${pendingToken}`);
       if (!session || session.expiresAt < new Date()) {
-        adminSessions.delete(`setup_${pendingToken}`);
+        pendingSessions.delete(`setup_${pendingToken}`);
         return res.status(401).json({ error: "Session expired. Please login again." });
       }
 
@@ -583,9 +601,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update last login
       await storage.updateAdminUserLastLogin(session.userId);
 
-      // Create real session
+      // Clear any existing sessions for this user (single device login)
+      await db.delete(adminSessions).where(eq(adminSessions.userId, session.userId));
+
+      // Create real session in database
       const sessionToken = generateSessionToken();
-      adminSessions.set(sessionToken, {
+      await db.insert(adminSessions).values({
+        sessionToken,
         userId: session.userId,
         email: session.email,
         role: session.role,
@@ -593,7 +615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Clean up pending session
-      adminSessions.delete(`setup_${pendingToken}`);
+      pendingSessions.delete(`setup_${pendingToken}`);
 
       res.json({
         success: true,
@@ -619,9 +641,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Pending token and verification code required" });
       }
 
-      const session = adminSessions.get(`pending_${pendingToken}`);
+      const session = pendingSessions.get(`pending_${pendingToken}`);
       if (!session || session.expiresAt < new Date()) {
-        adminSessions.delete(`pending_${pendingToken}`);
+        pendingSessions.delete(`pending_${pendingToken}`);
         return res.status(401).json({ error: "Session expired. Please login again." });
       }
 
@@ -649,9 +671,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update last login
       await storage.updateAdminUserLastLogin(user.id);
 
-      // Create real session
+      // Clear any existing sessions for this user (single device login)
+      await db.delete(adminSessions).where(eq(adminSessions.userId, user.id));
+
+      // Create real session in database
       const sessionToken = generateSessionToken();
-      adminSessions.set(sessionToken, {
+      await db.insert(adminSessions).values({
+        sessionToken,
         userId: user.id,
         email: user.email,
         role: user.role,
@@ -659,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Clean up pending session
-      adminSessions.delete(`pending_${pendingToken}`);
+      pendingSessions.delete(`pending_${pendingToken}`);
 
       res.json({
         success: true,
@@ -678,10 +704,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin Logout
-  app.post("/api/auth/admin/logout", (req, res) => {
+  app.post("/api/auth/admin/logout", async (req, res) => {
     const sessionToken = req.headers['x-admin-session'] as string;
     if (sessionToken) {
-      adminSessions.delete(sessionToken);
+      try {
+        await db.delete(adminSessions).where(eq(adminSessions.sessionToken, sessionToken));
+      } catch (error) {
+        console.error('Logout error:', error);
+      }
     }
     res.json({ success: true });
   });
@@ -837,12 +867,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "User not found" });
       }
 
-      // Clear any active sessions for this user
-      Array.from(adminSessions.entries()).forEach(([token, session]) => {
-        if (session.userId === userId) {
-          adminSessions.delete(token);
-        }
-      });
+      // Clear any active sessions for this user from database
+      await db.delete(adminSessions).where(eq(adminSessions.userId, userId));
 
       res.json({ 
         success: true, 
@@ -876,12 +902,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await storage.deleteAdminUser(userId);
 
-      // Clear any active sessions for this user
-      Array.from(adminSessions.entries()).forEach(([token, session]) => {
-        if (session.userId === userId) {
-          adminSessions.delete(token);
-        }
-      });
+      // Clear any active sessions for this user from database
+      await db.delete(adminSessions).where(eq(adminSessions.userId, userId));
 
       res.json({ success: true });
     } catch (error: any) {
@@ -3811,6 +3833,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: error.message });
     }
   });
+
+  // Periodic cleanup of expired sessions (runs every hour)
+  setInterval(async () => {
+    try {
+      // Clean up expired database sessions
+      const result = await db.delete(adminSessions).where(lt(adminSessions.expiresAt, new Date()));
+      console.log('Cleaned up expired admin sessions from database');
+      
+      // Clean up expired pending sessions from memory
+      const now = new Date();
+      Array.from(pendingSessions.entries()).forEach(([token, session]) => {
+        if (session.expiresAt < now) {
+          pendingSessions.delete(token);
+        }
+      });
+    } catch (error) {
+      console.error('Session cleanup error:', error);
+    }
+  }, 60 * 60 * 1000); // Every hour
 
   const httpServer = createServer(app);
 

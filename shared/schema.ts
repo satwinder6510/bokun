@@ -391,6 +391,9 @@ export const flightPackages = pgTable("flight_packages", {
   isPublished: boolean("is_published").notNull().default(false),
   displayOrder: integer("display_order").notNull().default(0),
   
+  // Source URL for rescraping
+  sourceUrl: text("source_url"),
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

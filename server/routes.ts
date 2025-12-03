@@ -2543,6 +2543,281 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Match sitemap URLs to existing packages and update sourceUrl field
+  app.post("/api/admin/flight-packages/match-urls", async (req, res) => {
+    try {
+      const { urls } = req.body;
+      
+      if (!urls || !Array.isArray(urls) || urls.length === 0) {
+        return res.status(400).json({ error: "urls array is required" });
+      }
+      
+      // Get all packages
+      const allPackages = await storage.getAllFlightPackages();
+      
+      const results: { matched: string[]; unmatched: string[] } = {
+        matched: [],
+        unmatched: []
+      };
+      
+      // Helper to normalize URL slug for matching
+      const normalizeSlug = (urlPart: string): string => {
+        return decodeURIComponent(urlPart)
+          .toLowerCase()
+          .replace(/['']/g, '') // Remove smart quotes
+          .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+          .replace(/^-+|-+$/g, '') // Trim hyphens
+          .substring(0, 200);
+      };
+      
+      for (const url of urls) {
+        // Extract slug from URL
+        const urlSlug = url.split('/').pop() || '';
+        const normalizedUrlSlug = normalizeSlug(urlSlug);
+        
+        // Find matching package by comparing normalized slugs
+        const matchingPackage = allPackages.find(pkg => {
+          const pkgNormalizedSlug = normalizeSlug(pkg.slug);
+          // Exact match or URL slug contains package slug or vice versa
+          return pkgNormalizedSlug === normalizedUrlSlug ||
+                 normalizedUrlSlug.includes(pkgNormalizedSlug) ||
+                 pkgNormalizedSlug.includes(normalizedUrlSlug);
+        });
+        
+        if (matchingPackage) {
+          // Update package with source URL (remove www. prefix for fetching)
+          const cleanUrl = url.replace('www.holidays', 'holidays');
+          await storage.updateFlightPackage(matchingPackage.id, { sourceUrl: cleanUrl });
+          results.matched.push(`${matchingPackage.slug} -> ${cleanUrl}`);
+        } else {
+          results.unmatched.push(urlSlug);
+        }
+      }
+      
+      console.log(`URL matching complete: ${results.matched.length} matched, ${results.unmatched.length} unmatched`);
+      
+      res.json({
+        success: true,
+        total: urls.length,
+        matched: results.matched.length,
+        unmatched: results.unmatched.length,
+        details: results
+      });
+      
+    } catch (error: any) {
+      console.error("URL matching error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bulk rescrape accommodations for all packages with sourceUrl
+  app.post("/api/admin/flight-packages/rescrape-accommodations", async (req, res) => {
+    try {
+      const { limit = 500, delayMs = 500 } = req.body;
+      
+      // Import cheerio and node-fetch
+      const cheerio = await import("cheerio");
+      const fetch = (await import("node-fetch")).default;
+      
+      // Get all packages with sourceUrl but no/empty accommodations
+      const allPackages = await storage.getAllFlightPackages();
+      const packagesToUpdate = allPackages.filter(pkg => 
+        pkg.sourceUrl && 
+        (!pkg.accommodations || pkg.accommodations.length === 0)
+      ).slice(0, limit);
+      
+      console.log(`Starting rescrape for ${packagesToUpdate.length} packages...`);
+      
+      const results: { 
+        updated: string[]; 
+        noAccommodations: string[]; 
+        failed: string[] 
+      } = {
+        updated: [],
+        noAccommodations: [],
+        failed: []
+      };
+      
+      // Helper function to convert HTML to text
+      const htmlToText = ($: any, element: any): string => {
+        let html = $(element).html() || '';
+        html = html.replace(/<\/p>/gi, '\n\n');
+        html = html.replace(/<p[^>]*>/gi, '');
+        html = html.replace(/<br\s*\/?>/gi, '\n');
+        html = html.replace(/<\/div>/gi, '\n');
+        html = html.replace(/<div[^>]*>/gi, '');
+        html = html.replace(/<[^>]+>/g, '');
+        html = html.replace(/&nbsp;/gi, ' ');
+        html = html.replace(/&amp;/gi, '&');
+        html = html.replace(/&lt;/gi, '<');
+        html = html.replace(/&gt;/gi, '>');
+        html = html.replace(/&quot;/gi, '"');
+        html = html.replace(/&#39;/gi, "'");
+        html = html.replace(/&rsquo;/gi, "'");
+        html = html.replace(/&lsquo;/gi, "'");
+        html = html.replace(/&rdquo;/gi, '"');
+        html = html.replace(/&ldquo;/gi, '"');
+        html = html.replace(/&ndash;/gi, '–');
+        html = html.replace(/&mdash;/gi, '—');
+        html = html.replace(/&hellip;/gi, '...');
+        html = html.replace(/\n\s*\n\s*\n/g, '\n\n');
+        html = html.replace(/[ \t]+/g, ' ');
+        return html.trim();
+      };
+      
+      for (let i = 0; i < packagesToUpdate.length; i++) {
+        const pkg = packagesToUpdate[i];
+        
+        try {
+          console.log(`[${i+1}/${packagesToUpdate.length}] Scraping: ${pkg.title}`);
+          
+          const response = await fetch(pkg.sourceUrl!, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+          
+          if (!response.ok) {
+            results.failed.push(`${pkg.slug} (HTTP ${response.status})`);
+            continue;
+          }
+          
+          const html = await response.text();
+          const $ = cheerio.load(html);
+          
+          // Extract accommodations using improved scraper logic
+          const accommodations: { name: string; description: string; images: string[] }[] = [];
+          
+          const accommodationSelectors = [
+            '#accommodation',
+            '.accommodation-section',
+            '[id*="accommodation"]',
+            'section:has(h3:contains("Accommodation"))'
+          ];
+          
+          let accommodationSection = $();
+          for (const selector of accommodationSelectors) {
+            const found = $(selector);
+            if (found.length) {
+              accommodationSection = found.first();
+              break;
+            }
+          }
+          
+          if (accommodationSection.length) {
+            // Try panel-based structure first
+            const panels = accommodationSection.find('.accordion-panel');
+            
+            if (panels.length) {
+              panels.each((_, panel) => {
+                const hotelName = $(panel).find('.label').first().text().trim() ||
+                                 $(panel).find('.title').first().text().trim() ||
+                                 $(panel).find('.hotel-name').first().text().trim();
+                
+                if (hotelName && hotelName.length > 2 && !hotelName.match(/^Day\s*\d+$/i)) {
+                  // Get description
+                  let hotelDesc = '';
+                  const descSelectors = ['.panel-content p.MsoNormal', '.panel-content .desc', '.desc', 'p'];
+                  for (const sel of descSelectors) {
+                    const descEl = $(panel).find(sel);
+                    if (descEl.length) {
+                      hotelDesc = htmlToText($, descEl);
+                      if (hotelDesc.length > 20) break;
+                    }
+                  }
+                  
+                  // Get images from carousel anchors
+                  const hotelImages: string[] = [];
+                  $(panel).find('.accommodation-carousel a.img-url, a[href*="HotelImages"], a[href*="PackageImages"]').each((_, a) => {
+                    const href = $(a).attr('href');
+                    if (href && !hotelImages.includes(href)) {
+                      hotelImages.push(href);
+                    }
+                  });
+                  
+                  // Fallback to img src
+                  if (hotelImages.length === 0) {
+                    $(panel).find('.accommodation-carousel img, .panel-content img').each((_, img) => {
+                      const src = $(img).attr('src');
+                      if (src && !hotelImages.includes(src)) {
+                        hotelImages.push(src);
+                      }
+                    });
+                  }
+                  
+                  accommodations.push({
+                    name: hotelName.substring(0, 150),
+                    description: hotelDesc.trim().substring(0, 800),
+                    images: hotelImages.slice(0, 10)
+                  });
+                }
+              });
+            } else {
+              // Flat structure
+              let hotelName = accommodationSection.find('.title').first().text().trim() ||
+                             accommodationSection.find('.label').first().text().trim();
+              
+              if (hotelName && hotelName.length > 2 && !hotelName.match(/^Accommodation/i)) {
+                let hotelDesc = '';
+                accommodationSection.find('p.MsoNormal, p').each((_, p) => {
+                  const text = $(p).text().trim();
+                  if (text.length > 20 && !hotelDesc) {
+                    hotelDesc = text;
+                  }
+                });
+                
+                const hotelImages: string[] = [];
+                accommodationSection.find('a[href*="HotelImages"], a[href*="PackageImages"], img').each((_, el) => {
+                  const src = $(el).attr('href') || $(el).attr('src');
+                  if (src && !hotelImages.includes(src)) {
+                    hotelImages.push(src);
+                  }
+                });
+                
+                accommodations.push({
+                  name: hotelName.substring(0, 150),
+                  description: hotelDesc.substring(0, 800),
+                  images: hotelImages.slice(0, 10)
+                });
+              }
+            }
+          }
+          
+          if (accommodations.length > 0) {
+            await storage.updateFlightPackage(pkg.id, { accommodations });
+            results.updated.push(`${pkg.slug} (${accommodations.length} hotels)`);
+            console.log(`  -> Found ${accommodations.length} accommodation(s)`);
+          } else {
+            results.noAccommodations.push(pkg.slug);
+            console.log(`  -> No accommodations found`);
+          }
+          
+          // Rate limiting delay
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          
+        } catch (err: any) {
+          results.failed.push(`${pkg.slug}: ${err.message}`);
+          console.log(`  -> Error: ${err.message}`);
+        }
+      }
+      
+      console.log(`Rescrape complete: ${results.updated.length} updated, ${results.noAccommodations.length} no data, ${results.failed.length} failed`);
+      
+      res.json({
+        success: true,
+        total: packagesToUpdate.length,
+        updated: results.updated.length,
+        noAccommodations: results.noAccommodations.length,
+        failed: results.failed.length,
+        details: results
+      });
+      
+    } catch (error: any) {
+      console.error("Rescrape error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

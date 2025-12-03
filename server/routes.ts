@@ -1904,7 +1904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let currentRow = 2; // Start after Destination Airport and Board Basis rows
       let airportGroupsProcessed = 0;
       
-      while (currentRow + 2 < lines.length) {
+      while (currentRow + 2 <= lines.length) {
         const airportRow = parseRow(lines[currentRow]);
         const dateRow = parseRow(lines[currentRow + 1]);
         const priceRow = parseRow(lines[currentRow + 2]);

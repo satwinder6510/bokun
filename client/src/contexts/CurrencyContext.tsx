@@ -7,12 +7,15 @@ export interface Currency {
 }
 
 export const CURRENCIES: Currency[] = [
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
   { code: 'USD', symbol: '$', name: 'US Dollar' },
   { code: 'EUR', symbol: '€', name: 'Euro' },
-  { code: 'GBP', symbol: '£', name: 'British Pound' },
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
   { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
 ];
+
+// Default currency for UK-based business
+const DEFAULT_CURRENCY = CURRENCIES[0]; // GBP
 
 // Map country codes to currency codes
 const COUNTRY_TO_CURRENCY: Record<string, string> = {
@@ -49,8 +52,9 @@ const COUNTRY_TO_CURRENCY: Record<string, string> = {
 async function detectCurrencyFromLocation(): Promise<Currency> {
   try {
     // Use ipapi.co free tier (1000 requests/day, no API key needed)
+    // Increased timeout to 5 seconds for slower mobile networks
     const response = await fetch('https://ipapi.co/json/', {
-      signal: AbortSignal.timeout(3000), // 3 second timeout
+      signal: AbortSignal.timeout(5000),
     });
     
     if (!response.ok) {
@@ -69,11 +73,11 @@ async function detectCurrencyFromLocation(): Promise<Currency> {
       }
     }
   } catch (error) {
-    console.warn('Failed to detect location, using default USD:', error);
+    console.warn('Failed to detect location, using default GBP:', error);
   }
   
-  // Default to USD if detection fails
-  return CURRENCIES[0];
+  // Default to GBP for UK-based business if detection fails
+  return DEFAULT_CURRENCY;
 }
 
 interface CurrencyContextType {
@@ -90,12 +94,12 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return CURRENCIES.find(c => c.code === parsed.code) || CURRENCIES[0];
+        return CURRENCIES.find(c => c.code === parsed.code) || DEFAULT_CURRENCY;
       } catch {
-        return CURRENCIES[0];
+        return DEFAULT_CURRENCY;
       }
     }
-    return CURRENCIES[0]; // Temporary default, will be updated by geo-detection
+    return DEFAULT_CURRENCY; // GBP default, will be updated by geo-detection if different location
   });
 
   const setSelectedCurrency = (currency: Currency) => {

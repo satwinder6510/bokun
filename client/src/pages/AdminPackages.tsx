@@ -683,8 +683,8 @@ export default function AdminPackages() {
       if (tourData.gallery?.length > 0) importedItems.push(`${tourData.gallery.length} photos`);
       
       const summaryText = importedItems.length > 0 
-        ? `Imported: ${importedItems.join(', ')}. Price set to £0 - use Pricing tab to set dates and prices.`
-        : `Basic info imported. Price set to £0 - use Pricing tab after saving to set dates and prices.`;
+        ? `Imported: ${importedItems.join(', ')}. Review details and add flight pricing.`
+        : `Basic info imported. You may need to add itinerary and other details manually.`;
       
       toast({ 
         title: "Tour content imported", 

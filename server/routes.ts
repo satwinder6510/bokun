@@ -2286,11 +2286,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // For Bokun-linked flight packages, set price to 0
-      // The actual pricing is done via the CSV export/import workflow
-      // The Bokun price is just a reference price that may be in wrong currency
-      // Note: Bokun product details often returns USD even when GBP is requested
-      const importPrice = 0; // Admin will set price via pricing calendar
+      // Get the GBP price from the product search cache
+      // The search endpoint properly returns GBP prices (unlike availability which may return USD
+      // depending on booking channel currency settings)
+      let importPrice = 0;
+      try {
+        // Search for this specific product to get its GBP price
+        const searchResults: any = await searchBokunProducts(1, 1000, 'GBP');
+        const products = searchResults.items || [];
+        const matchingProduct = products.find((p: any) => String(p.id) === String(productId));
+        
+        if (matchingProduct && matchingProduct.price) {
+          importPrice = matchingProduct.price;
+          console.log(`Got GBP price from search: £${importPrice}`);
+        } else {
+          // Fall back to product details price (may be in USD)
+          importPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
+          console.log(`Using product details price: ${importPrice} (may not be GBP)`);
+        }
+      } catch (priceError) {
+        console.error("Could not fetch GBP pricing:", priceError);
+        importPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
+      }
       
       // Transform Bokun data into flight package format
       const importData = {

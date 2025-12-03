@@ -202,6 +202,11 @@ export async function getBokunAvailability(
   try {
     // Generate signature with the full path including query parameters
     const headers = getBokunHeaders(method, fullPath);
+    console.log(`\n=== BOKUN AVAILABILITY REQUEST ===`);
+    console.log(`URL: ${BOKUN_API_BASE}${fullPath}`);
+    console.log(`Currency requested: ${currency}`);
+    console.log(`==================================\n`);
+    
     const response = await fetch(`${BOKUN_API_BASE}${fullPath}`, {
       method,
       headers,

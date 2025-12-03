@@ -173,6 +173,8 @@ export default function AdminPackages() {
   const [existingPricing, setExistingPricing] = useState<PackagePricing[]>([]);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const [isSavingPricing, setIsSavingPricing] = useState(false);
+  const [isUploadingCsv, setIsUploadingCsv] = useState(false);
+  const csvFileRef = useRef<HTMLInputElement>(null);
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
@@ -536,6 +538,47 @@ export default function AdminPackages() {
       }
     } catch (error) {
       toast({ title: "Error deleting pricing", variant: "destructive" });
+    }
+  };
+
+  const handleCsvUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editingPackage) return;
+    
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploadingCsv(true);
+    try {
+      const formData = new FormData();
+      formData.append('csv', file);
+      
+      const response = await fetch(`/api/admin/packages/${editingPackage.id}/pricing/upload-csv`, {
+        method: "POST",
+        body: formData,
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast({ 
+          title: "CSV pricing imported", 
+          description: result.message || `Imported ${result.created} pricing entries`
+        });
+        await loadPackagePricing(editingPackage.id);
+      } else {
+        throw new Error(result.error || "Failed to upload CSV");
+      }
+    } catch (error: any) {
+      toast({ 
+        title: "Error uploading CSV", 
+        description: error.message || "Failed to process pricing CSV",
+        variant: "destructive" 
+      });
+    } finally {
+      setIsUploadingCsv(false);
+      if (csvFileRef.current) {
+        csvFileRef.current.value = '';
+      }
     }
   };
 
@@ -1623,6 +1666,48 @@ export default function AdminPackages() {
                                   </>
                                 )}
                               </Button>
+
+                              <Separator className="my-4" />
+
+                              {/* CSV Upload Section */}
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <Upload className="w-4 h-4 text-muted-foreground" />
+                                  <Label>Or Upload CSV File</Label>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  Upload a pricing CSV with format: Destination Airport, Board Basis rows, 
+                                  then groups of Departure Airport/Date/Price rows.
+                                </p>
+                                <input
+                                  ref={csvFileRef}
+                                  type="file"
+                                  accept=".csv"
+                                  onChange={handleCsvUpload}
+                                  className="hidden"
+                                  data-testid="input-csv-upload"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => csvFileRef.current?.click()}
+                                  disabled={isUploadingCsv}
+                                  className="w-full"
+                                  data-testid="button-upload-csv"
+                                >
+                                  {isUploadingCsv ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Processing CSV...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Upload className="w-4 h-4 mr-2" />
+                                      Upload Pricing CSV
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
                             </CardContent>
                           </Card>
 

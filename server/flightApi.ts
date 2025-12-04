@@ -62,13 +62,16 @@ export function smartRoundPrice(price: number): number {
 export async function searchFlights(params: FlightSearchParams): Promise<FlightOffer[]> {
   const url = new URL(FLIGHT_API_BASE);
   
-  // Build query string
-  url.searchParams.set("agentid", FLIGHT_API_AGENT_ID);
-  url.searchParams.set("depapt", params.departAirports);
-  url.searchParams.set("arrapt", params.arriveAirport);
-  url.searchParams.set("nights", params.nights.toString());
-  url.searchParams.set("sdate", params.startDate);
-  url.searchParams.set("edate", params.endDate);
+  // Build query string with correct parameter names
+  url.searchParams.set("agtid", FLIGHT_API_AGENT_ID);
+  url.searchParams.set("page", "FLTDATE");
+  url.searchParams.set("platform", "WEB");
+  url.searchParams.set("depart", params.departAirports);
+  url.searchParams.set("arrive", params.arriveAirport);
+  url.searchParams.set("Startdate", params.startDate);
+  url.searchParams.set("EndDate", params.endDate);
+  url.searchParams.set("duration", params.nights.toString());
+  url.searchParams.set("output", "JSON");
   
   console.log(`[FlightAPI] Searching flights: ${url.toString()}`);
   
@@ -90,15 +93,14 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
       throw new Error(`Flight API returned ${response.status}: ${response.statusText}`);
     }
     
-    // Get raw text first to handle XML error responses
+    // Get raw text first to handle error responses
     const rawText = await response.text();
     
-    // Check if response is XML (error from API)
-    if (rawText.startsWith("<?xml")) {
-      // Parse XML error
-      const errorMatch = rawText.match(/<Error>(.*?)<\/Error>/);
-      const errorMessage = errorMatch ? errorMatch[1] : "Unknown XML error from flight API";
-      console.error(`[FlightAPI] XML Error: ${errorMessage}`);
+    // Check for XML error response
+    if (rawText.startsWith("<?xml") || rawText.includes("<Error>")) {
+      const errorMatch = rawText.match(/<Error>(.*?)<\/Error>/i);
+      const errorMessage = errorMatch ? errorMatch[1] : "Unknown error from flight API";
+      console.error(`[FlightAPI] Error: ${errorMessage}`);
       
       if (errorMessage.includes("IP Address Does Not Match")) {
         throw new Error("Flight API access denied: Server IP not whitelisted. Contact Sunshine Technology Ltd to add this server's IP address.");
@@ -106,7 +108,7 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
       throw new Error(`Flight API error: ${errorMessage}`);
     }
     
-    // Parse as JSON
+    // Parse JSON response
     const data = JSON.parse(rawText) as FlightApiResponse;
     
     if (data.error) {

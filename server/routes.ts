@@ -4468,17 +4468,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const updateData: any = {};
             
             if (heroImage) {
-              updateData.heroImage = heroImage;
+              updateData.featuredImage = heroImage;
             }
             if (galleryImages.length > 0) {
-              updateData.galleryImages = galleryImages.slice(0, 15);
+              updateData.gallery = galleryImages.slice(0, 15);
             }
             if (accommodationsUpdated) {
               updateData.accommodations = accommodations;
             }
             
             await storage.updateFlightPackage(pkg.id, updateData);
-            results.updated.push(`${pkg.slug} (hero: ${heroImage ? 'yes' : 'no'}, gallery: ${galleryImages.length})`);
+            results.updated.push(`${pkg.slug} (featured: ${heroImage ? 'yes' : 'no'}, gallery: ${galleryImages.length})`);
             console.log(`  -> Updated: hero=${!!heroImage}, gallery=${galleryImages.length}`);
           } else {
             results.noImages.push(pkg.slug);

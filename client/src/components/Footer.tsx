@@ -135,7 +135,7 @@ export function Footer() {
             <div className="flex items-center gap-4 text-stone-500 text-sm">
               <span>ATOL Protected</span>
               <span>•</span>
-              <span>TTA Member Q7341</span>
+              <span>TTA Member U6837</span>
             </div>
           </div>
         </div>

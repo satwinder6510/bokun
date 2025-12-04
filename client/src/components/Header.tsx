@@ -52,7 +52,7 @@ export function Header({ destinations = [], onDestinationSelect }: HeaderProps) 
             </div>
             <div className="hidden sm:flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-sky-400" />
-              <span>TTA Member Q7341</span>
+              <span>TTA Member U6837</span>
             </div>
             <div className="hidden md:flex items-center gap-2">
               <Headphones className="h-4 w-4 text-stone-400" />

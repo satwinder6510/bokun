@@ -1,0 +1,161 @@
+Checking availability and pricing
+
+Activity availability and pricing
+Use case : Check availability, capacity and pricing for an activity across a range of dates. This is useful to inform the customer when the activity is available, how many seats are left, and what the price is (since pricing can vary by dates).
+
+GET /activity.json/{id}/availabilities?start=2018-11-25&end=2018-12-31
+
+Path parameters:
+
+id: the ID of the activity for which to check availability
+The following parameters are sent as query string parameters:
+
+start: Date ("yyyy-MM-dd") - required
+end: Date ("yyyy-MM-dd") - required
+currency: 3 letter currency code - optional
+In the response, you will get a list of "availability" objects:
+
+
+[
+{
+"id": "418_20171201",
+"date": 1512086400000,
+"localizedDate": "Fri 01.Dec'17",
+"startTime": "08:00",
+"startTimeId": 418,
+"unlimitedAvailability": false,
+"availabilityCount": 23,
+"bookedParticipants": 0,
+"minParticipants": 1,
+"minParticipantsToBookNow": 1
+"pickupAllotment": true,
+"pickupAvailabilityCount": 31,
+"defaultRateId": 11608,
+"rates": [
+  ...
+],
+"pricesByRate": [
+  ...
+],
+"guidedLanguages": [],
+"unavailable": false,
+"pickupSoldOut": false,
+"soldOut": false
+},
+...
+]
+The main things of interest you can gather from each availability object:
+
+id - unique ID for the availability
+date - the date to which the availability applies
+localizedDate - a human readable format of the date
+For DATE_AND_TIME activities you will get one availability object per start time:
+startTime - human readable start time / departure time
+startTimeId - the unique ID of the start time / departure time
+Availability and capacity:
+unlimitedAvailability - for activities with capacityType of FREE_SALE, this will be set to true. In this case, there is no need to check the remaining capacity in the availabilityCount field, since you can book as many passengers as you like.
+In case you are dealing with an activity with capacityType of LIMITED, you will need to pay close attention to these fields:
+availabilityCount - number of seats available to book
+minParticipants - the overall minimum number of participants needed for the first booking of this departure. For example, if this is 4 then the first booking has to have at least 4 participants. After that, single passengers can be booked. Note that this will also affect cancellations. If you have min 4, and 6 are booked, then you cannot cancel 3, since that would bring the total under 4.
+minParticipantsToBookNow - this looks at the current booking status, and gives you a number of min participants that are currently needed to book this departure.
+Example: A departure has minParticipants: 4. Since there are no bookings, minParticipantsToBookNow is also 4. Then a booking arrives for 4 participants. After this booking the values are now:
+minParticipants: 4
+minParticipantsToBookNow: 1
+Pick up: if the activity offers pick up, it may have different capacity than the activity itself. Therefore pay attention to these fields:
+pickupAllotment - specifies whether there is separate capacity management for pick up. If this is false, then pick up capacity is same as activity capacity. If this is true, then pay attention to the next field:
+pickupAvailabilityCount - number of seats available to book for pick up
+Rates:
+rates - a list of all the rates available at this time. Each rate has these fields you need to pay attention to when booking:
+minPerBooking - minimum number of participants/passengers that have to be booked to be able to use this rate. Often used when you have a group rate which should only be triggered for a group of a minimum size.
+maxPerBooking - max number of participants/passengers that can be booked on this rate. Sometimes people have different rates for different number of passengers.
+pricedPerPerson - Specifies whether this rate is priced per person. If this is false, then the rate is priced per booking.
+defaultRateId - the ID of the default rate
+Pricing can be found under pricesByRate, but we will cover that in a separate section below.
+Pricing
+Since pricing is based on rate, and product can have more than one rate, you get pricing per rate when you check availability. So if you call /activity.json/{id}/availabilities you will get pricesByRate for each availability:
+
+
+...
+"pricesByRate": [
+  {
+    "activityRateId": 123,
+    "pricePerCategoryUnit": [
+      {
+        "id": 111, // pricing category ID
+        "amount": {
+          "amount": 19990,
+          "currency": "ISK"
+        }
+      },
+      {
+        "id": 222, // pricing category ID
+        "amount": {
+          "amount": 14990,
+          "currency": "ISK"
+        }
+      }
+    ],
+    "pickupPrice": {
+        "amount": 5000,
+        "currency": "ISK"
+    },
+    "pickupPricePerCategoryUnit": [
+      {
+        "id": 111, // pricing category ID
+        "amount": {
+          "amount": 5000,
+          "currency": "ISK"
+        }
+      },
+      {
+        "id": 222, // pricing category ID
+        "amount": {
+          "amount": 2000,
+          "currency": "ISK"
+        }
+      }
+    ],
+    "extraPricePerUnit": [
+      {
+        "id": 888, // extra ID
+        "amount": {
+          "amount": 2000,
+          "currency": "ISK"
+        }
+      }
+    ],
+    "extraPricePerCategoryUnit": [
+      {
+        "id": 123, // extra ID
+        "prices": [
+          {
+            "id": 768, // pricing category ID
+            "amount": {
+              "amount": 1000,
+              "currency": "ISK"
+            }
+          }
+        ]
+      }
+    ]
+  }
+]
+...
+ 
+There is one item in the list per rate. The prices within each rate are specified as follows:
+
+pricePerCategoryUnit : Use when pricedPerPerson for the rate is true . Has the ID of the pricing category, along with the amount per person.
+pricePerBooking: Use when pricedPerPerson for the rate is false . Has the price amount per booking for this rate.
+pickupPrice : Use when pickupPricedPerPerson is false . Has the price amount for pick up per booking for this rate.
+pickupPricePerCategoryUnit : Use when pickupPricedPerPerson is true . Has the ID of the pricing category, along with the amount per person.
+dropoffPrice : Use when dropoffPricedPerPerson is false . Has the price amount for drop off per booking for this rate.
+dropoffPricePerCategoryUnit : Use when dropoffPricedPerPerson is true . Has the ID of the pricing category, along with the amount per person.
+extraPricePerUnit : Use when extraConfigs[].pricedPerPerson is false. Has the ID of the extra, and price per unit.
+extraPricePerCategoryUnit : Use when extraConfigs[].pricedPerPerson is true. Has an entry for each extra with the extra ID, and then a prices list which has an entry and price for each pricing category.
+Product Price List
+Use case : Get price for all the product cost items by date range.
+
+GET /activity.json/{id}/price-list
+
+This will return a pricing structure as described in this schema: 
+

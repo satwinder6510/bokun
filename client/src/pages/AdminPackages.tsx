@@ -85,6 +85,7 @@ type PackageFormData = {
   title: string;
   slug: string;
   category: string;
+  tags: string[];
   price: number;
   currency: string;
   priceLabel: string;
@@ -115,10 +116,18 @@ type BokunTourResult = {
   location: string;
 };
 
+// Common tag options for quick selection
+const COMMON_TAGS = [
+  "Beach", "City Break", "Honeymoon", "Family", "Adventure", 
+  "Luxury", "Budget", "Cultural", "Safari", "Cruise", 
+  "Ski", "Wellness", "Religious", "Wildlife", "Island"
+];
+
 const emptyPackage: PackageFormData = {
   title: "",
   slug: "",
   category: "",
+  tags: [],
   price: 0,
   currency: "GBP",
   priceLabel: "per adult",
@@ -161,6 +170,7 @@ export default function AdminPackages() {
   const [formData, setFormData] = useState<PackageFormData>(emptyPackage);
   const [newIncluded, setNewIncluded] = useState("");
   const [newHighlight, setNewHighlight] = useState("");
+  const [newTag, setNewTag] = useState("");
   const [editingHighlightIndex, setEditingHighlightIndex] = useState<number | null>(null);
   const [editingHighlightValue, setEditingHighlightValue] = useState("");
   const [editingIncludedIndex, setEditingIncludedIndex] = useState<number | null>(null);
@@ -461,6 +471,7 @@ export default function AdminPackages() {
       title: pkg.title,
       slug: pkg.slug,
       category: pkg.category,
+      tags: (pkg.tags || []) as string[],
       price: pkg.price,
       currency: pkg.currency,
       priceLabel: pkg.priceLabel,
@@ -1355,6 +1366,94 @@ export default function AdminPackages() {
                           data-testid="input-category"
                         />
                       </div>
+                      
+                      {/* Tags Section */}
+                      <div className="col-span-2">
+                        <Label>Tags</Label>
+                        <div className="mt-2 space-y-3">
+                          {/* Current tags */}
+                          {formData.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {formData.tags.map((tag, index) => (
+                                <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                  {tag}
+                                  <button
+                                    type="button"
+                                    onClick={() => setFormData({
+                                      ...formData,
+                                      tags: formData.tags.filter((_, i) => i !== index)
+                                    })}
+                                    className="ml-1 hover:text-destructive"
+                                    data-testid={`button-remove-tag-${index}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Quick tag buttons */}
+                          <div className="flex flex-wrap gap-1">
+                            {COMMON_TAGS.filter(tag => !formData.tags.includes(tag)).map((tag) => (
+                              <Button
+                                key={tag}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setFormData({
+                                  ...formData,
+                                  tags: [...formData.tags, tag]
+                                })}
+                                className="h-7 text-xs"
+                                data-testid={`button-add-tag-${tag.toLowerCase().replace(' ', '-')}`}
+                              >
+                                + {tag}
+                              </Button>
+                            ))}
+                          </div>
+                          
+                          {/* Custom tag input */}
+                          <div className="flex gap-2">
+                            <Input
+                              value={newTag}
+                              onChange={(e) => setNewTag(e.target.value)}
+                              placeholder="Add custom tag..."
+                              className="flex-1"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" && newTag.trim()) {
+                                  e.preventDefault();
+                                  if (!formData.tags.includes(newTag.trim())) {
+                                    setFormData({
+                                      ...formData,
+                                      tags: [...formData.tags, newTag.trim()]
+                                    });
+                                  }
+                                  setNewTag("");
+                                }
+                              }}
+                              data-testid="input-custom-tag"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
+                                  setFormData({
+                                    ...formData,
+                                    tags: [...formData.tags, newTag.trim()]
+                                  });
+                                  setNewTag("");
+                                }
+                              }}
+                              data-testid="button-add-custom-tag"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
                       <div>
                         <Label htmlFor="price">Price (GBP) *</Label>
                         <Input
@@ -2350,7 +2449,12 @@ export default function AdminPackages() {
                         </a>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{pkg.category}</Badge>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant="outline">{pkg.category}</Badge>
+                          {(pkg.tags as string[] || []).map((tag, idx) => (
+                            <Badge key={idx} variant="secondary" className="text-xs">{tag}</Badge>
+                          ))}
+                        </div>
                       </TableCell>
                       <TableCell className="font-medium">
                         {formatPrice(pkg.price)}

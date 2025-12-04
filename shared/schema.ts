@@ -351,6 +351,7 @@ export const flightPackages = pgTable("flight_packages", {
   title: text("title").notNull(),
   slug: text("slug").notNull().unique(),
   category: text("category").notNull(), // e.g., "India", "Maldives", "Dubai"
+  tags: jsonb("tags").$type<string[]>().notNull().default([]), // e.g., "Beach", "City Break", "Honeymoon", "Family"
   
   // Bokun integration - link to a Bokun land tour for content import
   bokunProductId: text("bokun_product_id"), // Optional: links to a Bokun tour for content/pricing reference

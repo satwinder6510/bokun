@@ -2325,8 +2325,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency: "GBP",
       }));
       
-      // Delete existing pricing for this package first (optional - could be configurable)
-      // await storage.deletePackagePricingByPackageId(packageId);
+      // Delete existing pricing for this package first before inserting new prices
+      await storage.deletePackagePricingByPackage(parseInt(packageId));
+      console.log(`Deleted existing pricing for package ${packageId}`);
       
       // Insert new pricing entries
       const created = await storage.createPackagePricingBatch(pricingEntries);

@@ -2137,6 +2137,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fetch flight prices and save to package (admin)
+  app.post("/api/admin/packages/fetch-flight-prices", async (req, res) => {
+    try {
+      const { 
+        packageId, 
+        bokunProductId, 
+        destAirport, 
+        departAirports, 
+        durationNights, 
+        startDate, 
+        endDate, 
+        markupPercent 
+      } = req.body;
+      
+      if (!packageId || !bokunProductId || !destAirport || !departAirports || !startDate || !endDate) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      console.log(`\n=== FETCHING FLIGHT PRICES FOR PACKAGE ${packageId} ===`);
+      console.log(`Bokun Product: ${bokunProductId}, Dest: ${destAirport}, Duration: ${durationNights} nights`);
+      console.log(`Date Range: ${startDate} - ${endDate}, Markup: ${markupPercent}%`);
+      
+      // Import the flight API functions
+      const { searchFlights, smartRoundPrice } = await import("./flightApi");
+      
+      // Fetch flight offers
+      const flightOffers = await searchFlights({
+        departAirports,
+        arriveAirport: destAirport,
+        nights: durationNights,
+        startDate,
+        endDate,
+      });
+      
+      if (flightOffers.length === 0) {
+        return res.status(200).json({ 
+          pricesFound: 0, 
+          saved: 0, 
+          message: "No flight offers found for the specified criteria" 
+        });
+      }
+      
+      console.log(`Found ${flightOffers.length} flight offers`);
+      
+      // Get Bokun land tour price
+      const bokunDetails: any = await getBokunProductDetails(bokunProductId, 'GBP');
+      const landTourPrice = bokunDetails?.price || 0;
+      const landTourPriceWithMarkup = landTourPrice * 1.1; // 10% Bokun markup
+      
+      console.log(`Bokun land tour price: £${landTourPrice}, with 10% markup: £${landTourPriceWithMarkup}`);
+      
+      // Group flight offers by departure date and airport for best price per combination
+      const priceMap = new Map<string, { 
+        departureAirport: string; 
+        departureAirportName: string;
+        departureDate: string; 
+        flightPrice: number;
+        combinedPrice: number;
+      }>();
+      
+      for (const offer of flightOffers) {
+        // Parse date from outdep (format: DD/MM/YYYY HH:mm)
+        const datePart = offer.outdep.split(" ")[0]; // DD/MM/YYYY
+        const [day, month, year] = datePart.split("/");
+        const isoDate = `${year}-${month}-${day}`; // YYYY-MM-DD for database
+        
+        const flightPrice = parseFloat(offer.fltnetpricepp);
+        const subtotal = flightPrice + landTourPriceWithMarkup;
+        const afterMarkup = subtotal * (1 + (markupPercent || 0) / 100);
+        const finalPrice = smartRoundPrice(afterMarkup);
+        
+        const key = `${offer.depapt}-${isoDate}`;
+        
+        const existing = priceMap.get(key);
+        if (!existing || finalPrice < existing.combinedPrice) {
+          priceMap.set(key, {
+            departureAirport: offer.depapt,
+            departureAirportName: offer.depname || offer.depapt,
+            departureDate: isoDate,
+            flightPrice,
+            combinedPrice: finalPrice,
+          });
+        }
+      }
+      
+      console.log(`Grouped into ${priceMap.size} unique departure/date combinations`);
+      
+      // Convert to pricing entries and save
+      const pricingEntries = Array.from(priceMap.values()).map(p => ({
+        packageId: parseInt(packageId),
+        departureAirport: p.departureAirport,
+        departureAirportName: p.departureAirportName,
+        departureDate: p.departureDate,
+        price: p.combinedPrice,
+        currency: "GBP",
+      }));
+      
+      // Delete existing pricing for this package first (optional - could be configurable)
+      // await storage.deletePackagePricingByPackageId(packageId);
+      
+      // Insert new pricing entries
+      const created = await storage.createPackagePricingBatch(pricingEntries);
+      
+      console.log(`Saved ${created.length} pricing entries to package ${packageId}`);
+      console.log(`=== FLIGHT PRICING COMPLETE ===\n`);
+      
+      res.json({ 
+        pricesFound: flightOffers.length,
+        uniqueCombinations: priceMap.size,
+        saved: created.length,
+        landTourPrice: landTourPriceWithMarkup,
+        message: `Successfully imported ${created.length} flight-inclusive prices`
+      });
+    } catch (error: any) {
+      console.error("Error fetching flight prices:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch flight prices" });
+    }
+  });
+
   // Search Bokun tours for import into flight packages (admin)
   app.get("/api/admin/packages/bokun-search", async (req, res) => {
     try {

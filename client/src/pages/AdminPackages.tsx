@@ -187,6 +187,16 @@ export default function AdminPackages() {
   const [isSavingPricing, setIsSavingPricing] = useState(false);
   const [isUploadingCsv, setIsUploadingCsv] = useState(false);
   const csvFileRef = useRef<HTMLInputElement>(null);
+  
+  // Dynamic flight pricing state
+  const [flightDestAirport, setFlightDestAirport] = useState("");
+  const [flightDepartAirports, setFlightDepartAirports] = useState<string[]>(["LGW", "STN", "LTN", "LHR", "MAN"]);
+  const [flightDuration, setFlightDuration] = useState<number>(7);
+  const [flightStartDate, setFlightStartDate] = useState("");
+  const [flightEndDate, setFlightEndDate] = useState("");
+  const [flightMarkup, setFlightMarkup] = useState<number>(5);
+  const [isFetchingFlightPrices, setIsFetchingFlightPrices] = useState(false);
+  const [flightPriceResults, setFlightPriceResults] = useState<any>(null);
 
   // Bokun tour import state
   const [bokunSearchOpen, setBokunSearchOpen] = useState(false);
@@ -707,6 +717,72 @@ export default function AdminPackages() {
     } catch (error: any) {
       toast({ title: "Export failed", description: error.message, variant: "destructive" });
     }
+  };
+
+  const handleFetchFlightPrices = async () => {
+    if (!editingPackage || !formData.bokunProductId) {
+      toast({ title: "No Bokun tour linked", variant: "destructive" });
+      return;
+    }
+    
+    if (!flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate) {
+      toast({ 
+        title: "Missing flight configuration", 
+        description: "Please fill in destination airport, departure airports, and date range",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setIsFetchingFlightPrices(true);
+    setFlightPriceResults(null);
+    
+    try {
+      const response = await fetch("/api/admin/packages/fetch-flight-prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          packageId: editingPackage.id,
+          bokunProductId: formData.bokunProductId,
+          destAirport: flightDestAirport,
+          departAirports: flightDepartAirports.join("|"),
+          durationNights: flightDuration,
+          startDate: flightStartDate,
+          endDate: flightEndDate,
+          markupPercent: flightMarkup,
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        setFlightPriceResults(result);
+        toast({ 
+          title: "Flight prices fetched", 
+          description: `Found ${result.pricesFound || 0} price entries. ${result.saved || 0} saved to package.` 
+        });
+        await loadPackagePricing(editingPackage.id);
+      } else {
+        throw new Error(result.error || "Failed to fetch flight prices");
+      }
+    } catch (error: any) {
+      toast({ 
+        title: "Error fetching flight prices", 
+        description: error.message,
+        variant: "destructive" 
+      });
+      setFlightPriceResults({ error: error.message });
+    } finally {
+      setIsFetchingFlightPrices(false);
+    }
+  };
+
+  const toggleDepartAirport = (code: string) => {
+    setFlightDepartAirports(prev => 
+      prev.includes(code) 
+        ? prev.filter(c => c !== code)
+        : [...prev, code]
+    );
   };
 
   const generateSlug = (title: string) => {
@@ -1798,13 +1874,157 @@ export default function AdminPackages() {
                       </div>
                     ) : (
                       <>
+                        {/* Dynamic Flight Pricing Section - Only show for Bokun-linked packages */}
+                        {formData.bokunProductId && (
+                          <Card className="border-primary/20 bg-primary/5">
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <Plane className="w-4 h-4 text-primary" />
+                                Dynamic Flight Pricing
+                              </CardTitle>
+                              <CardDescription>
+                                Automatically fetch live flight prices and combine with the Bokun land tour price
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <Label>Destination Airport Code</Label>
+                                  <Input
+                                    value={flightDestAirport}
+                                    onChange={(e) => setFlightDestAirport(e.target.value.toUpperCase())}
+                                    placeholder="e.g., SOF, ATH, IST"
+                                    maxLength={3}
+                                    className="mt-1 font-mono uppercase"
+                                    data-testid="input-dest-airport"
+                                  />
+                                  <p className="text-xs text-muted-foreground mt-1">3-letter IATA code</p>
+                                </div>
+                                <div>
+                                  <Label>Duration (Nights)</Label>
+                                  <Input
+                                    type="number"
+                                    min="1"
+                                    max="30"
+                                    value={flightDuration}
+                                    onChange={(e) => setFlightDuration(parseInt(e.target.value) || 7)}
+                                    className="mt-1"
+                                    data-testid="input-duration"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <Label className="mb-2 block">Departure Airports</Label>
+                                <div className="flex flex-wrap gap-2">
+                                  {UK_AIRPORTS.map(airport => (
+                                    <Badge
+                                      key={airport.code}
+                                      variant={flightDepartAirports.includes(airport.code) ? "default" : "outline"}
+                                      className="cursor-pointer"
+                                      onClick={() => toggleDepartAirport(airport.code)}
+                                      data-testid={`badge-airport-${airport.code}`}
+                                    >
+                                      {airport.code}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {flightDepartAirports.length} airports selected
+                                </p>
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <Label>Start Date</Label>
+                                  <Input
+                                    type="text"
+                                    value={flightStartDate}
+                                    onChange={(e) => setFlightStartDate(e.target.value)}
+                                    placeholder="DD/MM/YYYY"
+                                    className="mt-1"
+                                    data-testid="input-start-date"
+                                  />
+                                </div>
+                                <div>
+                                  <Label>End Date</Label>
+                                  <Input
+                                    type="text"
+                                    value={flightEndDate}
+                                    onChange={(e) => setFlightEndDate(e.target.value)}
+                                    placeholder="DD/MM/YYYY"
+                                    className="mt-1"
+                                    data-testid="input-end-date"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div className="w-1/2">
+                                <Label>Markup %</Label>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  value={flightMarkup}
+                                  onChange={(e) => setFlightMarkup(parseFloat(e.target.value) || 0)}
+                                  className="mt-1"
+                                  data-testid="input-markup"
+                                />
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Applied on top of flight + land tour price
+                                </p>
+                              </div>
+                              
+                              <Separator />
+                              
+                              <Button
+                                type="button"
+                                onClick={handleFetchFlightPrices}
+                                disabled={isFetchingFlightPrices || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate}
+                                className="w-full"
+                                data-testid="button-fetch-flight-prices"
+                              >
+                                {isFetchingFlightPrices ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Fetching Flight Prices...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plane className="w-4 h-4 mr-2" />
+                                    Fetch Flight Prices & Save to Package
+                                  </>
+                                )}
+                              </Button>
+                              
+                              {flightPriceResults && (
+                                <div className={`p-3 rounded-lg text-sm ${flightPriceResults.error ? 'bg-destructive/10 text-destructive' : 'bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200'}`}>
+                                  {flightPriceResults.error ? (
+                                    <div className="flex items-center gap-2">
+                                      <AlertCircle className="w-4 h-4" />
+                                      {flightPriceResults.error}
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2">
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      Found {flightPriceResults.pricesFound} prices, saved {flightPriceResults.saved} entries
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        <Separator />
+                        
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          {/* Add New Pricing */}
+                          {/* Add New Pricing - Manual */}
                           <Card>
                             <CardHeader>
                               <CardTitle className="text-base flex items-center gap-2">
                                 <Plus className="w-4 h-4" />
-                                Add Pricing Entries
+                                Add Pricing Manually
                               </CardTitle>
                               <CardDescription>
                                 Select airport, enter price, then pick departure dates

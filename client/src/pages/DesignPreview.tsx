@@ -277,220 +277,282 @@ export default function DesignPreview() {
         </div>
       </section>
 
-      {/* Collections */}
+      {/* How It Works */}
       <section className="py-16 bg-slate-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
-              Our Holiday Collections
+              How We Create Your Perfect Holiday
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Browse our carefully curated collections to find your perfect getaway
+              Our simple three-step process ensures a stress-free experience
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {collections.map((collection, i) => (
-              <a 
-                key={i}
-                href="#"
-                className="group relative aspect-[3/4] rounded-xl overflow-hidden"
-              >
-                <img 
-                  src={collection.image} 
-                  alt={collection.name}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-4 left-4 right-4 text-white">
-                  <h3 className="font-bold text-lg">{collection.name}</h3>
-                  <p className="text-sm text-white/80">{collection.count} holidays</p>
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {[
+              {
+                step: "1",
+                title: "Tell Us Your Dreams",
+                desc: "Share your ideal holiday - where you'd like to go, what you'd like to see, and how you like to travel. No detail is too small.",
+                icon: Heart
+              },
+              {
+                step: "2", 
+                title: "We Plan Everything",
+                desc: "Our experts craft a bespoke itinerary, handling flights, hotels, transfers, and experiences. You'll receive a detailed proposal.",
+                icon: Calendar
+              },
+              {
+                step: "3",
+                title: "Travel With Confidence",
+                desc: "Book with complete protection. We're here 24/7 during your trip, and you'll have all your documents at your fingertips.",
+                icon: Plane
+              }
+            ].map((item, i) => (
+              <div key={i} className="text-center p-6">
+                <div className="relative inline-block mb-6">
+                  <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
+                    <item.icon className="h-10 w-10 text-amber-600" />
+                  </div>
+                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                    {item.step}
+                  </span>
                 </div>
-              </a>
+                <h3 className="text-xl font-bold text-slate-800 mb-3">{item.title}</h3>
+                <p className="text-slate-600 leading-relaxed">{item.desc}</p>
+              </div>
             ))}
+          </div>
+
+          <div className="text-center mt-10">
+            <Button size="lg" className="bg-amber-500 hover:bg-amber-600 text-lg px-8">
+              <Phone className="mr-2 h-5 w-5" />
+              Start Planning Your Holiday
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* Featured Packages */}
+      {/* Popular Destinations - Large Cards */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
-          <div className="flex justify-between items-end mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
-                Featured Holidays
-              </h2>
-              <p className="text-lg text-slate-600">
-                Handpicked experiences at exceptional value
-              </p>
-            </div>
-            <a href="#" className="text-amber-600 hover:text-amber-700 font-semibold flex items-center gap-1">
-              View All <ChevronRight className="h-4 w-4" />
-            </a>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+              Explore Our Most Popular Destinations
+            </h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              From sun-soaked beaches to ancient wonders - find your perfect escape
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredPackages.length > 0 ? featuredPackages.map((pkg) => (
-              <Card key={pkg.id} className="group overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img 
-                    src={pkg.featuredImage || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=75"}
-                    alt={pkg.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <Badge className="bg-amber-500 text-white">{pkg.category}</Badge>
-                    {pkg.tags && (pkg.tags as string[]).slice(0, 1).map((tag, i) => (
-                      <Badge key={i} variant="secondary" className="bg-white/90">{tag}</Badge>
-                    ))}
-                  </div>
-                  <div className="absolute bottom-4 right-4 bg-white rounded-lg px-3 py-2 shadow-lg">
-                    <p className="text-xs text-slate-500">From</p>
-                    <p className="text-xl font-bold text-slate-800">£{pkg.price}</p>
-                    <p className="text-xs text-slate-500">{pkg.priceLabel}</p>
-                  </div>
-                </div>
-                <CardContent className="p-5">
-                  <h3 className="font-bold text-lg text-slate-800 mb-2 line-clamp-2 group-hover:text-amber-600 transition-colors">
-                    {pkg.title}
-                  </h3>
-                  <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
-                    {pkg.duration && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {pkg.duration}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Plane className="h-4 w-4" />
-                      Flights included
-                    </span>
-                  </div>
-                  <p className="text-slate-600 text-sm line-clamp-2 mb-4">
-                    {pkg.excerpt || "Experience an unforgettable journey with expertly planned itineraries and handpicked accommodations."}
-                  </p>
-                  <Button className="w-full bg-slate-800 hover:bg-slate-900">
-                    View Details
-                  </Button>
-                </CardContent>
-              </Card>
-            )) : (
-              [...Array(3)].map((_, i) => (
-                <Card key={i} className="group overflow-hidden hover:shadow-xl transition-shadow">
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img 
-                      src={destinations[i]?.image}
-                      alt="Sample holiday"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-4 left-4">
-                      <Badge className="bg-amber-500 text-white">{destinations[i]?.name}</Badge>
-                    </div>
-                    <div className="absolute bottom-4 right-4 bg-white rounded-lg px-3 py-2 shadow-lg">
-                      <p className="text-xs text-slate-500">From</p>
-                      <p className="text-xl font-bold text-slate-800">£{999 + i * 200}</p>
-                      <p className="text-xs text-slate-500">per person</p>
-                    </div>
-                  </div>
-                  <CardContent className="p-5">
-                    <h3 className="font-bold text-lg text-slate-800 mb-2 group-hover:text-amber-600 transition-colors">
-                      Discover {destinations[i]?.name} - {destinations[i]?.tours} Day Adventure
-                    </h3>
-                    <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {7 + i * 2} Days
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Plane className="h-4 w-4" />
-                        Flights included
-                      </span>
-                    </div>
-                    <Button className="w-full bg-slate-800 hover:bg-slate-900">
-                      View Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Destinations */}
-      <section className="py-16 bg-slate-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
-              Popular Destinations
-            </h2>
-            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              From ancient temples to pristine beaches, discover our most-loved destinations
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {destinations.map((dest, i) => (
               <a 
                 key={i}
                 href="#"
-                className="group text-center"
+                className="group relative aspect-[4/3] rounded-2xl overflow-hidden"
               >
-                <div className="relative aspect-square rounded-full overflow-hidden mb-3 mx-auto w-32 h-32 ring-4 ring-white shadow-lg group-hover:ring-amber-400 transition-all">
-                  <img 
-                    src={dest.image}
-                    alt={dest.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
+                <img 
+                  src={dest.image}
+                  alt={dest.name}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <Badge className="bg-amber-500 text-white mb-3">{dest.region}</Badge>
+                  <h3 className="text-2xl font-bold mb-1">{dest.name}</h3>
+                  <p className="text-white/80 mb-4">{dest.tours} holidays available</p>
+                  <span className="inline-flex items-center text-amber-400 font-semibold group-hover:gap-2 transition-all">
+                    Explore {dest.name} <ArrowRight className="h-4 w-4 ml-1" />
+                  </span>
                 </div>
-                <h3 className="font-bold text-slate-800 group-hover:text-amber-600 transition-colors">
-                  {dest.name}
-                </h3>
-                <p className="text-sm text-slate-500">{dest.tours} tours</p>
               </a>
             ))}
           </div>
 
           <div className="text-center mt-10">
-            <Button size="lg" variant="outline" className="border-amber-500 text-amber-600 hover:bg-amber-50">
+            <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 text-lg px-8">
               View All Destinations
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-16 bg-amber-50">
+      {/* Featured Holidays Showcase */}
+      <section className="py-16 bg-slate-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
-              What Our Customers Say
-            </h2>
-            <p className="text-lg text-slate-600">
-              Don't just take our word for it - hear from our happy travellers
-            </p>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
+            <div>
+              <Badge className="bg-amber-100 text-amber-700 mb-3">Featured Holidays</Badge>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
+                Handpicked For You
+              </h2>
+              <p className="text-lg text-slate-600">
+                Our travel experts' top recommendations this season
+              </p>
+            </div>
+            <a href="#" className="text-amber-600 hover:text-amber-700 font-semibold flex items-center gap-1">
+              View All Holidays <ChevronRight className="h-5 w-5" />
+            </a>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {testimonials.map((review, i) => (
-              <Card key={i} className="bg-white">
-                <CardContent className="p-6">
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(review.rating)].map((_, j) => (
-                      <Star key={j} className="h-5 w-5 fill-amber-400 text-amber-400" />
-                    ))}
+          {/* Large Featured Card + 2 Smaller */}
+          <div className="grid lg:grid-cols-2 gap-6 mb-6">
+            {/* Large Featured */}
+            <div className="group relative aspect-[4/3] lg:aspect-auto lg:row-span-2 rounded-2xl overflow-hidden">
+              <img 
+                src="https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&q=80"
+                alt="India Golden Triangle"
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+              <div className="absolute top-4 left-4 flex gap-2">
+                <Badge className="bg-amber-500 text-white">Best Seller</Badge>
+                <Badge className="bg-white/90 text-slate-700">Cultural</Badge>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-8 text-white">
+                <h3 className="text-2xl lg:text-3xl font-bold mb-2">Golden Triangle of India</h3>
+                <p className="text-white/80 mb-4 max-w-lg">
+                  Discover Delhi, Agra and Jaipur on this classic journey through India's most iconic destinations
+                </p>
+                <div className="flex flex-wrap items-center gap-4 mb-4">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-4 w-4" /> 10 Days
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Plane className="h-4 w-4" /> Flights Included
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-4 w-4" /> 3 Cities
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <p className="text-white/70 text-sm">From</p>
+                    <p className="text-3xl font-bold">£1,499<span className="text-lg font-normal text-white/70">pp</span></p>
                   </div>
-                  <p className="text-slate-600 mb-6 italic leading-relaxed">
-                    "{review.text}"
-                  </p>
-                  <div className="border-t pt-4">
-                    <p className="font-semibold text-slate-800">{review.name}</p>
-                    <p className="text-sm text-slate-500">{review.location}</p>
-                    <Badge variant="secondary" className="mt-2">{review.tour}</Badge>
+                  <Button className="bg-amber-500 hover:bg-amber-600 text-white">
+                    View Holiday
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Two Smaller Cards */}
+            <div className="grid gap-6">
+              {[
+                {
+                  image: "https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80",
+                  title: "Thailand Beach & Culture",
+                  days: "12",
+                  price: "1,299",
+                  tag: "Beach"
+                },
+                {
+                  image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&q=80",
+                  title: "Italian Lakes & Venice",
+                  days: "8",
+                  price: "1,149",
+                  tag: "Europe"
+                }
+              ].map((pkg, i) => (
+                <div key={i} className="group relative aspect-[2/1] rounded-2xl overflow-hidden">
+                  <img 
+                    src={pkg.image}
+                    alt={pkg.title}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
+                  <div className="absolute top-4 left-4">
+                    <Badge className="bg-amber-500 text-white">{pkg.tag}</Badge>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                  <div className="absolute bottom-0 left-0 p-5 text-white">
+                    <h3 className="text-xl font-bold mb-2">{pkg.title}</h3>
+                    <div className="flex items-center gap-4 mb-3 text-sm text-white/80">
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" /> {pkg.days} Days
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Plane className="h-4 w-4" /> Flights Inc.
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold">
+                      From £{pkg.price}<span className="text-sm font-normal text-white/70">pp</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials - New Design */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left - Stats & Info */}
+            <div>
+              <Badge className="bg-amber-100 text-amber-700 mb-4">Trusted by Thousands</Badge>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-6">
+                Why Customers Choose Us
+              </h2>
+              <p className="text-lg text-slate-600 mb-8 leading-relaxed">
+                For over 10 years, we've been helping UK travellers explore the world with confidence. 
+                Our personal approach means every holiday is tailored just for you.
+              </p>
+              
+              <div className="grid grid-cols-3 gap-6 mb-8">
+                {[
+                  { number: "10+", label: "Years Experience" },
+                  { number: "5,000+", label: "Happy Customers" },
+                  { number: "98%", label: "Would Recommend" }
+                ].map((stat, i) => (
+                  <div key={i} className="text-center p-4 bg-slate-50 rounded-xl">
+                    <p className="text-2xl md:text-3xl font-bold text-amber-600">{stat.number}</p>
+                    <p className="text-sm text-slate-600">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              <Button size="lg" className="bg-amber-500 hover:bg-amber-600">
+                Read All Reviews
+              </Button>
+            </div>
+
+            {/* Right - Stacked Testimonials */}
+            <div className="space-y-4">
+              {testimonials.map((review, i) => (
+                <Card key={i} className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xl font-bold text-amber-600">
+                          {review.name.charAt(0)}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-slate-800">{review.name}</p>
+                          <span className="text-slate-300">•</span>
+                          <p className="text-sm text-slate-500">{review.location}</p>
+                        </div>
+                        <div className="flex gap-0.5 mb-2">
+                          {[...Array(review.rating)].map((_, j) => (
+                            <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                          ))}
+                        </div>
+                        <p className="text-slate-600 leading-relaxed">
+                          "{review.text}"
+                        </p>
+                        <p className="text-sm text-amber-600 font-medium mt-2">{review.tour}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
       </section>

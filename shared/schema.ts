@@ -623,3 +623,85 @@ export const adminSessions = pgTable("admin_sessions", {
 });
 
 export type AdminSession = typeof adminSessions.$inferSelect;
+
+// Flight Tour Pricing Configs - links Bokun tours to flight API for dynamic pricing
+export const flightTourPricingConfigs = pgTable("flight_tour_pricing_configs", {
+  id: serial("id").primaryKey(),
+  bokunProductId: text("bokun_product_id").notNull().unique(), // Links to Bokun tour
+  
+  // Flight API parameters
+  arriveAirportCode: text("arrive_airport_code").notNull(), // 3-letter code e.g., "ATH", "SOF"
+  departAirports: text("depart_airports").notNull().default("LGW|STN|LTN|LHR|MAN|BHX|BRS|EDI|GLA"), // Pipe-separated UK airports
+  durationNights: integer("duration_nights").notNull(), // Number of nights for flights
+  searchStartDate: text("search_start_date").notNull(), // DD/MM/YYYY format for API
+  searchEndDate: text("search_end_date").notNull(), // DD/MM/YYYY format for API
+  
+  // Pricing settings
+  markupPercent: real("markup_percent").notNull().default(15), // Markup percentage e.g., 15 for 15%
+  
+  // Status
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFlightTourPricingConfigSchema = createInsertSchema(flightTourPricingConfigs).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+}).extend({
+  bokunProductId: z.string().min(1, "Bokun Product ID is required"),
+  arriveAirportCode: z.string().length(3, "Airport code must be 3 letters").toUpperCase(),
+  departAirports: z.string().min(3, "At least one departure airport required"),
+  durationNights: z.number().min(1, "Duration must be at least 1 night").max(30, "Duration too long"),
+  searchStartDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"),
+  searchEndDate: z.string().regex(/^\d{2}\/\d{2}\/\d{4}$/, "Date must be in DD/MM/YYYY format"),
+  markupPercent: z.number().min(0, "Markup cannot be negative").max(100, "Markup too high"),
+  isEnabled: z.boolean().default(true),
+});
+
+export const updateFlightTourPricingConfigSchema = insertFlightTourPricingConfigSchema.partial();
+
+export type FlightTourPricingConfig = typeof flightTourPricingConfigs.$inferSelect;
+export type InsertFlightTourPricingConfig = z.infer<typeof insertFlightTourPricingConfigSchema>;
+export type UpdateFlightTourPricingConfig = z.infer<typeof updateFlightTourPricingConfigSchema>;
+
+// Flight offer from external API (for type safety)
+export const flightOfferSchema = z.object({
+  Refnum: z.string(),
+  fltsuppname: z.string(),
+  fltsuppcode: z.string(),
+  depapt: z.string(),
+  depname: z.string(),
+  arrapt: z.string(),
+  arrname: z.string(),
+  outdep: z.string(), // Outbound departure datetime DD/MM/YYYY HH:mm
+  outarr: z.string(), // Outbound arrival datetime
+  outfltnum: z.string(),
+  outairlinename: z.string(),
+  indep: z.string(), // Inbound departure datetime
+  inarr: z.string(), // Inbound arrival datetime
+  infltnum: z.string(),
+  inairlinename: z.string(),
+  nights: z.string(),
+  fltnetpricepp: z.string(), // Net price per person as string
+  fltSellpricepp: z.string(), // Sell price per person as string
+});
+
+export type FlightOffer = z.infer<typeof flightOfferSchema>;
+
+// Combined package pricing result
+export const combinedPackagePriceSchema = z.object({
+  date: z.string(), // Travel date
+  flightPricePerPerson: z.number(),
+  landTourPricePerPerson: z.number(),
+  subtotal: z.number(),
+  markupPercent: z.number(),
+  afterMarkup: z.number(),
+  finalPrice: z.number(), // After smart rounding
+  currency: z.string(),
+  flightDetails: flightOfferSchema.optional(),
+});
+
+export type CombinedPackagePrice = z.infer<typeof combinedPackagePriceSchema>;

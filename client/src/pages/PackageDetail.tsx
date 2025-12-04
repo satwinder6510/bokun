@@ -609,7 +609,7 @@ export default function PackageDetail() {
                           {highlights.map((highlight, index) => (
                             <li key={index} className="flex items-start gap-2" data-testid={`highlight-${index}`}>
                               <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                              <span>{highlight}</span>
+                              <span dangerouslySetInnerHTML={{ __html: highlight }} />
                             </li>
                           ))}
                         </ul>
@@ -628,7 +628,7 @@ export default function PackageDetail() {
                           {whatsIncluded.map((item, index) => (
                             <li key={index} className="flex items-start gap-2" data-testid={`included-${index}`}>
                               <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span>{item}</span>
+                              <span dangerouslySetInnerHTML={{ __html: item }} />
                             </li>
                           ))}
                         </ul>
@@ -657,7 +657,10 @@ export default function PackageDetail() {
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-muted-foreground whitespace-pre-line">{day.description}</p>
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
+                            dangerouslySetInnerHTML={{ __html: day.description }}
+                          />
                         </CardContent>
                       </Card>
                     ))
@@ -679,7 +682,10 @@ export default function PackageDetail() {
                           <CardTitle>{hotel.name}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-muted-foreground mb-4 whitespace-pre-line">{hotel.description}</p>
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground mb-4"
+                            dangerouslySetInnerHTML={{ __html: hotel.description }}
+                          />
                           {hotel.images && hotel.images.length > 0 && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                               {hotel.images.map((img, imgIndex) => (

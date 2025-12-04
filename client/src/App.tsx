@@ -23,6 +23,7 @@ import AdminPackages from "@/pages/AdminPackages";
 import AdminReviews from "@/pages/AdminReviews";
 import AdminTrackingNumbers from "@/pages/AdminTrackingNumbers";
 import AdminUsers from "@/pages/AdminUsers";
+import AdminFlightPricing from "@/pages/AdminFlightPricing";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import NotFound from "@/pages/not-found";
@@ -76,6 +77,11 @@ function Router() {
       <Route path="/admin/users">
         <ProtectedRoute requireSuperAdmin>
           <AdminUsers />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/flight-pricing">
+        <ProtectedRoute>
+          <AdminFlightPricing />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

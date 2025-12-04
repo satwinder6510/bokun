@@ -11,7 +11,7 @@ import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -363,6 +363,29 @@ export default function Dashboard() {
                   <a href="/admin/tracking-numbers">
                     <Button variant="outline" size="sm" data-testid="button-manage-tracking">
                       Manage Numbers
+                    </Button>
+                  </a>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card data-testid="card-flight-pricing-management">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <Plane className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Dynamic Flight Pricing</CardTitle>
+                      <CardDescription>
+                        Flight + tour package pricing
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <a href="/admin/flight-pricing">
+                    <Button variant="outline" size="sm" data-testid="button-manage-flight-pricing">
+                      Configure
                     </Button>
                   </a>
                 </div>

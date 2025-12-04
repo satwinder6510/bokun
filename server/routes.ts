@@ -158,26 +158,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/objects/*", async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      await objectStorageService.downloadObject(objectFile, res, 86400); // 24-hour cache
+      const objectPath = req.path.replace('/objects/', '');
+      await objectStorageService.downloadObject(objectPath, res, 86400); // 24-hour cache
     } catch (error) {
       if (error instanceof ObjectNotFoundError) {
         return res.status(404).json({ error: "Image not found" });
       }
       console.error("Error serving object:", error);
       return res.status(500).json({ error: "Failed to serve image" });
-    }
-  });
-
-  // Get presigned URL for image upload (admin only)
-  app.post("/api/objects/upload", verifyAdminSession, async (req, res) => {
-    try {
-      const objectStorageService = new ObjectStorageService();
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      res.json({ uploadURL });
-    } catch (error: any) {
-      console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: error.message || "Failed to get upload URL" });
     }
   });
 
@@ -4435,8 +4423,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let updated = false;
           const updates: any = {};
           
-          // Migrate featured image
-          if (pkg.featuredImage && !pkg.featuredImage.startsWith('/objects/')) {
+          // Helper to check if URL is external (http/https)
+          const isExternalUrl = (url: string) => url.startsWith('http://') || url.startsWith('https://');
+          
+          // Migrate featured image (only external URLs)
+          if (pkg.featuredImage && isExternalUrl(pkg.featuredImage)) {
             try {
               const newPath = await objectStorageService.uploadFromUrl(
                 pkg.featuredImage,
@@ -4450,19 +4441,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Migrate gallery images
+          // Migrate gallery images (only external URLs)
           if (pkg.gallery && Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
             const newGallery: string[] = [];
+            let galleryUpdated = false;
             for (let i = 0; i < pkg.gallery.length; i++) {
               const img = pkg.gallery[i];
-              if (img && !img.startsWith('/objects/')) {
+              if (img && isExternalUrl(img)) {
                 try {
                   const newPath = await objectStorageService.uploadFromUrl(
                     img,
                     `gallery-${pkg.slug}-${i}.jpg`
                   );
                   newGallery.push(newPath);
-                  updated = true;
+                  galleryUpdated = true;
                 } catch (e: any) {
                   console.error(`Failed to migrate gallery image ${i} for ${pkg.title}:`, e.message);
                   newGallery.push(img); // Keep original if failed
@@ -4471,27 +4463,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 newGallery.push(img);
               }
             }
-            if (updated) {
+            if (galleryUpdated) {
               updates.gallery = newGallery;
+              updated = true;
             }
           }
           
-          // Migrate accommodation images
+          // Migrate accommodation images (only external URLs)
           if (pkg.accommodations && Array.isArray(pkg.accommodations) && pkg.accommodations.length > 0) {
             const newAccommodations = [];
+            let accUpdated = false;
             for (const acc of pkg.accommodations) {
               if (acc.images && Array.isArray(acc.images)) {
                 const newImages: string[] = [];
                 for (let i = 0; i < acc.images.length; i++) {
                   const img = acc.images[i];
-                  if (img && !img.startsWith('/objects/')) {
+                  if (img && isExternalUrl(img)) {
                     try {
                       const newPath = await objectStorageService.uploadFromUrl(
                         img,
-                        `acc-${pkg.slug}-${i}.jpg`
+                        `acc-${pkg.slug}-${acc.name.replace(/\s+/g, '-').toLowerCase()}-${i}.jpg`
                       );
                       newImages.push(newPath);
-                      updated = true;
+                      accUpdated = true;
                     } catch (e: any) {
                       newImages.push(img); // Keep original if failed
                     }
@@ -4504,8 +4498,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 newAccommodations.push(acc);
               }
             }
-            if (updated) {
+            if (accUpdated) {
               updates.accommodations = newAccommodations;
+              updated = true;
             }
           }
           
@@ -4541,34 +4536,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const packages = await storage.getAllFlightPackages();
       
+      // Helper to check if URL is external (http/https)
+      const isExternalUrl = (url: string) => url.startsWith('http://') || url.startsWith('https://');
+      const isMigrated = (url: string) => url.startsWith('/objects/');
+      
       const status = {
         total: packages.length,
         fullyMigrated: 0,
         partiallyMigrated: 0,
         notMigrated: 0,
-        packages: [] as { id: number; title: string; externalImages: number; migratedImages: number }[]
+        packages: [] as { id: number; title: string; externalImages: number; migratedImages: number; localImages: number }[]
       };
       
       for (const pkg of packages) {
         let externalCount = 0;
         let migratedCount = 0;
+        let localCount = 0;
         
         // Check featured image
         if (pkg.featuredImage) {
-          if (pkg.featuredImage.startsWith('/objects/')) {
+          if (isMigrated(pkg.featuredImage)) {
             migratedCount++;
-          } else {
+          } else if (isExternalUrl(pkg.featuredImage)) {
             externalCount++;
+          } else {
+            localCount++; // Already local but not in object storage
           }
         }
         
         // Check gallery
         if (pkg.gallery && Array.isArray(pkg.gallery)) {
           for (const img of pkg.gallery) {
-            if (img.startsWith('/objects/')) {
+            if (isMigrated(img)) {
               migratedCount++;
-            } else {
+            } else if (isExternalUrl(img)) {
               externalCount++;
+            } else {
+              localCount++;
             }
           }
         }
@@ -4578,10 +4582,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const acc of pkg.accommodations) {
             if (acc.images && Array.isArray(acc.images)) {
               for (const img of acc.images) {
-                if (img.startsWith('/objects/')) {
+                if (isMigrated(img)) {
                   migratedCount++;
-                } else {
+                } else if (isExternalUrl(img)) {
                   externalCount++;
+                } else {
+                  localCount++;
                 }
               }
             }
@@ -4592,10 +4598,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: pkg.id,
           title: pkg.title,
           externalImages: externalCount,
-          migratedImages: migratedCount
+          migratedImages: migratedCount,
+          localImages: localCount
         });
         
-        if (externalCount === 0 && migratedCount > 0) {
+        // Only external images need migration
+        if (externalCount === 0 && (migratedCount > 0 || localCount > 0)) {
           status.fullyMigrated++;
         } else if (externalCount > 0 && migratedCount > 0) {
           status.partiallyMigrated++;

@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,6 +111,7 @@ function formatDateForApi(isoDate: string): string {
 
 export default function AdminFlightPricing() {
   const { toast } = useToast();
+  const { sessionToken } = useAdminAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [editingConfig, setEditingConfig] = useState<FlightTourPricingConfig | null>(null);
@@ -122,6 +124,24 @@ export default function AdminFlightPricing() {
   const [tourSearchOpen, setTourSearchOpen] = useState(false);
   const [selectedTour, setSelectedTour] = useState<BokunProduct | null>(null);
   const tourSearchRef = useRef<HTMLDivElement>(null);
+
+  const adminFetch = async (url: string, options: RequestInit = {}) => {
+    const headers: Record<string, string> = {
+      ...(options.headers as Record<string, string> || {}),
+    };
+    if (sessionToken) {
+      headers['x-admin-session'] = sessionToken;
+    }
+    if (options.body) {
+      headers['Content-Type'] = 'application/json';
+    }
+    const response = await fetch(url, { ...options, headers });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || 'Request failed');
+    }
+    return response.json();
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -139,6 +159,8 @@ export default function AdminFlightPricing() {
 
   const { data: configs = [], isLoading } = useQuery<FlightTourPricingConfig[]>({
     queryKey: ["/api/admin/flight-pricing-configs"],
+    queryFn: () => adminFetch("/api/admin/flight-pricing-configs"),
+    enabled: !!sessionToken,
   });
 
   const { data: toursData, isLoading: isLoadingTours } = useQuery<{ items: BokunProduct[] }>({
@@ -174,7 +196,10 @@ export default function AdminFlightPricing() {
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertFlightTourPricingConfig) => {
-      return await apiRequest("POST", "/api/admin/flight-pricing-configs", data);
+      return await adminFetch("/api/admin/flight-pricing-configs", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/flight-pricing-configs"] });
@@ -192,7 +217,10 @@ export default function AdminFlightPricing() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<InsertFlightTourPricingConfig> }) => {
-      return await apiRequest("PATCH", `/api/admin/flight-pricing-configs/${id}`, data);
+      return await adminFetch(`/api/admin/flight-pricing-configs/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/flight-pricing-configs"] });
@@ -210,7 +238,9 @@ export default function AdminFlightPricing() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      return await apiRequest("DELETE", `/api/admin/flight-pricing-configs/${id}`);
+      return await adminFetch(`/api/admin/flight-pricing-configs/${id}`, {
+        method: "DELETE",
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/flight-pricing-configs"] });
@@ -271,7 +301,7 @@ export default function AdminFlightPricing() {
     setTestResults(null);
     
     try {
-      const response = await apiRequest("GET", 
+      const response = await adminFetch(
         `/api/admin/flight-pricing-configs/test-search?depart=${formData.departAirports}&arrive=${formData.arriveAirportCode}&nights=${formData.durationNights}&startDate=${formData.searchStartDate}&endDate=${formData.searchEndDate}`
       );
       setTestResults(response);

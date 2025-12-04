@@ -99,9 +99,11 @@ export default function DesignPreview() {
 
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Top Bar - Trust & Contact */}
-      <div className="bg-slate-900 text-white py-2.5">
-        <div className="container mx-auto px-4 flex justify-between items-center text-sm">
+      {/* Sticky Header Wrapper */}
+      <div className="sticky top-0 z-50">
+        {/* Top Bar - Trust & Contact */}
+        <div className="bg-slate-900 text-white py-2.5">
+          <div className="container mx-auto px-4 flex justify-between items-center text-sm">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-emerald-400" />
@@ -121,51 +123,52 @@ export default function DesignPreview() {
             <a href="tel:02081830518" className="font-bold text-base hover:text-sky-300 transition-colors">
               0208 183 0518
             </a>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Header */}
-      <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              <img src={logoImage} alt="Flights and Packages" className="h-14" />
-              <div className="hidden md:block border-l border-stone-200 pl-6">
-                <img src={travelTrustLogo} alt="Travel Trust Association" className="h-10" />
+        {/* Header */}
+        <header className="bg-white border-b border-stone-200">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <img src={logoImage} alt="Flights and Packages" className="h-14" />
+                <div className="hidden md:block border-l border-stone-200 pl-6">
+                  <img src={travelTrustLogo} alt="Travel Trust Association" className="h-10" />
+                </div>
+              </div>
+              
+              <nav className="hidden lg:flex items-center gap-8">
+                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
+                  Destinations
+                </a>
+                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
+                  Flight Packages
+                </a>
+                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
+                  Land Tours
+                </a>
+                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
+                  About Us
+                </a>
+                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
+                  Contact
+                </a>
+              </nav>
+
+              <div className="flex items-center gap-3">
+                <a 
+                  href="tel:02081830518" 
+                  className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-md font-semibold transition-colors"
+                >
+                  <Phone className="h-4 w-4" />
+                  0208 183 0518
+                </a>
               </div>
             </div>
-            
-            <nav className="hidden lg:flex items-center gap-8">
-              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                Destinations
-              </a>
-              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                Flight Packages
-              </a>
-              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                Land Tours
-              </a>
-              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                About Us
-              </a>
-              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                Contact
-              </a>
-            </nav>
-
-            <div className="flex items-center gap-3">
-              <a 
-                href="tel:02081830518" 
-                className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-md font-semibold transition-colors"
-              >
-                <Phone className="h-4 w-4" />
-                0208 183 0518
-              </a>
-            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
       {/* Hero Carousel */}
       <section className="relative h-[550px] overflow-hidden">

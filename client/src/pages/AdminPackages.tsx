@@ -1282,21 +1282,24 @@ export default function AdminPackages() {
       <main className="container mx-auto px-6 py-8">
         {isEditing ? (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>{editingPackage ? "Edit Package" : "Create New Package"}</CardTitle>
-                <CardDescription>
-                  {editingPackage ? `Editing: ${editingPackage.title}` : "Fill in the details for your new package"}
-                </CardDescription>
-              </div>
+            <CardHeader className="space-y-4">
               <Button 
                 variant="ghost" 
-                size="icon"
+                className="w-fit -ml-2"
                 onClick={() => { setIsCreating(false); setEditingPackage(null); }}
-                data-testid="button-cancel"
+                data-testid="button-back-to-packages"
               >
-                <X className="w-4 h-4" />
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Packages
               </Button>
+              <div className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>{editingPackage ? "Edit Package" : "Create New Package"}</CardTitle>
+                  <CardDescription>
+                    {editingPackage ? `Editing: ${editingPackage.title}` : "Fill in the details for your new package"}
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">

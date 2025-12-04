@@ -3063,46 +3063,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload image (admin)
-  app.post("/api/admin/upload", upload.single('image'), (req, res) => {
+  // Configure multer for memory storage (for Object Storage uploads)
+  const memoryUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: imageFilter
+  });
+
+  // Upload image (admin) - stores in Object Storage for persistence
+  app.post("/api/admin/upload", memoryUpload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
       
-      const imageUrl = `/uploads/${req.file.filename}`;
-      res.json({ 
-        success: true, 
-        url: imageUrl,
-        filename: req.file.filename,
-        size: req.file.size,
-        mimetype: req.file.mimetype
-      });
+      const objectStorageService = new ObjectStorageService();
+      const isAvailable = await objectStorageService.isAvailable();
+      
+      if (isAvailable) {
+        // Upload to Object Storage for persistence
+        const imageUrl = await objectStorageService.uploadFromBuffer(
+          req.file.buffer,
+          req.file.originalname
+        );
+        res.json({ 
+          success: true, 
+          url: imageUrl,
+          filename: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+          storage: 'object-storage'
+        });
+      } else {
+        // Fallback to local disk (won't persist after deploy)
+        const filename = `${Date.now()}-${req.file.originalname}`;
+        const filePath = path.join(uploadDir, filename);
+        fs.writeFileSync(filePath, req.file.buffer);
+        res.json({ 
+          success: true, 
+          url: `/uploads/${filename}`,
+          filename: filename,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+          storage: 'local'
+        });
+      }
     } catch (error: any) {
       console.error("Error uploading image:", error);
       res.status(500).json({ error: "Failed to upload image" });
     }
   });
 
-  // Upload multiple images (admin)
-  app.post("/api/admin/upload-multiple", upload.array('images', 20), (req, res) => {
+  // Upload multiple images (admin) - stores in Object Storage for persistence
+  app.post("/api/admin/upload-multiple", memoryUpload.array('images', 20), async (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "No image files provided" });
       }
       
-      const uploadedImages = files.map(file => ({
-        url: `/uploads/${file.filename}`,
-        filename: file.filename,
-        size: file.size,
-        mimetype: file.mimetype
-      }));
+      const objectStorageService = new ObjectStorageService();
+      const isAvailable = await objectStorageService.isAvailable();
+      
+      const uploadedImages = [];
+      
+      for (const file of files) {
+        if (isAvailable) {
+          const imageUrl = await objectStorageService.uploadFromBuffer(
+            file.buffer,
+            file.originalname
+          );
+          uploadedImages.push({
+            url: imageUrl,
+            filename: file.originalname,
+            size: file.size,
+            mimetype: file.mimetype
+          });
+        } else {
+          const filename = `${Date.now()}-${file.originalname}`;
+          const filePath = path.join(uploadDir, filename);
+          fs.writeFileSync(filePath, file.buffer);
+          uploadedImages.push({
+            url: `/uploads/${filename}`,
+            filename: filename,
+            size: file.size,
+            mimetype: file.mimetype
+          });
+        }
+      }
       
       res.json({ 
         success: true, 
         images: uploadedImages,
-        count: uploadedImages.length
+        count: uploadedImages.length,
+        storage: isAvailable ? 'object-storage' : 'local'
       });
     } catch (error: any) {
       console.error("Error uploading images:", error);
@@ -3110,18 +3164,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete uploaded image (admin)
-  app.delete("/api/admin/upload/:filename", (req, res) => {
+  // Delete uploaded image (admin) - handles both Object Storage and local files
+  app.delete("/api/admin/upload/:filename", async (req, res) => {
     try {
       const { filename } = req.params;
-      const filePath = path.join(uploadDir, filename);
       
+      // Try to delete from Object Storage first
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = `images/${filename}`;
+      const deleted = await objectStorageService.deleteObject(objectPath);
+      
+      if (deleted) {
+        return res.json({ success: true, storage: 'object-storage' });
+      }
+      
+      // Fallback: try local file
+      const filePath = path.join(uploadDir, filename);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
-        res.json({ success: true });
-      } else {
-        res.status(404).json({ error: "Image not found" });
+        return res.json({ success: true, storage: 'local' });
       }
+      
+      res.status(404).json({ error: "Image not found" });
     } catch (error: any) {
       console.error("Error deleting image:", error);
       res.status(500).json({ error: "Failed to delete image" });

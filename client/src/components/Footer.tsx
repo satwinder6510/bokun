@@ -133,7 +133,7 @@ export function Footer() {
               © {new Date().getFullYear()} Flights and Packages Ltd. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-stone-500 text-sm">
-              <span>ATOL Protected</span>
+              <span>ATOL Protected T7311</span>
               <span>•</span>
               <span>TTA Member U6837</span>
             </div>

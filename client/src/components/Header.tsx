@@ -48,7 +48,7 @@ export function Header({ destinations = [], onDestinationSelect }: HeaderProps) 
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-emerald-400" />
-              <span>ATOL Protected</span>
+              <span>ATOL Protected T7311</span>
             </div>
             <div className="hidden sm:flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-sky-400" />

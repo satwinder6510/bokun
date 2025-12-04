@@ -4337,9 +4337,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (onlyMissing) {
         packagesToUpdate = packagesToUpdate.filter(pkg => 
-          !pkg.heroImage || 
-          !pkg.galleryImages || 
-          pkg.galleryImages.length < 3
+          !pkg.featuredImage || 
+          !pkg.gallery || 
+          (Array.isArray(pkg.gallery) && pkg.gallery.length < 3)
         );
       }
       

@@ -27,6 +27,14 @@ import AdminFlightPricing from "@/pages/AdminFlightPricing";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import DesignPreview from "@/pages/DesignPreview";
+import PreviewPackages from "@/pages/PreviewPackages";
+import PreviewPackageDetail from "@/pages/PreviewPackageDetail";
+import PreviewTours from "@/pages/PreviewTours";
+import PreviewTourDetail from "@/pages/PreviewTourDetail";
+import PreviewContact from "@/pages/PreviewContact";
+import PreviewFAQ from "@/pages/PreviewFAQ";
+import PreviewBlog from "@/pages/PreviewBlog";
+import PreviewBlogPost from "@/pages/PreviewBlogPost";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -44,6 +52,14 @@ function Router() {
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/design-preview" component={DesignPreview} />
+      <Route path="/preview/packages" component={PreviewPackages} />
+      <Route path="/preview/packages/:id" component={PreviewPackageDetail} />
+      <Route path="/preview/tours" component={PreviewTours} />
+      <Route path="/preview/tours/:slug" component={PreviewTourDetail} />
+      <Route path="/preview/contact" component={PreviewContact} />
+      <Route path="/preview/faq" component={PreviewFAQ} />
+      <Route path="/preview/blog" component={PreviewBlog} />
+      <Route path="/preview/blog/:slug" component={PreviewBlogPost} />
       <Route path="/login" component={Login} />
       <Route path="/admin/login" component={Login} />
       <Route path="/dashboard">

@@ -199,7 +199,7 @@ export default function TourDetail() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
                     onClick={scrollPrev}
                     data-testid="button-gallery-prev"
                   >
@@ -208,7 +208,7 @@ export default function TourDetail() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
                     onClick={scrollNext}
                     data-testid="button-gallery-next"
                   >
@@ -264,7 +264,7 @@ export default function TourDetail() {
               <Separator />
 
               {/* Sticky Navigation Tabs */}
-              <div className="sticky top-16 bg-background z-10 pb-4 border-b mb-6">
+              <div className="sticky top-16 bg-stone-50 z-10 pb-4 border-b mb-6">
                 <div className="flex gap-2 flex-wrap">
                   <Button 
                     variant="ghost" 

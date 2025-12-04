@@ -540,7 +540,7 @@ export default function PackageDetail() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
                     onClick={scrollPrev}
                     data-testid="button-gallery-prev"
                   >
@@ -549,7 +549,7 @@ export default function PackageDetail() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 backdrop-blur"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
                     onClick={scrollNext}
                     data-testid="button-gallery-next"
                   >
@@ -781,7 +781,7 @@ export default function PackageDetail() {
                                   setSelectedAirport(e.target.value);
                                   setSelectedDate(undefined);
                                 }}
-                                className="w-full p-2 border rounded-md bg-background text-foreground text-sm"
+                                className="w-full p-2 border rounded-md bg-white text-foreground text-sm"
                                 data-testid="select-airport"
                               >
                                 {airports.length > 1 && <option value="">Select Airport</option>}

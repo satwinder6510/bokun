@@ -144,11 +144,24 @@ export default function Dashboard() {
     },
   });
 
+  // Get session token from local storage for admin requests
+  const sessionToken = localStorage.getItem('admin_session_token');
+
   // Image migration mutation
   const migrateImagesMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/admin/migrate-images", {});
-      return response;
+      const response = await fetch("/api/admin/migrate-images", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-session": sessionToken || ""
+        }
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Migration failed");
+      }
+      return response.json();
     },
     onSuccess: (data: any) => {
       toast({

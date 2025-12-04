@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql } from "drizzle-orm";
@@ -97,6 +97,13 @@ export interface IStorage {
   updateAdminUser(id: number, updates: UpdateAdminUser): Promise<AdminUser | undefined>;
   deleteAdminUser(id: number): Promise<boolean>;
   updateAdminUserLastLogin(id: number): Promise<void>;
+  
+  // Flight tour pricing config methods
+  getAllFlightTourPricingConfigs(): Promise<FlightTourPricingConfig[]>;
+  getFlightTourPricingConfigByBokunId(bokunProductId: string): Promise<FlightTourPricingConfig | undefined>;
+  createFlightTourPricingConfig(config: InsertFlightTourPricingConfig): Promise<FlightTourPricingConfig>;
+  updateFlightTourPricingConfig(id: number, updates: UpdateFlightTourPricingConfig): Promise<FlightTourPricingConfig | undefined>;
+  deleteFlightTourPricingConfig(id: number): Promise<boolean>;
 }
 
 // In-memory storage with per-currency product caching
@@ -996,6 +1003,50 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error updating last login:", error);
     }
+  }
+  
+  // Flight Tour Pricing Config methods (stored in PostgreSQL)
+  async getAllFlightTourPricingConfigs(): Promise<FlightTourPricingConfig[]> {
+    try {
+      const results = await db.select().from(flightTourPricingConfigs).orderBy(desc(flightTourPricingConfigs.createdAt));
+      return results;
+    } catch (error) {
+      console.error("Error fetching flight tour pricing configs:", error);
+      return [];
+    }
+  }
+
+  async getFlightTourPricingConfigByBokunId(bokunProductId: string): Promise<FlightTourPricingConfig | undefined> {
+    try {
+      const results = await db.select().from(flightTourPricingConfigs)
+        .where(eq(flightTourPricingConfigs.bokunProductId, bokunProductId));
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching flight tour pricing config:", error);
+      return undefined;
+    }
+  }
+
+  async createFlightTourPricingConfig(config: InsertFlightTourPricingConfig): Promise<FlightTourPricingConfig> {
+    const [created] = await db.insert(flightTourPricingConfigs).values({
+      ...config,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).returning();
+    return created;
+  }
+
+  async updateFlightTourPricingConfig(id: number, updates: UpdateFlightTourPricingConfig): Promise<FlightTourPricingConfig | undefined> {
+    const [updated] = await db.update(flightTourPricingConfigs)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(flightTourPricingConfigs.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteFlightTourPricingConfig(id: number): Promise<boolean> {
+    await db.delete(flightTourPricingConfigs).where(eq(flightTourPricingConfigs.id, id));
+    return true;
   }
 }
 

@@ -5,7 +5,8 @@ import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import bcrypt from "bcrypt";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, adminSessions } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions } from "@shared/schema";
+import { calculateCombinedPrices, getFlightsForDateWithPrices, UK_AIRPORTS, getDefaultDepartAirports, searchFlights } from "./flightApi";
 import { db } from "./db";
 import { eq, lt } from "drizzle-orm";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
@@ -4043,6 +4044,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Rescrape error:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========================================
+  // Flight Tour Pricing Configs (Dynamic Flight + Bokun Tour Pricing)
+  // ========================================
+  
+  // Get all flight tour pricing configs (admin)
+  app.get("/api/admin/flight-pricing-configs", verifyAdminSession, async (req, res) => {
+    try {
+      const configs = await storage.getAllFlightTourPricingConfigs();
+      res.json(configs);
+    } catch (error: any) {
+      console.error("Error fetching flight pricing configs:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch configs" });
+    }
+  });
+  
+  // Get flight pricing config for a specific Bokun product
+  app.get("/api/admin/flight-pricing-configs/bokun/:bokunProductId", verifyAdminSession, async (req, res) => {
+    try {
+      const config = await storage.getFlightTourPricingConfigByBokunId(req.params.bokunProductId);
+      if (!config) {
+        return res.status(404).json({ error: "Config not found" });
+      }
+      res.json(config);
+    } catch (error: any) {
+      console.error("Error fetching flight pricing config:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch config" });
+    }
+  });
+  
+  // Create flight pricing config
+  app.post("/api/admin/flight-pricing-configs", verifyAdminSession, async (req, res) => {
+    try {
+      const validated = insertFlightTourPricingConfigSchema.parse(req.body);
+      const config = await storage.createFlightTourPricingConfig(validated);
+      res.status(201).json(config);
+    } catch (error: any) {
+      console.error("Error creating flight pricing config:", error);
+      if (error.name === "ZodError") {
+        res.status(400).json({ error: "Validation error", details: error.errors });
+      } else {
+        res.status(500).json({ error: error.message || "Failed to create config" });
+      }
+    }
+  });
+  
+  // Update flight pricing config
+  app.patch("/api/admin/flight-pricing-configs/:id", verifyAdminSession, async (req, res) => {
+    try {
+      const validated = updateFlightTourPricingConfigSchema.parse(req.body);
+      const config = await storage.updateFlightTourPricingConfig(parseInt(req.params.id), validated);
+      if (!config) {
+        return res.status(404).json({ error: "Config not found" });
+      }
+      res.json(config);
+    } catch (error: any) {
+      console.error("Error updating flight pricing config:", error);
+      if (error.name === "ZodError") {
+        res.status(400).json({ error: "Validation error", details: error.errors });
+      } else {
+        res.status(500).json({ error: error.message || "Failed to update config" });
+      }
+    }
+  });
+  
+  // Delete flight pricing config
+  app.delete("/api/admin/flight-pricing-configs/:id", verifyAdminSession, async (req, res) => {
+    try {
+      await storage.deleteFlightTourPricingConfig(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting flight pricing config:", error);
+      res.status(500).json({ error: error.message || "Failed to delete config" });
+    }
+  });
+  
+  // Get UK airports list (for dropdown)
+  app.get("/api/flight-pricing/airports", async (req, res) => {
+    res.json(UK_AIRPORTS);
+  });
+  
+  // Test flight API search (admin debugging)
+  app.get("/api/admin/flight-pricing-configs/test-search", verifyAdminSession, async (req, res) => {
+    try {
+      const { depart, arrive, nights, startDate, endDate } = req.query;
+      
+      if (!depart || !arrive || !nights || !startDate || !endDate) {
+        return res.status(400).json({ error: "Missing required parameters: depart, arrive, nights, startDate, endDate" });
+      }
+      
+      const offers = await searchFlights({
+        departAirports: depart as string,
+        arriveAirport: arrive as string,
+        nights: parseInt(nights as string),
+        startDate: startDate as string, // DD/MM/YYYY
+        endDate: endDate as string, // DD/MM/YYYY
+      });
+      
+      res.json({
+        count: offers.length,
+        offers: offers.slice(0, 20), // Return first 20 for preview
+      });
+    } catch (error: any) {
+      console.error("Error testing flight search:", error);
+      res.status(500).json({ error: error.message || "Flight search failed" });
+    }
+  });
+  
+  // ========================================
+  // Public: Combined Flight + Tour Pricing
+  // ========================================
+  
+  // Get combined pricing for a Bokun tour (public API for tour detail page)
+  app.get("/api/tours/:bokunProductId/flight-pricing", async (req, res) => {
+    try {
+      const { bokunProductId } = req.params;
+      
+      // Get the pricing config for this tour
+      const config = await storage.getFlightTourPricingConfigByBokunId(bokunProductId);
+      if (!config || !config.isEnabled) {
+        return res.json({ enabled: false, message: "Flight pricing not configured for this tour" });
+      }
+      
+      // Get the land tour price from Bokun (need to fetch product details)
+      const productDetails = await getBokunProductDetails(bokunProductId);
+      if (!productDetails || !productDetails.nextDefaultPrice) {
+        return res.status(404).json({ error: "Tour not found or no pricing available" });
+      }
+      
+      // Apply Bokun markup (10%) to get our land tour price
+      const landTourPricePerPerson = productDetails.nextDefaultPrice * 1.10;
+      
+      // Calculate combined prices for all available dates
+      const prices = await calculateCombinedPrices(config, landTourPricePerPerson);
+      
+      res.json({
+        enabled: true,
+        config: {
+          arriveAirportCode: config.arriveAirportCode,
+          departAirports: config.departAirports.split("|"),
+          durationNights: config.durationNights,
+          markupPercent: config.markupPercent,
+          searchStartDate: config.searchStartDate,
+          searchEndDate: config.searchEndDate,
+        },
+        landTourPricePerPerson,
+        availableDates: prices.length,
+        prices,
+      });
+    } catch (error: any) {
+      console.error("Error fetching combined pricing:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch pricing" });
+    }
+  });
+  
+  // Get all flight options for a specific date (for modal showing multiple departure airports)
+  app.get("/api/tours/:bokunProductId/flight-pricing/:date", async (req, res) => {
+    try {
+      const { bokunProductId, date } = req.params; // date in DD-MM-YYYY format (url-safe)
+      
+      // Convert URL-safe date back to API format
+      const targetDate = date.replace(/-/g, "/"); // Convert DD-MM-YYYY to DD/MM/YYYY
+      
+      // Get the pricing config for this tour
+      const config = await storage.getFlightTourPricingConfigByBokunId(bokunProductId);
+      if (!config || !config.isEnabled) {
+        return res.json({ enabled: false, message: "Flight pricing not configured" });
+      }
+      
+      // Get the land tour price from Bokun
+      const productDetails = await getBokunProductDetails(bokunProductId);
+      if (!productDetails || !productDetails.nextDefaultPrice) {
+        return res.status(404).json({ error: "Tour not found or no pricing available" });
+      }
+      
+      const landTourPricePerPerson = productDetails.nextDefaultPrice * 1.10;
+      
+      // Get all flight options for this date
+      const options = await getFlightsForDateWithPrices(config, landTourPricePerPerson, targetDate);
+      
+      res.json({
+        date: targetDate,
+        options,
+      });
+    } catch (error: any) {
+      console.error("Error fetching flight options:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch flight options" });
     }
   });
 

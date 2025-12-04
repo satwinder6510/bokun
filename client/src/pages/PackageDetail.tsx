@@ -49,24 +49,29 @@ function PriceCalendarWidget({
     return new Date(year, month - 1, day);
   };
 
-  // Navigate to first month with future pricing when data changes
+  // Navigate to month with cheapest future price when data changes
   useEffect(() => {
     console.log("[Calendar] useEffect triggered, pricingData length:", pricingData.length);
     if (pricingData.length > 0) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      // Find the first future date with pricing (using timezone-safe parsing)
+      // Find future pricing entries with valid prices
       const futurePricing = pricingData
-        .map(p => parsePricingDate(p.departureDate))
-        .filter(d => d >= today)
-        .sort((a, b) => a.getTime() - b.getTime());
+        .filter(p => {
+          const d = parsePricingDate(p.departureDate);
+          return d >= today && p.price > 0;
+        })
+        .sort((a, b) => a.price - b.price); // Sort by price, cheapest first
       
-      console.log("[Calendar] Future pricing dates:", futurePricing.length, futurePricing.length > 0 ? futurePricing[0].toDateString() : "none");
+      console.log("[Calendar] Future pricing entries:", futurePricing.length);
       
       if (futurePricing.length > 0) {
-        // Navigate to the month of the first future pricing
-        const newMonth = new Date(futurePricing[0].getFullYear(), futurePricing[0].getMonth(), 1);
+        // Navigate to the month of the cheapest future price
+        const cheapestEntry = futurePricing[0];
+        const cheapestDate = parsePricingDate(cheapestEntry.departureDate);
+        const newMonth = new Date(cheapestDate.getFullYear(), cheapestDate.getMonth(), 1);
+        console.log("[Calendar] Cheapest price:", cheapestEntry.price, "on", cheapestDate.toDateString());
         console.log("[Calendar] Setting current month to:", newMonth.toDateString());
         setCurrentMonth(newMonth);
       }
@@ -263,15 +268,27 @@ export default function PackageDetail() {
     enabled: !!pkg?.id,
   });
 
-  // Get unique airports from pricing data
-  const airports = Array.from(new Set(pricing.map(p => p.departureAirport))).map(code => {
-    const entry = pricing.find(p => p.departureAirport === code);
-    return { code, name: entry?.departureAirportName || code };
-  });
+  // Get unique airports from pricing data, sorted by cheapest price
+  // Only include airports that have valid prices
+  const airports = Array.from(new Set(pricing.map(p => p.departureAirport)))
+    .map(code => {
+      const entry = pricing.find(p => p.departureAirport === code);
+      const airportPrices = pricing.filter(p => p.departureAirport === code && p.price > 0);
+      // Find the minimum price for this airport (only if there are valid prices)
+      const minPrice = airportPrices.length > 0 
+        ? Math.min(...airportPrices.map(p => p.price))
+        : Infinity;
+      return { code, name: entry?.departureAirportName || code, minPrice, hasValidPrices: airportPrices.length > 0 };
+    })
+    .filter(airport => airport.hasValidPrices) // Exclude airports with no valid prices
+    .sort((a, b) => a.minPrice - b.minPrice); // Sort by cheapest price first
   
   // Debug: Log pricing and airport state
   useEffect(() => {
     console.log("[Public Page] Current state - pricing:", pricing.length, "airports:", airports.length, "selectedAirport:", selectedAirport);
+    if (airports.length > 0) {
+      console.log("[Public Page] Cheapest airport:", airports[0].code, "at", airports[0].minPrice);
+    }
   }, [pricing, airports, selectedAirport]);
 
   // Filter pricing by selected airport
@@ -310,9 +327,10 @@ export default function PackageDetail() {
     }
   }, [selectedDate]);
 
-  // Auto-select airport if only one
+  // Auto-select the cheapest airport (first in sorted list)
   useEffect(() => {
-    if (airports.length === 1 && !selectedAirport) {
+    if (airports.length > 0 && !selectedAirport) {
+      console.log("[Public Page] Auto-selecting cheapest airport:", airports[0].code);
       setSelectedAirport(airports[0].code);
     }
   }, [airports, selectedAirport]);

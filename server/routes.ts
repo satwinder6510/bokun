@@ -4412,6 +4412,205 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================
+  // IMAGE MIGRATION ROUTES (Admin only)
+  // ========================================
+  
+  // Migrate all flight package images to object storage
+  app.post("/api/admin/migrate-images", verifyAdminSession, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const packages = await storage.getAllFlightPackages();
+      
+      const results = {
+        total: packages.length,
+        migrated: 0,
+        skipped: 0,
+        failed: 0,
+        details: [] as { packageId: number; title: string; status: string; error?: string }[]
+      };
+      
+      for (const pkg of packages) {
+        try {
+          let updated = false;
+          const updates: any = {};
+          
+          // Migrate featured image
+          if (pkg.featuredImage && !pkg.featuredImage.startsWith('/objects/')) {
+            try {
+              const newPath = await objectStorageService.uploadFromUrl(
+                pkg.featuredImage,
+                `featured-${pkg.slug}.jpg`
+              );
+              updates.featuredImage = newPath;
+              updated = true;
+              console.log(`Migrated featured image for ${pkg.title}`);
+            } catch (e: any) {
+              console.error(`Failed to migrate featured image for ${pkg.title}:`, e.message);
+            }
+          }
+          
+          // Migrate gallery images
+          if (pkg.gallery && Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
+            const newGallery: string[] = [];
+            for (let i = 0; i < pkg.gallery.length; i++) {
+              const img = pkg.gallery[i];
+              if (img && !img.startsWith('/objects/')) {
+                try {
+                  const newPath = await objectStorageService.uploadFromUrl(
+                    img,
+                    `gallery-${pkg.slug}-${i}.jpg`
+                  );
+                  newGallery.push(newPath);
+                  updated = true;
+                } catch (e: any) {
+                  console.error(`Failed to migrate gallery image ${i} for ${pkg.title}:`, e.message);
+                  newGallery.push(img); // Keep original if failed
+                }
+              } else {
+                newGallery.push(img);
+              }
+            }
+            if (updated) {
+              updates.gallery = newGallery;
+            }
+          }
+          
+          // Migrate accommodation images
+          if (pkg.accommodations && Array.isArray(pkg.accommodations) && pkg.accommodations.length > 0) {
+            const newAccommodations = [];
+            for (const acc of pkg.accommodations) {
+              if (acc.images && Array.isArray(acc.images)) {
+                const newImages: string[] = [];
+                for (let i = 0; i < acc.images.length; i++) {
+                  const img = acc.images[i];
+                  if (img && !img.startsWith('/objects/')) {
+                    try {
+                      const newPath = await objectStorageService.uploadFromUrl(
+                        img,
+                        `acc-${pkg.slug}-${i}.jpg`
+                      );
+                      newImages.push(newPath);
+                      updated = true;
+                    } catch (e: any) {
+                      newImages.push(img); // Keep original if failed
+                    }
+                  } else {
+                    newImages.push(img);
+                  }
+                }
+                newAccommodations.push({ ...acc, images: newImages });
+              } else {
+                newAccommodations.push(acc);
+              }
+            }
+            if (updated) {
+              updates.accommodations = newAccommodations;
+            }
+          }
+          
+          // Apply updates if any
+          if (updated && Object.keys(updates).length > 0) {
+            await storage.updateFlightPackage(pkg.id, updates);
+            results.migrated++;
+            results.details.push({ packageId: pkg.id, title: pkg.title, status: 'migrated' });
+          } else {
+            results.skipped++;
+            results.details.push({ packageId: pkg.id, title: pkg.title, status: 'skipped (no external images)' });
+          }
+        } catch (error: any) {
+          results.failed++;
+          results.details.push({ 
+            packageId: pkg.id, 
+            title: pkg.title, 
+            status: 'failed', 
+            error: error.message 
+          });
+        }
+      }
+      
+      res.json(results);
+    } catch (error: any) {
+      console.error("Migration error:", error);
+      res.status(500).json({ error: error.message || "Migration failed" });
+    }
+  });
+  
+  // Get migration status - check which images are still external
+  app.get("/api/admin/migration-status", verifyAdminSession, async (req, res) => {
+    try {
+      const packages = await storage.getAllFlightPackages();
+      
+      const status = {
+        total: packages.length,
+        fullyMigrated: 0,
+        partiallyMigrated: 0,
+        notMigrated: 0,
+        packages: [] as { id: number; title: string; externalImages: number; migratedImages: number }[]
+      };
+      
+      for (const pkg of packages) {
+        let externalCount = 0;
+        let migratedCount = 0;
+        
+        // Check featured image
+        if (pkg.featuredImage) {
+          if (pkg.featuredImage.startsWith('/objects/')) {
+            migratedCount++;
+          } else {
+            externalCount++;
+          }
+        }
+        
+        // Check gallery
+        if (pkg.gallery && Array.isArray(pkg.gallery)) {
+          for (const img of pkg.gallery) {
+            if (img.startsWith('/objects/')) {
+              migratedCount++;
+            } else {
+              externalCount++;
+            }
+          }
+        }
+        
+        // Check accommodations
+        if (pkg.accommodations && Array.isArray(pkg.accommodations)) {
+          for (const acc of pkg.accommodations) {
+            if (acc.images && Array.isArray(acc.images)) {
+              for (const img of acc.images) {
+                if (img.startsWith('/objects/')) {
+                  migratedCount++;
+                } else {
+                  externalCount++;
+                }
+              }
+            }
+          }
+        }
+        
+        status.packages.push({
+          id: pkg.id,
+          title: pkg.title,
+          externalImages: externalCount,
+          migratedImages: migratedCount
+        });
+        
+        if (externalCount === 0 && migratedCount > 0) {
+          status.fullyMigrated++;
+        } else if (externalCount > 0 && migratedCount > 0) {
+          status.partiallyMigrated++;
+        } else if (externalCount > 0) {
+          status.notMigrated++;
+        }
+      }
+      
+      res.json(status);
+    } catch (error: any) {
+      console.error("Migration status error:", error);
+      res.status(500).json({ error: error.message || "Failed to get migration status" });
+    }
+  });
+
   // Periodic cleanup of expired sessions (runs every hour)
   setInterval(async () => {
     try {

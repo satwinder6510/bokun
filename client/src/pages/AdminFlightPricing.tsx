@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -10,9 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   ArrowLeft, Plus, Trash2, Edit2, Plane, Save, X, 
-  Calendar, Search, ExternalLink, Loader2, Settings2
+  Calendar, Search, ExternalLink, Loader2, Settings2, MapPin, Check
 } from "lucide-react";
 import {
   Dialog,
@@ -67,6 +68,23 @@ type FormData = {
   isEnabled: boolean;
 };
 
+type BokunProduct = {
+  id: string;
+  title: string;
+  excerpt?: string;
+  price: number;
+  locationCode?: {
+    country?: string;
+    location?: string;
+    name?: string;
+  };
+  durationText?: string;
+  keyPhoto?: {
+    originalUrl?: string;
+    derived?: Array<{ url: string }>;
+  };
+};
+
 const emptyForm: FormData = {
   bokunProductId: "",
   arriveAirportCode: "",
@@ -99,6 +117,21 @@ export default function AdminFlightPricing() {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
   const [isTestingApi, setIsTestingApi] = useState(false);
+  
+  const [tourSearchQuery, setTourSearchQuery] = useState("");
+  const [tourSearchOpen, setTourSearchOpen] = useState(false);
+  const [selectedTour, setSelectedTour] = useState<BokunProduct | null>(null);
+  const tourSearchRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tourSearchRef.current && !tourSearchRef.current.contains(event.target as Node)) {
+        setTourSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const { data: airports = [] } = useQuery<AirportOption[]>({
     queryKey: ["/api/flight-pricing/airports"],
@@ -107,6 +140,37 @@ export default function AdminFlightPricing() {
   const { data: configs = [], isLoading } = useQuery<FlightTourPricingConfig[]>({
     queryKey: ["/api/admin/flight-pricing-configs"],
   });
+
+  const { data: toursData, isLoading: isLoadingTours } = useQuery<{ items: BokunProduct[] }>({
+    queryKey: ["/api/bokun/products", "tour-search"],
+    queryFn: async () => {
+      const response = await apiRequest("POST", "/api/bokun/products", { 
+        page: 1, 
+        pageSize: 100,
+        currency: "GBP"
+      });
+      return response;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const filteredTours = (toursData?.items || []).filter(tour => {
+    if (!tourSearchQuery.trim()) return true;
+    const query = tourSearchQuery.toLowerCase();
+    return (
+      tour.title?.toLowerCase().includes(query) ||
+      tour.id?.toLowerCase().includes(query) ||
+      tour.locationCode?.name?.toLowerCase().includes(query) ||
+      tour.locationCode?.country?.toLowerCase().includes(query)
+    );
+  }).slice(0, 20);
+
+  const handleSelectTour = (tour: BokunProduct) => {
+    setSelectedTour(tour);
+    setFormData({ ...formData, bokunProductId: tour.id });
+    setTourSearchOpen(false);
+    setTourSearchQuery("");
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertFlightTourPricingConfig) => {
@@ -165,6 +229,8 @@ export default function AdminFlightPricing() {
     setFormData(emptyForm);
     setIsCreating(false);
     setEditingConfig(null);
+    setSelectedTour(null);
+    setTourSearchQuery("");
   };
 
   const handleEdit = (config: FlightTourPricingConfig) => {
@@ -395,18 +461,109 @@ export default function AdminFlightPricing() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="bokunProductId">Bokun Product ID *</Label>
-                    <Input
-                      id="bokunProductId"
-                      value={formData.bokunProductId}
-                      onChange={(e) => setFormData({ ...formData, bokunProductId: e.target.value })}
-                      placeholder="e.g., 12345 or 2b4d1234..."
-                      disabled={!!editingConfig}
-                      data-testid="input-bokun-id"
-                    />
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Select Bokun Tour *</Label>
+                    {editingConfig ? (
+                      <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                        <Badge variant="outline" className="font-mono">{formData.bokunProductId}</Badge>
+                        <span className="text-sm text-muted-foreground">(Cannot change tour when editing)</span>
+                      </div>
+                    ) : selectedTour ? (
+                      <div className="flex items-center justify-between p-3 border rounded-md bg-muted/50">
+                        <div className="flex items-center gap-3">
+                          <Check className="h-4 w-4 text-green-600" />
+                          <div>
+                            <p className="font-medium text-sm">{selectedTour.title}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Badge variant="outline" className="font-mono text-xs">{selectedTour.id}</Badge>
+                              {selectedTour.locationCode?.name && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {selectedTour.locationCode.name}
+                                </span>
+                              )}
+                              {selectedTour.durationText && <span>{selectedTour.durationText}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTour(null);
+                            setFormData({ ...formData, bokunProductId: "" });
+                          }}
+                          data-testid="button-clear-tour"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div ref={tourSearchRef} className="relative">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search tours by name, location, or ID..."
+                            value={tourSearchQuery}
+                            onChange={(e) => {
+                              setTourSearchQuery(e.target.value);
+                              setTourSearchOpen(true);
+                            }}
+                            onFocus={() => setTourSearchOpen(true)}
+                            className="pl-10"
+                            data-testid="input-tour-search"
+                          />
+                          {isLoadingTours && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+                        {tourSearchOpen && (
+                          <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
+                            <ScrollArea className="max-h-80">
+                              {filteredTours.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-muted-foreground">
+                                  {isLoadingTours ? "Loading tours..." : "No tours found"}
+                                </div>
+                              ) : (
+                                <div className="p-1">
+                                  {filteredTours.map((tour) => (
+                                    <button
+                                      key={tour.id}
+                                      type="button"
+                                      className="w-full text-left p-3 rounded-md hover-elevate cursor-pointer flex items-start gap-3"
+                                      onClick={() => handleSelectTour(tour)}
+                                      data-testid={`tour-option-${tour.id}`}
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm truncate">{tour.title}</p>
+                                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                                          <Badge variant="outline" className="font-mono text-xs">{tour.id}</Badge>
+                                          {tour.locationCode?.name && (
+                                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                              <MapPin className="h-3 w-3" />
+                                              {tour.locationCode.name}, {tour.locationCode.country}
+                                            </span>
+                                          )}
+                                          {tour.durationText && (
+                                            <span className="text-xs text-muted-foreground">{tour.durationText}</span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <span className="text-sm font-medium text-primary">
+                                        £{tour.price?.toFixed(0)}
+                                      </span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </ScrollArea>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     <p className="text-xs text-muted-foreground">
-                      The Bokun product ID to link flight pricing to.
+                      Search and select a Bokun tour to configure flight pricing for.
                     </p>
                   </div>
 

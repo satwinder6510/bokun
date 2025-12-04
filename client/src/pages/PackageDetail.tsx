@@ -17,7 +17,7 @@ import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { Header } from "@/components/Header";
 import { apiRequest } from "@/lib/queryClient";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
-import { stripHtmlToText } from "@/lib/utils";
+import { cleanFragmentedHtmlArray } from "@/lib/utils";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import {
@@ -461,8 +461,8 @@ export default function PackageDetail() {
   const allImages = [pkg.featuredImage, ...gallery].filter(Boolean).map(img => getProxiedImageUrl(img)) as string[];
   const itinerary = pkg.itinerary || [];
   const accommodations = pkg.accommodations || [];
-  const whatsIncluded = pkg.whatsIncluded || [];
-  const highlights = pkg.highlights || [];
+  const whatsIncluded = cleanFragmentedHtmlArray(pkg.whatsIncluded || []);
+  const highlights = cleanFragmentedHtmlArray(pkg.highlights || []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -610,7 +610,7 @@ export default function PackageDetail() {
                           {highlights.map((highlight, index) => (
                             <li key={index} className="flex items-start gap-2" data-testid={`highlight-${index}`}>
                               <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                              <span>{stripHtmlToText(highlight)}</span>
+                              <span>{highlight}</span>
                             </li>
                           ))}
                         </ul>
@@ -629,7 +629,7 @@ export default function PackageDetail() {
                           {whatsIncluded.map((item, index) => (
                             <li key={index} className="flex items-start gap-2" data-testid={`included-${index}`}>
                               <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span>{stripHtmlToText(item)}</span>
+                              <span>{item}</span>
                             </li>
                           ))}
                         </ul>

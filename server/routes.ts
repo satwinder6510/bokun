@@ -2267,9 +2267,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found ${flightOffers.length} flight offers`);
       
-      // Get Bokun land tour price
+      // Get Bokun land tour price from nextDefaultPriceMoney.amount
       const bokunDetails: any = await getBokunProductDetails(bokunProductId, 'GBP');
-      const landTourPrice = bokunDetails?.price || 0;
+      
+      // Extract price: Bokun returns price in nextDefaultPriceMoney.amount
+      const landTourPrice = bokunDetails?.nextDefaultPriceMoney?.amount || 
+                           bokunDetails?.nextDefaultPrice || 
+                           bokunDetails?.price || 
+                           0;
       const landTourPriceWithMarkup = landTourPrice * 1.1; // 10% Bokun markup
       
       console.log(`Bokun land tour price: £${landTourPrice}, with 10% markup: £${landTourPriceWithMarkup}`);

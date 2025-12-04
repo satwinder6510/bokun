@@ -2994,30 +2994,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload image (admin) - uses Object Storage if configured, otherwise falls back to local
+  // Upload image (admin) - uses local storage (Object Storage requires bucket provisioning)
   app.post("/api/admin/upload", upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
       
-      let imageUrl: string;
-      
-      if (isObjectStorageConfigured()) {
-        const objectStorage = new ObjectStorageService();
-        const filename = `package-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(req.file.originalname)}`;
-        imageUrl = await objectStorage.uploadBuffer(req.file.buffer, filename, req.file.mimetype);
-      } else {
-        const filename = `package-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(req.file.originalname)}`;
-        const filePath = path.join(uploadDir, filename);
-        fs.writeFileSync(filePath, req.file.buffer);
-        imageUrl = `/uploads/${filename}`;
-      }
+      const filename = `package-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(req.file.originalname)}`;
+      const filePath = path.join(uploadDir, filename);
+      fs.writeFileSync(filePath, req.file.buffer);
+      const imageUrl = `/uploads/${filename}`;
       
       res.json({ 
         success: true, 
         url: imageUrl,
-        filename: path.basename(imageUrl),
+        filename: filename,
         size: req.file.size,
         mimetype: req.file.mimetype
       });
@@ -3027,7 +3019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload multiple images (admin)
+  // Upload multiple images (admin) - uses local storage
   app.post("/api/admin/upload-multiple", upload.array('images', 20), async (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];
@@ -3037,30 +3029,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const uploadedImages = [];
       
-      if (isObjectStorageConfigured()) {
-        const objectStorage = new ObjectStorageService();
-        for (const file of files) {
-          const filename = `package-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
-          const imageUrl = await objectStorage.uploadBuffer(file.buffer, filename, file.mimetype);
-          uploadedImages.push({
-            url: imageUrl,
-            filename: path.basename(imageUrl),
-            size: file.size,
-            mimetype: file.mimetype
-          });
-        }
-      } else {
-        for (const file of files) {
-          const filename = `package-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
-          const filePath = path.join(uploadDir, filename);
-          fs.writeFileSync(filePath, file.buffer);
-          uploadedImages.push({
-            url: `/uploads/${filename}`,
-            filename,
-            size: file.size,
-            mimetype: file.mimetype
-          });
-        }
+      for (const file of files) {
+        const filename = `package-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
+        const filePath = path.join(uploadDir, filename);
+        fs.writeFileSync(filePath, file.buffer);
+        uploadedImages.push({
+          url: `/uploads/${filename}`,
+          filename,
+          size: file.size,
+          mimetype: file.mimetype
+        });
       }
       
       res.json({ 

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Calendar, Users, ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Calendar, Users, ChevronLeft, ChevronRight, ChevronDown, Plane } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
+import { FlightPricingCalendar } from "@/components/FlightPricingCalendar";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { applyBokunMarkup } from "@/lib/pricing";
@@ -294,6 +295,15 @@ export default function TourDetail() {
                   <Button 
                     variant="ghost" 
                     size="sm"
+                    onClick={() => document.getElementById('flight-packages-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    data-testid="nav-flight-packages"
+                  >
+                    <Plane className="w-4 h-4 mr-1" />
+                    Flight Packages
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
                     onClick={() => document.getElementById('availability-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                     data-testid="nav-availability"
                   >
@@ -363,9 +373,20 @@ export default function TourDetail() {
                 </div>
               )}
 
+              {/* Flight Packages Section */}
+              {productId && (
+                <div id="flight-packages-section" className="space-y-4 pt-8 scroll-mt-32" data-testid="content-flight-packages">
+                  <h2 className="text-2xl font-semibold mb-4">Flight + Tour Packages</h2>
+                  <FlightPricingCalendar
+                    bokunProductId={productId}
+                    productTitle={product.title}
+                  />
+                </div>
+              )}
+
               {/* Availability Section */}
               <div id="availability-section" className="space-y-4 pt-8 scroll-mt-32" data-testid="content-availability">
-                <h2 className="text-2xl font-semibold mb-4">Check Availability & Pricing</h2>
+                <h2 className="text-2xl font-semibold mb-4">Check Availability & Pricing (Land Only)</h2>
                   {productId && (
                     <AvailabilityChecker
                       productId={productId}

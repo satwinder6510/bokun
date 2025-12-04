@@ -102,6 +102,42 @@ The platform features a comprehensive multi-user admin authentication system wit
 -   `/admin/reviews` - Customer reviews management
 -   `/admin/faq` - FAQ content management
 -   `/admin/tracking-numbers` - DNI phone tracking configuration
+-   `/admin/flight-pricing` - Dynamic flight + tour pricing configuration
+
+## Dynamic Flight + Tour Pricing
+
+The platform supports dynamic combined pricing for Bokun land tours with external flight prices. This enables displaying per-date package prices that include return flights from UK airports.
+
+### Pricing Configuration
+
+Each Bokun tour can have a flight pricing config stored in `flight_tour_pricing_configs` table with:
+- `bokunProductId` - Links to the Bokun tour
+- `arriveAirportCode` - 3-letter IATA code for destination (e.g., SOF, ATH, IST)
+- `departAirports` - Pipe-separated UK departure airports (e.g., LGW|STN|LTN|LHR|MAN)
+- `durationNights` - Trip duration for flight search
+- `searchStartDate` / `searchEndDate` - Date range for availability (DD/MM/YYYY format)
+- `markupPercent` - Percentage markup on combined price
+- `isEnabled` - Toggle to enable/disable pricing
+
+### Pricing Calculation Flow
+
+1. **Flight API** (`server/flightApi.ts`): Fetches flight prices from external API (http://87.102.127.86:8119/search/searchoffers.dll) with 1-hour TTL caching
+2. **Land Tour Price**: Retrieved from Bokun with 10% markup applied
+3. **Combined Price**: `(Flight Price + Land Tour Price) * (1 + Markup%)`
+4. **Smart Rounding**: Final price rounded to nearest x49, x69, or x99 endpoint (e.g., £449, £569, £699)
+
+### Public API Endpoints
+
+- `GET /api/tours/:bokunProductId/flight-pricing` - Returns per-date pricing with cheapest flight option per date
+- `GET /api/tours/:bokunProductId/flight-pricing/:date` - Returns all flight options for specific date (date format: DD-MM-YYYY)
+
+### Tour Detail Page Display
+
+The `FlightPricingCalendar` component displays:
+- Interactive calendar with per-date prices color-coded by price tier
+- Minimum price prominently shown ("From £449 per person")
+- Click any date to see all available departure airports with prices
+- Modal shows flight details (airline, times, price breakdown)
 
 ### Bootstrap Process
 

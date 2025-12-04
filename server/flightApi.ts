@@ -190,15 +190,16 @@ export async function calculateCombinedPrices(
     const [day, month, year] = date.split("/");
     const isoDate = `${year}-${month}-${day}`;
     
+    // Round all monetary values to 2 decimal places for financial display
     results.push({
       date,
       isoDate,
-      flightPricePerPerson: flightPrice,
-      landTourPricePerPerson,
-      subtotal,
+      flightPricePerPerson: Math.round(flightPrice * 100) / 100,
+      landTourPricePerPerson: Math.round(landTourPricePerPerson * 100) / 100,
+      subtotal: Math.round(subtotal * 100) / 100,
       markupPercent: config.markupPercent,
-      afterMarkup,
-      finalPrice,
+      afterMarkup: Math.round(afterMarkup * 100) / 100,
+      finalPrice: Math.round(finalPrice * 100) / 100,
       currency: "GBP",
       flightDetails: flight,
       departureAirport: flight.depapt,
@@ -243,15 +244,16 @@ export async function getFlightsForDateWithPrices(
     const [day, month, year] = targetDate.split("/");
     const isoDate = `${year}-${month}-${day}`;
     
+    // Round all monetary values to 2 decimal places for financial display
     results.push({
       date: targetDate,
       isoDate,
-      flightPricePerPerson: flightPrice,
-      landTourPricePerPerson,
-      subtotal,
+      flightPricePerPerson: Math.round(flightPrice * 100) / 100,
+      landTourPricePerPerson: Math.round(landTourPricePerPerson * 100) / 100,
+      subtotal: Math.round(subtotal * 100) / 100,
       markupPercent: config.markupPercent,
-      afterMarkup,
-      finalPrice,
+      afterMarkup: Math.round(afterMarkup * 100) / 100,
+      finalPrice: Math.round(finalPrice * 100) / 100,
       currency: "GBP",
       flightDetails: flight,
       departureAirport: flight.depapt,

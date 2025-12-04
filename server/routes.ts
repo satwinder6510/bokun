@@ -1899,6 +1899,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parseResult = insertFlightPackageSchema.safeParse(req.body);
       
       if (!parseResult.success) {
+        console.error("Package validation failed:", JSON.stringify(parseResult.error.errors, null, 2));
+        console.error("Request body keys:", Object.keys(req.body));
+        console.error("Slug value:", req.body.slug);
+        console.error("Title value:", req.body.title);
+        console.error("Category value:", req.body.category);
+        console.error("Price value:", req.body.price);
         return res.status(400).json({ 
           error: "Validation failed", 
           details: parseResult.error.errors 

@@ -4322,6 +4322,194 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk rescrape IMAGES ONLY for all packages with sourceUrl (preserves pricing)
+  app.post("/api/admin/flight-packages/rescrape-images", async (req, res) => {
+    try {
+      const { limit = 500, delayMs = 500, onlyMissing = false } = req.body;
+      
+      const cheerio = await import("cheerio");
+      const fetch = (await import("node-fetch")).default;
+      
+      const allPackages = await storage.getAllFlightPackages();
+      
+      // Filter packages: must have sourceUrl, optionally only those with missing/few images
+      let packagesToUpdate = allPackages.filter(pkg => pkg.sourceUrl);
+      
+      if (onlyMissing) {
+        packagesToUpdate = packagesToUpdate.filter(pkg => 
+          !pkg.heroImage || 
+          !pkg.galleryImages || 
+          pkg.galleryImages.length < 3
+        );
+      }
+      
+      packagesToUpdate = packagesToUpdate.slice(0, limit);
+      
+      console.log(`Starting IMAGE rescrape for ${packagesToUpdate.length} packages...`);
+      
+      const results: { 
+        updated: string[]; 
+        noImages: string[]; 
+        failed: string[] 
+      } = {
+        updated: [],
+        noImages: [],
+        failed: []
+      };
+      
+      for (const pkg of packagesToUpdate) {
+        try {
+          console.log(`Scraping images for: ${pkg.slug}`);
+          
+          const response = await fetch(pkg.sourceUrl!, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+          });
+          
+          if (!response.ok) {
+            results.failed.push(`${pkg.slug}: HTTP ${response.status}`);
+            continue;
+          }
+          
+          const html = await response.text();
+          const $ = cheerio.load(html);
+          
+          // Extract hero image
+          let heroImage = '';
+          const heroSelectors = [
+            '.hero-image img',
+            '.package-hero img',
+            '.main-image img',
+            '.featured-image img',
+            'header img',
+            '.banner img',
+            '.slider img:first',
+            '.carousel img:first'
+          ];
+          
+          for (const selector of heroSelectors) {
+            const img = $(selector).first();
+            if (img.length) {
+              heroImage = img.attr('src') || img.attr('data-src') || '';
+              if (heroImage) break;
+            }
+          }
+          
+          // Extract gallery images
+          const galleryImages: string[] = [];
+          
+          // Look for high-quality image links first
+          $('a[href*="PackageImages"], a[href*="HotelImages"], a.img-url').each((_, a) => {
+            const href = $(a).attr('href');
+            if (href && !galleryImages.includes(href)) {
+              galleryImages.push(href);
+            }
+          });
+          
+          // Then fallback to img tags
+          if (galleryImages.length < 5) {
+            $('img').each((_, img) => {
+              const src = $(img).attr('src') || $(img).attr('data-src') || '';
+              if (src && 
+                  !galleryImages.includes(src) &&
+                  (src.includes('PackageImages') || 
+                   src.includes('HotelImages') || 
+                   src.includes('.jpg') || 
+                   src.includes('.webp')) &&
+                  !src.includes('logo') &&
+                  !src.includes('icon')) {
+                galleryImages.push(src);
+              }
+            });
+          }
+          
+          // Update accommodation images too
+          const accommodations = pkg.accommodations || [];
+          let accommodationsUpdated = false;
+          
+          // Extract accommodation images from page
+          $('.accommodation-panel, .hotel-section, .accommodation-item').each((i, panel) => {
+            if (i < accommodations.length) {
+              const accImages: string[] = [];
+              
+              $(panel).find('a[href*="HotelImages"], a[href*="PackageImages"], a.img-url').each((_, a) => {
+                const href = $(a).attr('href');
+                if (href && !accImages.includes(href)) {
+                  accImages.push(href);
+                }
+              });
+              
+              if (accImages.length === 0) {
+                $(panel).find('img').each((_, img) => {
+                  const src = $(img).attr('src');
+                  if (src && !accImages.includes(src)) {
+                    accImages.push(src);
+                  }
+                });
+              }
+              
+              if (accImages.length > 0) {
+                accommodations[i] = {
+                  ...accommodations[i],
+                  images: accImages.slice(0, 10)
+                };
+                accommodationsUpdated = true;
+              }
+            }
+          });
+          
+          // Use first gallery image as hero if no hero found
+          if (!heroImage && galleryImages.length > 0) {
+            heroImage = galleryImages[0];
+          }
+          
+          if (heroImage || galleryImages.length > 0) {
+            const updateData: any = {};
+            
+            if (heroImage) {
+              updateData.heroImage = heroImage;
+            }
+            if (galleryImages.length > 0) {
+              updateData.galleryImages = galleryImages.slice(0, 15);
+            }
+            if (accommodationsUpdated) {
+              updateData.accommodations = accommodations;
+            }
+            
+            await storage.updateFlightPackage(pkg.id, updateData);
+            results.updated.push(`${pkg.slug} (hero: ${heroImage ? 'yes' : 'no'}, gallery: ${galleryImages.length})`);
+            console.log(`  -> Updated: hero=${!!heroImage}, gallery=${galleryImages.length}`);
+          } else {
+            results.noImages.push(pkg.slug);
+            console.log(`  -> No images found`);
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          
+        } catch (err: any) {
+          results.failed.push(`${pkg.slug}: ${err.message}`);
+          console.log(`  -> Error: ${err.message}`);
+        }
+      }
+      
+      console.log(`Image rescrape complete: ${results.updated.length} updated, ${results.noImages.length} no images, ${results.failed.length} failed`);
+      
+      res.json({
+        success: true,
+        total: packagesToUpdate.length,
+        updated: results.updated.length,
+        noImages: results.noImages.length,
+        failed: results.failed.length,
+        details: results
+      });
+      
+    } catch (error: any) {
+      console.error("Image rescrape error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ========================================
   // Flight Tour Pricing Configs (Dynamic Flight + Bokun Tour Pricing)
   // ========================================

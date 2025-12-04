@@ -103,7 +103,7 @@ export function TourCard({ product }: TourCardProps) {
           )}
           
           {/* View More Button */}
-          <div className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-4 py-2 rounded-md text-sm font-semibold transition-colors text-center">
+          <div className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors text-center">
             view more
           </div>
         </div>

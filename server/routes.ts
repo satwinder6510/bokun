@@ -15,6 +15,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 // Password hashing constants
 const SALT_ROUNDS = 12;
@@ -149,6 +150,62 @@ const UK_AIRPORTS_MAP: Record<string, string> = {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // ========================================
+  // OBJECT STORAGE ROUTES
+  // ========================================
+  
+  // Serve images from object storage
+  app.get("/objects/*", async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      await objectStorageService.downloadObject(objectFile, res, 86400); // 24-hour cache
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      console.error("Error serving object:", error);
+      return res.status(500).json({ error: "Failed to serve image" });
+    }
+  });
+
+  // Get presigned URL for image upload (admin only)
+  app.post("/api/objects/upload", verifyAdminSession, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error: any) {
+      console.error("Error getting upload URL:", error);
+      res.status(500).json({ error: error.message || "Failed to get upload URL" });
+    }
+  });
+
+  // Migrate image from external URL to object storage (admin only)
+  app.post("/api/objects/migrate-url", verifyAdminSession, async (req, res) => {
+    try {
+      const { sourceUrl, filename } = req.body;
+      if (!sourceUrl) {
+        return res.status(400).json({ error: "sourceUrl is required" });
+      }
+      
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.uploadFromUrl(
+        sourceUrl, 
+        filename || 'image.jpg'
+      );
+      
+      res.json({ 
+        success: true, 
+        objectPath,
+        fullUrl: objectPath
+      });
+    } catch (error: any) {
+      console.error("Error migrating image:", error);
+      res.status(500).json({ error: error.message || "Failed to migrate image" });
+    }
+  });
+
   // Dynamic sitemap.xml endpoint
   app.get("/sitemap.xml", async (req, res) => {
     try {

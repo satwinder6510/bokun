@@ -86,6 +86,8 @@ waitForPort = 5000
 
 [userenv.shared]
 TOTP_SECRET = "4GEISI5JKZKBAV52OMUSF7DBJS4OJIJW"
+PRIVATE_OBJECT_DIR = "/replit-objstore"
+PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore/public"
 
 [agent]
 integrations = ["stripe:1.0.0"]

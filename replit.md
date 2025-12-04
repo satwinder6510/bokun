@@ -102,42 +102,41 @@ The platform features a comprehensive multi-user admin authentication system wit
 -   `/admin/reviews` - Customer reviews management
 -   `/admin/faq` - FAQ content management
 -   `/admin/tracking-numbers` - DNI phone tracking configuration
--   `/admin/flight-pricing` - Dynamic flight + tour pricing configuration
 
-## Dynamic Flight + Tour Pricing
+## Dynamic Flight + Tour Pricing (Integrated into Flight Packages)
 
-The platform supports dynamic combined pricing for Bokun land tours with external flight prices. This enables displaying per-date package prices that include return flights from UK airports.
+The platform supports dynamic combined pricing for Bokun land tours with external flight prices. This enables displaying per-date package prices that include return flights from UK airports. **Dynamic flight pricing is now integrated directly into the Flight Packages admin workflow.**
 
-### Pricing Configuration
+### Admin Workflow (Flight Packages → Pricing Tab)
 
-Each Bokun tour can have a flight pricing config stored in `flight_tour_pricing_configs` table with:
-- `bokunProductId` - Links to the Bokun tour
-- `arriveAirportCode` - 3-letter IATA code for destination (e.g., SOF, ATH, IST)
-- `departAirports` - Pipe-separated UK departure airports (e.g., LGW|STN|LTN|LHR|MAN)
-- `durationNights` - Trip duration for flight search
-- `searchStartDate` / `searchEndDate` - Date range for availability (DD/MM/YYYY format)
-- `markupPercent` - Percentage markup on combined price
-- `isEnabled` - Toggle to enable/disable pricing
+1. **Import Bokun Tour**: Use the Bokun import feature in Flight Packages to link a land tour
+2. **Configure Flight Settings**: In the Pricing tab, when a Bokun tour is linked, a "Dynamic Flight Pricing" panel appears with:
+   - Destination Airport Code (3-letter IATA, e.g., SOF, ATH, IST)
+   - Departure Airports (clickable badges for UK airports)
+   - Duration (nights for flight search)
+   - Date Range (start/end dates for availability)
+   - Markup % (applied on top of flight + land tour price)
+3. **Fetch Flight Prices**: Click "Fetch Flight Prices & Save to Package" to:
+   - Call the external flight API for live prices
+   - Combine with Bokun land tour price (10% markup applied)
+   - Apply the configured markup percentage
+   - Smart-round to x49, x69, or x99 endpoints
+   - Auto-populate the `package_pricing` table
+
+### API Endpoint
+
+- `POST /api/admin/packages/fetch-flight-prices` - Fetches flight prices and saves combined prices to package_pricing table
 
 ### Pricing Calculation Flow
 
-1. **Flight API** (`server/flightApi.ts`): Fetches flight prices from external API (http://87.102.127.86:8119/search/searchoffers.dll) with 1-hour TTL caching
+1. **Flight API** (`server/flightApi.ts`): Fetches flight prices from external API (http://87.102.127.86:8119/search/searchoffers.dll) with Agent ID 122
 2. **Land Tour Price**: Retrieved from Bokun with 10% markup applied
 3. **Combined Price**: `(Flight Price + Land Tour Price) * (1 + Markup%)`
 4. **Smart Rounding**: Final price rounded to nearest x49, x69, or x99 endpoint (e.g., £449, £569, £699)
 
-### Public API Endpoints
+### Flight API Requirement
 
-- `GET /api/tours/:bokunProductId/flight-pricing` - Returns per-date pricing with cheapest flight option per date
-- `GET /api/tours/:bokunProductId/flight-pricing/:date` - Returns all flight options for specific date (date format: DD-MM-YYYY)
-
-### Tour Detail Page Display
-
-The `FlightPricingCalendar` component displays:
-- Interactive calendar with per-date prices color-coded by price tier
-- Minimum price prominently shown ("From £449 per person")
-- Click any date to see all available departure airports with prices
-- Modal shows flight details (airline, times, price breakdown)
+The external flight API requires IP whitelisting. Contact Sunshine Technology Ltd to add the server IP (34.168.167.182) with Agent ID 122.
 
 ### Bootstrap Process
 

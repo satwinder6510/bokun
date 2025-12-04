@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
   Phone, Shield, Users, Award, MapPin, Clock, ChevronRight, 
-  ChevronLeft, Star, Plane, Globe, Heart, Calendar, ArrowRight
+  ChevronLeft, Star, Plane, Globe, Heart, Calendar, ArrowRight,
+  Headphones, CheckCircle2
 } from "lucide-react";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
@@ -15,22 +16,22 @@ import type { FlightPackage, Review } from "@shared/schema";
 
 const heroSlides = [
   {
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
-    title: "Discover the World",
-    subtitle: "Handcrafted holidays with flights included",
-    destination: "Swiss Alps"
+    image: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&q=80",
+    title: "Your Journey Starts Here",
+    subtitle: "Expertly crafted holidays with personal service",
+    destination: "Speak to our travel experts"
   },
   {
-    image: "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1920&q=80",
-    title: "Unforgettable Adventures",
-    subtitle: "Expert-planned itineraries tailored to you",
-    destination: "Lake District"
+    image: "https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?w=1920&q=80",
+    title: "Travel With Confidence",
+    subtitle: "Fully protected, fully supported holidays",
+    destination: "ATOL Protected"
   },
   {
-    image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80",
-    title: "Relax in Paradise",
-    subtitle: "Beach escapes with complete peace of mind",
-    destination: "Maldives"
+    image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920&q=80",
+    title: "Discover Extraordinary Places",
+    subtitle: "Handpicked destinations, personally recommended",
+    destination: "Over 700 tours worldwide"
   }
 ];
 
@@ -54,23 +55,23 @@ const destinations = [
 
 const testimonials = [
   {
-    name: "Margaret & John",
+    name: "Margaret & John Harrison",
     location: "Surrey",
-    text: "We've booked three holidays with Flights and Packages now. The personal service is wonderful - they really listen to what you want. Our India tour was the trip of a lifetime.",
+    text: "We've booked three holidays with Flights and Packages now. The personal service is wonderful - they really listen to what you want. Our India tour was the trip of a lifetime. Sarah was our advisor and she thought of everything.",
     rating: 5,
     tour: "Golden Triangle India"
   },
   {
     name: "David Thompson",
-    location: "Yorkshire",
-    text: "As a solo traveller, I was nervous about booking a group tour. The team put me at ease and matched me with a lovely group. Exceptional value for money.",
+    location: "Yorkshire", 
+    text: "As a solo traveller in my 60s, I was nervous about booking a group tour. The team put me at ease and matched me with a lovely group of similar age. Exceptional value and I felt looked after throughout.",
     rating: 5,
     tour: "Vietnam & Cambodia"
   },
   {
-    name: "Susan & Peter",
+    name: "Susan & Peter Clarke",
     location: "Kent",
-    text: "Everything was arranged perfectly - flights, hotels, transfers. No stress at all. We'll definitely be booking our next holiday with them.",
+    text: "Everything was arranged perfectly - flights, hotels, transfers. No stress at all. When our flight was delayed, someone from the team called to check we were okay. That's real service.",
     rating: 5,
     tour: "Italian Lakes"
   }
@@ -97,64 +98,69 @@ export default function DesignPreview() {
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-stone-50">
       {/* Top Bar - Trust & Contact */}
-      <div className="bg-slate-800 text-white py-2">
+      <div className="bg-slate-900 text-white py-2.5">
         <div className="container mx-auto px-4 flex justify-between items-center text-sm">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-green-400" />
+              <Shield className="h-4 w-4 text-emerald-400" />
               <span>ATOL Protected</span>
             </div>
             <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-blue-400" />
-              <span>TTA Member</span>
+              <CheckCircle2 className="h-4 w-4 text-sky-400" />
+              <span>TTA Member Q7341</span>
+            </div>
+            <div className="hidden md:flex items-center gap-2">
+              <Headphones className="h-4 w-4 text-stone-400" />
+              <span>Personal Travel Advisors</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4" />
-            <a href="tel:02081830518" className="font-semibold hover:text-amber-400 transition-colors">
+          <div className="flex items-center gap-3">
+            <span className="text-stone-400">Speak to an expert:</span>
+            <a href="tel:02081830518" className="font-bold text-base hover:text-sky-300 transition-colors">
               0208 183 0518
             </a>
-            <span className="text-slate-400 ml-2">Mon-Sat 9am-6pm</span>
           </div>
         </div>
       </div>
 
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+      <header className="bg-white border-b border-stone-200 sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src={logoImage} alt="Flights and Packages" className="h-12" />
-              <img src={travelTrustLogo} alt="Travel Trust Association" className="h-10 hidden md:block" />
+            <div className="flex items-center gap-6">
+              <img src={logoImage} alt="Flights and Packages" className="h-14" />
+              <div className="hidden md:block border-l border-stone-200 pl-6">
+                <img src={travelTrustLogo} alt="Travel Trust Association" className="h-10" />
+              </div>
             </div>
             
             <nav className="hidden lg:flex items-center gap-8">
-              <a href="#" className="text-slate-700 hover:text-amber-600 font-medium transition-colors">
+              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
                 Destinations
               </a>
-              <a href="#" className="text-slate-700 hover:text-amber-600 font-medium transition-colors">
+              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
                 Flight Packages
               </a>
-              <a href="#" className="text-slate-700 hover:text-amber-600 font-medium transition-colors">
+              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
                 Land Tours
               </a>
-              <a href="#" className="text-slate-700 hover:text-amber-600 font-medium transition-colors">
-                Collections
-              </a>
-              <a href="#" className="text-slate-700 hover:text-amber-600 font-medium transition-colors">
+              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
                 About Us
+              </a>
+              <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
+                Contact
               </a>
             </nav>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <a 
                 href="tel:02081830518" 
-                className="hidden md:flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
+                className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-md font-semibold transition-colors"
               >
                 <Phone className="h-4 w-4" />
-                Call Us
+                0208 183 0518
               </a>
             </div>
           </div>
@@ -162,7 +168,7 @@ export default function DesignPreview() {
       </header>
 
       {/* Hero Carousel */}
-      <section className="relative h-[600px] overflow-hidden">
+      <section className="relative h-[550px] overflow-hidden">
         {heroSlides.map((slide, index) => (
           <div
             key={index}
@@ -174,27 +180,27 @@ export default function DesignPreview() {
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: `url(${slide.image})` }}
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/50 to-slate-900/30" />
             
             <div className="relative container mx-auto px-4 h-full flex items-center">
               <div className="max-w-2xl text-white">
-                <Badge className="bg-amber-500 text-white mb-4 text-sm px-3 py-1">
+                <p className="text-lg text-white/80 mb-3 font-medium">
                   {slide.destination}
-                </Badge>
-                <h1 className="text-5xl md:text-6xl font-bold mb-4 leading-tight">
+                </p>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
                   {slide.title}
                 </h1>
-                <p className="text-xl md:text-2xl text-white/90 mb-8">
+                <p className="text-xl md:text-2xl text-white/90 mb-10 leading-relaxed">
                   {slide.subtitle}
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <Button size="lg" className="bg-amber-500 hover:bg-amber-600 text-white text-lg px-8">
-                    Explore Holidays
+                  <Button size="lg" className="bg-white hover:bg-stone-100 text-slate-900 text-lg px-8 py-6 font-semibold">
+                    Browse Holidays
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/20 text-lg px-8">
+                  <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-slate-900 text-lg px-8 py-6 font-semibold">
                     <Phone className="mr-2 h-5 w-5" />
-                    Speak to an Expert
+                    Call Our Experts
                   </Button>
                 </div>
               </div>
@@ -205,25 +211,25 @@ export default function DesignPreview() {
         {/* Carousel Controls */}
         <button 
           onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full backdrop-blur-sm transition-colors"
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/30 text-white p-3 rounded-full backdrop-blur-sm transition-colors"
         >
           <ChevronLeft className="h-6 w-6" />
         </button>
         <button 
           onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full backdrop-blur-sm transition-colors"
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/30 text-white p-3 rounded-full backdrop-blur-sm transition-colors"
         >
           <ChevronRight className="h-6 w-6" />
         </button>
 
         {/* Slide Indicators */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
           {heroSlides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-colors ${
-                index === currentSlide ? "bg-amber-500" : "bg-white/50"
+              className={`w-3 h-3 rounded-full transition-all ${
+                index === currentSlide ? "bg-white w-8" : "bg-white/40"
               }`}
             />
           ))}
@@ -231,22 +237,22 @@ export default function DesignPreview() {
       </section>
 
       {/* Trust Banner */}
-      <section className="bg-slate-50 border-y py-6">
+      <section className="bg-white border-b border-stone-200 py-5">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { icon: Shield, title: "100% Protected", desc: "ATOL & Trust Account" },
-              { icon: Users, title: "Expert Advisors", desc: "Speak to real people" },
-              { icon: Award, title: "Best Value", desc: "No hidden costs" },
-              { icon: Heart, title: "Personal Service", desc: "Tailored to you" }
+              { icon: Shield, title: "100% Financial Protection", desc: "ATOL bonded & TTA member" },
+              { icon: Headphones, title: "Personal Travel Advisors", desc: "Speak to real experts" },
+              { icon: Award, title: "No Hidden Costs", desc: "Transparent pricing always" },
+              { icon: Heart, title: "Tailored To You", desc: "Every holiday personalised" }
             ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="bg-amber-100 p-3 rounded-full">
-                  <item.icon className="h-6 w-6 text-amber-600" />
+              <div key={i} className="flex items-center gap-4">
+                <div className="bg-slate-100 p-3 rounded-lg">
+                  <item.icon className="h-6 w-6 text-slate-700" />
                 </div>
                 <div>
                   <p className="font-semibold text-slate-800">{item.title}</p>
-                  <p className="text-sm text-slate-600">{item.desc}</p>
+                  <p className="text-sm text-slate-500">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -255,67 +261,72 @@ export default function DesignPreview() {
       </section>
 
       {/* Welcome Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4 text-center max-w-4xl">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-6">
-            Welcome to Flights and Packages
-          </h2>
-          <p className="text-lg text-slate-600 leading-relaxed mb-8">
-            For over a decade, we've been helping travellers like you discover the world with 
-            confidence. Our expert team handcrafts every holiday, combining the best flights, 
-            handpicked hotels, and authentic experiences. With us, you're not just booking a 
-            trip - you're gaining a trusted travel partner.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button size="lg" className="bg-amber-500 hover:bg-amber-600">
-              Browse All Holidays
-            </Button>
-            <Button size="lg" variant="outline">
-              Request a Callback
-            </Button>
+      <section className="py-20 bg-stone-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-6">
+              Your Trusted Travel Partner
+            </h2>
+            <p className="text-lg text-slate-600 leading-relaxed mb-4">
+              For over a decade, we've been helping British travellers explore the world with complete peace of mind. 
+              When you book with us, you speak to real people who genuinely care about creating your perfect holiday.
+            </p>
+            <p className="text-lg text-slate-600 leading-relaxed mb-10">
+              No call centres. No chatbots. Just friendly, knowledgeable advisors who take the time to understand 
+              exactly what you're looking for.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Button size="lg" className="bg-slate-800 hover:bg-slate-900 text-lg px-8 py-6">
+                Browse All Holidays
+              </Button>
+              <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:bg-white text-lg px-8 py-6">
+                <Phone className="mr-2 h-5 w-5" />
+                Request a Callback
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
       {/* How It Works */}
-      <section className="py-16 bg-slate-50">
+      <section className="py-20 bg-white border-y border-stone-200">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
-              How We Create Your Perfect Holiday
+              How It Works
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Our simple three-step process ensures a stress-free experience
+              Planning your holiday should be enjoyable, not stressful
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-10 max-w-5xl mx-auto">
             {[
               {
                 step: "1",
-                title: "Tell Us Your Dreams",
-                desc: "Share your ideal holiday - where you'd like to go, what you'd like to see, and how you like to travel. No detail is too small.",
-                icon: Heart
+                title: "Have a Chat With Us",
+                desc: "Call or request a callback. Tell us about your dream holiday - where you'd like to go, how long for, and what matters most to you.",
+                icon: Phone
               },
               {
                 step: "2", 
-                title: "We Plan Everything",
-                desc: "Our experts craft a bespoke itinerary, handling flights, hotels, transfers, and experiences. You'll receive a detailed proposal.",
+                title: "We Create Your Itinerary",
+                desc: "Your dedicated advisor puts together a detailed, personalised proposal. We handle flights, hotels, transfers - everything.",
                 icon: Calendar
               },
               {
                 step: "3",
-                title: "Travel With Confidence",
-                desc: "Book with complete protection. We're here 24/7 during your trip, and you'll have all your documents at your fingertips.",
-                icon: Plane
+                title: "Relax and Enjoy",
+                desc: "Book with confidence knowing you're fully protected. We're available throughout your trip if you need us.",
+                icon: Heart
               }
             ].map((item, i) => (
-              <div key={i} className="text-center p-6">
+              <div key={i} className="text-center">
                 <div className="relative inline-block mb-6">
-                  <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
-                    <item.icon className="h-10 w-10 text-amber-600" />
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center border border-slate-200">
+                    <item.icon className="h-9 w-9 text-slate-700" />
                   </div>
-                  <span className="absolute -top-2 -right-2 w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                  <span className="absolute -top-3 -right-3 w-8 h-8 bg-slate-800 text-white rounded-full flex items-center justify-center font-bold text-sm">
                     {item.step}
                   </span>
                 </div>
@@ -325,24 +336,25 @@ export default function DesignPreview() {
             ))}
           </div>
 
-          <div className="text-center mt-10">
-            <Button size="lg" className="bg-amber-500 hover:bg-amber-600 text-lg px-8">
+          <div className="text-center mt-12">
+            <Button size="lg" className="bg-slate-800 hover:bg-slate-900 text-lg px-8 py-6">
               <Phone className="mr-2 h-5 w-5" />
-              Start Planning Your Holiday
+              Speak to an Advisor
             </Button>
+            <p className="text-slate-500 mt-3 text-sm">Mon-Sat 9am-6pm • No obligation</p>
           </div>
         </div>
       </section>
 
-      {/* Popular Destinations - Large Cards */}
-      <section className="py-16 bg-white">
+      {/* Popular Destinations */}
+      <section className="py-20 bg-stone-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
+          <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
-              Explore Our Most Popular Destinations
+              Popular Destinations
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              From sun-soaked beaches to ancient wonders - find your perfect escape
+              Explore our most loved destinations, each with its own unique character
             </p>
           </div>
 
@@ -351,125 +363,127 @@ export default function DesignPreview() {
               <a 
                 key={i}
                 href="#"
-                className="group relative aspect-[4/3] rounded-2xl overflow-hidden"
+                className="group bg-white rounded-xl overflow-hidden border border-stone-200 hover:shadow-lg transition-shadow"
               >
-                <img 
-                  src={dest.image}
-                  alt={dest.name}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <Badge className="bg-amber-500 text-white mb-3">{dest.region}</Badge>
-                  <h3 className="text-2xl font-bold mb-1">{dest.name}</h3>
-                  <p className="text-white/80 mb-4">{dest.tours} holidays available</p>
-                  <span className="inline-flex items-center text-amber-400 font-semibold group-hover:gap-2 transition-all">
-                    Explore {dest.name} <ArrowRight className="h-4 w-4 ml-1" />
+                <div className="relative aspect-[16/10] overflow-hidden">
+                  <img 
+                    src={dest.image}
+                    alt={dest.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+                <div className="p-5">
+                  <p className="text-sm text-slate-500 mb-1">{dest.region}</p>
+                  <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-slate-600 transition-colors">{dest.name}</h3>
+                  <p className="text-slate-600 mb-3">{dest.tours} holidays available</p>
+                  <span className="inline-flex items-center text-slate-700 font-medium group-hover:gap-2 transition-all">
+                    View holidays <ArrowRight className="h-4 w-4 ml-1" />
                   </span>
                 </div>
               </a>
             ))}
           </div>
 
-          <div className="text-center mt-10">
-            <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50 text-lg px-8">
+          <div className="text-center mt-12">
+            <Button size="lg" variant="outline" className="border-slate-300 text-slate-700 hover:bg-white text-lg px-8 py-6">
               View All Destinations
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Featured Holidays Showcase */}
-      <section className="py-16 bg-slate-50">
+      {/* Featured Holidays */}
+      <section className="py-20 bg-white border-y border-stone-200">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
             <div>
-              <Badge className="bg-amber-100 text-amber-700 mb-3">Featured Holidays</Badge>
               <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
-                Handpicked For You
+                Featured Holidays
               </h2>
               <p className="text-lg text-slate-600">
-                Our travel experts' top recommendations this season
+                Some of our most popular holidays, recommended by our advisors
               </p>
             </div>
-            <a href="#" className="text-amber-600 hover:text-amber-700 font-semibold flex items-center gap-1">
+            <a href="#" className="text-slate-700 hover:text-slate-900 font-semibold flex items-center gap-1">
               View All Holidays <ChevronRight className="h-5 w-5" />
             </a>
           </div>
 
-          {/* Large Featured Card + 2 Smaller */}
-          <div className="grid lg:grid-cols-2 gap-6 mb-6">
-            {/* Large Featured */}
-            <div className="group relative aspect-[4/3] lg:aspect-auto lg:row-span-2 rounded-2xl overflow-hidden">
-              <img 
-                src="https://images.unsplash.com/photo-1564507592333-c60657eea523?w=800&q=80"
-                alt="India Golden Triangle"
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-              <div className="absolute top-4 left-4 flex gap-2">
-                <Badge className="bg-amber-500 text-white">Best Seller</Badge>
-                <Badge className="bg-white/90 text-slate-700">Cultural</Badge>
-              </div>
-              <div className="absolute bottom-0 left-0 right-0 p-6 lg:p-8 text-white">
-                <h3 className="text-2xl lg:text-3xl font-bold mb-2">Golden Triangle of India</h3>
-                <p className="text-white/80 mb-4 max-w-lg">
-                  Discover Delhi, Agra and Jaipur on this classic journey through India's most iconic destinations
-                </p>
-                <div className="flex flex-wrap items-center gap-4 mb-4">
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" /> 10 Days
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Plane className="h-4 w-4" /> Flights Included
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" /> 3 Cities
-                  </span>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <p className="text-white/70 text-sm">From</p>
-                    <p className="text-3xl font-bold">£1,499<span className="text-lg font-normal text-white/70">pp</span></p>
-                  </div>
-                  <Button className="bg-amber-500 hover:bg-amber-600 text-white">
-                    View Holiday
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Two Smaller Cards */}
-            <div className="grid gap-6">
-              {[
-                {
-                  image: "https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80",
-                  title: "Thailand Beach & Culture",
-                  days: "12",
-                  price: "1,299",
-                  tag: "Beach"
-                },
-                {
-                  image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&q=80",
-                  title: "Italian Lakes & Venice",
-                  days: "8",
-                  price: "1,149",
-                  tag: "Europe"
-                }
-              ].map((pkg, i) => (
-                <div key={i} className="group relative aspect-[2/1] rounded-2xl overflow-hidden">
+          {/* Holiday Cards - Clean Grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                image: "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=600&q=80",
+                title: "Golden Triangle of India",
+                location: "Delhi, Agra & Jaipur",
+                days: "10",
+                price: "1,499",
+                highlight: "Best Seller"
+              },
+              {
+                image: "https://images.unsplash.com/photo-1528181304800-259b08848526?w=600&q=80",
+                title: "Thailand Beach & Culture",
+                location: "Bangkok, Chiang Mai & Phuket",
+                days: "12",
+                price: "1,299",
+                highlight: null
+              },
+              {
+                image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&q=80",
+                title: "Italian Lakes & Venice",
+                location: "Lake Como, Lake Garda & Venice",
+                days: "8",
+                price: "1,149",
+                highlight: null
+              },
+              {
+                image: "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=600&q=80",
+                title: "South African Safari",
+                location: "Kruger, Cape Town & Garden Route",
+                days: "14",
+                price: "2,299",
+                highlight: "Popular"
+              },
+              {
+                image: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=600&q=80",
+                title: "Portugal Coast to Coast",
+                location: "Lisbon, Porto & The Algarve",
+                days: "10",
+                price: "1,099",
+                highlight: null
+              },
+              {
+                image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=600&q=80",
+                title: "Maldives Beach Escape",
+                location: "Male & Island Resort",
+                days: "7",
+                price: "1,799",
+                highlight: null
+              }
+            ].map((pkg, i) => (
+              <Card key={i} className="group overflow-hidden border-stone-200 hover:shadow-lg transition-shadow">
+                <div className="relative aspect-[4/3] overflow-hidden">
                   <img 
                     src={pkg.image}
                     alt={pkg.title}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-                  <div className="absolute top-4 left-4">
-                    <Badge className="bg-amber-500 text-white">{pkg.tag}</Badge>
-                  </div>
-                  <div className="absolute bottom-0 left-0 p-5 text-white">
-                    <h3 className="text-xl font-bold mb-2">{pkg.title}</h3>
-                    <div className="flex items-center gap-4 mb-3 text-sm text-white/80">
+                  {pkg.highlight && (
+                    <div className="absolute top-3 left-3">
+                      <Badge className="bg-slate-800 text-white">{pkg.highlight}</Badge>
+                    </div>
+                  )}
+                </div>
+                <CardContent className="p-5">
+                  <p className="text-sm text-slate-500 mb-1 flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {pkg.location}
+                  </p>
+                  <h3 className="text-xl font-bold text-slate-800 mb-3 group-hover:text-slate-600 transition-colors">
+                    {pkg.title}
+                  </h3>
+                  <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+                    <div className="flex items-center gap-3 text-sm text-slate-600">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" /> {pkg.days} Days
                       </span>
@@ -477,136 +491,124 @@ export default function DesignPreview() {
                         <Plane className="h-4 w-4" /> Flights Inc.
                       </span>
                     </div>
-                    <p className="text-2xl font-bold">
-                      From £{pkg.price}<span className="text-sm font-normal text-white/70">pp</span>
-                    </p>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">From</p>
+                      <p className="text-xl font-bold text-slate-800">£{pkg.price}<span className="text-sm font-normal text-slate-500">pp</span></p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials - New Design */}
-      <section className="py-20 bg-white">
+      {/* Testimonials */}
+      <section className="py-20 bg-stone-50">
         <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Left - Stats & Info */}
-            <div>
-              <Badge className="bg-amber-100 text-amber-700 mb-4">Trusted by Thousands</Badge>
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-6">
-                Why Customers Choose Us
-              </h2>
-              <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-                For over 10 years, we've been helping UK travellers explore the world with confidence. 
-                Our personal approach means every holiday is tailored just for you.
-              </p>
-              
-              <div className="grid grid-cols-3 gap-6 mb-8">
-                {[
-                  { number: "10+", label: "Years Experience" },
-                  { number: "5,000+", label: "Happy Customers" },
-                  { number: "98%", label: "Would Recommend" }
-                ].map((stat, i) => (
-                  <div key={i} className="text-center p-4 bg-slate-50 rounded-xl">
-                    <p className="text-2xl md:text-3xl font-bold text-amber-600">{stat.number}</p>
-                    <p className="text-sm text-slate-600">{stat.label}</p>
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+              What Our Customers Say
+            </h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Real feedback from real travellers
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {testimonials.map((review, i) => (
+              <Card key={i} className="bg-white border-stone-200">
+                <CardContent className="p-6">
+                  <div className="flex gap-0.5 mb-4">
+                    {[...Array(review.rating)].map((_, j) => (
+                      <Star key={j} className="h-5 w-5 fill-slate-700 text-slate-700" />
+                    ))}
                   </div>
-                ))}
+                  <p className="text-slate-700 leading-relaxed mb-6">
+                    "{review.text}"
+                  </p>
+                  <div className="pt-4 border-t border-stone-100">
+                    <p className="font-semibold text-slate-800">{review.name}</p>
+                    <p className="text-sm text-slate-500">{review.location}</p>
+                    <p className="text-sm text-slate-600 mt-1">{review.tour}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="text-center mt-12">
+            <div className="inline-flex items-center gap-6 text-slate-600">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-slate-800">10+</p>
+                <p className="text-sm">Years Experience</p>
               </div>
-
-              <Button size="lg" className="bg-amber-500 hover:bg-amber-600">
-                Read All Reviews
-              </Button>
-            </div>
-
-            {/* Right - Stacked Testimonials */}
-            <div className="space-y-4">
-              {testimonials.map((review, i) => (
-                <Card key={i} className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xl font-bold text-amber-600">
-                          {review.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold text-slate-800">{review.name}</p>
-                          <span className="text-slate-300">•</span>
-                          <p className="text-sm text-slate-500">{review.location}</p>
-                        </div>
-                        <div className="flex gap-0.5 mb-2">
-                          {[...Array(review.rating)].map((_, j) => (
-                            <Star key={j} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                          ))}
-                        </div>
-                        <p className="text-slate-600 leading-relaxed">
-                          "{review.text}"
-                        </p>
-                        <p className="text-sm text-amber-600 font-medium mt-2">{review.tour}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              <div className="w-px h-12 bg-stone-300"></div>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-slate-800">5,000+</p>
+                <p className="text-sm">Happy Customers</p>
+              </div>
+              <div className="w-px h-12 bg-stone-300"></div>
+              <div className="text-center">
+                <p className="text-3xl font-bold text-slate-800">98%</p>
+                <p className="text-sm">Would Recommend</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-slate-800 text-white">
+      <section className="py-20 bg-slate-900 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Start Your Adventure?
+            Ready to Plan Your Holiday?
           </h2>
-          <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">
-            Speak to one of our friendly travel experts today. We're here to help you 
-            plan the perfect holiday.
+          <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
+            Speak to one of our friendly travel advisors. No pressure, no obligation - 
+            just honest advice to help you find your perfect trip.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <a 
               href="tel:02081830518"
-              className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-lg px-8 py-4 rounded-lg font-semibold transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-white hover:bg-stone-100 text-slate-900 text-lg px-8 py-4 rounded-md font-semibold transition-colors"
             >
               <Phone className="h-5 w-5" />
               Call 0208 183 0518
             </a>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/20 text-lg px-8 py-4">
+            <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-slate-900 text-lg px-8 py-4">
               Request a Callback
             </Button>
           </div>
-          <p className="text-white/60 mt-6">
-            Lines open Monday to Saturday, 9am - 6pm
+          <p className="text-white/50 mt-8">
+            Monday to Saturday, 9am - 6pm
           </p>
         </div>
       </section>
 
       {/* Newsletter */}
-      <section className="py-12 bg-white border-t">
+      <section className="py-14 bg-white border-y border-stone-200">
         <div className="container mx-auto px-4">
           <div className="max-w-xl mx-auto text-center">
             <h3 className="text-2xl font-bold text-slate-800 mb-2">
-              Get Exclusive Offers
+              Stay Inspired
             </h3>
             <p className="text-slate-600 mb-6">
-              Subscribe to receive special deals and travel inspiration
+              Receive exclusive offers and travel ideas straight to your inbox
             </p>
             <div className="flex gap-2">
               <Input 
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Your email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1"
+                className="flex-1 border-stone-300"
               />
-              <Button className="bg-amber-500 hover:bg-amber-600">
+              <Button className="bg-slate-800 hover:bg-slate-900 px-6">
                 Subscribe
               </Button>
             </div>
+            <p className="text-xs text-slate-400 mt-3">We respect your privacy. Unsubscribe at any time.</p>
           </div>
         </div>
       </section>

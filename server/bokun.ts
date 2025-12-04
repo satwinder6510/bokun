@@ -224,6 +224,9 @@ export async function getBokunAvailability(
     // Log detailed structure of availability data
     if (Array.isArray(data) && data.length > 0) {
       console.log("\n=== AVAILABILITY DATA STRUCTURE ===");
+      console.log("Requested productId:", productId);
+      console.log("Response activityId (if present):", data[0].activityId || "NOT PRESENT");
+      console.log("Response id:", data[0].id);
       console.log("Total items:", data.length);
       console.log("\nFirst availability item keys:", Object.keys(data[0]));
       console.log("\nComplete first item structure:");

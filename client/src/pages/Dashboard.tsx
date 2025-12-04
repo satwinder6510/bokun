@@ -11,7 +11,7 @@ import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,12 +144,37 @@ export default function Dashboard() {
     },
   });
 
+  // Image migration mutation
+  const migrateImagesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/migrate-images", {});
+      return response;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Migration Complete",
+        description: `Migrated ${data.migrated || 0} images to App Storage`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Migration Failed",
+        description: error.message || "Failed to migrate images",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleTestConnection = () => {
     testConnectionMutation.mutate();
   };
 
   const handleRefreshProducts = () => {
     refreshProductsMutation.mutate();
+  };
+
+  const handleMigrateImages = () => {
+    migrateImagesMutation.mutate();
   };
 
   const handleProductClick = (productId: string) => {
@@ -416,6 +441,33 @@ export default function Dashboard() {
                 </CardHeader>
               </Card>
             )}
+
+            <Card data-testid="card-image-migration">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <Image className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Image Storage</CardTitle>
+                      <CardDescription>
+                        Migrate external images to App Storage
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleMigrateImages}
+                    disabled={migrateImagesMutation.isPending}
+                    data-testid="button-migrate-images"
+                  >
+                    {migrateImagesMutation.isPending ? "Migrating..." : "Migrate Images"}
+                  </Button>
+                </div>
+              </CardHeader>
+            </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

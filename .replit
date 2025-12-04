@@ -87,3 +87,6 @@ PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore/public"
 
 [agent]
 integrations = ["stripe:1.0.0"]
+
+[objectStorage]
+defaultBucketID = "replit-objstore-f4c3777d-1500-49ca-836b-24ea546da6c2"

@@ -15,7 +15,6 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 // Password hashing constants
 const SALT_ROUNDS = 12;
@@ -78,14 +77,22 @@ function requireSuperAdmin(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-// Configure multer for image uploads - use memory storage for Object Storage
+// Configure multer for image uploads
 const uploadDir = path.join(process.cwd(), 'public', 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Use memory storage for Object Storage uploads
-const imageMemoryStorage = multer.memoryStorage();
+const imageStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, `package-${uniqueSuffix}${ext}`);
+  }
+});
 
 const imageFilter = (_req: Express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
@@ -97,15 +104,10 @@ const imageFilter = (_req: Express.Request, file: Express.Multer.File, cb: multe
 };
 
 const upload = multer({
-  storage: imageMemoryStorage,
+  storage: imageStorage,
   fileFilter: imageFilter,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
-
-// Check if Object Storage is configured
-function isObjectStorageConfigured(): boolean {
-  return !!(process.env.PRIVATE_OBJECT_DIR);
-}
 
 // Configure multer for CSV uploads
 const csvStorage = multer.memoryStorage();
@@ -204,25 +206,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error generating sitemap:", error);
       res.status(500).send('Error generating sitemap');
-    }
-  });
-
-  // Serve objects from Object Storage
-  app.get("/objects/*", async (req, res) => {
-    if (!isObjectStorageConfigured()) {
-      return res.status(404).json({ error: "Object storage not configured" });
-    }
-    
-    try {
-      const objectStorage = new ObjectStorageService();
-      const objectFile = await objectStorage.getObjectEntityFile(req.path);
-      objectStorage.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error serving object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.status(404).json({ error: "Object not found" });
-      }
-      return res.status(500).json({ error: "Error serving object" });
     }
   });
 
@@ -2994,22 +2977,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload image (admin) - uses local storage (Object Storage requires bucket provisioning)
-  app.post("/api/admin/upload", upload.single('image'), async (req, res) => {
+  // Upload image (admin)
+  app.post("/api/admin/upload", upload.single('image'), (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
       
-      const filename = `package-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(req.file.originalname)}`;
-      const filePath = path.join(uploadDir, filename);
-      fs.writeFileSync(filePath, req.file.buffer);
-      const imageUrl = `/uploads/${filename}`;
-      
+      const imageUrl = `/uploads/${req.file.filename}`;
       res.json({ 
         success: true, 
         url: imageUrl,
-        filename: filename,
+        filename: req.file.filename,
         size: req.file.size,
         mimetype: req.file.mimetype
       });
@@ -3019,27 +2998,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload multiple images (admin) - uses local storage
-  app.post("/api/admin/upload-multiple", upload.array('images', 20), async (req, res) => {
+  // Upload multiple images (admin)
+  app.post("/api/admin/upload-multiple", upload.array('images', 20), (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
         return res.status(400).json({ error: "No image files provided" });
       }
       
-      const uploadedImages = [];
-      
-      for (const file of files) {
-        const filename = `package-${Date.now()}-${Math.round(Math.random() * 1E9)}${path.extname(file.originalname)}`;
-        const filePath = path.join(uploadDir, filename);
-        fs.writeFileSync(filePath, file.buffer);
-        uploadedImages.push({
-          url: `/uploads/${filename}`,
-          filename,
-          size: file.size,
-          mimetype: file.mimetype
-        });
-      }
+      const uploadedImages = files.map(file => ({
+        url: `/uploads/${file.filename}`,
+        filename: file.filename,
+        size: file.size,
+        mimetype: file.mimetype
+      }));
       
       res.json({ 
         success: true, 
@@ -3052,7 +3024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete uploaded image (admin) - only works for local files
+  // Delete uploaded image (admin)
   app.delete("/api/admin/upload/:filename", (req, res) => {
     try {
       const { filename } = req.params;

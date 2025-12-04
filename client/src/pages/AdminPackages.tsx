@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
   Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
-  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling, Star
+  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -1457,9 +1457,6 @@ export default function AdminPackages() {
 
                     <div>
                       <Label>Gallery Images</Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Click any image or the star icon to use it as the hero image
-                      </p>
                       <div className="mt-2 space-y-3">
                         <input
                           ref={galleryImagesRef}
@@ -1493,29 +1490,7 @@ export default function AdminPackages() {
                         <div className="flex flex-wrap gap-2">
                           {(formData.gallery || []).map((url, i) => (
                             <div key={i} className="relative group">
-                              <img 
-                                src={url} 
-                                alt="" 
-                                className={`h-20 w-28 object-cover rounded-md cursor-pointer transition-all ${formData.featuredImage === url ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-                                onClick={() => {
-                                  setFormData({ ...formData, featuredImage: url });
-                                  toast({ title: "Hero image updated" });
-                                }}
-                                title="Click to use as hero image"
-                              />
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setFormData({ ...formData, featuredImage: url });
-                                  toast({ title: "Hero image updated" });
-                                }}
-                                className={`absolute top-1 left-1 rounded-full w-6 h-6 flex items-center justify-center transition-opacity ${formData.featuredImage === url ? 'bg-primary text-primary-foreground opacity-100' : 'bg-black/60 text-white opacity-0 group-hover:opacity-100'}`}
-                                title="Use as hero image"
-                                data-testid={`button-set-hero-${i}`}
-                              >
-                                <Star className={`w-3 h-3 ${formData.featuredImage === url ? 'fill-current' : ''}`} />
-                              </button>
+                              <img src={url} alt="" className="h-20 w-28 object-cover rounded-md" />
                               <button
                                 type="button"
                                 onClick={() => setFormData({ ...formData, gallery: (formData.gallery || []).filter((_, idx) => idx !== i) })}

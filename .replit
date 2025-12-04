@@ -58,6 +58,10 @@ externalPort = 3002
 localPort = 44719
 externalPort = 3000
 
+[[ports]]
+localPort = 45893
+externalPort = 8000
+
 [env]
 PORT = "5000"
 
@@ -86,7 +90,6 @@ waitForPort = 5000
 
 [userenv.shared]
 TOTP_SECRET = "4GEISI5JKZKBAV52OMUSF7DBJS4OJIJW"
-PRIVATE_OBJECT_DIR = "/uploads"
 
 [agent]
 integrations = ["stripe:1.0.0"]

@@ -7,11 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { 
   Phone, Shield, Users, Award, MapPin, Clock, ChevronRight, 
-  ChevronLeft, Star, Plane, Globe, Heart, Calendar, ArrowRight,
-  Headphones, CheckCircle2
+  ChevronLeft, Star, Plane, Globe, Heart, Calendar, ArrowRight, Headphones
 } from "lucide-react";
-import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
-import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
+import PreviewHeader from "@/components/PreviewHeader";
+import PreviewFooter from "@/components/PreviewFooter";
 import type { FlightPackage, Review } from "@shared/schema";
 
 const heroSlides = [
@@ -99,76 +98,7 @@ export default function DesignPreview() {
 
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Sticky Header Wrapper */}
-      <div className="sticky top-0 z-50">
-        {/* Top Bar - Trust & Contact */}
-        <div className="bg-slate-900 text-white py-2.5">
-          <div className="container mx-auto px-4 flex justify-between items-center text-sm">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-emerald-400" />
-              <span>ATOL Protected</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-sky-400" />
-              <span>TTA Member Q7341</span>
-            </div>
-            <div className="hidden md:flex items-center gap-2">
-              <Headphones className="h-4 w-4 text-stone-400" />
-              <span>Personal Travel Advisors</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-stone-400">Speak to an expert:</span>
-            <a href="tel:02081830518" className="font-bold text-base hover:text-sky-300 transition-colors">
-              0208 183 0518
-            </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Header */}
-        <header className="bg-white border-b border-stone-200">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <img src={logoImage} alt="Flights and Packages" className="h-14" />
-                <div className="hidden md:block border-l border-stone-200 pl-6">
-                  <img src={travelTrustLogo} alt="Travel Trust Association" className="h-10" />
-                </div>
-              </div>
-              
-              <nav className="hidden lg:flex items-center gap-8">
-                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                  Destinations
-                </a>
-                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                  Flight Packages
-                </a>
-                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                  Land Tours
-                </a>
-                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                  About Us
-                </a>
-                <a href="#" className="text-slate-700 hover:text-slate-900 font-medium transition-colors">
-                  Contact
-                </a>
-              </nav>
-
-              <div className="flex items-center gap-3">
-                <a 
-                  href="tel:02081830518" 
-                  className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-md font-semibold transition-colors"
-                >
-                  <Phone className="h-4 w-4" />
-                  0208 183 0518
-                </a>
-              </div>
-            </div>
-          </div>
-        </header>
-      </div>
+      <PreviewHeader />
 
       {/* Hero Carousel */}
       <section className="relative h-[550px] overflow-hidden">
@@ -589,93 +519,10 @@ export default function DesignPreview() {
         </div>
       </section>
 
-      {/* Newsletter */}
-      <section className="py-14 bg-white border-y border-stone-200">
-        <div className="container mx-auto px-4">
-          <div className="max-w-xl mx-auto text-center">
-            <h3 className="text-2xl font-bold text-slate-800 mb-2">
-              Stay Inspired
-            </h3>
-            <p className="text-slate-600 mb-6">
-              Receive exclusive offers and travel ideas straight to your inbox
-            </p>
-            <div className="flex gap-2">
-              <Input 
-                type="email"
-                placeholder="Your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 border-stone-300"
-              />
-              <Button className="bg-slate-800 hover:bg-slate-900 px-6">
-                Subscribe
-              </Button>
-            </div>
-            <p className="text-xs text-slate-400 mt-3">We respect your privacy. Unsubscribe at any time.</p>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 text-white py-16">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-12">
-            <div>
-              <img src={logoImage} alt="Flights and Packages" className="h-10 mb-4 brightness-0 invert" />
-              <p className="text-slate-400 mb-4">
-                Your trusted partner for unforgettable holidays since 2012.
-              </p>
-              <div className="flex items-center gap-3">
-                <img src={travelTrustLogo} alt="TTA" className="h-12 brightness-0 invert opacity-80" />
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-lg mb-4">Popular Destinations</h4>
-              <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-amber-400 transition-colors">India</a></li>
-                <li><a href="#" className="hover:text-amber-400 transition-colors">Italy</a></li>
-                <li><a href="#" className="hover:text-amber-400 transition-colors">Thailand</a></li>
-                <li><a href="#" className="hover:text-amber-400 transition-colors">South Africa</a></li>
-                <li><a href="#" className="hover:text-amber-400 transition-colors">Maldives</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-lg mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-slate-400">
-                <li><a href="#" className="hover:text-amber-400 transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-amber-400 transition-colors">Contact</a></li>
-                <li><a href="#" className="hover:text-amber-400 transition-colors">FAQs</a></li>
-                <li><a href="#" className="hover:text-amber-400 transition-colors">Terms & Conditions</a></li>
-                <li><a href="#" className="hover:text-amber-400 transition-colors">Privacy Policy</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-lg mb-4">Contact Us</h4>
-              <div className="space-y-3 text-slate-400">
-                <p className="flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-amber-500" />
-                  <a href="tel:02081830518" className="hover:text-amber-400">0208 183 0518</a>
-                </p>
-                <p className="text-sm">Monday - Saturday</p>
-                <p className="text-sm">9:00am - 6:00pm</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-slate-800 mt-12 pt-8 text-center text-slate-500 text-sm">
-            <p>© 2024 Flights and Packages. All rights reserved.</p>
-            <p className="mt-2">
-              Member of the Travel Trust Association. ATOL Protected.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <PreviewFooter />
 
       {/* Design Preview Notice */}
-      <div className="fixed bottom-4 right-4 bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+      <div className="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg z-50">
         <p className="text-sm font-semibold">Design Preview Mode</p>
         <p className="text-xs">This is a preview - not the live site</p>
       </div>

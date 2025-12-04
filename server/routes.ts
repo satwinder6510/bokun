@@ -169,6 +169,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Image proxy - bypasses CORS for external images
+  app.get("/api/image-proxy", async (req, res) => {
+    try {
+      const { url } = req.query;
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: "URL parameter is required" });
+      }
+
+      // Only allow specific trusted domains
+      const allowedDomains = [
+        'admin.citiesandbeaches.com',
+        'citiesandbeaches.com',
+        'bokun.s3.amazonaws.com',
+        'images.unsplash.com'
+      ];
+      
+      const urlObj = new URL(url);
+      if (!allowedDomains.some(domain => urlObj.hostname.includes(domain))) {
+        return res.status(403).json({ error: "Domain not allowed" });
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        return res.status(response.status).json({ error: "Failed to fetch image" });
+      }
+
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const buffer = await response.arrayBuffer();
+
+      res.set({
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=86400', // 24-hour cache
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.send(Buffer.from(buffer));
+    } catch (error) {
+      console.error("Image proxy error:", error);
+      res.status(500).json({ error: "Failed to proxy image" });
+    }
+  });
+
   // Migrate image from external URL to object storage (admin only)
   app.post("/api/objects/migrate-url", verifyAdminSession, async (req, res) => {
     try {

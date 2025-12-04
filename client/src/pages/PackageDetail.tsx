@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { Header } from "@/components/Header";
 import { apiRequest } from "@/lib/queryClient";
+import { getProxiedImageUrl } from "@/lib/imageProxy";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import {
@@ -438,7 +439,7 @@ export default function PackageDetail() {
   }
 
   const gallery = pkg.gallery || [];
-  const allImages = [pkg.featuredImage, ...gallery].filter(Boolean) as string[];
+  const allImages = [pkg.featuredImage, ...gallery].filter(Boolean).map(img => getProxiedImageUrl(img)) as string[];
   const itinerary = pkg.itinerary || [];
   const accommodations = pkg.accommodations || [];
   const whatsIncluded = pkg.whatsIncluded || [];

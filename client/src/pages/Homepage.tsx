@@ -5,6 +5,7 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
+import { getProxiedImageUrl } from "@/lib/imageProxy";
 import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -225,7 +226,7 @@ export default function Homepage() {
   // Add featured packages to hero (max 2)
   featuredPackages.slice(0, 2).forEach(pkg => {
     heroSlides.push({
-      image: pkg.featuredImage || fallbackHeroImages[0],
+      image: getProxiedImageUrl(pkg.featuredImage) || fallbackHeroImages[0],
       title: pkg.title,
       subtitle: pkg.category,
       price: pkg.price,
@@ -484,7 +485,7 @@ export default function Homepage() {
                       <div className="absolute inset-0">
                         {pkg.featuredImage ? (
                           <img
-                            src={pkg.featuredImage}
+                            src={getProxiedImageUrl(pkg.featuredImage)}
                             alt={pkg.title}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             loading="lazy"

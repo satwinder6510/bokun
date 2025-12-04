@@ -6,6 +6,7 @@ import { Search, MapPin, Clock, Plane } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
+import { getProxiedImageUrl } from "@/lib/imageProxy";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import type { FlightPackage } from "@shared/schema";
@@ -166,7 +167,7 @@ export default function Packages() {
                       {/* Background Image */}
                       <div className="absolute inset-0">
                         <img 
-                          src={pkg.featuredImage || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80"}
+                          src={getProxiedImageUrl(pkg.featuredImage)}
                           alt={pkg.title}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           loading="lazy"

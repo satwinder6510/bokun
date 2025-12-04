@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { ConnectionStatusCard } from "@/components/ConnectionStatusCard";
 import { ProductsCard } from "@/components/ProductsCard";
 import { JsonViewer } from "@/components/JsonViewer";
@@ -383,11 +383,11 @@ export default function Dashboard() {
                       </CardDescription>
                     </div>
                   </div>
-                  <a href="/admin/flight-pricing">
+                  <Link href="/admin/flight-pricing">
                     <Button variant="outline" size="sm" data-testid="button-manage-flight-pricing">
                       Configure
                     </Button>
-                  </a>
+                  </Link>
                 </div>
               </CardHeader>
             </Card>

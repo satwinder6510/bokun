@@ -439,10 +439,16 @@ export default function AdminPackages() {
       }
     }
     
+    // Clean the slug to ensure it only contains valid characters
+    const cleanSlug = (scrapedData.slug || scrapedData.title || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    
     setFormData({
       ...emptyPackage,
       title: scrapedData.title,
-      slug: scrapedData.slug,
+      slug: cleanSlug,
       category: scrapedData.category,
       price: scrapedData.price,
       description: scrapedData.overview,

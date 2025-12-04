@@ -171,6 +171,10 @@ export default function Packages() {
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           loading="lazy"
                           decoding="async"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
+                          }}
                         />
                       </div>
 

@@ -460,6 +460,10 @@ export default function PackageDetail() {
               data-testid="img-package-hero"
               loading="lazy"
               decoding="async"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80";
+              }}
             />
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -509,6 +513,10 @@ export default function PackageDetail() {
                         data-testid={`img-gallery-${index}`}
                         loading="lazy"
                         decoding="async"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
+                        }}
                       />
                     </div>
                   ))}
@@ -662,6 +670,10 @@ export default function PackageDetail() {
                                   alt={`${hotel.name} ${imgIndex + 1}`}
                                   className="w-full h-24 object-cover rounded-md"
                                   data-testid={`hotel-image-${index}-${imgIndex}`}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                                  }}
                                 />
                               ))}
                             </div>

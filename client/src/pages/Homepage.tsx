@@ -329,6 +329,12 @@ export default function Homepage() {
               alt={slide.title}
               className="w-full h-full object-cover"
               loading={index === 0 ? "eager" : "lazy"}
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (target.src !== fallbackHeroImages[0]) {
+                  target.src = fallbackHeroImages[0];
+                }
+              }}
             />
             {/* Dark gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />

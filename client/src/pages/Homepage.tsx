@@ -373,7 +373,7 @@ export default function Homepage() {
               <a href={heroSlides[currentSlide]?.link || '#tours'}>
                 <Button 
                   size="lg" 
-                  className="text-base md:text-lg px-8 md:px-12 py-6 md:py-7 bg-primary hover:bg-primary/90 text-white font-semibold"
+                  className="text-base md:text-lg px-8 md:px-12 py-6 md:py-7 bg-white hover:bg-stone-100 text-slate-900 font-semibold border-white ring-offset-white focus-visible:ring-slate-400"
                   data-testid="button-hero-view"
                 >
                   {heroSlides[currentSlide]?.type === 'package' ? 'View Package' : 'View Tour'}
@@ -383,7 +383,7 @@ export default function Homepage() {
                 <Button 
                   size="lg" 
                   variant="outline"
-                  className="text-base md:text-lg px-8 md:px-12 py-6 md:py-7 bg-secondary hover:bg-secondary/90 text-white border-secondary font-semibold"
+                  className="text-base md:text-lg px-8 md:px-12 py-6 md:py-7 border-2 border-white text-white hover:bg-white hover:text-slate-900 font-semibold"
                   data-testid="button-hero-alternate"
                 >
                   {heroSlides[currentSlide]?.type === 'package' ? 'Browse Land Tours' : 'Flight Packages'}
@@ -439,17 +439,17 @@ export default function Homepage() {
       </section>
 
       {/* Featured Flight Packages Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      <section className="py-16 md:py-24 bg-white border-y border-stone-200">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-12">
-            <p className="text-secondary text-sm font-bold tracking-wider uppercase mb-2 flex items-center justify-center gap-2">
+            <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2 flex items-center justify-center gap-2">
               <Plane className="w-4 h-4" />
               FLIGHTS INCLUDED
             </p>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-packages-title">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4" data-testid="text-packages-title">
               Flight Inclusive Packages
             </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
               Complete holiday packages with flights from UK airports. Everything arranged for your perfect getaway.
             </p>
           </div>
@@ -457,16 +457,16 @@ export default function Homepage() {
           {packagesLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="aspect-[3/4] bg-muted rounded-xl animate-pulse" />
+                <div key={i} className="aspect-[3/4] bg-slate-100 rounded-xl animate-pulse" />
               ))}
             </div>
           ) : packagesError ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Unable to load packages. Please try again later.</p>
+              <p className="text-slate-600">Unable to load packages. Please try again later.</p>
             </div>
           ) : featuredPackages.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No packages available yet.</p>
+              <p className="text-slate-600 mb-4">No packages available yet.</p>
               <a href="/contact">
                 <Button variant="outline">Contact Us for Custom Packages</Button>
               </a>
@@ -550,7 +550,7 @@ export default function Homepage() {
                         </div>
                         
                         {/* View More Button */}
-                        <div className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-4 py-2 rounded-md text-sm font-semibold transition-colors text-center">
+                        <div className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors text-center">
                           view more
                         </div>
                       </div>
@@ -561,7 +561,7 @@ export default function Homepage() {
 
               <div className="text-center">
                 <a href="/packages">
-                  <Button size="lg" variant="outline" data-testid="button-view-all-packages">
+                  <Button size="lg" className="bg-slate-800 hover:bg-slate-900 text-white border-slate-800 ring-offset-white focus-visible:ring-slate-400" data-testid="button-view-all-packages">
                     View All Flight Packages
                   </Button>
                 </a>
@@ -575,13 +575,13 @@ export default function Homepage() {
       <section id="tours" className="py-16 md:py-24 bg-stone-50">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-8">
-            <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">
+            <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
               700+ EXPERIENCES
             </p>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4" data-testid="text-tours-title">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4" data-testid="text-tours-title">
               Explore Our Land Tours
             </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
               Discover handpicked experiences from trusted local operators worldwide
             </p>
           </div>
@@ -589,7 +589,7 @@ export default function Homepage() {
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto mb-8">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
                 type="text"
                 placeholder="Search destinations, tours, or experiences..."
@@ -618,10 +618,10 @@ export default function Homepage() {
               <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar justify-center flex-wrap">
                 <button
                   onClick={() => setSelectedCategory(null)}
-                  className={`px-5 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+                  className={`px-5 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap transition-all border ${
                     selectedCategory === null
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                      ? 'bg-slate-800 text-white border-slate-800'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                   }`}
                   data-testid="button-category-all"
                 >
@@ -631,10 +631,10 @@ export default function Homepage() {
                   <button
                     key={category}
                     onClick={() => setSelectedCategory(category)}
-                    className={`px-5 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap transition-all ${
+                    className={`px-5 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap transition-all border ${
                       selectedCategory === category
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        ? 'bg-slate-800 text-white border-slate-800'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                     }`}
                     data-testid={`button-category-${category.toLowerCase().replace(/\s+/g, '-')}`}
                   >
@@ -647,7 +647,7 @@ export default function Homepage() {
 
           {/* Results count */}
           {(searchQuery || selectedCategory || selectedCountry) && (
-            <p className="text-center text-muted-foreground mb-8" data-testid="text-results-count">
+            <p className="text-center text-slate-600 mb-8" data-testid="text-results-count">
               {filteredProducts.length} {filteredProducts.length === 1 ? 'tour' : 'tours'} found
               {selectedCountry && ` in ${selectedCountry}`}
             </p>
@@ -657,21 +657,22 @@ export default function Homepage() {
           {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="aspect-[3/4] bg-muted rounded-xl animate-pulse" />
+                <div key={i} className="aspect-[3/4] bg-slate-100 rounded-xl animate-pulse" />
               ))}
             </div>
           ) : (searchQuery || selectedCategory || selectedCountry) ? (
             // Show filtered results
             filteredProducts.length === 0 ? (
               <div className="text-center py-20">
-                <p className="text-xl font-semibold mb-2" data-testid="text-no-results">
+                <p className="text-xl font-semibold text-slate-800 mb-2" data-testid="text-no-results">
                   No land tours found
                 </p>
-                <p className="text-muted-foreground mb-6">
+                <p className="text-slate-600 mb-6">
                   Try adjusting your search or filters
                 </p>
                 <Button
                   variant="outline"
+                  className="border-slate-300 text-slate-700 hover:bg-white"
                   onClick={() => {
                     setSearchQuery("");
                     setSelectedCategory(null);
@@ -701,6 +702,7 @@ export default function Homepage() {
                 <Button 
                   size="lg" 
                   variant="outline"
+                  className="border-slate-300 text-slate-700 hover:bg-white"
                   onClick={() => document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' })}
                   data-testid="button-view-all-tours"
                 >
@@ -714,16 +716,16 @@ export default function Homepage() {
 
       {/* Destination Inspiration */}
       {topDestinations.length > 0 && (
-        <section className="py-16 md:py-24 bg-muted/30">
+        <section className="py-16 md:py-24 bg-white border-y border-stone-200">
           <div className="container mx-auto px-6 md:px-8">
             <div className="text-center mb-12">
-              <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">
+              <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
                 GET INSPIRED
               </p>
-              <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
                 Popular Destinations
               </h2>
-              <p className="text-muted-foreground text-lg">
+              <p className="text-slate-600 text-lg">
                 Discover our most sought-after travel destinations
               </p>
             </div>
@@ -766,10 +768,10 @@ export default function Homepage() {
       <section className="py-16 md:py-24 bg-stone-50">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-12">
-            <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">
+            <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
               YOUR PEACE OF MIND
             </p>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
               Why Book With Us
             </h2>
           </div>
@@ -777,11 +779,11 @@ export default function Homepage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {trustFeatures.map((feature, index) => (
               <div key={index} className="text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <feature.icon className="w-8 h-8 text-primary" />
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-slate-200">
+                  <feature.icon className="w-8 h-8 text-slate-700" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground">{feature.description}</p>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">{feature.title}</h3>
+                <p className="text-slate-600">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -789,31 +791,31 @@ export default function Homepage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      <section className="py-16 md:py-24 bg-white border-y border-stone-200">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-12">
-            <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">
+            <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
               WHAT OUR CUSTOMERS SAY
             </p>
-            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
               Trusted by Thousands
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="p-6" data-testid={`card-testimonial-${index}`}>
+              <Card key={index} className="p-6 bg-white border-stone-200" data-testid={`card-testimonial-${index}`}>
                 <div className="flex gap-1 mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <span key={i} className="text-yellow-500">★</span>
                   ))}
                 </div>
-                <p className="text-muted-foreground mb-4 italic">
+                <p className="text-slate-600 mb-4 italic">
                   "{testimonial.reviewText}"
                 </p>
                 <div>
-                  <p className="font-semibold">{testimonial.customerName}</p>
-                  <p className="text-sm text-muted-foreground">{testimonial.location || ""}</p>
+                  <p className="font-semibold text-slate-800">{testimonial.customerName}</p>
+                  <p className="text-sm text-slate-500">{testimonial.location || ""}</p>
                 </div>
               </Card>
             ))}
@@ -822,7 +824,7 @@ export default function Homepage() {
       </section>
 
       {/* Newsletter Signup */}
-      <section className="py-16 md:py-24 bg-primary text-white">
+      <section className="py-16 md:py-24 bg-slate-800 text-white">
         <div className="container mx-auto px-6 md:px-8">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -843,8 +845,7 @@ export default function Homepage() {
               />
               <Button 
                 type="submit" 
-                variant="secondary"
-                className="font-semibold"
+                className="bg-white text-slate-800 hover:bg-stone-100 font-semibold"
                 disabled={isSubscribing}
                 data-testid="button-newsletter-submit"
               >

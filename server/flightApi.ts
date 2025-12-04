@@ -88,7 +88,24 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
       throw new Error(`Flight API returned ${response.status}: ${response.statusText}`);
     }
     
-    const data = await response.json() as FlightApiResponse;
+    // Get raw text first to handle XML error responses
+    const rawText = await response.text();
+    
+    // Check if response is XML (error from API)
+    if (rawText.startsWith("<?xml")) {
+      // Parse XML error
+      const errorMatch = rawText.match(/<Error>(.*?)<\/Error>/);
+      const errorMessage = errorMatch ? errorMatch[1] : "Unknown XML error from flight API";
+      console.error(`[FlightAPI] XML Error: ${errorMessage}`);
+      
+      if (errorMessage.includes("IP Address Does Not Match")) {
+        throw new Error("Flight API access denied: Server IP not whitelisted. Contact Sunshine Technology Ltd to add this server's IP address.");
+      }
+      throw new Error(`Flight API error: ${errorMessage}`);
+    }
+    
+    // Parse as JSON
+    const data = JSON.parse(rawText) as FlightApiResponse;
     
     if (data.error) {
       console.error(`[FlightAPI] Error from API: ${data.error}`);

@@ -26,6 +26,7 @@ import AdminUsers from "@/pages/AdminUsers";
 import AdminFlightPricing from "@/pages/AdminFlightPricing";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
+import DesignPreview from "@/pages/DesignPreview";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -42,6 +43,7 @@ function Router() {
       <Route path="/faq" component={FAQ} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/design-preview" component={DesignPreview} />
       <Route path="/login" component={Login} />
       <Route path="/admin/login" component={Login} />
       <Route path="/dashboard">

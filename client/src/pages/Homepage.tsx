@@ -85,12 +85,15 @@ export default function Homepage() {
   const [isSubscribing, setIsSubscribing] = useState(false);
 
   // Fetch flight packages with loading/error handling
+  // Force fresh data to ensure admin updates appear immediately
   const { 
     data: flightPackages = [], 
     isLoading: packagesLoading,
     isError: packagesError 
   } = useQuery<FlightPackage[]>({
     queryKey: ['/api/packages'],
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Get featured packages (first 3 with images, or first 3 overall)

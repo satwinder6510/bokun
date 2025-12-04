@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Clock, ArrowLeft, Share2 } from "lucide-react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -59,7 +60,7 @@ export default function BlogPostPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <p className="text-muted-foreground" data-testid="text-loading">Loading...</p>
       </div>
     );
@@ -67,7 +68,7 @@ export default function BlogPostPage() {
 
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-4" data-testid="text-not-found">Blog Post Not Found</h1>
           <p className="text-muted-foreground mb-6">The blog post you're looking for doesn't exist or has been removed.</p>
@@ -83,7 +84,7 @@ export default function BlogPostPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-stone-50">
       <Header />
 
       <main className="pt-20">
@@ -143,29 +144,7 @@ export default function BlogPostPage() {
         </article>
       </main>
 
-      <footer className="bg-card border-t py-8">
-        <div className="container mx-auto px-6 md:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground" data-testid="text-copyright">
-              © 2025 Flights and Packages. All rights reserved.
-            </p>
-            <div className="flex gap-6 text-sm">
-              <a href="/" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-home">
-                Home
-              </a>
-              <a href="/blog" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-blog">
-                Blog
-              </a>
-              <a href="/contact" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-contact">
-                Contact
-              </a>
-              <a href="/terms" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-terms">
-                Terms
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

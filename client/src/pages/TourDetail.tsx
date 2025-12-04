@@ -3,6 +3,7 @@ import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Clock, MapPin, Calendar, Users, ChevronLeft, ChevronRight, ChevronDown, Plane } from "lucide-react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -97,22 +98,13 @@ export default function TourDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="border-b">
-          <div className="container mx-auto px-6 md:px-8 h-20 flex items-center">
-            <Link href="/">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
-            </Link>
-          </div>
-        </header>
+      <div className="min-h-screen bg-stone-50">
+        <Header />
         <div className="container mx-auto px-6 md:px-8 py-16">
           <div className="animate-pulse space-y-8">
-            <div className="h-96 bg-muted rounded-xl" />
-            <div className="h-8 bg-muted rounded w-3/4" />
-            <div className="h-4 bg-muted rounded w-1/2" />
+            <div className="h-96 bg-stone-200 rounded-xl" />
+            <div className="h-8 bg-stone-200 rounded w-3/4" />
+            <div className="h-4 bg-stone-200 rounded w-1/2" />
           </div>
         </div>
       </div>
@@ -121,7 +113,7 @@ export default function TourDetail() {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Tour Not Found</h2>
           <Link href="/">
@@ -133,7 +125,7 @@ export default function TourDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-stone-50">
       <Header />
 
       {/* Spacer for fixed header */}
@@ -440,14 +432,7 @@ export default function TourDetail() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-12">
-        <div className="container mx-auto px-6 md:px-8">
-          <div className="text-center text-sm text-muted-foreground">
-            <p data-testid="text-footer">© 2025 Flights and Packages. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

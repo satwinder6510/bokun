@@ -6,9 +6,9 @@ import { Search, MapPin, Clock, Plane } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
-import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import type { FlightPackage } from "@shared/schema";
 
 export default function Packages() {
@@ -61,7 +61,7 @@ export default function Packages() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-stone-50">
       <Header />
 
       {/* Hero Section - Dark wash over image */}
@@ -249,66 +249,7 @@ export default function Packages() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-muted/50 border-t py-12">
-        <div className="container mx-auto px-4 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-10 mb-4"
-              />
-              <p className="text-sm text-muted-foreground">
-                Your trusted partner for flight-inclusive holiday packages to amazing destinations worldwide.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/" className="text-muted-foreground hover:text-foreground">Land Tours</Link></li>
-                <li><Link href="/packages" className="text-muted-foreground hover:text-foreground">Flight Packages</Link></li>
-                <li><Link href="/faq" className="text-muted-foreground hover:text-foreground">FAQ</Link></li>
-                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Destinations</h4>
-              <ul className="space-y-2 text-sm">
-                {categories.slice(0, 5).map((cat) => (
-                  <li key={cat}>
-                    <button 
-                      onClick={() => setSelectedCategory(cat)}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {cat}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Trust & Security</h4>
-              <img 
-                src={travelTrustLogo} 
-                alt="Travel Trust Association" 
-                className="h-16 mb-4"
-              />
-              <p className="text-xs text-muted-foreground">
-                Member of the Travel Trust Association. Your money is protected.
-              </p>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Flights and Packages. All rights reserved.</p>
-            <div className="mt-2 space-x-4">
-              <Link href="/terms" className="hover:text-foreground">Terms & Conditions</Link>
-              <span>|</span>
-              <Link href="/contact" className="hover:text-foreground">Privacy Policy</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

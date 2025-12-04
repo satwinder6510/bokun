@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } from "@shared/schema";
@@ -312,8 +313,8 @@ export default function Homepage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="min-h-screen bg-stone-50">
+      <Header destinations={allCountries} onDestinationSelect={setSelectedCountry} />
 
       {/* Hero Section with Dual CTAs */}
       <section className="relative h-screen w-full overflow-hidden">
@@ -861,75 +862,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-background border-t py-12 md:py-16">
-        <div className="container mx-auto px-6 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-10 mb-4"
-              />
-              <p className="text-muted-foreground text-sm">
-                Your trusted partner for unforgettable travel experiences. ATOL protected holidays from UK airports.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="/" className="text-muted-foreground hover:text-primary transition-colors">Home</a></li>
-                <li><a href="/packages" className="text-muted-foreground hover:text-primary transition-colors">Flight Packages</a></li>
-                <li><a href="#tours" className="text-muted-foreground hover:text-primary transition-colors">Land Tours</a></li>
-                <li><a href="/blog" className="text-muted-foreground hover:text-primary transition-colors">Blog</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Popular Destinations</h4>
-              <ul className="space-y-2 text-sm">
-                {topDestinations.slice(0, 5).map((dest) => (
-                  <li key={dest.name}>
-                    <button 
-                      onClick={() => {
-                        setSelectedCountry(dest.name);
-                        document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className="text-muted-foreground hover:text-primary transition-colors"
-                    >
-                      {dest.name}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Contact Us</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>Email: info@flightsandpackages.com</li>
-                <li>
-                  <a 
-                    href={`tel:${phoneNumber.replace(/\s/g, "")}`}
-                    className="hover:text-primary transition-colors"
-                    data-testid="link-footer-phone"
-                  >
-                    Phone: {phoneNumber}
-                  </a>
-                </li>
-              </ul>
-              <div className="flex gap-2 mt-4">
-                <img 
-                  src={travelTrustLogo} 
-                  alt="Travel Trust Association" 
-                  className="h-10"
-                />
-              </div>
-            </div>
-          </div>
-          <div className="border-t pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Flights and Packages. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

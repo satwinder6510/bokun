@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
 
@@ -19,7 +20,7 @@ export default function Blog() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-stone-50">
       <Header />
 
       <main className="pt-20">
@@ -92,29 +93,7 @@ export default function Blog() {
         </div>
       </main>
 
-      <footer className="bg-card border-t py-8">
-        <div className="container mx-auto px-6 md:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground" data-testid="text-copyright">
-              © 2025 Flights and Packages. All rights reserved.
-            </p>
-            <div className="flex gap-6 text-sm">
-              <a href="/" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-home">
-                Home
-              </a>
-              <a href="/blog" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-blog">
-                Blog
-              </a>
-              <a href="/contact" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-contact">
-                Contact
-              </a>
-              <a href="/terms" className="text-muted-foreground hover:text-primary transition-colors" data-testid="link-terms">
-                Terms
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

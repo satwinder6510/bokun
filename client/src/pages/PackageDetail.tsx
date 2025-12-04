@@ -15,6 +15,7 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { useToast } from "@/hooks/use-toast";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { apiRequest } from "@/lib/queryClient";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
@@ -419,22 +420,13 @@ export default function PackageDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b">
-          <div className="container mx-auto px-6 md:px-8 h-20 flex items-center">
-            <Link href="/packages">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Packages
-              </Button>
-            </Link>
-          </div>
-        </header>
+      <div className="min-h-screen bg-stone-50">
+        <Header />
         <div className="container mx-auto px-6 md:px-8 py-32">
           <div className="animate-pulse space-y-8">
-            <div className="h-96 bg-muted rounded-xl" />
-            <div className="h-8 bg-muted rounded w-3/4" />
-            <div className="h-4 bg-muted rounded w-1/2" />
+            <div className="h-96 bg-stone-200 rounded-xl" />
+            <div className="h-8 bg-stone-200 rounded w-3/4" />
+            <div className="h-4 bg-stone-200 rounded w-1/2" />
           </div>
         </div>
       </div>
@@ -443,7 +435,7 @@ export default function PackageDetail() {
 
   if (!pkg) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4">Package Not Found</h2>
           <Link href="/packages">
@@ -465,7 +457,7 @@ export default function PackageDetail() {
   const highlights = cleanFragmentedHtmlArray(pkg.highlights || []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-stone-50">
       <Header />
 
       {/* Gallery - Bokun Style */}
@@ -1009,58 +1001,7 @@ export default function PackageDetail() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-muted/50 border-t py-12">
-        <div className="container mx-auto px-4 md:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <img 
-                src={logoImage} 
-                alt="Flights and Packages" 
-                className="h-10 mb-4"
-              />
-              <p className="text-sm text-muted-foreground">
-                Your trusted partner for flight-inclusive holiday packages to amazing destinations worldwide.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/" className="text-muted-foreground hover:text-foreground">Land Tours</Link></li>
-                <li><Link href="/packages" className="text-muted-foreground hover:text-foreground">Flight Packages</Link></li>
-                <li><Link href="/faq" className="text-muted-foreground hover:text-foreground">FAQ</Link></li>
-                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="tel:+442074000000" className="text-muted-foreground hover:text-foreground">+44 20 7400 0000</a></li>
-                <li><a href="mailto:info@flightsandpackages.com" className="text-muted-foreground hover:text-foreground">info@flightsandpackages.com</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Trust & Security</h4>
-              <img 
-                src={travelTrustLogo} 
-                alt="Travel Trust Association" 
-                className="h-16 mb-4"
-              />
-              <p className="text-xs text-muted-foreground">
-                Member of the Travel Trust Association.
-              </p>
-            </div>
-          </div>
-          <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Flights and Packages. All rights reserved.</p>
-            <div className="mt-2 space-x-4">
-              <Link href="/terms" className="hover:text-foreground">Terms & Conditions</Link>
-              <span>|</span>
-              <Link href="/contact" className="hover:text-foreground">Privacy Policy</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

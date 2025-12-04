@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { setMetaTags } from "@/lib/meta-tags";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 
 export default function Terms() {
@@ -13,7 +14,7 @@ export default function Terms() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-stone-50">
       <Header />
 
       {/* Spacer for fixed header */}
@@ -168,14 +169,7 @@ export default function Terms() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-12">
-        <div className="container mx-auto px-6 md:px-8">
-          <div className="text-center text-sm text-muted-foreground">
-            <p>© 2025 Flights and Packages. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

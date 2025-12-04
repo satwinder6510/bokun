@@ -9,6 +9,7 @@ import fetch from "node-fetch";
 import type { FlightOffer, FlightTourPricingConfig } from "@shared/schema";
 
 const FLIGHT_API_BASE = "http://87.102.127.86:8119/search/searchoffers.dll";
+const FLIGHT_API_AGENT_ID = "122";
 
 interface FlightSearchParams {
   departAirports: string; // Pipe-separated e.g., "LGW|STN|LTN"
@@ -62,6 +63,7 @@ export async function searchFlights(params: FlightSearchParams): Promise<FlightO
   const url = new URL(FLIGHT_API_BASE);
   
   // Build query string
+  url.searchParams.set("agentid", FLIGHT_API_AGENT_ID);
   url.searchParams.set("depapt", params.departAirports);
   url.searchParams.set("arrapt", params.arriveAirport);
   url.searchParams.set("nights", params.nights.toString());

@@ -572,7 +572,7 @@ export default function Homepage() {
       </section>
 
       {/* Featured Land Tours Section */}
-      <section id="tours" className="py-16 md:py-24 bg-background">
+      <section id="tours" className="py-16 md:py-24 bg-stone-50">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-8">
             <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">
@@ -763,7 +763,7 @@ export default function Homepage() {
       )}
 
       {/* Why Book With Us */}
-      <section className="py-16 md:py-24 bg-background">
+      <section className="py-16 md:py-24 bg-stone-50">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-12">
             <p className="text-primary text-sm font-bold tracking-wider uppercase mb-2">

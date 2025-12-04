@@ -20,7 +20,7 @@ interface HeaderProps {
 }
 
 export function Header({ destinations = [], onDestinationSelect }: HeaderProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const phoneNumber = useDynamicPhoneNumber();
   const phoneNumberClean = phoneNumber.replace(/\s/g, "");
@@ -30,7 +30,11 @@ export function Header({ destinations = [], onDestinationSelect }: HeaderProps) 
       onDestinationSelect(destination);
     }
     if (location !== "/") {
-      window.location.href = destination ? `/?destination=${encodeURIComponent(destination)}#tours` : "/#tours";
+      const path = destination ? `/?destination=${encodeURIComponent(destination)}` : "/";
+      setLocation(path);
+      setTimeout(() => {
+        document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     } else {
       document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
     }

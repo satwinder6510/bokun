@@ -1508,6 +1508,20 @@ export default function AdminPackages() {
                       </div>
                     </div>
 
+                    {/* Image Guidelines Info Box */}
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4" data-testid="image-guidelines-box">
+                      <h4 className="font-medium text-blue-900 dark:text-blue-100 flex items-center gap-2 mb-2">
+                        <ImagePlus className="w-4 h-4" />
+                        Image Size Guidelines
+                      </h4>
+                      <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                        <p><strong>Featured/Hero:</strong> 1920 x 823 px (21:9) - Main banner image</p>
+                        <p><strong>Gallery:</strong> 1600 x 1067 px (3:2) - Tour photos, scenery</p>
+                        <p><strong>Format:</strong> JPEG preferred, PNG for graphics. Max 500KB each.</p>
+                        <p className="text-blue-600 dark:text-blue-300 text-xs mt-2">Tip: Use landscape orientation. Images are auto-optimized on upload.</p>
+                      </div>
+                    </div>
+
                     <div>
                       <Label>Featured Image (Hero)</Label>
                       <p className="text-xs text-muted-foreground mt-1 mb-2">
@@ -1565,6 +1579,9 @@ export default function AdminPackages() {
 
                     <div>
                       <Label>Gallery Images</Label>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Recommended: <strong>1600 x 1067 px</strong> (3:2 ratio). JPEG format, under 500KB each.
+                      </p>
                       <div className="mt-2 space-y-3">
                         <input
                           ref={galleryImagesRef}

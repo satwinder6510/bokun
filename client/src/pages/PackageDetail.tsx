@@ -480,8 +480,15 @@ export default function PackageDetail() {
   }
 
   const gallery = pkg.gallery || [];
-  const videos = (pkg.videos || []) as VideoItem[];
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
+  
+  // Safely parse videos - handle both structured objects and potential edge cases
+  const videos: VideoItem[] = ((pkg.videos || []) as any[]).filter((video): video is VideoItem => {
+    return video && 
+           typeof video === 'object' && 
+           typeof video.videoId === 'string' && 
+           (video.platform === 'youtube' || video.platform === 'vimeo');
+  });
   
   // Combine images and videos into gallery items
   const allGalleryItems: GalleryItem[] = [
@@ -489,7 +496,7 @@ export default function PackageDetail() {
     ...(pkg.featuredImage ? [{ type: 'image' as const, url: getProxiedImageUrl(pkg.featuredImage) }] : []),
     // Then gallery images
     ...gallery.filter(Boolean).map(img => ({ type: 'image' as const, url: getProxiedImageUrl(img) })),
-    // Then videos at the end
+    // Then videos at the end (only valid structured videos)
     ...videos.map(video => ({ type: 'video' as const, url: getVideoThumbnail(video), video })),
   ];
   

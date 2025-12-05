@@ -1,37 +1,58 @@
 import { Response } from "express";
 import { randomUUID } from "crypto";
+import { Storage, File } from "@google-cloud/storage";
 
 function sanitizeFilename(filename: string): string {
-  // Get file extension
   const lastDot = filename.lastIndexOf('.');
   const ext = lastDot > 0 ? filename.slice(lastDot).toLowerCase() : '';
   const baseName = lastDot > 0 ? filename.slice(0, lastDot) : filename;
   
-  // Sanitize: lowercase, replace spaces/special chars with hyphens, remove consecutive hyphens
   const sanitized = baseName
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '-')  // Replace non-alphanumeric with hyphens
-    .replace(/-+/g, '-')          // Remove consecutive hyphens
-    .replace(/^-|-$/g, '')        // Remove leading/trailing hyphens
-    .slice(0, 50);                // Limit length
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 50);
   
   return (sanitized || 'image') + ext;
 }
 
-let storageClient: any = null;
-let storageInitError: string | null = null;
+const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
-async function initStorageClient() {
-  if (storageClient) return storageClient;
-  if (storageInitError) return null;
+export const objectStorageClient = new Storage({
+  credentials: {
+    audience: "replit",
+    subject_token_type: "access_token",
+    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
+    type: "external_account",
+    credential_source: {
+      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
+      format: {
+        type: "json",
+        subject_token_field_name: "access_token",
+      },
+    },
+    universe_domain: "googleapis.com",
+  },
+  projectId: "",
+});
+
+let cachedBucketName: string | null = null;
+
+async function getBucketName(): Promise<string | null> {
+  if (cachedBucketName) return cachedBucketName;
   
   try {
-    const { Client } = await import("@replit/object-storage");
-    storageClient = new Client();
-    return storageClient;
+    const [buckets] = await objectStorageClient.getBuckets();
+    if (buckets.length > 0) {
+      cachedBucketName = buckets[0].name;
+      console.log(`[ObjectStorage] Using bucket: ${cachedBucketName}`);
+      return cachedBucketName;
+    }
+    console.warn("[ObjectStorage] No buckets found");
+    return null;
   } catch (error: any) {
-    storageInitError = error.message;
-    console.warn("Object storage not available:", error.message);
+    console.warn("[ObjectStorage] Error getting buckets:", error.message);
     return null;
   }
 }
@@ -45,38 +66,10 @@ export class ObjectNotFoundError extends Error {
 }
 
 export class ObjectStorageService {
-  private client: any = null;
-  private initPromise: Promise<any> | null = null;
-
-  async getClient() {
-    if (this.client) return this.client;
-    if (!this.initPromise) {
-      this.initPromise = initStorageClient();
-    }
-    this.client = await this.initPromise;
-    return this.client;
-  }
-
+  
   async isAvailable(): Promise<boolean> {
-    const client = await this.getClient();
-    return client !== null;
-  }
-
-  async getObject(objectPath: string): Promise<{ data: Buffer; contentType: string } | null> {
-    const client = await this.getClient();
-    if (!client) return null;
-
-    try {
-      const result = await client.downloadAsBytes(objectPath);
-      if (result.ok) {
-        const contentType = this.getContentTypeFromPath(objectPath);
-        return { data: Buffer.from(result.value), contentType };
-      }
-      return null;
-    } catch (error) {
-      console.error("Error getting object:", error);
-      return null;
-    }
+    const bucket = await getBucketName();
+    return bucket !== null;
   }
 
   getContentTypeFromPath(path: string): string {
@@ -94,20 +87,44 @@ export class ObjectStorageService {
     return mimeTypes[ext] || 'application/octet-stream';
   }
 
-  async downloadObject(objectPath: string, res: Response, cacheTtlSec: number = 3600) {
+  async getFile(objectPath: string): Promise<File | null> {
+    const bucketNameValue = await getBucketName();
+    if (!bucketNameValue) return null;
+
+    const bucket = objectStorageClient.bucket(bucketNameValue);
+    const file = bucket.file(objectPath);
+    
+    const [exists] = await file.exists();
+    if (!exists) return null;
+    
+    return file;
+  }
+
+  async downloadObject(objectPath: string, res: Response, cacheTtlSec: number = 86400) {
     try {
-      const result = await this.getObject(objectPath);
-      if (!result) {
+      const file = await this.getFile(objectPath);
+      if (!file) {
         res.status(404).json({ error: "Object not found" });
         return;
       }
 
+      const [metadata] = await file.getMetadata();
+      const contentType = metadata.contentType || this.getContentTypeFromPath(objectPath);
+
       res.set({
-        "Content-Type": result.contentType,
-        "Content-Length": result.data.length.toString(),
+        "Content-Type": contentType,
+        "Content-Length": metadata.size?.toString() || '0',
         "Cache-Control": `public, max-age=${cacheTtlSec}`,
       });
-      res.send(result.data);
+
+      const stream = file.createReadStream();
+      stream.on("error", (err) => {
+        console.error("Stream error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Error streaming file" });
+        }
+      });
+      stream.pipe(res);
     } catch (error) {
       console.error("Error downloading object:", error);
       if (!res.headersSent) {
@@ -117,8 +134,8 @@ export class ObjectStorageService {
   }
 
   async uploadFromUrl(sourceUrl: string, filename: string): Promise<string> {
-    const client = await this.getClient();
-    if (!client) {
+    const bucketNameValue = await getBucketName();
+    if (!bucketNameValue) {
       throw new Error("Object storage is not available. Please configure a bucket in the Object Storage tab.");
     }
 
@@ -135,11 +152,16 @@ export class ObjectStorageService {
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      const result = await client.uploadFromBytes(objectPath, buffer);
-      if (!result.ok) {
-        throw new Error(`Failed to upload to object storage: ${result.error || 'Unknown error'}`);
-      }
+      const bucket = objectStorageClient.bucket(bucketNameValue);
+      const file = bucket.file(objectPath);
+      
+      const contentType = this.getContentTypeFromPath(objectPath);
+      
+      await file.save(buffer, {
+        metadata: { contentType },
+      });
 
+      console.log(`[ObjectStorage] Uploaded from URL: ${objectPath} (${buffer.length} bytes)`);
       return `/objects/${objectPath}`;
     } catch (error: any) {
       console.error(`uploadFromUrl error for ${sourceUrl}:`, error);
@@ -148,8 +170,8 @@ export class ObjectStorageService {
   }
 
   async uploadFromBuffer(buffer: Buffer, filename: string): Promise<string> {
-    const client = await this.getClient();
-    if (!client) {
+    const bucketNameValue = await getBucketName();
+    if (!bucketNameValue) {
       throw new Error("Object storage is not available. Please configure a bucket in the Object Storage tab.");
     }
 
@@ -157,12 +179,19 @@ export class ObjectStorageService {
     const objectId = `${randomUUID()}-${safeFilename}`;
     const objectPath = `images/${objectId}`;
 
-    try {
-      const result = await client.uploadFromBytes(objectPath, buffer);
-      if (!result.ok) {
-        throw new Error(`Failed to upload to object storage: ${result.error || 'Unknown error'}`);
-      }
+    console.log(`[ObjectStorage] Uploading: path=${objectPath}, bufferSize=${buffer.length}`);
 
+    try {
+      const bucket = objectStorageClient.bucket(bucketNameValue);
+      const file = bucket.file(objectPath);
+      
+      const contentType = this.getContentTypeFromPath(objectPath);
+      
+      await file.save(buffer, {
+        metadata: { contentType },
+      });
+
+      console.log(`[ObjectStorage] Upload complete: ${objectPath}`);
       return `/objects/${objectPath}`;
     } catch (error: any) {
       console.error(`uploadFromBuffer error:`, error);
@@ -171,30 +200,30 @@ export class ObjectStorageService {
   }
 
   async exists(objectPath: string): Promise<boolean> {
-    const client = await this.getClient();
-    if (!client) return false;
-
     try {
       const normalizedPath = objectPath.startsWith('/objects/') 
         ? objectPath.replace('/objects/', '') 
         : objectPath;
-      const result = await client.downloadAsBytes(normalizedPath);
-      return result.ok;
+      const file = await this.getFile(normalizedPath);
+      return file !== null;
     } catch {
       return false;
     }
   }
 
   async deleteObject(objectPath: string): Promise<boolean> {
-    const client = await this.getClient();
-    if (!client) return false;
+    const bucketNameValue = await getBucketName();
+    if (!bucketNameValue) return false;
 
     try {
       const normalizedPath = objectPath.startsWith('/objects/') 
         ? objectPath.replace('/objects/', '') 
         : objectPath;
-      const result = await client.delete(normalizedPath);
-      return result.ok;
+      
+      const bucket = objectStorageClient.bucket(bucketNameValue);
+      const file = bucket.file(normalizedPath);
+      await file.delete();
+      return true;
     } catch (error) {
       console.error("Error deleting object:", error);
       return false;
@@ -202,15 +231,13 @@ export class ObjectStorageService {
   }
 
   async listObjects(prefix: string = ""): Promise<string[]> {
-    const client = await this.getClient();
-    if (!client) return [];
+    const bucketNameValue = await getBucketName();
+    if (!bucketNameValue) return [];
 
     try {
-      const result = await client.list({ prefix });
-      if (result.ok) {
-        return result.value.objects.map((obj: any) => obj.name);
-      }
-      return [];
+      const bucket = objectStorageClient.bucket(bucketNameValue);
+      const [files] = await bucket.getFiles({ prefix });
+      return files.map((file) => file.name);
     } catch (error) {
       console.error("Error listing objects:", error);
       return [];

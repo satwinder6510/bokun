@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
   Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
-  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling
+  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling, GripVertical
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -178,6 +178,8 @@ export default function AdminPackages() {
   const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const [uploadingHotelIndex, setUploadingHotelIndex] = useState<number | null>(null);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
+  const [dragOverImageIndex, setDragOverImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
   const hotelImageRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
@@ -970,6 +972,43 @@ export default function AdminPackages() {
     };
     setFormData({ ...formData, accommodations: updatedAccommodations });
     toast({ title: "Image removed" });
+  };
+
+  const handleDragStart = (hotelIndex: number, imageIndex: number) => {
+    setDraggedImageIndex({ hotelIndex, imageIndex });
+  };
+
+  const handleDragOver = (e: React.DragEvent, hotelIndex: number, imageIndex: number) => {
+    e.preventDefault();
+    if (draggedImageIndex?.hotelIndex === hotelIndex) {
+      setDragOverImageIndex({ hotelIndex, imageIndex });
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (draggedImageIndex && dragOverImageIndex && 
+        draggedImageIndex.hotelIndex === dragOverImageIndex.hotelIndex &&
+        draggedImageIndex.imageIndex !== dragOverImageIndex.imageIndex) {
+      
+      const hotelIndex = draggedImageIndex.hotelIndex;
+      const updatedAccommodations = [...(formData.accommodations || [])];
+      const images = [...updatedAccommodations[hotelIndex].images];
+      
+      // Remove the dragged image and insert it at the new position
+      const [movedImage] = images.splice(draggedImageIndex.imageIndex, 1);
+      images.splice(dragOverImageIndex.imageIndex, 0, movedImage);
+      
+      updatedAccommodations[hotelIndex] = {
+        ...updatedAccommodations[hotelIndex],
+        images
+      };
+      
+      setFormData({ ...formData, accommodations: updatedAccommodations });
+      toast({ title: "Image order updated" });
+    }
+    
+    setDraggedImageIndex(null);
+    setDragOverImageIndex(null);
   };
 
   const isEditing = isCreating || editingPackage !== null;
@@ -2054,31 +2093,64 @@ export default function AdminPackages() {
                                 </Button>
                               </div>
                             </div>
-                            <p className="text-xs text-muted-foreground mb-2">
-                              Recommended: 1600×1067px (3:2 ratio) for gallery images
-                            </p>
+                            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2 mb-3">
+                              <p className="text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                                <ImagePlus className="w-3 h-3 flex-shrink-0" />
+                                <span><strong>1600×1067px</strong> (3:2 ratio) • JPEG/WebP • Max 350KB each</span>
+                              </p>
+                            </div>
                             {(hotel.images || []).length > 0 ? (
-                              <div className="grid grid-cols-4 gap-2">
-                                {(hotel.images || []).map((img, imgIdx) => (
-                                  <div key={imgIdx} className="relative group">
-                                    <img 
-                                      src={img} 
-                                      alt={`${hotel.name} image ${imgIdx + 1}`} 
-                                      className="h-20 w-full object-cover rounded border"
-                                    />
-                                    <Button
-                                      type="button"
-                                      variant="destructive"
-                                      size="icon"
-                                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onClick={() => removeHotelImage(index, imgIdx)}
-                                      data-testid={`button-remove-hotel-image-${index}-${imgIdx}`}
+                              <>
+                                <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                                  <GripVertical className="w-3 h-3" />
+                                  Drag images to reorder. First image is the main photo.
+                                </p>
+                                <div className="grid grid-cols-4 gap-2">
+                                  {(hotel.images || []).map((img, imgIdx) => (
+                                    <div 
+                                      key={imgIdx} 
+                                      className={`relative group cursor-move transition-all ${
+                                        draggedImageIndex?.hotelIndex === index && draggedImageIndex?.imageIndex === imgIdx 
+                                          ? 'opacity-50 scale-95' 
+                                          : ''
+                                      } ${
+                                        dragOverImageIndex?.hotelIndex === index && dragOverImageIndex?.imageIndex === imgIdx 
+                                          ? 'ring-2 ring-primary ring-offset-2' 
+                                          : ''
+                                      }`}
+                                      draggable
+                                      onDragStart={() => handleDragStart(index, imgIdx)}
+                                      onDragOver={(e) => handleDragOver(e, index, imgIdx)}
+                                      onDragEnd={handleDragEnd}
+                                      data-testid={`hotel-image-draggable-${index}-${imgIdx}`}
                                     >
-                                      <X className="w-3 h-3" />
-                                    </Button>
-                                  </div>
-                                ))}
-                              </div>
+                                      {imgIdx === 0 && (
+                                        <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-medium z-10">
+                                          Main
+                                        </span>
+                                      )}
+                                      <div className="absolute top-1 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                        <GripVertical className="w-3 h-3" />
+                                      </div>
+                                      <img 
+                                        src={img} 
+                                        alt={`${hotel.name} image ${imgIdx + 1}`} 
+                                        className="h-20 w-full object-cover rounded border"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => { e.stopPropagation(); removeHotelImage(index, imgIdx); }}
+                                        data-testid={`button-remove-hotel-image-${index}-${imgIdx}`}
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
                             ) : (
                               <div className="border-2 border-dashed rounded-lg p-4 text-center text-muted-foreground">
                                 <ImagePlus className="w-8 h-8 mx-auto mb-2 opacity-50" />

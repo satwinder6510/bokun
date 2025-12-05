@@ -461,7 +461,7 @@ export default function PackageDetail() {
       <Header />
 
       {/* Gallery - Bokun Style */}
-      <section className="py-8 pt-24 md:pt-28">
+      <section className="pt-4 pb-8">
         <div className="container mx-auto px-6 md:px-8">
           {/* Hero Image with Title Overlay - 21:9 aspect ratio */}
           <div className="relative rounded-xl overflow-hidden mb-4">

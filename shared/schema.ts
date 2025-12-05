@@ -378,6 +378,14 @@ export const flightPackages = pgTable("flight_packages", {
     images: string[];
     description: string;
   }[]>().notNull().default([]),
+  
+  // Gallery videos (YouTube/Vimeo)
+  videos: jsonb("videos").$type<{
+    url: string;
+    title?: string;
+    platform: 'youtube' | 'vimeo';
+    videoId: string;
+  }[]>().notNull().default([]),
   otherInfo: text("other_info"), // HTML content for terms, conditions, etc.
   
   // Images

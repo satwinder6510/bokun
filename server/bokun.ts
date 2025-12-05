@@ -94,7 +94,9 @@ export async function testBokunConnection() {
   }
 }
 
-export async function searchBokunProducts(page: number = 1, pageSize: number = 20, currency: string = "GBP") {
+export async function searchBokunProducts(page: number = 1, pageSize: number = 20, currency: string = "USD") {
+  // Note: Bokun API always returns prices in USD regardless of currency parameter
+  // We keep currency=USD to be explicit about this
   const path = "/activity.json/search";
   const queryParams = `?currency=${currency}`;
   const fullPath = `${path}${queryParams}`;
@@ -129,7 +131,7 @@ export async function searchBokunProducts(page: number = 1, pageSize: number = 2
   }
 }
 
-export async function searchBokunProductsByKeyword(keyword: string, page: number = 1, pageSize: number = 20, currency: string = "GBP") {
+export async function searchBokunProductsByKeyword(keyword: string, page: number = 1, pageSize: number = 20, currency: string = "USD") {
   const path = "/activity.json/search";
   const queryParams = `?currency=${currency}`;
   const fullPath = `${path}${queryParams}`;
@@ -162,7 +164,7 @@ export async function searchBokunProductsByKeyword(keyword: string, page: number
   }
 }
 
-export async function getBokunProductDetails(productId: string, currency: string = "GBP") {
+export async function getBokunProductDetails(productId: string, currency: string = "USD") {
   const path = `/activity.json/${productId}`;
   const queryParams = `?currency=${currency}`;
   const fullPath = `${path}${queryParams}`;
@@ -192,7 +194,7 @@ export async function getBokunAvailability(
   productId: string, 
   startDate: string, 
   endDate: string,
-  currency: string = "GBP"
+  currency: string = "USD"
 ) {
   const path = `/activity.json/${productId}/availabilities`;
   const method = "GET";

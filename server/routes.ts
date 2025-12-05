@@ -312,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get cache metadata
   app.get("/api/bokun/cache-metadata", async (req, res) => {
     try {
-      const { currency = "GBP" } = req.query;
+      const { currency = "USD" } = req.query;
       const metadata = await storage.getCacheMetadata(currency as string);
       res.json(metadata || { lastRefreshAt: null, totalProducts: 0 });
     } catch (error: any) {
@@ -327,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Refresh products from Bokun API (force refresh)
   app.post("/api/bokun/products/refresh", async (req, res) => {
     try {
-      const { currency = "GBP" } = req.body;
+      const { currency = "USD" } = req.body;
       console.log(`Force refreshing ${currency} products from Bokun API...`);
       
       // Fetch all products from Bokun API
@@ -374,7 +374,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/bokun/products", async (req, res) => {
     try {
-      const { page = 1, pageSize = 20, currency = "GBP" } = req.body;
+      const { page = 1, pageSize = 20, currency = "USD" } = req.body;
       
       // Check if this currency is already cached
       const cachedProducts = await storage.getCachedProducts(currency);
@@ -464,7 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bokun/product/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { currency = "GBP" } = req.query;
+      const { currency = "USD" } = req.query;
       const data = await getBokunProductDetails(id, currency as string);
       res.json(data);
     } catch (error: any) {
@@ -477,11 +477,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // DIAGNOSTIC: Show exact GBP request and response from Bokun
+  // DIAGNOSTIC: Show exact USD request and response from Bokun
   app.get("/api/bokun/currency-test/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { currency = "GBP" } = req.query;
+      const { currency = "USD" } = req.query;
       
       // Build the exact request URL
       const BOKUN_API_BASE = "https://api.bokun.io";
@@ -530,7 +530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/bokun/availability/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const { start, end, currency = "GBP" } = req.query;
+      const { start, end, currency = "USD" } = req.query;
       
       if (!start || !end) {
         return res.status(400).json({

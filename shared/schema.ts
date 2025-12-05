@@ -706,3 +706,26 @@ export const combinedPackagePriceSchema = z.object({
 });
 
 export type CombinedPackagePrice = z.infer<typeof combinedPackagePriceSchema>;
+
+// Site Settings - for admin-configurable settings like exchange rates
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(), // Setting key e.g., "usd_to_gbp_rate"
+  value: text("value").notNull(), // Setting value (stored as text for flexibility)
+  label: text("label").notNull(), // Human-readable label
+  description: text("description"), // Optional description
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ 
+  id: true,
+  updatedAt: true 
+});
+
+export const updateSiteSettingSchema = z.object({
+  value: z.string().min(1, "Value is required"),
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
+export type UpdateSiteSetting = z.infer<typeof updateSiteSettingSchema>;

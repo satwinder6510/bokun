@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql } from "drizzle-orm";
@@ -104,6 +104,13 @@ export interface IStorage {
   createFlightTourPricingConfig(config: InsertFlightTourPricingConfig): Promise<FlightTourPricingConfig>;
   updateFlightTourPricingConfig(id: number, updates: UpdateFlightTourPricingConfig): Promise<FlightTourPricingConfig | undefined>;
   deleteFlightTourPricingConfig(id: number): Promise<boolean>;
+  
+  // Site settings methods
+  getAllSiteSettings(): Promise<SiteSetting[]>;
+  getSiteSettingByKey(key: string): Promise<SiteSetting | undefined>;
+  getExchangeRate(): Promise<number>;
+  upsertSiteSetting(key: string, value: string, label: string, description?: string): Promise<SiteSetting>;
+  updateSiteSetting(key: string, value: string): Promise<SiteSetting | undefined>;
 }
 
 // In-memory storage with per-currency product caching
@@ -1047,6 +1054,72 @@ export class MemStorage implements IStorage {
   async deleteFlightTourPricingConfig(id: number): Promise<boolean> {
     await db.delete(flightTourPricingConfigs).where(eq(flightTourPricingConfigs.id, id));
     return true;
+  }
+  
+  // Site Settings methods (stored in PostgreSQL)
+  async getAllSiteSettings(): Promise<SiteSetting[]> {
+    try {
+      const results = await db.select().from(siteSettings);
+      return results;
+    } catch (error) {
+      console.error("Error fetching site settings:", error);
+      return [];
+    }
+  }
+
+  async getSiteSettingByKey(key: string): Promise<SiteSetting | undefined> {
+    try {
+      const results = await db.select().from(siteSettings)
+        .where(eq(siteSettings.key, key));
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching site setting:", error);
+      return undefined;
+    }
+  }
+
+  async getExchangeRate(): Promise<number> {
+    const setting = await this.getSiteSettingByKey("usd_to_gbp_rate");
+    if (setting) {
+      const rate = parseFloat(setting.value);
+      if (!isNaN(rate) && rate > 0) {
+        return rate;
+      }
+    }
+    // Default rate if not set
+    return 0.79;
+  }
+
+  async upsertSiteSetting(key: string, value: string, label: string, description?: string): Promise<SiteSetting> {
+    const existing = await this.getSiteSettingByKey(key);
+    if (existing) {
+      const [updated] = await db.update(siteSettings)
+        .set({ value, label, description, updatedAt: new Date() })
+        .where(eq(siteSettings.key, key))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(siteSettings).values({
+        key,
+        value,
+        label,
+        description,
+      }).returning();
+      return created;
+    }
+  }
+
+  async updateSiteSetting(key: string, value: string): Promise<SiteSetting | undefined> {
+    try {
+      const [updated] = await db.update(siteSettings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(siteSettings.key, key))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error("Error updating site setting:", error);
+      return undefined;
+    }
   }
 }
 

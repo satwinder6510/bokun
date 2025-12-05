@@ -24,6 +24,7 @@ import AdminReviews from "@/pages/AdminReviews";
 import AdminTrackingNumbers from "@/pages/AdminTrackingNumbers";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminFlightPricing from "@/pages/AdminFlightPricing";
+import AdminSettings from "@/pages/AdminSettings";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import DesignPreview from "@/pages/DesignPreview";
@@ -100,6 +101,11 @@ function Router() {
       <Route path="/admin/flight-pricing">
         <ProtectedRoute>
           <AdminFlightPricing />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/settings">
+        <ProtectedRoute>
+          <AdminSettings />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

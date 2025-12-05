@@ -3065,6 +3065,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Site Settings API endpoints (admin)
+  app.get("/api/admin/settings", async (req, res) => {
+    try {
+      const settings = await storage.getAllSiteSettings();
+      res.json(settings);
+    } catch (error: any) {
+      console.error("Error fetching site settings:", error);
+      res.status(500).json({ error: "Failed to fetch site settings" });
+    }
+  });
+
+  app.get("/api/admin/settings/:key", async (req, res) => {
+    try {
+      const { key } = req.params;
+      const setting = await storage.getSiteSettingByKey(key);
+      if (!setting) {
+        return res.status(404).json({ error: "Setting not found" });
+      }
+      res.json(setting);
+    } catch (error: any) {
+      console.error("Error fetching site setting:", error);
+      res.status(500).json({ error: "Failed to fetch site setting" });
+    }
+  });
+
+  app.put("/api/admin/settings/:key", async (req, res) => {
+    try {
+      const { key } = req.params;
+      const { value, label, description } = req.body;
+      
+      if (!value || typeof value !== 'string') {
+        return res.status(400).json({ error: "Value is required" });
+      }
+      
+      // If label provided, upsert; otherwise just update value
+      if (label) {
+        const setting = await storage.upsertSiteSetting(key, value, label, description);
+        res.json(setting);
+      } else {
+        const setting = await storage.updateSiteSetting(key, value);
+        if (!setting) {
+          return res.status(404).json({ error: "Setting not found" });
+        }
+        res.json(setting);
+      }
+    } catch (error: any) {
+      console.error("Error updating site setting:", error);
+      res.status(500).json({ error: "Failed to update site setting" });
+    }
+  });
+
+  // Initialize default settings (admin)
+  app.post("/api/admin/settings/initialize", async (req, res) => {
+    try {
+      // Create default exchange rate if it doesn't exist
+      const exchangeRate = await storage.upsertSiteSetting(
+        "usd_to_gbp_rate",
+        "0.79",
+        "USD to GBP Exchange Rate",
+        "Exchange rate used to convert Bokun API prices from USD to GBP"
+      );
+      res.json({ success: true, settings: [exchangeRate] });
+    } catch (error: any) {
+      console.error("Error initializing settings:", error);
+      res.status(500).json({ error: "Failed to initialize settings" });
+    }
+  });
+
+  // Get exchange rate (public - needed for frontend)
+  app.get("/api/exchange-rate", async (req, res) => {
+    try {
+      const rate = await storage.getExchangeRate();
+      res.json({ rate });
+    } catch (error: any) {
+      console.error("Error fetching exchange rate:", error);
+      res.status(500).json({ error: "Failed to fetch exchange rate" });
+    }
+  });
+
   // Get package categories (for navigation)
   app.get("/api/packages/categories", async (req, res) => {
     try {

@@ -11,7 +11,7 @@ import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane, Image } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane, Image, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -478,6 +478,29 @@ export default function Dashboard() {
                   >
                     {migrateImagesMutation.isPending ? "Migrating..." : "Migrate Images"}
                   </Button>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card data-testid="card-site-settings">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <Settings className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Site Settings</CardTitle>
+                      <CardDescription>
+                        Exchange rates and system configuration
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Link href="/admin/settings">
+                    <Button variant="outline" size="sm" data-testid="button-manage-settings">
+                      Configure
+                    </Button>
+                  </Link>
                 </div>
               </CardHeader>
             </Card>

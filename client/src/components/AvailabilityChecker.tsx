@@ -7,10 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar as CalendarIcon, Users, Loader2, ShoppingCart, CreditCard, ChevronDown, Check, Minus, Plus } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { useCurrency } from "@/contexts/CurrencyContext";
 import { useCart } from "@/contexts/CartContext";
 import { apiRequest } from "@/lib/queryClient";
-import { applyBokunMarkup } from "@/lib/pricing";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { format, addMonths } from "date-fns";
 import { useLocation } from "wouter";
 import {
@@ -96,7 +95,7 @@ interface AvailabilityData {
 
 export function AvailabilityChecker({ productId, productTitle, rates, bookableExtras, startingPrice }: AvailabilityCheckerProps) {
   const { toast } = useToast();
-  const { selectedCurrency } = useCurrency();
+  const { formatBokunPrice } = useExchangeRate();
   const { addToCart } = useCart();
   const [, setLocation] = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -126,7 +125,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
   }, [selectedRate, rates]);
 
   const { data: initialAvailability, isLoading: isLoadingDates } = useQuery({
-    queryKey: ["/api/bokun/availability", productId, "initial", selectedCurrency.code],
+    queryKey: ["/api/bokun/availability", productId, "initial", "GBP"],
     queryFn: async () => {
       const today = new Date();
       const sixMonthsLater = addMonths(today, 6);
@@ -135,7 +134,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
       
       const response = await apiRequest(
         "GET",
-        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=${selectedCurrency.code}`
+        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=GBP`
       );
       return response;
     },
@@ -183,7 +182,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
       const formattedDate = format(date, "yyyy-MM-dd");
       const response = await apiRequest(
         "GET",
-        `/api/bokun/availability/${productId}?start=${formattedDate}&end=${formattedDate}&currency=${selectedCurrency.code}`
+        `/api/bokun/availability/${productId}?start=${formattedDate}&end=${formattedDate}&currency=GBP`
       );
       return response;
     },
@@ -229,7 +228,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
       return false;
     }
 
-    if (priceCurrency !== selectedCurrency.code) {
+    if (priceCurrency !== 'GBP') {
       toast({
         title: "Currency mismatch",
         description: "Please refresh the page and try again.",
@@ -245,7 +244,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
         productId,
         productTitle,
         productPrice: totalPrice,
-        currency: selectedCurrency.code,
+        currency: 'GBP',
         date: format(departureDate, "yyyy-MM-dd"),
         rateId,
         rateTitle,
@@ -308,8 +307,8 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
 
     if (!rate || !price || price.amount === undefined) return null;
 
-    // Apply 10% markup to Bokun net prices
-    const markedUpPricePerPerson = applyBokunMarkup(price.amount);
+    // Convert USD to GBP and apply 10% markup to Bokun net prices
+    const markedUpPricePerPerson = formatBokunPrice(price.amount);
     const totalPrice = rate.pricedPerPerson 
       ? markedUpPricePerPerson * numberOfPeople
       : markedUpPricePerPerson;
@@ -485,13 +484,13 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
               <div className="space-y-1">
                 {pricing.isPricedPerPerson && (
                   <p className="text-sm text-muted-foreground">
-                    {selectedCurrency.symbol}{pricing.pricePerPerson.toFixed(2)} × {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}
+                    £{pricing.pricePerPerson.toFixed(2)} × {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">Total price</p>
               </div>
               <p className="text-3xl font-bold text-primary" data-testid="text-total-price">
-                {selectedCurrency.symbol}{pricing.totalPrice.toFixed(2)}
+                £{pricing.totalPrice.toFixed(2)}
               </p>
             </div>
           </div>
@@ -500,7 +499,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
         <div className="grid grid-cols-2 gap-3">
           <Button
             variant="outline"
-            onClick={() => handleAddToCart(pricing.rateId, pricing.rateTitle, pricing.totalPrice, selectedCurrency.code)}
+            onClick={() => handleAddToCart(pricing.rateId, pricing.rateTitle, pricing.totalPrice, 'GBP')}
             disabled={!canBook || isAdding}
             className="h-12"
             data-testid="button-add-to-cart"
@@ -509,7 +508,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
             {isAdding ? "Adding..." : "Add to Cart"}
           </Button>
           <Button
-            onClick={() => handleBuyNow(pricing.rateId, pricing.rateTitle, pricing.totalPrice, selectedCurrency.code)}
+            onClick={() => handleBuyNow(pricing.rateId, pricing.rateTitle, pricing.totalPrice, 'GBP')}
             disabled={!canBook || isAdding}
             className="h-12"
             data-testid="button-buy-now"
@@ -567,7 +566,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                   <>
                     <p className="text-xs text-muted-foreground">From</p>
                     <p className="text-xl font-bold" data-testid="text-mobile-price">
-                      {selectedCurrency.symbol}{startingPrice.toFixed(2)}
+                      £{startingPrice.toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground">per person</p>
                   </>

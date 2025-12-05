@@ -13,12 +13,13 @@ import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { FlightPricingCalendar } from "@/components/FlightPricingCalendar";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
-import { applyBokunMarkup } from "@/lib/pricing";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 
 export default function TourDetail() {
   const { selectedCurrency } = useCurrency();
+  const { formatBokunPrice } = useExchangeRate();
   const [, params] = useRoute("/tour/:id");
   const productId = params?.id;
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
@@ -52,10 +53,10 @@ export default function TourDetail() {
       setMetaTags(title, description, ogImage);
 
       // Add structured data for rich snippets
-      // Use currency-adjusted price from API response with 10% markup
+      // Convert USD to GBP with 10% markup for pricing display
       const netPrice = product.nextDefaultPriceMoney?.amount ?? product.nextDefaultPrice ?? product.price ?? 0;
-      const priceAmount = applyBokunMarkup(netPrice);
-      const priceCurrency = product.nextDefaultPriceMoney?.currency ?? selectedCurrency.code;
+      const priceAmount = formatBokunPrice(netPrice);
+      const priceCurrency = 'GBP'; // Fixed to GBP for UK customers
       
       const schema = {
         '@context': 'https://schema.org',
@@ -385,7 +386,7 @@ export default function TourDetail() {
                       productTitle={product.title}
                       rates={product.rates}
                       bookableExtras={product.bookableExtras}
-                      startingPrice={product.price ? applyBokunMarkup(product.price) : undefined}
+                      startingPrice={product.price ? formatBokunPrice(product.price) : undefined}
                     />
                   )}
               </div>
@@ -411,7 +412,7 @@ export default function TourDetail() {
                             </div>
                             {extra.price && !extra.free && (
                               <span className="font-semibold" data-testid={`text-extra-price-${extra.id}`}>
-                                £{applyBokunMarkup(extra.price).toFixed(2)}
+                                £{formatBokunPrice(extra.price).toFixed(2)}
                               </span>
                             )}
                             {extra.free && (

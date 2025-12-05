@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { MapPin, Clock } from "lucide-react";
-import { useCurrency } from "@/contexts/CurrencyContext";
-import { applyBokunMarkup } from "@/lib/pricing";
+import { useExchangeRate } from "@/hooks/useExchangeRate";
 import type { BokunProduct } from "@shared/schema";
 
 interface TourCardProps {
@@ -9,7 +8,7 @@ interface TourCardProps {
 }
 
 export function TourCard({ product }: TourCardProps) {
-  const { selectedCurrency } = useCurrency();
+  const { formatBokunPrice } = useExchangeRate();
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=500&q=75";
   const imageUrl = product.keyPhoto?.originalUrl || imagePlaceholder;
   
@@ -85,7 +84,7 @@ export function TourCard({ product }: TourCardProps) {
             )}
           </div>
 
-          {/* Price (with 10% markup on Bokun net prices) */}
+          {/* Price (converted from USD to GBP with 10% markup) */}
           {product.price && (
             <div className="flex items-baseline gap-1 mb-4">
               <span className="text-sm text-white/80">from</span>
@@ -94,9 +93,9 @@ export function TourCard({ product }: TourCardProps) {
                   className="text-3xl font-bold text-white"
                   data-testid={`text-price-${product.id}`}
                 >
-                  {selectedCurrency.symbol}{applyBokunMarkup(product.price).toFixed(0)}
+                  £{formatBokunPrice(product.price).toFixed(0)}
                 </span>
-                <span className="text-xs text-white/60">{selectedCurrency.code}</span>
+                <span className="text-xs text-white/60">GBP</span>
               </div>
               <span className="text-sm text-white/80">/pp</span>
             </div>

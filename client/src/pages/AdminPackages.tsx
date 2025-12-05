@@ -180,6 +180,8 @@ export default function AdminPackages() {
   const [uploadingHotelIndex, setUploadingHotelIndex] = useState<number | null>(null);
   const [draggedImageIndex, setDraggedImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
   const [dragOverImageIndex, setDragOverImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
+  const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
+  const [dragOverGalleryIndex, setDragOverGalleryIndex] = useState<number | null>(null);
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
   const hotelImageRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
@@ -1011,6 +1013,31 @@ export default function AdminPackages() {
     setDragOverImageIndex(null);
   };
 
+  const handleGalleryDragStart = (imageIndex: number) => {
+    setDraggedGalleryIndex(imageIndex);
+  };
+
+  const handleGalleryDragOver = (e: React.DragEvent, imageIndex: number) => {
+    e.preventDefault();
+    setDragOverGalleryIndex(imageIndex);
+  };
+
+  const handleGalleryDragEnd = () => {
+    if (draggedGalleryIndex !== null && dragOverGalleryIndex !== null && 
+        draggedGalleryIndex !== dragOverGalleryIndex) {
+      
+      const gallery = [...(formData.gallery || [])];
+      const [movedImage] = gallery.splice(draggedGalleryIndex, 1);
+      gallery.splice(dragOverGalleryIndex, 0, movedImage);
+      
+      setFormData({ ...formData, gallery });
+      toast({ title: "Gallery order updated" });
+    }
+    
+    setDraggedGalleryIndex(null);
+    setDragOverGalleryIndex(null);
+  };
+
   const isEditing = isCreating || editingPackage !== null;
 
   return (
@@ -1671,10 +1698,13 @@ export default function AdminPackages() {
 
                     <div>
                       <Label>Gallery Images</Label>
-                      <p className="text-xs text-muted-foreground mt-1 mb-2">
-                        Recommended: <strong>1600 x 1067 px</strong> (3:2 ratio). JPEG format, under 500KB each.
-                      </p>
-                      <div className="mt-2 space-y-3">
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2 mt-2 mb-3">
+                        <p className="text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                          <ImagePlus className="w-3 h-3 flex-shrink-0" />
+                          <span><strong>1600×1067px</strong> (3:2 ratio) • JPEG/WebP • Max 350KB each</span>
+                        </p>
+                      </div>
+                      <div className="space-y-3">
                         <input
                           ref={galleryImagesRef}
                           type="file"
@@ -1704,13 +1734,34 @@ export default function AdminPackages() {
                             </>
                           )}
                         </Button>
+                        {(formData.gallery || []).length > 0 && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <GripVertical className="w-3 h-3" />
+                            Drag images to reorder. First image appears first in gallery.
+                          </p>
+                        )}
                         <div className="flex flex-wrap gap-2">
                           {(formData.gallery || []).map((url, i) => (
-                            <div key={i} className="relative group">
+                            <div 
+                              key={i} 
+                              className={`relative group cursor-move transition-all ${
+                                draggedGalleryIndex === i ? 'opacity-50 scale-95' : ''
+                              } ${
+                                dragOverGalleryIndex === i ? 'ring-2 ring-primary ring-offset-2' : ''
+                              }`}
+                              draggable
+                              onDragStart={() => handleGalleryDragStart(i)}
+                              onDragOver={(e) => handleGalleryDragOver(e, i)}
+                              onDragEnd={handleGalleryDragEnd}
+                              data-testid={`gallery-image-draggable-${i}`}
+                            >
+                              <div className="absolute top-1 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <GripVertical className="w-3 h-3" />
+                              </div>
                               <img src={url} alt="" className="h-20 w-28 object-cover rounded-md" />
                               <button
                                 type="button"
-                                onClick={() => setFormData({ ...formData, gallery: (formData.gallery || []).filter((_, idx) => idx !== i) })}
+                                onClick={(e) => { e.stopPropagation(); setFormData({ ...formData, gallery: (formData.gallery || []).filter((_, idx) => idx !== i) }); }}
                                 className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                 data-testid={`button-remove-gallery-${i}`}
                               >

@@ -1,6 +1,5 @@
 import { Response } from "express";
 import { randomUUID } from "crypto";
-import { Storage, File } from "@google-cloud/storage";
 
 function sanitizeFilename(filename: string): string {
   const lastDot = filename.lastIndexOf('.');
@@ -17,42 +16,20 @@ function sanitizeFilename(filename: string): string {
   return (sanitized || 'image') + ext;
 }
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+let storageClient: any = null;
+let storageInitError: string | null = null;
 
-export const objectStorageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
-      },
-    },
-    universe_domain: "googleapis.com",
-  },
-  projectId: "",
-});
-
-let cachedBucketName: string | null = null;
-
-async function getBucketName(): Promise<string | null> {
-  if (cachedBucketName) return cachedBucketName;
+async function initStorageClient() {
+  if (storageClient) return storageClient;
+  if (storageInitError) return null;
   
   try {
-    const [buckets] = await objectStorageClient.getBuckets();
-    if (buckets.length > 0) {
-      cachedBucketName = buckets[0].name;
-      console.log(`[ObjectStorage] Using bucket: ${cachedBucketName}`);
-      return cachedBucketName;
-    }
-    console.warn("[ObjectStorage] No buckets found");
-    return null;
+    const { Client } = await import("@replit/object-storage");
+    storageClient = new Client();
+    return storageClient;
   } catch (error: any) {
-    console.warn("[ObjectStorage] Error getting buckets:", error.message);
+    storageInitError = error.message;
+    console.warn("Object storage not available:", error.message);
     return null;
   }
 }
@@ -66,10 +43,21 @@ export class ObjectNotFoundError extends Error {
 }
 
 export class ObjectStorageService {
-  
+  private client: any = null;
+  private initPromise: Promise<any> | null = null;
+
+  async getClient() {
+    if (this.client) return this.client;
+    if (!this.initPromise) {
+      this.initPromise = initStorageClient();
+    }
+    this.client = await this.initPromise;
+    return this.client;
+  }
+
   async isAvailable(): Promise<boolean> {
-    const bucket = await getBucketName();
-    return bucket !== null;
+    const client = await this.getClient();
+    return client !== null;
   }
 
   getContentTypeFromPath(path: string): string {
@@ -87,44 +75,60 @@ export class ObjectStorageService {
     return mimeTypes[ext] || 'application/octet-stream';
   }
 
-  async getFile(objectPath: string): Promise<File | null> {
-    const bucketNameValue = await getBucketName();
-    if (!bucketNameValue) return null;
+  async getObject(objectPath: string): Promise<{ data: Buffer; contentType: string } | null> {
+    const client = await this.getClient();
+    if (!client) return null;
 
-    const bucket = objectStorageClient.bucket(bucketNameValue);
-    const file = bucket.file(objectPath);
-    
-    const [exists] = await file.exists();
-    if (!exists) return null;
-    
-    return file;
+    try {
+      const textResult = await client.downloadAsText(objectPath);
+      if (textResult.ok && textResult.value) {
+        const contentType = this.getContentTypeFromPath(objectPath);
+        
+        // Try to decode as base64 - all our uploads are now base64 encoded
+        try {
+          const decoded = Buffer.from(textResult.value, 'base64');
+          // Check if decoded data looks like binary (not readable text)
+          // Binary files typically have many non-printable characters in the first bytes
+          const firstBytes = decoded.slice(0, 8);
+          const hasBinaryData = firstBytes.some(b => b < 32 && b !== 9 && b !== 10 && b !== 13);
+          
+          // Also check for common binary file signatures
+          const isPng = decoded[0] === 0x89 && decoded[1] === 0x50 && decoded[2] === 0x4E && decoded[3] === 0x47;
+          const isJpeg = decoded[0] === 0xFF && decoded[1] === 0xD8;
+          const isGif = decoded[0] === 0x47 && decoded[1] === 0x49 && decoded[2] === 0x46;
+          const isWebp = decoded[0] === 0x52 && decoded[1] === 0x49 && decoded[2] === 0x46 && decoded[3] === 0x46;
+          
+          if (isPng || isJpeg || isGif || isWebp || hasBinaryData) {
+            return { data: decoded, contentType };
+          }
+        } catch {
+          // If base64 decoding fails, use the raw value
+        }
+        
+        // If not detected as binary, return as-is
+        return { data: Buffer.from(textResult.value), contentType };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error getting object:", error);
+      return null;
+    }
   }
 
   async downloadObject(objectPath: string, res: Response, cacheTtlSec: number = 86400) {
     try {
-      const file = await this.getFile(objectPath);
-      if (!file) {
+      const result = await this.getObject(objectPath);
+      if (!result) {
         res.status(404).json({ error: "Object not found" });
         return;
       }
 
-      const [metadata] = await file.getMetadata();
-      const contentType = metadata.contentType || this.getContentTypeFromPath(objectPath);
-
       res.set({
-        "Content-Type": contentType,
-        "Content-Length": metadata.size?.toString() || '0',
+        "Content-Type": result.contentType,
+        "Content-Length": result.data.length.toString(),
         "Cache-Control": `public, max-age=${cacheTtlSec}`,
       });
-
-      const stream = file.createReadStream();
-      stream.on("error", (err) => {
-        console.error("Stream error:", err);
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Error streaming file" });
-        }
-      });
-      stream.pipe(res);
+      res.send(result.data);
     } catch (error) {
       console.error("Error downloading object:", error);
       if (!res.headersSent) {
@@ -134,8 +138,8 @@ export class ObjectStorageService {
   }
 
   async uploadFromUrl(sourceUrl: string, filename: string): Promise<string> {
-    const bucketNameValue = await getBucketName();
-    if (!bucketNameValue) {
+    const client = await this.getClient();
+    if (!client) {
       throw new Error("Object storage is not available. Please configure a bucket in the Object Storage tab.");
     }
 
@@ -152,14 +156,13 @@ export class ObjectStorageService {
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      const bucket = objectStorageClient.bucket(bucketNameValue);
-      const file = bucket.file(objectPath);
+      // Use base64 encoding to work around uploadFromBytes bug
+      const base64Data = buffer.toString('base64');
+      const result = await client.uploadFromText(objectPath, base64Data);
       
-      const contentType = this.getContentTypeFromPath(objectPath);
-      
-      await file.save(buffer, {
-        metadata: { contentType },
-      });
+      if (!result.ok) {
+        throw new Error(`Failed to upload to object storage: ${result.error || 'Unknown error'}`);
+      }
 
       console.log(`[ObjectStorage] Uploaded from URL: ${objectPath} (${buffer.length} bytes)`);
       return `/objects/${objectPath}`;
@@ -170,8 +173,8 @@ export class ObjectStorageService {
   }
 
   async uploadFromBuffer(buffer: Buffer, filename: string): Promise<string> {
-    const bucketNameValue = await getBucketName();
-    if (!bucketNameValue) {
+    const client = await this.getClient();
+    if (!client) {
       throw new Error("Object storage is not available. Please configure a bucket in the Object Storage tab.");
     }
 
@@ -182,16 +185,17 @@ export class ObjectStorageService {
     console.log(`[ObjectStorage] Uploading: path=${objectPath}, bufferSize=${buffer.length}`);
 
     try {
-      const bucket = objectStorageClient.bucket(bucketNameValue);
-      const file = bucket.file(objectPath);
+      // Use base64 encoding to work around uploadFromBytes bug
+      const base64Data = buffer.toString('base64');
+      const result = await client.uploadFromText(objectPath, base64Data);
       
-      const contentType = this.getContentTypeFromPath(objectPath);
+      console.log(`[ObjectStorage] Upload result: ok=${result.ok}, error=${result.error || 'none'}`);
       
-      await file.save(buffer, {
-        metadata: { contentType },
-      });
+      if (!result.ok) {
+        throw new Error(`Failed to upload to object storage: ${result.error || 'Unknown error'}`);
+      }
 
-      console.log(`[ObjectStorage] Upload complete: ${objectPath}`);
+      console.log(`[ObjectStorage] Upload complete: ${objectPath} (${buffer.length} bytes as base64)`);
       return `/objects/${objectPath}`;
     } catch (error: any) {
       console.error(`uploadFromBuffer error:`, error);
@@ -200,30 +204,30 @@ export class ObjectStorageService {
   }
 
   async exists(objectPath: string): Promise<boolean> {
+    const client = await this.getClient();
+    if (!client) return false;
+
     try {
       const normalizedPath = objectPath.startsWith('/objects/') 
         ? objectPath.replace('/objects/', '') 
         : objectPath;
-      const file = await this.getFile(normalizedPath);
-      return file !== null;
+      const result = await client.downloadAsText(normalizedPath);
+      return result.ok;
     } catch {
       return false;
     }
   }
 
   async deleteObject(objectPath: string): Promise<boolean> {
-    const bucketNameValue = await getBucketName();
-    if (!bucketNameValue) return false;
+    const client = await this.getClient();
+    if (!client) return false;
 
     try {
       const normalizedPath = objectPath.startsWith('/objects/') 
         ? objectPath.replace('/objects/', '') 
         : objectPath;
-      
-      const bucket = objectStorageClient.bucket(bucketNameValue);
-      const file = bucket.file(normalizedPath);
-      await file.delete();
-      return true;
+      const result = await client.delete(normalizedPath);
+      return result.ok;
     } catch (error) {
       console.error("Error deleting object:", error);
       return false;
@@ -231,13 +235,15 @@ export class ObjectStorageService {
   }
 
   async listObjects(prefix: string = ""): Promise<string[]> {
-    const bucketNameValue = await getBucketName();
-    if (!bucketNameValue) return [];
+    const client = await this.getClient();
+    if (!client) return [];
 
     try {
-      const bucket = objectStorageClient.bucket(bucketNameValue);
-      const [files] = await bucket.getFiles({ prefix });
-      return files.map((file) => file.name);
+      const result = await client.list({ prefix });
+      if (result.ok && result.value?.objects) {
+        return result.value.objects.map((obj: any) => obj.name);
+      }
+      return [];
     } catch (error) {
       console.error("Error listing objects:", error);
       return [];

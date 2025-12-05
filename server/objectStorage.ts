@@ -1,6 +1,23 @@
 import { Response } from "express";
 import { randomUUID } from "crypto";
 
+function sanitizeFilename(filename: string): string {
+  // Get file extension
+  const lastDot = filename.lastIndexOf('.');
+  const ext = lastDot > 0 ? filename.slice(lastDot).toLowerCase() : '';
+  const baseName = lastDot > 0 ? filename.slice(0, lastDot) : filename;
+  
+  // Sanitize: lowercase, replace spaces/special chars with hyphens, remove consecutive hyphens
+  const sanitized = baseName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')  // Replace non-alphanumeric with hyphens
+    .replace(/-+/g, '-')          // Remove consecutive hyphens
+    .replace(/^-|-$/g, '')        // Remove leading/trailing hyphens
+    .slice(0, 50);                // Limit length
+  
+  return (sanitized || 'image') + ext;
+}
+
 let storageClient: any = null;
 let storageInitError: string | null = null;
 
@@ -105,7 +122,8 @@ export class ObjectStorageService {
       throw new Error("Object storage is not available. Please configure a bucket in the Object Storage tab.");
     }
 
-    const objectId = `${randomUUID()}-${filename}`;
+    const safeFilename = sanitizeFilename(filename);
+    const objectId = `${randomUUID()}-${safeFilename}`;
     const objectPath = `images/${objectId}`;
 
     try {
@@ -135,7 +153,8 @@ export class ObjectStorageService {
       throw new Error("Object storage is not available. Please configure a bucket in the Object Storage tab.");
     }
 
-    const objectId = `${randomUUID()}-${filename}`;
+    const safeFilename = sanitizeFilename(filename);
+    const objectId = `${randomUUID()}-${safeFilename}`;
     const objectPath = `images/${objectId}`;
 
     try {

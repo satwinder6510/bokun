@@ -231,6 +231,8 @@ export default function AdminPackages() {
   const [dragOverImageIndex, setDragOverImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
   const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
   const [dragOverGalleryIndex, setDragOverGalleryIndex] = useState<number | null>(null);
+  const [draggedVideoIndex, setDraggedVideoIndex] = useState<number | null>(null);
+  const [dragOverVideoIndex, setDragOverVideoIndex] = useState<number | null>(null);
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
@@ -1089,6 +1091,31 @@ export default function AdminPackages() {
     setDragOverGalleryIndex(null);
   };
 
+  const handleVideoDragStart = (videoIndex: number) => {
+    setDraggedVideoIndex(videoIndex);
+  };
+
+  const handleVideoDragOver = (e: React.DragEvent, videoIndex: number) => {
+    e.preventDefault();
+    setDragOverVideoIndex(videoIndex);
+  };
+
+  const handleVideoDragEnd = () => {
+    if (draggedVideoIndex !== null && dragOverVideoIndex !== null && 
+        draggedVideoIndex !== dragOverVideoIndex) {
+      
+      const videos = [...(formData.videos || [])];
+      const [movedVideo] = videos.splice(draggedVideoIndex, 1);
+      videos.splice(dragOverVideoIndex, 0, movedVideo);
+      
+      setFormData({ ...formData, videos });
+      toast({ title: "Video order updated" });
+    }
+    
+    setDraggedVideoIndex(null);
+    setDragOverVideoIndex(null);
+  };
+
   const isEditing = isCreating || editingPackage !== null;
 
   return (
@@ -1882,16 +1909,27 @@ export default function AdminPackages() {
                             {(formData.videos || []).map((video, i) => (
                               <div 
                                 key={i} 
-                                className="relative group"
+                                className={`relative group cursor-move transition-all ${
+                                  draggedVideoIndex === i ? 'opacity-50 scale-95' : ''
+                                } ${
+                                  dragOverVideoIndex === i ? 'ring-2 ring-primary ring-offset-2' : ''
+                                }`}
+                                draggable
+                                onDragStart={() => handleVideoDragStart(i)}
+                                onDragOver={(e) => handleVideoDragOver(e, i)}
+                                onDragEnd={handleVideoDragEnd}
                                 data-testid={`video-item-${i}`}
                               >
+                                <div className="absolute top-1 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                  <GripVertical className="w-3 h-3" />
+                                </div>
                                 <div className="relative h-20 w-28 rounded-md overflow-hidden border">
                                   <img 
                                     src={getVideoThumbnail(video)} 
                                     alt={video.title || `Video ${i + 1}`} 
                                     className="h-full w-full object-cover"
                                   />
-                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
                                     <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
                                       <div className="w-0 h-0 border-l-[10px] border-l-red-600 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent ml-1" />
                                     </div>

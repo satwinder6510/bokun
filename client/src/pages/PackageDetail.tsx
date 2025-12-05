@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,6 +30,36 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { FlightPackage, PackagePricing } from "@shared/schema";
+
+// Video type for gallery
+type VideoItem = {
+  url: string;
+  title?: string;
+  platform: 'youtube' | 'vimeo';
+  videoId: string;
+};
+
+type GalleryItem = {
+  type: 'image' | 'video';
+  url: string;
+  video?: VideoItem;
+};
+
+// Get video thumbnail URL
+function getVideoThumbnail(video: VideoItem): string {
+  if (video.platform === 'youtube') {
+    return `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`;
+  }
+  return `https://vumbnail.com/${video.videoId}.jpg`;
+}
+
+// Get video embed URL
+function getVideoEmbedUrl(video: VideoItem): string {
+  if (video.platform === 'youtube') {
+    return `https://www.youtube.com/embed/${video.videoId}?autoplay=1`;
+  }
+  return `https://player.vimeo.com/video/${video.videoId}?autoplay=1`;
+}
 
 // Price Calendar Widget Component
 function PriceCalendarWidget({ 
@@ -450,7 +480,19 @@ export default function PackageDetail() {
   }
 
   const gallery = pkg.gallery || [];
-  const allImages = [pkg.featuredImage, ...gallery].filter(Boolean).map(img => getProxiedImageUrl(img)) as string[];
+  const videos = (pkg.videos || []) as VideoItem[];
+  const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
+  
+  // Combine images and videos into gallery items
+  const allGalleryItems: GalleryItem[] = [
+    // Featured image first
+    ...(pkg.featuredImage ? [{ type: 'image' as const, url: getProxiedImageUrl(pkg.featuredImage) }] : []),
+    // Then gallery images
+    ...gallery.filter(Boolean).map(img => ({ type: 'image' as const, url: getProxiedImageUrl(img) })),
+    // Then videos at the end
+    ...videos.map(video => ({ type: 'video' as const, url: getVideoThumbnail(video), video })),
+  ];
+  
   const itinerary = pkg.itinerary || [];
   const accommodations = pkg.accommodations || [];
   const whatsIncluded = cleanFragmentedHtmlArray(pkg.whatsIncluded || []);
@@ -466,7 +508,7 @@ export default function PackageDetail() {
           {/* Hero Image with Title Overlay - 21:9 aspect ratio */}
           <div className="relative rounded-xl overflow-hidden mb-4">
             <img
-              src={allImages[0] || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
+              src={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
               alt={pkg.title}
               className="w-full aspect-[21/9] object-cover"
               data-testid="img-package-hero"
@@ -509,20 +551,21 @@ export default function PackageDetail() {
           </div>
           
           {/* Gallery Carousel */}
-          {allImages.length > 1 && (
+          {allGalleryItems.length > 1 && (
             <div className="relative group">
               <div className="overflow-hidden" ref={emblaRef}>
                 <div className="flex gap-4">
-                  {allImages.map((img, index) => (
+                  {allGalleryItems.map((item, index) => (
                     <div 
                       key={index} 
-                      className="flex-[0_0_auto] w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3]"
+                      className={`flex-[0_0_auto] w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative ${item.type === 'video' ? 'cursor-pointer' : ''}`}
+                      onClick={() => item.type === 'video' && item.video && setActiveVideo(item.video)}
                     >
                       <img
-                        src={img}
-                        alt={`${pkg.title} photo ${index + 1}`}
+                        src={item.url}
+                        alt={item.type === 'video' ? `Video: ${item.video?.title || 'Watch video'}` : `${pkg.title} photo ${index + 1}`}
                         className="w-full h-full object-cover"
-                        data-testid={`img-gallery-${index}`}
+                        data-testid={item.type === 'video' ? `video-gallery-${index}` : `img-gallery-${index}`}
                         loading="lazy"
                         decoding="async"
                         onError={(e) => {
@@ -530,12 +573,22 @@ export default function PackageDetail() {
                           target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
                         }}
                       />
+                      {item.type === 'video' && (
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
+                          <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                            <Play className="w-5 h-5 text-red-600 ml-1" fill="currentColor" />
+                          </div>
+                          <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-0.5 rounded">
+                            {item.video?.platform === 'youtube' ? 'YouTube' : 'Vimeo'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
               
-              {allImages.length > 6 && (
+              {allGalleryItems.length > 6 && (
                 <>
                   <Button
                     variant="outline"
@@ -557,6 +610,33 @@ export default function PackageDetail() {
                   </Button>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Video Player Modal */}
+          {activeVideo && (
+            <div 
+              className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+              onClick={() => setActiveVideo(null)}
+            >
+              <div className="relative w-full max-w-4xl aspect-video" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute -top-12 right-0 text-white hover:bg-white/20"
+                  onClick={() => setActiveVideo(null)}
+                  data-testid="button-close-video"
+                >
+                  <X className="w-6 h-6" />
+                </Button>
+                <iframe
+                  src={getVideoEmbedUrl(activeVideo)}
+                  className="w-full h-full rounded-lg"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowFullScreen
+                  data-testid="iframe-video-player"
+                />
+              </div>
             </div>
           )}
         </div>

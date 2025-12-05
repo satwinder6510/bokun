@@ -158,7 +158,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/objects/*", async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
-      const objectPath = req.path.replace('/objects/', '');
+      // Decode URL-encoded path to match how files are stored in object storage
+      const objectPath = decodeURIComponent(req.path.replace('/objects/', ''));
       await objectStorageService.downloadObject(objectPath, res, 86400); // 24-hour cache
     } catch (error) {
       if (error instanceof ObjectNotFoundError) {

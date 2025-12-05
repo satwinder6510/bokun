@@ -8,6 +8,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import Homepage from "@/pages/Homepage";
+import Tours from "@/pages/Tours";
 import TourDetail from "@/pages/TourDetail";
 import Terms from "@/pages/Terms";
 import Contact from "@/pages/Contact";
@@ -42,6 +43,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Homepage} />
+      <Route path="/tours" component={Tours} />
       <Route path="/tour/:id" component={TourDetail} />
       <Route path="/packages" component={Packages} />
       <Route path="/packages/:slug" component={PackageDetail} />

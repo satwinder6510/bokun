@@ -81,6 +81,13 @@ type Accommodation = {
   description: string;
 };
 
+type VideoItem = {
+  url: string;
+  title?: string;
+  platform: 'youtube' | 'vimeo';
+  videoId: string;
+};
+
 type PackageFormData = {
   title: string;
   slug: string;
@@ -98,6 +105,7 @@ type PackageFormData = {
   otherInfo: string;
   featuredImage: string;
   gallery: string[];
+  videos: VideoItem[];
   duration: string;
   metaTitle: string;
   metaDescription: string;
@@ -140,6 +148,7 @@ const emptyPackage: PackageFormData = {
   otherInfo: "",
   featuredImage: "",
   gallery: [],
+  videos: [],
   duration: "",
   metaTitle: "",
   metaDescription: "",
@@ -147,6 +156,46 @@ const emptyPackage: PackageFormData = {
   displayOrder: 0,
   bokunProductId: null,
 };
+
+// Helper function to parse YouTube/Vimeo URLs
+function parseVideoUrl(url: string): { platform: 'youtube' | 'vimeo'; videoId: string } | null {
+  // YouTube patterns
+  const youtubePatterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+  ];
+  
+  for (const pattern of youtubePatterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return { platform: 'youtube', videoId: match[1] };
+    }
+  }
+  
+  // Vimeo patterns
+  const vimeoPatterns = [
+    /vimeo\.com\/(\d+)/,
+    /player\.vimeo\.com\/video\/(\d+)/,
+  ];
+  
+  for (const pattern of vimeoPatterns) {
+    const match = url.match(pattern);
+    if (match) {
+      return { platform: 'vimeo', videoId: match[1] };
+    }
+  }
+  
+  return null;
+}
+
+// Get video thumbnail URL
+function getVideoThumbnail(video: VideoItem): string {
+  if (video.platform === 'youtube') {
+    return `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`;
+  }
+  // Vimeo thumbnails require an API call, so we'll use a placeholder
+  return `https://vumbnail.com/${video.videoId}.jpg`;
+}
 
 type ScrapedData = {
   title: string;
@@ -182,6 +231,7 @@ export default function AdminPackages() {
   const [dragOverImageIndex, setDragOverImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
   const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
   const [dragOverGalleryIndex, setDragOverGalleryIndex] = useState<number | null>(null);
+  const [newVideoUrl, setNewVideoUrl] = useState("");
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
   const hotelImageRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
@@ -496,6 +546,7 @@ export default function AdminPackages() {
       otherInfo: pkg.otherInfo || "",
       featuredImage: pkg.featuredImage || "",
       gallery: (pkg.gallery || []) as string[],
+      videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
       metaTitle: pkg.metaTitle || "",
       metaDescription: pkg.metaDescription || "",
@@ -1773,6 +1824,100 @@ export default function AdminPackages() {
                         {(formData.gallery || []).length === 0 && (
                           <p className="text-sm text-muted-foreground text-center py-4">
                             No gallery images yet. Click to upload.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Gallery Videos</Label>
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded p-2 mt-2 mb-3">
+                        <p className="text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2">
+                          <Globe className="w-3 h-3 flex-shrink-0" />
+                          <span>Paste a <strong>YouTube</strong> or <strong>Vimeo</strong> link. Videos appear in gallery with play button.</span>
+                        </p>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="https://www.youtube.com/watch?v=... or https://vimeo.com/..."
+                            value={newVideoUrl}
+                            onChange={(e) => setNewVideoUrl(e.target.value)}
+                            data-testid="input-video-url"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => {
+                              if (!newVideoUrl.trim()) {
+                                toast({ title: "Please enter a video URL", variant: "destructive" });
+                                return;
+                              }
+                              const parsed = parseVideoUrl(newVideoUrl.trim());
+                              if (!parsed) {
+                                toast({ 
+                                  title: "Invalid video URL", 
+                                  description: "Please paste a valid YouTube or Vimeo link",
+                                  variant: "destructive" 
+                                });
+                                return;
+                              }
+                              const newVideo: VideoItem = {
+                                url: newVideoUrl.trim(),
+                                platform: parsed.platform,
+                                videoId: parsed.videoId,
+                              };
+                              setFormData({ ...formData, videos: [...(formData.videos || []), newVideo] });
+                              setNewVideoUrl("");
+                              toast({ title: "Video added to gallery" });
+                            }}
+                            data-testid="button-add-video"
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add
+                          </Button>
+                        </div>
+                        {(formData.videos || []).length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {(formData.videos || []).map((video, i) => (
+                              <div 
+                                key={i} 
+                                className="relative group"
+                                data-testid={`video-item-${i}`}
+                              >
+                                <div className="relative h-20 w-28 rounded-md overflow-hidden border">
+                                  <img 
+                                    src={getVideoThumbnail(video)} 
+                                    alt={video.title || `Video ${i + 1}`} 
+                                    className="h-full w-full object-cover"
+                                  />
+                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                    <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
+                                      <div className="w-0 h-0 border-l-[10px] border-l-red-600 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent ml-1" />
+                                    </div>
+                                  </div>
+                                  <span className="absolute bottom-1 left-1 text-[10px] bg-black/70 text-white px-1 rounded">
+                                    {video.platform === 'youtube' ? 'YouTube' : 'Vimeo'}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setFormData({ 
+                                    ...formData, 
+                                    videos: (formData.videos || []).filter((_, idx) => idx !== i) 
+                                  })}
+                                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                  data-testid={`button-remove-video-${i}`}
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {(formData.videos || []).length === 0 && (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            No videos yet. Paste a YouTube or Vimeo link above.
                           </p>
                         )}
                       </div>

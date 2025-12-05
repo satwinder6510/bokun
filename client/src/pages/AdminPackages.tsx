@@ -1920,16 +1920,17 @@ export default function AdminPackages() {
                                 onDragEnd={handleVideoDragEnd}
                                 data-testid={`video-item-${i}`}
                               >
-                                <div className="absolute top-1 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <div className="absolute top-1 left-1/2 -translate-x-1/2 bg-black/50 text-white rounded p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
                                   <GripVertical className="w-3 h-3" />
                                 </div>
-                                <div className="relative h-20 w-28 rounded-md overflow-hidden border">
+                                <div className="relative h-20 w-28 rounded-md overflow-hidden border pointer-events-none">
                                   <img 
                                     src={getVideoThumbnail(video)} 
                                     alt={video.title || `Video ${i + 1}`} 
                                     className="h-full w-full object-cover"
+                                    draggable={false}
                                   />
-                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center pointer-events-none">
+                                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                                     <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center">
                                       <div className="w-0 h-0 border-l-[10px] border-l-red-600 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent ml-1" />
                                     </div>
@@ -1940,11 +1941,14 @@ export default function AdminPackages() {
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => setFormData({ 
-                                    ...formData, 
-                                    videos: (formData.videos || []).filter((_, idx) => idx !== i) 
-                                  })}
-                                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setFormData({ 
+                                      ...formData, 
+                                      videos: (formData.videos || []).filter((_, idx) => idx !== i) 
+                                    });
+                                  }}
+                                  className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-auto z-20"
                                   data-testid={`button-remove-video-${i}`}
                                 >
                                   <X className="w-3 h-3" />

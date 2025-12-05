@@ -177,8 +177,10 @@ export default function AdminPackages() {
   const [editingIncludedValue, setEditingIncludedValue] = useState("");
   const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [uploadingHotelIndex, setUploadingHotelIndex] = useState<number | null>(null);
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
+  const hotelImageRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
   
   // Scraper test state
   const [scraperDialogOpen, setScraperDialogOpen] = useState(false);
@@ -917,6 +919,57 @@ export default function AdminPackages() {
         galleryImagesRef.current.value = '';
       }
     }
+  };
+
+  const handleHotelImagesUpload = async (hotelIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setUploadingHotelIndex(hotelIndex);
+    try {
+      const formDataUpload = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formDataUpload.append('images', files[i]);
+      }
+      
+      const response = await fetch('/api/admin/upload-multiple', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      const newUrls = data.images.map((img: any) => img.url);
+      
+      const updatedAccommodations = [...(formData.accommodations || [])];
+      updatedAccommodations[hotelIndex] = {
+        ...updatedAccommodations[hotelIndex],
+        images: [...(updatedAccommodations[hotelIndex].images || []), ...newUrls]
+      };
+      setFormData({ ...formData, accommodations: updatedAccommodations });
+      
+      toast({ title: `${data.count} image(s) uploaded successfully` });
+    } catch (error) {
+      toast({ title: "Failed to upload images", variant: "destructive" });
+    } finally {
+      setUploadingHotelIndex(null);
+      if (hotelImageRefs.current[hotelIndex]) {
+        hotelImageRefs.current[hotelIndex]!.value = '';
+      }
+    }
+  };
+
+  const removeHotelImage = (hotelIndex: number, imageIndex: number) => {
+    const updatedAccommodations = [...(formData.accommodations || [])];
+    updatedAccommodations[hotelIndex] = {
+      ...updatedAccommodations[hotelIndex],
+      images: updatedAccommodations[hotelIndex].images.filter((_, i) => i !== imageIndex)
+    };
+    setFormData({ ...formData, accommodations: updatedAccommodations });
+    toast({ title: "Image removed" });
   };
 
   const isEditing = isCreating || editingPackage !== null;
@@ -1967,18 +2020,71 @@ export default function AdminPackages() {
                             data-testid={`input-hotel-description-${index}`}
                           />
                           <div>
-                            <Label className="text-sm">Hotel Images (comma-separated URLs)</Label>
-                            <Input
-                              value={(hotel.images || []).join(", ")}
-                              onChange={(e) => updateAccommodation(index, 'images', e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-                              placeholder="https://..., https://..."
-                              data-testid={`input-hotel-images-${index}`}
-                            />
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {(hotel.images || []).map((img, imgIdx) => (
-                                <img key={imgIdx} src={img} alt="" className="h-12 w-16 object-cover rounded" />
-                              ))}
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-sm">Hotel Images</Label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  ref={(el) => hotelImageRefs.current[index] = el}
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => handleHotelImagesUpload(index, e)}
+                                  data-testid={`input-hotel-images-file-${index}`}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => hotelImageRefs.current[index]?.click()}
+                                  disabled={uploadingHotelIndex === index}
+                                  data-testid={`button-upload-hotel-images-${index}`}
+                                >
+                                  {uploadingHotelIndex === index ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Uploading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ImagePlus className="w-4 h-4 mr-2" />
+                                      Add Images
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
                             </div>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Recommended: 1600×1067px (3:2 ratio) for gallery images
+                            </p>
+                            {(hotel.images || []).length > 0 ? (
+                              <div className="grid grid-cols-4 gap-2">
+                                {(hotel.images || []).map((img, imgIdx) => (
+                                  <div key={imgIdx} className="relative group">
+                                    <img 
+                                      src={img} 
+                                      alt={`${hotel.name} image ${imgIdx + 1}`} 
+                                      className="h-20 w-full object-cover rounded border"
+                                    />
+                                    <Button
+                                      type="button"
+                                      variant="destructive"
+                                      size="icon"
+                                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => removeHotelImage(index, imgIdx)}
+                                      data-testid={`button-remove-hotel-image-${index}-${imgIdx}`}
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="border-2 border-dashed rounded-lg p-4 text-center text-muted-foreground">
+                                <ImagePlus className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No images yet. Click "Add Images" to upload.</p>
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>

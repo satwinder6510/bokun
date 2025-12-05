@@ -29,9 +29,10 @@ export default function TourDetail() {
   });
 
   const { data: product, isLoading } = useQuery<BokunProductDetails>({
-    queryKey: ["/api/bokun/product", productId, selectedCurrency.code],
+    queryKey: ["/api/bokun/product", productId],
     queryFn: async () => {
-      const response = await fetch(`/api/bokun/product/${productId}?currency=${selectedCurrency.code}`);
+      // Always fetch USD prices from Bokun - conversion to GBP happens on frontend
+      const response = await fetch(`/api/bokun/product/${productId}`);
       if (!response.ok) throw new Error('Failed to fetch product');
       return response.json();
     },

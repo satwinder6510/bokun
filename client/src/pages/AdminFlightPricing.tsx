@@ -166,10 +166,10 @@ export default function AdminFlightPricing() {
   const { data: toursData, isLoading: isLoadingTours } = useQuery<{ items: BokunProduct[] }>({
     queryKey: ["/api/bokun/products", "tour-search"],
     queryFn: async () => {
+      // Always fetch USD prices from Bokun - conversion to GBP happens on frontend
       const response = await apiRequest("POST", "/api/bokun/products", { 
         page: 1, 
-        pageSize: 100,
-        currency: "GBP"
+        pageSize: 100
       });
       return response;
     },

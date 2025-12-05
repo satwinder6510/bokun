@@ -110,12 +110,12 @@ export default function Homepage() {
   // Use database reviews if available, otherwise fallback to defaults
   const testimonials = reviews.length > 0 ? reviews : fallbackTestimonials;
 
-  const fetchProductsMutation = useMutation<BokunProductSearchResponse, Error, string>({
-    mutationFn: async (currency: string) => {
+  const fetchProductsMutation = useMutation<BokunProductSearchResponse, Error, void>({
+    mutationFn: async () => {
+      // Always fetch USD prices from Bokun - conversion to GBP happens on frontend
       const response = await apiRequest("POST", "/api/bokun/products", {
         page: 1,
         pageSize: 1000,
-        currency,
       });
       return response as BokunProductSearchResponse;
     },
@@ -128,11 +128,11 @@ export default function Homepage() {
     },
   });
 
-  // Fetch products when currency changes
+  // Fetch products on initial load
   useEffect(() => {
     setIsLoading(true);
-    fetchProductsMutation.mutate(selectedCurrency.code);
-  }, [selectedCurrency.code]);
+    fetchProductsMutation.mutate();
+  }, []);
 
   // Set meta tags and structured data for homepage
   useEffect(() => {

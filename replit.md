@@ -37,16 +37,18 @@ All pages use this shared component: Homepage, Packages, PackageDetail, Blog, Bl
 
 The backend is an **Express.js** application written in TypeScript, providing RESTful API endpoints under the `/api` namespace. It acts as a secure intermediary (proxy pattern) for interactions with the Bokun API, protecting credentials and generating HMAC-SHA1 signatures server-side. Key integration points include connection testing, product search with pagination, product details retrieval, and availability/pricing queries. API credentials are stored as environment variables.
 
-**GBP-Fixed Currency with Admin-Configurable Exchange Rate:** The platform displays all prices in GBP (£) for the UK market. Bokun API returns prices in USD, which are converted to GBP using an admin-configurable exchange rate stored in the `site_settings` database table (default: 0.79). A 10% markup is applied after conversion. The exchange rate can be adjusted via the Admin Settings page (`/admin/settings`) with real-time price calculation preview.
+**GBP-Fixed Currency with Admin-Configurable Exchange Rate:** The platform displays all prices in GBP (£) for the UK market. Bokun API returns prices in USD, which are converted to GBP using an admin-configurable exchange rate stored in the `site_settings` database table (default: 0.75). A 10% markup is applied after conversion. The exchange rate can be adjusted via the Admin Settings page (`/admin/settings`) with real-time price calculation preview.
 
 **Currency Conversion Flow:**
-1. Bokun API returns price in USD
+1. Bokun API returns price in USD (always - regardless of currency parameter sent)
 2. USD price × Exchange Rate = GBP price
 3. GBP price × 1.10 = Final display price (with 10% markup)
 
+**CRITICAL Implementation Note:** The Bokun API always returns USD prices regardless of the currency parameter sent. Frontend code must NOT pass a currency parameter to API calls - the server defaults to USD, and the frontend `formatBokunPrice()` function handles the conversion.
+
 The `useExchangeRate` hook (`client/src/hooks/useExchangeRate.ts`) fetches the rate from `/api/exchange-rate` and provides `formatBokunPrice()` for consistent pricing across TourCard, TourDetail, and AvailabilityChecker components.
 
-**Performance Optimization:** First-time loads return the first 100 products immediately (~2-3 seconds), while remaining products are cached in the background. GBP cache is used with a 30-day TTL.
+**Performance Optimization:** First-time loads return the first 100 products immediately (~2-3 seconds), while remaining products are cached in the background. USD cache is used with a 30-day TTL.
 
 ### Data Layer
 

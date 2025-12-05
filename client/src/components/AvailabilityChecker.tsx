@@ -125,16 +125,17 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
   }, [selectedRate, rates]);
 
   const { data: initialAvailability, isLoading: isLoadingDates } = useQuery({
-    queryKey: ["/api/bokun/availability", productId, "initial", "GBP"],
+    queryKey: ["/api/bokun/availability", productId, "initial"],
     queryFn: async () => {
       const today = new Date();
       const sixMonthsLater = addMonths(today, 6);
       const formattedStart = format(today, "yyyy-MM-dd");
       const formattedEnd = format(sixMonthsLater, "yyyy-MM-dd");
       
+      // Always fetch USD prices from Bokun - conversion to GBP happens on frontend
       const response = await apiRequest(
         "GET",
-        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}&currency=GBP`
+        `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}`
       );
       return response;
     },
@@ -180,9 +181,10 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
   const checkAvailabilityMutation = useMutation({
     mutationFn: async (date: Date) => {
       const formattedDate = format(date, "yyyy-MM-dd");
+      // Always fetch USD prices from Bokun - conversion to GBP happens on frontend
       const response = await apiRequest(
         "GET",
-        `/api/bokun/availability/${productId}?start=${formattedDate}&end=${formattedDate}&currency=GBP`
+        `/api/bokun/availability/${productId}?start=${formattedDate}&end=${formattedDate}`
       );
       return response;
     },

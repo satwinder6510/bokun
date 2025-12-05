@@ -1515,17 +1515,17 @@ export default function AdminPackages() {
                         Image Size Guidelines
                       </h4>
                       <div className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
-                        <p><strong>Featured/Hero:</strong> 1920 x 823 px (21:9) - Main banner image</p>
-                        <p><strong>Gallery:</strong> 1600 x 1067 px (3:2) - Tour photos, scenery</p>
-                        <p><strong>Format:</strong> JPEG preferred, PNG for graphics. Max 500KB each.</p>
-                        <p className="text-blue-600 dark:text-blue-300 text-xs mt-2">Tip: Use landscape orientation. Images are auto-optimized on upload.</p>
+                        <p><strong>Featured/Hero:</strong> 1600 x 900 px (16:9) - Max 400KB</p>
+                        <p><strong>Gallery:</strong> 1600 x 1067 px (3:2) - Max 350KB each</p>
+                        <p><strong>Format:</strong> JPEG or WebP preferred. Landscape orientation.</p>
+                        <p className="text-blue-600 dark:text-blue-300 text-xs mt-2">Tip: Keep important content centered - edges may be cropped on mobile.</p>
                       </div>
                     </div>
 
                     <div>
                       <Label>Featured Image (Hero)</Label>
                       <p className="text-xs text-muted-foreground mt-1 mb-2">
-                        Recommended: <strong>1920 x 823 px</strong> (21:9 ratio). Landscape only. Keep important content centered.
+                        Recommended: <strong>1600 x 900 px</strong> (16:9 ratio). Max 400KB. Keep important content centered.
                       </p>
                       <div className="mt-2 space-y-3">
                         <input

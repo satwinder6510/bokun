@@ -37,9 +37,16 @@ All pages use this shared component: Homepage, Packages, PackageDetail, Blog, Bl
 
 The backend is an **Express.js** application written in TypeScript, providing RESTful API endpoints under the `/api` namespace. It acts as a secure intermediary (proxy pattern) for interactions with the Bokun API, protecting credentials and generating HMAC-SHA1 signatures server-side. Key integration points include connection testing, product search with pagination, product details retrieval, and availability/pricing queries. API credentials are stored as environment variables.
 
-**Multi-Currency Support:** The platform supports 5 currencies (USD, EUR, GBP, CAD, INR) with server-side currency conversion via Bokun API and automatic geo-location detection. On first visit, the user's location is detected via IP geolocation (ipapi.co) to set the appropriate currency: USD for USA, CAD for Canada, GBP for UK, EUR for Eurozone countries, and INR for India. The search endpoint accepts a `currency` query parameter which is included in the HMAC signature. 
+**GBP-Fixed Currency with Admin-Configurable Exchange Rate:** The platform displays all prices in GBP (£) for the UK market. Bokun API returns prices in USD, which are converted to GBP using an admin-configurable exchange rate stored in the `site_settings` database table (default: 0.79). A 10% markup is applied after conversion. The exchange rate can be adjusted via the Admin Settings page (`/admin/settings`) with real-time price calculation preview.
 
-**Performance Optimization:** First-time loads return the first 100 products immediately (~2-3 seconds), while remaining products are cached in the background. Per-currency caching is implemented: once a currency is fully fetched, it's cached for 30 days, providing instant switching between previously viewed currencies. Currency selection is persisted in local storage.
+**Currency Conversion Flow:**
+1. Bokun API returns price in USD
+2. USD price × Exchange Rate = GBP price
+3. GBP price × 1.10 = Final display price (with 10% markup)
+
+The `useExchangeRate` hook (`client/src/hooks/useExchangeRate.ts`) fetches the rate from `/api/exchange-rate` and provides `formatBokunPrice()` for consistent pricing across TourCard, TourDetail, and AvailabilityChecker components.
+
+**Performance Optimization:** First-time loads return the first 100 products immediately (~2-3 seconds), while remaining products are cached in the background. GBP cache is used with a 30-day TTL.
 
 ### Data Layer
 
@@ -102,6 +109,7 @@ The platform features a comprehensive multi-user admin authentication system wit
 -   `/admin/reviews` - Customer reviews management
 -   `/admin/faq` - FAQ content management
 -   `/admin/tracking-numbers` - DNI phone tracking configuration
+-   `/admin/settings` - Site settings including USD→GBP exchange rate configuration
 
 ## Dynamic Flight + Tour Pricing (Integrated into Flight Packages)
 

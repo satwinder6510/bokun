@@ -256,6 +256,7 @@ export default function PackageDetail() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   
   // Embla carousel for gallery
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
@@ -480,7 +481,6 @@ export default function PackageDetail() {
   }
 
   const gallery = pkg.gallery || [];
-  const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   
   // Safely parse videos - handle both structured objects and potential edge cases
   const videos: VideoItem[] = ((pkg.videos || []) as any[]).filter((video): video is VideoItem => {

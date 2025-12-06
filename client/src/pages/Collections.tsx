@@ -152,7 +152,7 @@ export default function Collections() {
             {COLLECTION_CATEGORIES.map((collection) => (
               <Link 
                 key={collection.tag}
-                href={`/collections/${encodeURIComponent(collection.tag.toLowerCase().replace(/\s+/g, '-'))}`}
+                href={`/holidays/${encodeURIComponent(collection.tag.toLowerCase().replace(/\s+/g, '-'))}`}
               >
                 <div 
                   className={`relative overflow-hidden rounded-lg bg-gradient-to-br ${collection.gradient} p-6 h-48 flex flex-col justify-between cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl`}

@@ -45,8 +45,9 @@ function formatGBP(price: number): string {
 }
 
 function FlightPackageCard({ pkg }: { pkg: FlightPackage }) {
+  const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
   return (
-    <Link href={`/packages/${pkg.slug}`}>
+    <Link href={`/Holidays/${countrySlug}/${pkg.slug}`}>
       <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
         <div className="relative aspect-[4/3] overflow-hidden">
           <img 
@@ -103,7 +104,7 @@ function LandTourCard({ tour }: { tour: BokunProduct }) {
 }
 
 export default function CollectionDetail() {
-  const [, params] = useRoute("/collections/:tag");
+  const [, params] = useRoute("/holidays/:tag");
   const tagSlug = params?.tag || "";
   const displayName = TAG_DISPLAY_NAMES[tagSlug] || tagSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
@@ -120,7 +121,7 @@ export default function CollectionDetail() {
       <main className="flex-1">
         <div className="bg-slate-800 text-white py-12">
           <div className="container mx-auto px-4">
-            <Link href="/collections" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors">
+            <Link href="/holidays" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back to Collections
             </Link>

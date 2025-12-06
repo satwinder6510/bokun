@@ -25,9 +25,9 @@ function formatGBP(price: number): string {
   }).format(price);
 }
 
-function FlightPackageCard({ pkg }: { pkg: FlightPackage }) {
+function FlightPackageCard({ pkg, countrySlug }: { pkg: FlightPackage; countrySlug: string }) {
   return (
-    <Link href={`/packages/${pkg.slug}`}>
+    <Link href={`/Holidays/${countrySlug}/${pkg.slug}`}>
       <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
         <div className="relative aspect-[4/3] overflow-hidden">
           <img 
@@ -80,16 +80,16 @@ function LandTourCard({ tour }: { tour: BokunProduct }) {
 }
 
 export default function DestinationDetail() {
-  const [, params] = useRoute("/destinations/:slug");
-  const slug = params?.slug || "";
+  const [, params] = useRoute("/Holidays/:country");
+  const countrySlug = params?.country || "";
   
   // Convert slug back to destination name (e.g., "united-arab-emirates" -> "United Arab Emirates")
-  const destinationName = slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  const destinationName = countrySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
   const { data, isLoading, error } = useQuery<DestinationData>({
-    queryKey: ['/api/destinations', slug],
-    queryFn: () => apiRequest('GET', `/api/destinations/${encodeURIComponent(slug)}`),
-    enabled: !!slug,
+    queryKey: ['/api/destinations', countrySlug],
+    queryFn: () => apiRequest('GET', `/api/destinations/${encodeURIComponent(countrySlug)}`),
+    enabled: !!countrySlug,
   });
 
   const displayName = data?.destination || destinationName;
@@ -101,7 +101,7 @@ export default function DestinationDetail() {
       <main className="flex-1">
         <div className="bg-slate-800 text-white py-12">
           <div className="container mx-auto px-4">
-            <Link href="/destinations" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors">
+            <Link href="/Holidays" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back to Destinations
             </Link>
@@ -141,7 +141,7 @@ export default function DestinationDetail() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {data.flightPackages.map((pkg) => (
-                      <FlightPackageCard key={pkg.id} pkg={pkg} />
+                      <FlightPackageCard key={pkg.id} pkg={pkg} countrySlug={countrySlug} />
                     ))}
                   </div>
                 </section>
@@ -165,7 +165,7 @@ export default function DestinationDetail() {
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground text-lg">No holidays found for this destination yet.</p>
-              <Link href="/destinations" className="text-primary hover:underline mt-2 inline-block">
+              <Link href="/Holidays" className="text-primary hover:underline mt-2 inline-block">
                 Browse other destinations
               </Link>
             </div>

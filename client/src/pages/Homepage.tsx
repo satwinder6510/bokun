@@ -474,10 +474,12 @@ export default function Homepage() {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                {featuredPackages.map((pkg) => (
+                {featuredPackages.map((pkg) => {
+                  const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+                  return (
                   <a 
                     key={pkg.id} 
-                    href={`/packages/${pkg.slug}`}
+                    href={`/Holidays/${countrySlug}/${pkg.slug}`}
                     className="group"
                     data-testid={`card-package-${pkg.id}`}
                   >
@@ -556,7 +558,8 @@ export default function Homepage() {
                       </div>
                     </div>
                   </a>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="text-center">

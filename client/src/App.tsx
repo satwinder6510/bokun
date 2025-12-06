@@ -58,10 +58,11 @@ function Router() {
       <Route path="/faq" component={FAQ} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
-      <Route path="/collections" component={Collections} />
-      <Route path="/collections/:tag" component={CollectionDetail} />
-      <Route path="/destinations" component={Destinations} />
-      <Route path="/destinations/:slug" component={DestinationDetail} />
+      <Route path="/holidays" component={Collections} />
+      <Route path="/holidays/:tag" component={CollectionDetail} />
+      <Route path="/Holidays" component={Destinations} />
+      <Route path="/Holidays/:country" component={DestinationDetail} />
+      <Route path="/Holidays/:country/:slug" component={PackageDetail} />
       <Route path="/design-preview" component={DesignPreview} />
       <Route path="/preview/packages" component={PreviewPackages} />
       <Route path="/preview/packages/:id" component={PreviewPackageDetail} />

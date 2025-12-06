@@ -45,7 +45,7 @@ export default function Destinations() {
               {destinations.map((destination) => (
                 <Link 
                   key={destination.name}
-                  href={`/destinations/${encodeURIComponent(destination.name.toLowerCase().replace(/\s+/g, '-'))}`}
+                  href={`/Holidays/${encodeURIComponent(destination.name.toLowerCase().replace(/\s+/g, '-'))}`}
                 >
                   <div 
                     className="relative overflow-hidden rounded-lg h-64 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl group"

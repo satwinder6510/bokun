@@ -250,8 +250,11 @@ function PriceCalendarWidget({
 export default function PackageDetail() {
   const { toast } = useToast();
   const phoneNumber = useDynamicPhoneNumber();
-  const [, params] = useRoute("/packages/:slug");
-  const slug = params?.slug;
+  // Support both old route (/packages/:slug) and new route (/Holidays/:country/:slug)
+  const [, oldParams] = useRoute("/packages/:slug");
+  const [, newParams] = useRoute("/Holidays/:country/:slug");
+  const slug = newParams?.slug || oldParams?.slug;
+  const countrySlug = newParams?.country;
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string>("");

@@ -158,8 +158,10 @@ export default function Packages() {
                 </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredPackages.map((pkg) => (
-                  <Link key={pkg.id} href={`/packages/${pkg.slug}`}>
+                {filteredPackages.map((pkg) => {
+                  const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+                  return (
+                    <Link key={pkg.id} href={`/Holidays/${countrySlug}/${pkg.slug}`}>
                     <div 
                       className="relative overflow-hidden rounded-xl aspect-[3/4] group cursor-pointer"
                       data-testid={`card-package-${pkg.id}`}
@@ -242,7 +244,8 @@ export default function Packages() {
                       </div>
                     </div>
                   </Link>
-                ))}
+                  );
+                })}
               </div>
             </>
           )}

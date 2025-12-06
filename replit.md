@@ -18,6 +18,29 @@ The design follows a clean, minimal aesthetic with a focus on user experience. A
 
 **Blog System:** A content marketing blog has been implemented at `/blog` with SEO-optimized URLs (`/blog/:slug`). Blog posts feature HTML-formatted content, excerpts, featured images, author attribution, reading time estimates, and comprehensive meta tags. The blog listing page displays posts in a responsive grid layout with card-based design. Individual blog posts include share functionality, related CTAs, and proper SEO markup. Three sample travel-focused blog posts are included: "Top 10 Hidden Gems in Southeast Asia," "Ultimate Guide to Planning Your First African Safari," and "5 Essential Travel Photography Tips for Beginners." All blog posts are included in the sitemap.xml for search engine discoverability.
 
+### URL Structure (Migration-Compatible)
+
+The URL structure is designed to match the existing site (https://holidays.flightsandpackages.com/) to prevent broken links during migration:
+
+**Flight Packages:**
+- `/packages` - All flight packages listing page
+- `/packages/:slug` - Package detail (legacy URL, still active for backward compatibility)
+- `/Holidays/:country/:slug` - Package detail (new SEO-friendly URL pattern)
+
+**Destinations & Collections:**
+- `/Holidays` - Destinations listing (shows countries)
+- `/Holidays/:country` - Destination detail (packages for a specific country)
+- `/holidays` - Collections listing (curated package groups)
+- `/holidays/:tag` - Collection detail
+
+**Other Routes:**
+- `/tours` - Land tours listing (Bokun products)
+- `/tour/:id` - Tour detail
+- `/blog`, `/blog/:slug` - Blog listing and posts
+- `/contact`, `/faq`, `/terms` - Static pages
+
+**URL Generation:** Package cards use the pattern `/Holidays/:country/:slug` where country is derived from the package category field (e.g., "Turkey", "Greece"). PackageDetail supports both old and new URL patterns via dual route matching.
+
 ### Frontend Architecture
 
 The frontend is built with **React 18** and **TypeScript**, using **Vite** for fast HMR and optimized builds. **Wouter** handles client-side routing. The UI component system leverages **shadcn/ui** (New York style variant) built on Radix UI primitives, styled with **Tailwind CSS**. **TanStack Query v5** manages server state, API caching, and data synchronization. The architecture is component-based, emphasizing reusability and separation of concerns, with a responsive, mobile-first design.

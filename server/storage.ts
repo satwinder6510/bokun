@@ -449,7 +449,11 @@ export class MemStorage implements IStorage {
   async getAllBlogPosts(): Promise<BlogPost[]> {
     try {
       return await db.select().from(blogPosts)
-        .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
+        .orderBy(
+          sql`CASE WHEN ${blogPosts.featuredImage} IS NOT NULL AND ${blogPosts.featuredImage} != '' THEN 0 ELSE 1 END`,
+          desc(blogPosts.publishedAt),
+          desc(blogPosts.createdAt)
+        );
     } catch (error) {
       console.error("Error fetching all blog posts:", error);
       return [];
@@ -460,7 +464,11 @@ export class MemStorage implements IStorage {
     try {
       return await db.select().from(blogPosts)
         .where(eq(blogPosts.isPublished, true))
-        .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
+        .orderBy(
+          sql`CASE WHEN ${blogPosts.featuredImage} IS NOT NULL AND ${blogPosts.featuredImage} != '' THEN 0 ELSE 1 END`,
+          desc(blogPosts.publishedAt),
+          desc(blogPosts.createdAt)
+        );
     } catch (error) {
       console.error("Error fetching published blog posts:", error);
       return [];

@@ -89,17 +89,16 @@ export default function BlogPostPage() {
 
       <main className="pt-20">
         <article className="container mx-auto px-6 md:px-8 py-16 max-w-4xl">
-          <div className="aspect-[21/9] w-full overflow-hidden rounded-lg mb-8 bg-gradient-to-br from-slate-700 to-slate-900">
-            <img
-              src={post.featuredImage || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=500&fit=crop"}
-              alt={post.title}
-              className="w-full h-full object-cover"
-              data-testid="img-featured"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=500&fit=crop";
-              }}
-            />
-          </div>
+          {post.featuredImage && (
+            <div className="aspect-[21/9] w-full overflow-hidden rounded-lg mb-8 bg-muted">
+              <img
+                src={post.featuredImage}
+                alt={post.title}
+                className="w-full h-full object-cover"
+                data-testid="img-featured"
+              />
+            </div>
+          )}
 
           <div className="mb-8">
             <h1 className="text-4xl md:text-5xl font-bold mb-4" data-testid="heading-title">

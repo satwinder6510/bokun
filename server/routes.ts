@@ -1852,13 +1852,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single package by slug (public)
+  // Get single package by slug (public - only published packages)
   app.get("/api/packages/:slug", async (req, res) => {
     try {
       const { slug } = req.params;
       const pkg = await storage.getFlightPackageBySlug(slug);
       
       if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      // Only return published packages for public access
+      if (!pkg.isPublished) {
         return res.status(404).json({ error: "Package not found" });
       }
       

@@ -91,6 +91,9 @@ export function Header({ destinations = [], onDestinationSelect }: HeaderProps) 
               <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-tours">
                 Land Tours
               </Link>
+              <Link href="/collections" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-collections">
+                Collections
+              </Link>
               {destinations.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -164,6 +167,9 @@ export function Header({ destinations = [], onDestinationSelect }: HeaderProps) 
                 </Link>
                 <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-tours">
                   Land Tours
+                </Link>
+                <Link href="/collections" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-collections">
+                  Collections
                 </Link>
                 <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-blog">
                   Blog

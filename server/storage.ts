@@ -460,7 +460,11 @@ export class MemStorage implements IStorage {
     try {
       return await db.select().from(blogPosts)
         .where(eq(blogPosts.isPublished, true))
-        .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
+        .orderBy(
+          sql`CASE WHEN ${blogPosts.featuredImage} IS NOT NULL THEN 0 ELSE 1 END`,
+          desc(blogPosts.publishedAt),
+          desc(blogPosts.createdAt)
+        );
     } catch (error) {
       console.error("Error fetching published blog posts:", error);
       return [];

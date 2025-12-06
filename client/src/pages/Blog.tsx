@@ -50,16 +50,17 @@ export default function Blog() {
                   data-testid={`link-blog-post-${post.id}`}
                 >
                   <Card className="h-full overflow-hidden hover-elevate transition-all">
-                    {post.featuredImage && (
-                      <div className="aspect-video w-full overflow-hidden bg-muted">
-                        <img
-                          src={post.featuredImage}
-                          alt={post.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          data-testid={`img-featured-${post.id}`}
-                        />
-                      </div>
-                    )}
+                    <div className="aspect-video w-full overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900">
+                      <img
+                        src={post.featuredImage || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop"}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        data-testid={`img-featured-${post.id}`}
+                        onError={(e) => {
+                          e.currentTarget.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop";
+                        }}
+                      />
+                    </div>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                         <div className="flex items-center gap-1" data-testid={`date-published-${post.id}`}>

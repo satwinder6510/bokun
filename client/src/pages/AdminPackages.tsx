@@ -2857,14 +2857,16 @@ export default function AdminPackages() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPackages.map((pkg) => (
+                  {filteredPackages.map((pkg) => {
+                    const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+                    return (
                     <TableRow key={pkg.id} data-testid={`row-package-${pkg.id}`}>
                       <TableCell className="text-muted-foreground">
                         {pkg.displayOrder}
                       </TableCell>
                       <TableCell>
                         <a 
-                          href={`/packages/${pkg.slug}`}
+                          href={`/Holidays/${countrySlug}/${pkg.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-3 hover:opacity-80 transition-opacity"
@@ -2913,7 +2915,7 @@ export default function AdminPackages() {
                             asChild
                             data-testid={`button-view-${pkg.id}`}
                           >
-                            <a href={`/packages/${pkg.slug}`} target="_blank" rel="noopener noreferrer">
+                            <a href={`/Holidays/${countrySlug}/${pkg.slug}`} target="_blank" rel="noopener noreferrer">
                               <Eye className="w-4 h-4" />
                             </a>
                           </Button>
@@ -2956,7 +2958,8 @@ export default function AdminPackages() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             )}

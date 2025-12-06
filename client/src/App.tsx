@@ -20,6 +20,7 @@ import BookingConfirmation from "@/pages/BookingConfirmation";
 import Packages from "@/pages/Packages";
 import PackageDetail from "@/pages/PackageDetail";
 import AdminFAQ from "@/pages/AdminFAQ";
+import AdminBlog from "@/pages/AdminBlog";
 import AdminPackages from "@/pages/AdminPackages";
 import AdminReviews from "@/pages/AdminReviews";
 import AdminTrackingNumbers from "@/pages/AdminTrackingNumbers";
@@ -87,6 +88,11 @@ function Router() {
       <Route path="/admin/faq">
         <ProtectedRoute>
           <AdminFAQ />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/blog">
+        <ProtectedRoute>
+          <AdminBlog />
         </ProtectedRoute>
       </Route>
       <Route path="/admin/packages">

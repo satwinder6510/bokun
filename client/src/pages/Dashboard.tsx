@@ -11,7 +11,7 @@ import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane, Image, Settings } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane, Image, Settings, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -332,6 +332,29 @@ export default function Dashboard() {
                   <a href="/admin/faq">
                     <Button variant="outline" size="sm" data-testid="button-manage-faqs">
                       Manage FAQs
+                    </Button>
+                  </a>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card data-testid="card-blog-management">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Blog Posts</CardTitle>
+                      <CardDescription>
+                        Manage blog articles and content
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <a href="/admin/blog">
+                    <Button variant="outline" size="sm" data-testid="button-manage-blog">
+                      Manage Blog
                     </Button>
                   </a>
                 </div>

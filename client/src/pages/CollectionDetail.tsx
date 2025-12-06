@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, MapPin, Plane, Map } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import type { FlightPackage, BokunProduct } from "@shared/schema";
 
 const TAG_DISPLAY_NAMES: Record<string, string> = {
@@ -108,6 +109,7 @@ export default function CollectionDetail() {
 
   const { data, isLoading, error } = useQuery<CollectionData>({
     queryKey: ['/api/collections', tagSlug],
+    queryFn: () => apiRequest('GET', `/api/collections/${encodeURIComponent(tagSlug)}`),
     enabled: !!tagSlug,
   });
 

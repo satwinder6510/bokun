@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, MapPin, Plane, Map } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 import type { FlightPackage, BokunProduct } from "@shared/schema";
 
 interface DestinationData {
@@ -87,6 +88,7 @@ export default function DestinationDetail() {
 
   const { data, isLoading, error } = useQuery<DestinationData>({
     queryKey: ['/api/destinations', slug],
+    queryFn: () => apiRequest('GET', `/api/destinations/${encodeURIComponent(slug)}`),
     enabled: !!slug,
   });
 

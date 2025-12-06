@@ -7,7 +7,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, MapPin, Plane, Map } from "lucide-react";
-import { useExchangeRate } from "@/hooks/useExchangeRate";
 import type { FlightPackage, BokunProduct } from "@shared/schema";
 
 const TAG_DISPLAY_NAMES: Record<string, string> = {
@@ -35,9 +34,16 @@ interface CollectionData {
   tag: string;
 }
 
+function formatGBP(price: number): string {
+  return new Intl.NumberFormat('en-GB', { 
+    style: 'currency', 
+    currency: 'GBP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(price);
+}
+
 function FlightPackageCard({ pkg }: { pkg: FlightPackage }) {
-  const { formatBokunPrice } = useExchangeRate();
-  
   return (
     <Link href={`/packages/${pkg.slug}`}>
       <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
@@ -72,7 +78,7 @@ function FlightPackageCard({ pkg }: { pkg: FlightPackage }) {
             <div>
               <span className="text-sm text-muted-foreground">From</span>
               <p className="text-xl font-bold text-primary">
-                {pkg.price ? formatBokunPrice(pkg.price) : "Price on request"}
+                {pkg.price ? formatGBP(pkg.price) : "Price on request"}
               </p>
               <span className="text-xs text-muted-foreground">per person</span>
             </div>

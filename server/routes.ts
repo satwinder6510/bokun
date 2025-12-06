@@ -1888,6 +1888,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Collections API - get packages and tours by tag
+  app.get("/api/collections/:tagSlug", async (req, res) => {
+    try {
+      const { tagSlug } = req.params;
+      
+      // Map tag slug to display name (e.g., "river-cruise" -> "River Cruise")
+      const tagDisplayNames: Record<string, string> = {
+        "beach": "Beach",
+        "city-break": "City Break",
+        "family": "Family",
+        "adventure": "Adventure",
+        "luxury": "Luxury",
+        "budget": "Budget",
+        "cultural": "Cultural",
+        "safari": "Safari",
+        "cruise": "Cruise",
+        "river-cruise": "River Cruise",
+        "golden-triangle": "Golden Triangle",
+        "multi-centre": "Multi-Centre",
+        "wellness": "Wellness",
+        "religious": "Religious",
+        "wildlife": "Wildlife",
+        "island": "Island"
+      };
+      
+      const tagName = tagDisplayNames[tagSlug.toLowerCase()];
+      if (!tagName) {
+        return res.status(404).json({ error: "Collection not found" });
+      }
+      
+      // Get published flight packages with matching tag
+      const allPackages = await storage.getPublishedFlightPackages();
+      const matchingPackages = allPackages.filter(pkg => 
+        pkg.tags && Array.isArray(pkg.tags) && 
+        pkg.tags.some(t => t.toLowerCase() === tagName.toLowerCase())
+      );
+      
+      // Get cached Bokun products and filter by activityCategories
+      const cachedProducts = await storage.getCachedProducts("USD");
+      const matchingTours = cachedProducts.filter(product => 
+        product.activityCategories && 
+        Array.isArray(product.activityCategories) &&
+        product.activityCategories.some(cat => 
+          cat.toLowerCase().includes(tagName.toLowerCase()) ||
+          tagName.toLowerCase().includes(cat.toLowerCase())
+        )
+      );
+      
+      res.json({
+        tag: tagName,
+        flightPackages: matchingPackages,
+        landTours: matchingTours.slice(0, 50) // Limit to 50 tours per collection
+      });
+    } catch (error: any) {
+      console.error("Error fetching collection:", error);
+      res.status(500).json({ error: "Failed to fetch collection" });
+    }
+  });
+
   // Get all packages including unpublished (admin)
   app.get("/api/admin/packages", async (req, res) => {
     try {

@@ -37,6 +37,8 @@ import PreviewContact from "@/pages/PreviewContact";
 import PreviewFAQ from "@/pages/PreviewFAQ";
 import PreviewBlog from "@/pages/PreviewBlog";
 import PreviewBlogPost from "@/pages/PreviewBlogPost";
+import Collections from "@/pages/Collections";
+import CollectionDetail from "@/pages/CollectionDetail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -54,6 +56,8 @@ function Router() {
       <Route path="/faq" component={FAQ} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/collections" component={Collections} />
+      <Route path="/collections/:tag" component={CollectionDetail} />
       <Route path="/design-preview" component={DesignPreview} />
       <Route path="/preview/packages" component={PreviewPackages} />
       <Route path="/preview/packages/:id" component={PreviewPackageDetail} />

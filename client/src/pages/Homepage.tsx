@@ -314,7 +314,7 @@ export default function Homepage() {
 
   return (
     <div className="min-h-screen bg-stone-50">
-      <Header destinations={allCountries} onDestinationSelect={setSelectedCountry} />
+      <Header />
 
       {/* Hero Section with Dual CTAs */}
       <section className="relative h-screen w-full overflow-hidden">

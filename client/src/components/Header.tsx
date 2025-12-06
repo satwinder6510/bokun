@@ -1,44 +1,15 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
-import { Menu, Phone, ChevronDown, Shield, Headphones, X } from "lucide-react";
-import { CheckCircle2 } from "lucide-react";
+import { Link } from "wouter";
+import { Menu, Phone, Shield, Headphones, X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 
-interface HeaderProps {
-  destinations?: string[];
-  onDestinationSelect?: (destination: string | null) => void;
-}
-
-export function Header({ destinations = [], onDestinationSelect }: HeaderProps) {
-  const [location, setLocation] = useLocation();
+export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const phoneNumber = useDynamicPhoneNumber();
   const phoneNumberClean = phoneNumber.replace(/\s/g, "");
-
-  const handleDestinationClick = (destination: string | null) => {
-    if (onDestinationSelect) {
-      onDestinationSelect(destination);
-    }
-    if (location !== "/") {
-      const path = destination ? `/?destination=${encodeURIComponent(destination)}` : "/";
-      setLocation(path);
-      setTimeout(() => {
-        document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    } else {
-      document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 
   return (
     <div className="sticky top-0 z-50">
@@ -94,38 +65,9 @@ export function Header({ destinations = [], onDestinationSelect }: HeaderProps) 
               <Link href="/collections" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-collections">
                 Collections
               </Link>
-              {destinations.length > 0 && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button 
-                      className="text-slate-700 hover:text-slate-900 font-medium transition-colors inline-flex items-center gap-1" 
-                      data-testid="button-destinations-menu"
-                    >
-                      Destinations
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56 max-h-[400px] overflow-y-auto">
-                    <DropdownMenuItem 
-                      onClick={() => handleDestinationClick(null)}
-                      className="font-medium"
-                      data-testid="menu-item-all-destinations"
-                    >
-                      All Destinations
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    {destinations.map((country) => (
-                      <DropdownMenuItem 
-                        key={country}
-                        onClick={() => handleDestinationClick(country)}
-                        data-testid={`menu-item-${country.toLowerCase().replace(/\s+/g, '-')}`}
-                      >
-                        {country}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+              <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-destinations">
+                Destinations
+              </Link>
               <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-blog">
                 Blog
               </Link>
@@ -170,6 +112,9 @@ export function Header({ destinations = [], onDestinationSelect }: HeaderProps) 
                 </Link>
                 <Link href="/collections" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-collections">
                   Collections
+                </Link>
+                <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-destinations">
+                  Destinations
                 </Link>
                 <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-blog">
                   Blog

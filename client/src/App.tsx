@@ -39,6 +39,8 @@ import PreviewBlog from "@/pages/PreviewBlog";
 import PreviewBlogPost from "@/pages/PreviewBlogPost";
 import Collections from "@/pages/Collections";
 import CollectionDetail from "@/pages/CollectionDetail";
+import Destinations from "@/pages/Destinations";
+import DestinationDetail from "@/pages/DestinationDetail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -58,6 +60,8 @@ function Router() {
       <Route path="/blog/:slug" component={BlogPost} />
       <Route path="/collections" component={Collections} />
       <Route path="/collections/:tag" component={CollectionDetail} />
+      <Route path="/destinations" component={Destinations} />
+      <Route path="/destinations/:slug" component={DestinationDetail} />
       <Route path="/design-preview" component={DesignPreview} />
       <Route path="/preview/packages" component={PreviewPackages} />
       <Route path="/preview/packages/:id" component={PreviewPackageDetail} />

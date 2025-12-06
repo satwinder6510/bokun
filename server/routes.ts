@@ -1888,6 +1888,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Destinations API - get all destinations with counts
+  app.get("/api/destinations", async (req, res) => {
+    try {
+      // Get published flight packages and extract categories (destinations)
+      const allPackages = await storage.getPublishedFlightPackages();
+      const packagesByCategory = new Map<string, number>();
+      const packageImages = new Map<string, string>();
+      
+      allPackages.forEach(pkg => {
+        const count = packagesByCategory.get(pkg.category) || 0;
+        packagesByCategory.set(pkg.category, count + 1);
+        // Store first image found for each category
+        if (!packageImages.has(pkg.category) && pkg.featuredImage) {
+          packageImages.set(pkg.category, pkg.featuredImage);
+        }
+      });
+      
+      // Get cached Bokun products and extract countries
+      const cachedProducts = await storage.getCachedProducts("USD");
+      const toursByCountry = new Map<string, number>();
+      const tourImages = new Map<string, string>();
+      
+      cachedProducts.forEach(product => {
+        const country = product.googlePlace?.country;
+        if (country) {
+          const count = toursByCountry.get(country) || 0;
+          toursByCountry.set(country, count + 1);
+          // Store first image found for each country
+          if (!tourImages.has(country) && product.keyPhoto?.originalUrl) {
+            tourImages.set(country, product.keyPhoto.originalUrl);
+          }
+        }
+      });
+      
+      // Combine all destinations
+      const allDestinations = new Set([...Array.from(packagesByCategory.keys()), ...Array.from(toursByCountry.keys())]);
+      
+      const destinations = Array.from(allDestinations).map(name => ({
+        name,
+        flightPackageCount: packagesByCategory.get(name) || 0,
+        landTourCount: toursByCountry.get(name) || 0,
+        image: packageImages.get(name) || tourImages.get(name) || null
+      })).sort((a, b) => {
+        // Sort by total count descending
+        const totalA = a.flightPackageCount + a.landTourCount;
+        const totalB = b.flightPackageCount + b.landTourCount;
+        return totalB - totalA;
+      });
+      
+      res.json(destinations);
+    } catch (error: any) {
+      console.error("Error fetching destinations:", error);
+      res.status(500).json({ error: "Failed to fetch destinations" });
+    }
+  });
+
+  // Destinations API - get packages and tours by destination
+  app.get("/api/destinations/:slug", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      
+      // Convert slug to destination name (e.g., "united-arab-emirates" -> "United Arab Emirates")
+      const destinationName = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      
+      // Get published flight packages matching category
+      const allPackages = await storage.getPublishedFlightPackages();
+      const matchingPackages = allPackages.filter(pkg => 
+        pkg.category.toLowerCase() === destinationName.toLowerCase()
+      );
+      
+      // Get cached Bokun products matching country
+      const cachedProducts = await storage.getCachedProducts("USD");
+      const matchingTours = cachedProducts.filter(product => 
+        product.googlePlace?.country?.toLowerCase() === destinationName.toLowerCase()
+      );
+      
+      // If no matches found, try partial matching
+      let finalPackages = matchingPackages;
+      let finalTours = matchingTours;
+      
+      if (matchingPackages.length === 0 && matchingTours.length === 0) {
+        finalPackages = allPackages.filter(pkg => 
+          pkg.category.toLowerCase().includes(destinationName.toLowerCase()) ||
+          destinationName.toLowerCase().includes(pkg.category.toLowerCase())
+        );
+        finalTours = cachedProducts.filter(product => 
+          product.googlePlace?.country?.toLowerCase().includes(destinationName.toLowerCase()) ||
+          destinationName.toLowerCase().includes(product.googlePlace?.country?.toLowerCase() || '')
+        );
+      }
+      
+      res.json({
+        destination: destinationName,
+        flightPackages: finalPackages,
+        landTours: finalTours.slice(0, 100) // Limit to 100 tours per destination
+      });
+    } catch (error: any) {
+      console.error("Error fetching destination:", error);
+      res.status(500).json({ error: "Failed to fetch destination" });
+    }
+  });
+
   // Collections API - get packages and tours by tag
   app.get("/api/collections/:tagSlug", async (req, res) => {
     try {

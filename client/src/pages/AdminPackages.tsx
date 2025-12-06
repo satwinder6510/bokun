@@ -126,9 +126,9 @@ type BokunTourResult = {
 
 // Common tag options for quick selection
 const COMMON_TAGS = [
-  "Beach", "City Break", "Honeymoon", "Family", "Adventure", 
-  "Luxury", "Budget", "Cultural", "Safari", "Cruise", 
-  "Ski", "Wellness", "Religious", "Wildlife", "Island"
+  "Beach", "City Break", "Family", "Adventure", "Luxury", 
+  "Budget", "Cultural", "Safari", "Cruise", "River Cruise",
+  "Golden Triangle", "Multi-Centre", "Wellness", "Religious", "Wildlife", "Island"
 ];
 
 const emptyPackage: PackageFormData = {

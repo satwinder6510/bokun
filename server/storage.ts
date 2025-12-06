@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql } from "drizzle-orm";
@@ -445,70 +445,82 @@ export class MemStorage implements IStorage {
     return this.faqs.delete(id);
   }
 
-  // Blog post methods
+  // Blog post methods (database-backed)
   async getAllBlogPosts(): Promise<BlogPost[]> {
-    return Array.from(this.blogPosts.values()).sort((a, b) => {
-      const aDate = a.publishedAt || a.createdAt;
-      const bDate = b.publishedAt || b.createdAt;
-      return bDate.getTime() - aDate.getTime();
-    });
+    try {
+      return await db.select().from(blogPosts)
+        .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
+    } catch (error) {
+      console.error("Error fetching all blog posts:", error);
+      return [];
+    }
   }
 
   async getPublishedBlogPosts(): Promise<BlogPost[]> {
-    return Array.from(this.blogPosts.values())
-      .filter(post => post.isPublished && post.publishedAt && post.publishedAt <= new Date())
-      .sort((a, b) => {
-        const aDate = a.publishedAt || a.createdAt;
-        const bDate = b.publishedAt || b.createdAt;
-        return bDate.getTime() - aDate.getTime();
-      });
+    try {
+      return await db.select().from(blogPosts)
+        .where(eq(blogPosts.isPublished, true))
+        .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
+    } catch (error) {
+      console.error("Error fetching published blog posts:", error);
+      return [];
+    }
   }
 
   async getBlogPostById(id: number): Promise<BlogPost | undefined> {
-    return this.blogPosts.get(id);
+    try {
+      const results = await db.select().from(blogPosts).where(eq(blogPosts.id, id)).limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching blog post by ID:", error);
+      return undefined;
+    }
   }
 
   async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
-    return Array.from(this.blogPosts.values()).find(post => post.slug === slug);
+    try {
+      const results = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug)).limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching blog post by slug:", error);
+      return undefined;
+    }
   }
 
   async createBlogPost(insertPost: InsertBlogPost): Promise<BlogPost> {
-    const id = this.blogPostIdCounter++;
-    const now = new Date();
-    const post: BlogPost = {
-      id,
-      title: insertPost.title,
-      slug: insertPost.slug,
-      content: insertPost.content,
-      excerpt: insertPost.excerpt,
-      metaTitle: insertPost.metaTitle ?? null,
-      metaDescription: insertPost.metaDescription ?? null,
-      featuredImage: insertPost.featuredImage ?? null,
-      author: insertPost.author ?? "Flights and Packages",
-      isPublished: insertPost.isPublished ?? false,
-      publishedAt: insertPost.publishedAt ?? null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.blogPosts.set(id, post);
-    return post;
+    try {
+      const results = await db.insert(blogPosts).values({
+        ...insertPost,
+        publishedAt: insertPost.publishedAt ?? (insertPost.isPublished ? new Date() : null),
+      }).returning();
+      return results[0];
+    } catch (error) {
+      console.error("Error creating blog post:", error);
+      throw error;
+    }
   }
 
   async updateBlogPost(id: number, updatePost: UpdateBlogPost): Promise<BlogPost | undefined> {
-    const existing = this.blogPosts.get(id);
-    if (!existing) return undefined;
-
-    const updated: BlogPost = {
-      ...existing,
-      ...updatePost,
-      updatedAt: new Date(),
-    };
-    this.blogPosts.set(id, updated);
-    return updated;
+    try {
+      const results = await db.update(blogPosts)
+        .set({ ...updatePost, updatedAt: new Date() })
+        .where(eq(blogPosts.id, id))
+        .returning();
+      return results[0];
+    } catch (error) {
+      console.error("Error updating blog post:", error);
+      return undefined;
+    }
   }
 
   async deleteBlogPost(id: number): Promise<boolean> {
-    return this.blogPosts.delete(id);
+    try {
+      const result = await db.delete(blogPosts).where(eq(blogPosts.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting blog post:", error);
+      return false;
+    }
   }
 
   // Shopping cart methods

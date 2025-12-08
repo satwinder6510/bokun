@@ -1825,8 +1825,19 @@ export default function AdminPackages() {
                           </Button>
                           <MediaPicker
                             multiple
-                            onSelect={(url) => setFormData({ ...formData, gallery: [...(formData.gallery || []), url] })}
-                            onSelectMultiple={(urls) => setFormData({ ...formData, gallery: [...(formData.gallery || []), ...urls] })}
+                            onSelect={(url) => {
+                              const existingGallery = formData.gallery || [];
+                              if (!existingGallery.includes(url)) {
+                                setFormData({ ...formData, gallery: [...existingGallery, url] });
+                              }
+                            }}
+                            onSelectMultiple={(urls) => {
+                              const existingGallery = formData.gallery || [];
+                              const newUrls = urls.filter(url => !existingGallery.includes(url));
+                              if (newUrls.length > 0) {
+                                setFormData({ ...formData, gallery: [...existingGallery, ...newUrls] });
+                              }
+                            }}
                             trigger={
                               <Button type="button" variant="secondary" className="flex-1" data-testid="button-media-picker-gallery">
                                 <ImagePlus className="w-4 h-4 mr-2" />

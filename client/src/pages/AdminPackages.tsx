@@ -279,6 +279,20 @@ export default function AdminPackages() {
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
   const [hotelSearchQuery, setHotelSearchQuery] = useState("");
 
+  // Helper for admin fetch with session header
+  const adminQueryFn = async (url: string) => {
+    const response = await fetch(url, {
+      headers: {
+        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+      },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || response.statusText);
+    }
+    return response.json();
+  };
+
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
   });
@@ -286,6 +300,7 @@ export default function AdminPackages() {
   // Hotels library query for hotel picker
   const { data: hotelsLibrary = [] } = useQuery<Hotel[]>({
     queryKey: ["/api/admin/hotels"],
+    queryFn: () => adminQueryFn("/api/admin/hotels"),
     enabled: hotelPickerOpen,
   });
   

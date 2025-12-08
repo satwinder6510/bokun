@@ -44,12 +44,43 @@ export default function AdminHotels() {
   const [scrapeCity, setScrapeCity] = useState("");
   const [isScraping, setIsScraping] = useState(false);
 
+  // Helper for admin fetch with session header
+  const adminQueryFn = async (url: string) => {
+    const response = await fetch(url, {
+      headers: {
+        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+      },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || response.statusText);
+    }
+    return response.json();
+  };
+
+  const adminFetch = async (url: string, options: RequestInit = {}) => {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+        ...options.headers,
+      },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || response.statusText);
+    }
+    return response.json();
+  };
+
   const { data: hotels = [], isLoading } = useQuery<HotelType[]>({
     queryKey: ["/api/admin/hotels"],
+    queryFn: () => adminQueryFn("/api/admin/hotels"),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest("DELETE", `/api/admin/hotels/${id}`),
+    mutationFn: (id: number) => adminFetch(`/api/admin/hotels/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/hotels"] });
       toast({ title: "Hotel removed from library" });
@@ -61,7 +92,10 @@ export default function AdminHotels() {
 
   const scrapeMutation = useMutation({
     mutationFn: async (data: { url: string; country?: string; city?: string }) => {
-      const response = await apiRequest("POST", "/api/admin/hotels/scrape", data);
+      const response = await adminFetch("/api/admin/hotels/scrape", {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
       return response;
     },
     onSuccess: (data: any) => {

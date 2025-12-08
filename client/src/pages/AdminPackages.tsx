@@ -48,8 +48,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { FlightPackage, InsertFlightPackage, PackagePricing } from "@shared/schema";
+import type { FlightPackage, InsertFlightPackage, PackagePricing, Hotel } from "@shared/schema";
 import { MediaPicker } from "@/components/MediaPicker";
+import { Star } from "lucide-react";
 
 // UK Airports list
 const UK_AIRPORTS = [
@@ -273,10 +274,43 @@ export default function AdminPackages() {
   const [bokunSearchResults, setBokunSearchResults] = useState<BokunTourResult[]>([]);
   const [isSearchingBokun, setIsSearchingBokun] = useState(false);
   const [isImportingBokun, setIsImportingBokun] = useState(false);
+  
+  // Hotel library picker state
+  const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
+  const [hotelSearchQuery, setHotelSearchQuery] = useState("");
 
   const { data: packages = [], isLoading } = useQuery<FlightPackage[]>({
     queryKey: ["/api/admin/packages"],
   });
+  
+  // Hotels library query for hotel picker
+  const { data: hotelsLibrary = [] } = useQuery<Hotel[]>({
+    queryKey: ["/api/admin/hotels"],
+    enabled: hotelPickerOpen,
+  });
+  
+  // Filter hotels based on search
+  const filteredHotels = hotelsLibrary.filter(hotel => 
+    hotel.name.toLowerCase().includes(hotelSearchQuery.toLowerCase()) ||
+    hotel.city?.toLowerCase().includes(hotelSearchQuery.toLowerCase()) ||
+    hotel.country?.toLowerCase().includes(hotelSearchQuery.toLowerCase())
+  );
+  
+  // Import hotel from library to accommodations
+  const importHotelFromLibrary = (hotel: Hotel) => {
+    const newAccommodation: Accommodation = {
+      name: hotel.name,
+      description: hotel.description || '',
+      images: hotel.images || [],
+    };
+    setFormData({
+      ...formData,
+      accommodations: [...(formData.accommodations || []), newAccommodation],
+    });
+    setHotelPickerOpen(false);
+    setHotelSearchQuery("");
+    toast({ title: `"${hotel.name}" added to accommodations` });
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: PackageFormData) => {
@@ -2297,12 +2331,18 @@ export default function AdminPackages() {
                   </TabsContent>
 
                   <TabsContent value="accommodation" className="space-y-4 mt-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
                       <Label>Accommodations</Label>
-                      <Button type="button" variant="outline" onClick={addAccommodation} data-testid="button-add-hotel">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Hotel
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" onClick={() => setHotelPickerOpen(true)} data-testid="button-import-from-library">
+                          <Download className="w-4 h-4 mr-2" />
+                          Import from Library
+                        </Button>
+                        <Button type="button" variant="outline" onClick={addAccommodation} data-testid="button-add-hotel">
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Manual
+                        </Button>
+                      </div>
                     </div>
                     {(formData.accommodations || []).map((hotel, index) => (
                       <Card key={index}>
@@ -3003,6 +3043,107 @@ export default function AdminPackages() {
             )}
           </div>
         )}
+        
+        {/* Hotel Library Picker Dialog */}
+        <Dialog open={hotelPickerOpen} onOpenChange={setHotelPickerOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Import Hotel from Library</DialogTitle>
+              <DialogDescription>
+                Select a hotel from your library to add to this package's accommodations.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <Input
+                placeholder="Search hotels by name, city, or country..."
+                value={hotelSearchQuery}
+                onChange={(e) => setHotelSearchQuery(e.target.value)}
+                className="pl-10"
+                data-testid="input-hotel-library-search"
+              />
+            </div>
+            
+            <div className="flex-1 overflow-y-auto space-y-3">
+              {filteredHotels.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="mb-2">No hotels found in your library</p>
+                  <a href="/admin/hotels" target="_blank" className="text-primary hover:underline text-sm">
+                    Go to Hotels Library to import hotels
+                  </a>
+                </div>
+              ) : (
+                filteredHotels.map((hotel) => (
+                  <Card 
+                    key={hotel.id} 
+                    className="hover-elevate cursor-pointer"
+                    onClick={() => importHotelFromLibrary(hotel)}
+                    data-testid={`hotel-library-item-${hotel.id}`}
+                  >
+                    <CardContent className="p-3">
+                      <div className="flex items-start gap-3">
+                        {hotel.featuredImage ? (
+                          <img 
+                            src={hotel.featuredImage} 
+                            alt={hotel.name}
+                            className="w-16 h-16 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+                            <MapPin className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium truncate">{hotel.name}</h4>
+                            {hotel.starRating && (
+                              <div className="flex items-center gap-0.5">
+                                {[...Array(hotel.starRating)].map((_, i) => (
+                                  <Star key={i} className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {(hotel.city || hotel.country) && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {[hotel.city, hotel.country].filter(Boolean).join(", ")}
+                            </p>
+                          )}
+                          {hotel.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                              {hotel.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-1">
+                            {hotel.images && hotel.images.length > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {hotel.images.length} images
+                              </Badge>
+                            )}
+                            {hotel.amenities && hotel.amenities.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {hotel.amenities.length} amenities
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+            
+            <DialogFooter className="mt-4">
+              <Button variant="outline" onClick={() => setHotelPickerOpen(false)}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );

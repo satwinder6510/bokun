@@ -190,11 +190,11 @@ function extractDescription($: cheerio.CheerioAPI): string {
   
   // Try OpenGraph
   description = $('meta[property="og:description"]').attr('content') || '';
-  if (description) return cleanText(description);
+  if (description && description.length > 50) return cleanText(description);
   
   // Try meta description
   description = $('meta[name="description"]').attr('content') || '';
-  if (description) return cleanText(description);
+  if (description && description.length > 50) return cleanText(description);
   
   // Try common hotel description selectors
   const descSelectors = [
@@ -206,13 +206,33 @@ function extractDescription($: cheerio.CheerioAPI): string {
     '.property-description',
     'article p',
     '.content p',
+    'main p',
+    '.main-content p',
+    '#content p',
+    '.intro',
+    '.overview',
+    '.summary',
   ];
   
   for (const selector of descSelectors) {
     const text = $(selector).first().text();
-    if (text && text.length > 100) {
+    if (text && text.length > 50) {
       return cleanText(text.slice(0, 2000));
     }
+  }
+  
+  // Fallback: collect all paragraphs with substantial text
+  const paragraphs: string[] = [];
+  $('p').each((_, el) => {
+    const text = cleanText($(el).text());
+    if (text.length > 80 && !text.toLowerCase().includes('cookie') && 
+        !text.toLowerCase().includes('privacy') && !text.toLowerCase().includes('copyright')) {
+      paragraphs.push(text);
+    }
+  });
+  
+  if (paragraphs.length > 0) {
+    return paragraphs.slice(0, 3).join(' ').slice(0, 2000);
   }
   
   return '';

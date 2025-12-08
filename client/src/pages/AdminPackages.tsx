@@ -49,6 +49,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { FlightPackage, InsertFlightPackage, PackagePricing } from "@shared/schema";
+import { MediaPicker } from "@/components/MediaPicker";
 
 // UK Airports list
 const UK_AIRPORTS = [
@@ -1750,10 +1751,19 @@ export default function AdminPackages() {
                             ) : (
                               <>
                                 <Upload className="w-4 h-4 mr-2" />
-                                Upload Image
+                                Upload from Computer
                               </>
                             )}
                           </Button>
+                          <MediaPicker
+                            onSelect={(url) => setFormData({ ...formData, featuredImage: url })}
+                            trigger={
+                              <Button type="button" variant="secondary" className="flex-1" data-testid="button-media-picker-featured">
+                                <ImagePlus className="w-4 h-4 mr-2" />
+                                Browse Library / Stock
+                              </Button>
+                            }
+                          />
                           {formData.featuredImage && (
                             <Button
                               type="button"
@@ -1792,26 +1802,39 @@ export default function AdminPackages() {
                           className="hidden"
                           data-testid="input-gallery-files"
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => galleryImagesRef.current?.click()}
-                          disabled={isUploadingGallery}
-                          className="w-full"
-                          data-testid="button-upload-gallery"
-                        >
-                          {isUploadingGallery ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <ImagePlus className="w-4 h-4 mr-2" />
-                              Add Gallery Images
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => galleryImagesRef.current?.click()}
+                            disabled={isUploadingGallery}
+                            className="flex-1"
+                            data-testid="button-upload-gallery"
+                          >
+                            {isUploadingGallery ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <ImagePlus className="w-4 h-4 mr-2" />
+                                Upload from Computer
+                              </>
+                            )}
+                          </Button>
+                          <MediaPicker
+                            multiple
+                            onSelect={(url) => setFormData({ ...formData, gallery: [...(formData.gallery || []), url] })}
+                            onSelectMultiple={(urls) => setFormData({ ...formData, gallery: [...(formData.gallery || []), ...urls] })}
+                            trigger={
+                              <Button type="button" variant="secondary" className="flex-1" data-testid="button-media-picker-gallery">
+                                <ImagePlus className="w-4 h-4 mr-2" />
+                                Browse Library / Stock
+                              </Button>
+                            }
+                          />
+                        </div>
                         {(formData.gallery || []).length > 0 && (
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <GripVertical className="w-3 h-3" />

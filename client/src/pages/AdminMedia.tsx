@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +86,20 @@ export default function AdminMedia() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [cleanupType, setCleanupType] = useState("hotel_images_in_destination");
 
+  // Helper for admin fetch in queries
+  const adminQueryFn = async (url: string) => {
+    const response = await fetch(url, {
+      headers: {
+        'X-Admin-Session': localStorage.getItem('adminSession') || '',
+      },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || response.statusText);
+    }
+    return response.json();
+  };
+
   // Fetch media assets
   const { data: assets = [], isLoading: assetsLoading, refetch: refetchAssets } = useQuery<MediaAsset[]>({
     queryKey: ['/api/admin/media/assets', sourceFilter],
@@ -94,18 +107,20 @@ export default function AdminMedia() {
       const url = sourceFilter === 'all' 
         ? '/api/admin/media/assets?limit=100'
         : `/api/admin/media/assets?limit=100&source=${sourceFilter}`;
-      return apiRequest('GET', url);
+      return adminQueryFn(url);
     },
   });
 
   // Fetch cleanup jobs
   const { data: cleanupJobs = [], refetch: refetchJobs } = useQuery<CleanupJob[]>({
     queryKey: ['/api/admin/media/cleanup-jobs'],
+    queryFn: () => adminQueryFn('/api/admin/media/cleanup-jobs'),
   });
 
   // Fetch stock API status
   const { data: stockStatus } = useQuery<{ unsplash: boolean; pexels: boolean }>({
     queryKey: ['/api/admin/media/stock/status'],
+    queryFn: () => adminQueryFn('/api/admin/media/stock/status'),
   });
 
   // Upload mutation
@@ -131,9 +146,26 @@ export default function AdminMedia() {
     },
   });
 
+  // Helper for admin API requests with auth header
+  const adminFetch = async (url: string, options: RequestInit = {}) => {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Session': localStorage.getItem('adminSession') || '',
+        ...options.headers,
+      },
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || response.statusText);
+    }
+    return response.json();
+  };
+
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => apiRequest('DELETE', `/api/admin/media/assets/${id}`),
+    mutationFn: (id: number) => adminFetch(`/api/admin/media/assets/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       toast({ title: "Asset deleted" });
       refetchAssets();
@@ -143,39 +175,57 @@ export default function AdminMedia() {
 
   // Cleanup preview mutation
   const previewCleanupMutation = useMutation({
-    mutationFn: (jobType: string) => apiRequest('POST', '/api/admin/media/cleanup-jobs', { jobType, scope: {} }),
+    mutationFn: (jobType: string) => adminFetch('/api/admin/media/cleanup-jobs', { 
+      method: 'POST', 
+      body: JSON.stringify({ jobType, scope: {} }) 
+    }),
     onSuccess: (data) => {
-      toast({ title: "Cleanup previewed", description: `${data.preview.totalCount} items affected` });
+      toast({ title: "Cleanup previewed", description: `${data.preview?.totalCount || 0} items affected` });
       refetchJobs();
+    },
+    onError: (error: any) => {
+      toast({ title: "Cleanup preview failed", description: error.message, variant: "destructive" });
     },
   });
 
   // Execute cleanup mutation
   const executeCleanupMutation = useMutation({
-    mutationFn: (jobId: number) => apiRequest('POST', `/api/admin/media/cleanup-jobs/${jobId}/execute`),
+    mutationFn: (jobId: number) => adminFetch(`/api/admin/media/cleanup-jobs/${jobId}/execute`, { method: 'POST' }),
     onSuccess: () => {
       toast({ title: "Cleanup executed successfully" });
       refetchJobs();
       refetchAssets();
     },
+    onError: (error: any) => {
+      toast({ title: "Cleanup execution failed", description: error.message, variant: "destructive" });
+    },
   });
 
   // Rollback mutation
   const rollbackMutation = useMutation({
-    mutationFn: (jobId: number) => apiRequest('POST', `/api/admin/media/cleanup-jobs/${jobId}/rollback`),
+    mutationFn: (jobId: number) => adminFetch(`/api/admin/media/cleanup-jobs/${jobId}/rollback`, { method: 'POST' }),
     onSuccess: () => {
       toast({ title: "Cleanup rolled back" });
       refetchJobs();
       refetchAssets();
     },
+    onError: (error: any) => {
+      toast({ title: "Rollback failed", description: error.message, variant: "destructive" });
+    },
   });
 
   // Stock image import mutation
   const importStockMutation = useMutation({
-    mutationFn: (image: StockImage) => apiRequest('POST', '/api/admin/media/stock/import', { image, tags: [] }),
+    mutationFn: (image: StockImage) => adminFetch('/api/admin/media/stock/import', { 
+      method: 'POST', 
+      body: JSON.stringify({ image, tags: [] }) 
+    }),
     onSuccess: () => {
       toast({ title: "Image imported successfully" });
       refetchAssets();
+    },
+    onError: (error: any) => {
+      toast({ title: "Import failed", description: error.message, variant: "destructive" });
     },
   });
 
@@ -184,10 +234,10 @@ export default function AdminMedia() {
     if (!stockSearchQuery.trim()) return;
     setIsSearchingStock(true);
     try {
-      const results = await apiRequest('GET', `/api/admin/media/stock/search?query=${encodeURIComponent(stockSearchQuery)}&perPage=24`);
+      const results = await adminFetch(`/api/admin/media/stock/search?query=${encodeURIComponent(stockSearchQuery)}&perPage=24`, { method: 'GET' });
       setStockResults(results);
-    } catch (error) {
-      toast({ title: "Search failed", variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Search failed", description: error.message, variant: "destructive" });
     } finally {
       setIsSearchingStock(false);
     }

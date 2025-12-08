@@ -737,3 +737,171 @@ export const updateSiteSettingSchema = z.object({
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
 export type UpdateSiteSetting = z.infer<typeof updateSiteSettingSchema>;
+
+// ============================================
+// MEDIA ASSET MANAGEMENT SYSTEM
+// ============================================
+
+// Main media assets table - stores original images
+export const mediaAssets = pgTable("media_assets", {
+  id: serial("id").primaryKey(),
+  slug: text("slug").notNull().unique(), // Unique identifier for the asset
+  originalUrl: text("original_url"), // External source URL (if from Unsplash/Pexels)
+  storagePath: text("storage_path"), // Local storage path
+  perceptualHash: text("perceptual_hash"), // For duplicate detection
+  mimeType: text("mime_type").notNull().default("image/webp"),
+  width: integer("width"),
+  height: integer("height"),
+  sizeBytes: integer("size_bytes"),
+  altText: text("alt_text"), // Accessibility alt text
+  caption: text("caption"), // Optional caption
+  photographer: text("photographer"), // Attribution
+  license: text("license"), // License type (unsplash, pexels, owned, etc.)
+  licenseUrl: text("license_url"), // Link to license
+  source: text("source").notNull().default("upload"), // upload, unsplash, pexels
+  externalId: text("external_id"), // ID from external service
+  isDeleted: boolean("is_deleted").notNull().default(false), // Soft delete
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertMediaAssetSchema = createInsertSchema(mediaAssets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isDeleted: true,
+});
+
+export type MediaAsset = typeof mediaAssets.$inferSelect;
+export type InsertMediaAsset = z.infer<typeof insertMediaAssetSchema>;
+
+// Media variants - different sizes of the same image
+export const mediaVariants = pgTable("media_variants", {
+  id: serial("id").primaryKey(),
+  assetId: integer("asset_id").notNull(), // FK to mediaAssets
+  variantType: text("variant_type").notNull(), // original, hero, gallery, card, thumb, mobile_hero
+  width: integer("width").notNull(),
+  height: integer("height").notNull(),
+  quality: integer("quality").notNull().default(80), // WebP quality
+  format: text("format").notNull().default("webp"),
+  filepath: text("filepath").notNull(), // Storage path for this variant
+  sizeBytes: integer("size_bytes"),
+  checksum: text("checksum"), // File integrity check
+  status: text("status").notNull().default("pending"), // pending, active, failed, superseded
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertMediaVariantSchema = createInsertSchema(mediaVariants).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type MediaVariant = typeof mediaVariants.$inferSelect;
+export type InsertMediaVariant = z.infer<typeof insertMediaVariantSchema>;
+
+// Media tags - for categorizing and finding images
+export const mediaTags = pgTable("media_tags", {
+  id: serial("id").primaryKey(),
+  assetId: integer("asset_id").notNull(), // FK to mediaAssets
+  tagType: text("tag_type").notNull(), // destination, hotel, category, keyword
+  tagValue: text("tag_value").notNull(), // e.g., "Turkey", "Grand Hotel", "beach"
+  confidence: real("confidence").default(1.0), // For auto-detected tags
+  isPrimary: boolean("is_primary").notNull().default(false), // Main tag for this asset
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertMediaTagSchema = createInsertSchema(mediaTags).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type MediaTag = typeof mediaTags.$inferSelect;
+export type InsertMediaTag = z.infer<typeof insertMediaTagSchema>;
+
+// Media usage - tracks where images are used (prevents duplicates)
+export const mediaUsage = pgTable("media_usage", {
+  id: serial("id").primaryKey(),
+  assetId: integer("asset_id").notNull(), // FK to mediaAssets
+  entityType: text("entity_type").notNull(), // destination_gallery, hotel_page, package, blog, bokun_override
+  entityId: text("entity_id").notNull(), // ID of the package, blog post, etc.
+  variantType: text("variant_type").notNull(), // Which variant is being used
+  isPrimary: boolean("is_primary").notNull().default(false), // Primary image for this entity
+  usageStatus: text("usage_status").notNull().default("active"), // active, staged, historical
+  assignedBy: text("assigned_by"),
+  assignedAt: timestamp("assigned_at").notNull().defaultNow(),
+});
+
+export const insertMediaUsageSchema = createInsertSchema(mediaUsage).omit({
+  id: true,
+  assignedAt: true,
+});
+
+export type MediaUsage = typeof mediaUsage.$inferSelect;
+export type InsertMediaUsage = z.infer<typeof insertMediaUsageSchema>;
+
+// Media backups - stores backup metadata for recovery
+export const mediaBackups = pgTable("media_backups", {
+  id: serial("id").primaryKey(),
+  scope: text("scope").notNull(), // destination_gallery, hotel_gallery, bulk_operation, full_backup
+  snapshotPath: text("snapshot_path").notNull(), // Path to backup archive
+  fileCount: integer("file_count").notNull().default(0),
+  totalSizeBytes: integer("total_size_bytes"),
+  metadata: jsonb("metadata"), // Additional context about what was backed up
+  status: text("status").notNull().default("completed"), // pending, completed, failed, restored
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  restoredAt: timestamp("restored_at"), // When/if backup was used for restore
+});
+
+export const insertMediaBackupSchema = createInsertSchema(mediaBackups).omit({
+  id: true,
+  createdAt: true,
+  restoredAt: true,
+});
+
+export type MediaBackup = typeof mediaBackups.$inferSelect;
+export type InsertMediaBackup = z.infer<typeof insertMediaBackupSchema>;
+
+// Media cleanup jobs - tracks cleanup operations with dry-run support
+export const mediaCleanupJobs = pgTable("media_cleanup_jobs", {
+  id: serial("id").primaryKey(),
+  jobType: text("job_type").notNull(), // hotel_from_gallery, duplicate_removal, unused_cleanup
+  status: text("status").notNull().default("draft"), // draft, previewed, approved, executed, rolled_back, failed
+  scope: jsonb("scope"), // JSON defining what to clean up
+  previewResults: jsonb("preview_results"), // Dry-run results showing what would be removed
+  affectedCount: integer("affected_count").default(0),
+  backupId: integer("backup_id"), // FK to mediaBackups (created before execution)
+  rollbackToken: text("rollback_token"), // Unique token for rollback
+  createdBy: text("created_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  previewedAt: timestamp("previewed_at"),
+  approvedAt: timestamp("approved_at"),
+  approvedBy: text("approved_by"),
+  executedAt: timestamp("executed_at"),
+  rolledBackAt: timestamp("rolled_back_at"),
+});
+
+export const insertMediaCleanupJobSchema = createInsertSchema(mediaCleanupJobs).omit({
+  id: true,
+  createdAt: true,
+  previewedAt: true,
+  approvedAt: true,
+  executedAt: true,
+  rolledBackAt: true,
+});
+
+export type MediaCleanupJob = typeof mediaCleanupJobs.$inferSelect;
+export type InsertMediaCleanupJob = z.infer<typeof insertMediaCleanupJobSchema>;
+
+// Variant type configurations (presets for different image sizes)
+export const variantPresets = {
+  original: { width: 0, height: 0, quality: 95, fit: 'inside' as const },
+  hero: { width: 1920, height: 1080, quality: 85, fit: 'cover' as const },
+  gallery: { width: 1280, height: 0, quality: 80, fit: 'inside' as const }, // Auto height
+  card: { width: 800, height: 600, quality: 75, fit: 'cover' as const },
+  thumb: { width: 400, height: 400, quality: 70, fit: 'cover' as const },
+  mobile_hero: { width: 768, height: 1024, quality: 75, fit: 'cover' as const },
+} as const;
+
+export type VariantType = keyof typeof variantPresets;

@@ -16,6 +16,8 @@ import path from "path";
 import fs from "fs";
 import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import * as mediaService from "./mediaService";
+import * as stockImageService from "./stockImageService";
 
 // Password hashing constants
 const SALT_ROUNDS = 12;
@@ -5167,6 +5169,290 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Migration status error:", error);
       res.status(500).json({ error: error.message || "Failed to get migration status" });
+    }
+  });
+
+  // ============================================
+  // MEDIA LIBRARY API ROUTES
+  // ============================================
+
+  // Get all media assets
+  app.get("/api/admin/media/assets", verifyAdminSession, async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const source = req.query.source as string | undefined;
+      
+      const assets = await mediaService.getAllAssets({ limit, offset, source });
+      res.json(assets);
+    } catch (error: any) {
+      console.error("Error fetching assets:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch assets" });
+    }
+  });
+
+  // Get single asset with variants
+  app.get("/api/admin/media/assets/:id", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const asset = await mediaService.getAssetById(id);
+      
+      if (!asset) {
+        return res.status(404).json({ error: "Asset not found" });
+      }
+      
+      const variants = await mediaService.getAssetVariants(id);
+      const usage = await mediaService.getAssetUsage(id);
+      
+      res.json({ asset, variants, usage });
+    } catch (error: any) {
+      console.error("Error fetching asset:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch asset" });
+    }
+  });
+
+  // Upload image
+  app.post("/api/admin/media/upload", verifyAdminSession, upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+      
+      const tags = req.body.tags ? JSON.parse(req.body.tags) : [];
+      
+      const result = await mediaService.processImage(
+        req.file.buffer,
+        req.file.originalname,
+        { tags }
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      res.status(500).json({ error: error.message || "Failed to upload image" });
+    }
+  });
+
+  // Search assets
+  app.get("/api/admin/media/search", verifyAdminSession, async (req, res) => {
+    try {
+      const assets = await mediaService.searchAssets({
+        tagType: req.query.tagType as string | undefined,
+        tagValue: req.query.tagValue as string | undefined,
+        source: req.query.source as string | undefined,
+        limit: parseInt(req.query.limit as string) || 50,
+        offset: parseInt(req.query.offset as string) || 0,
+      });
+      
+      res.json(assets);
+    } catch (error: any) {
+      console.error("Error searching assets:", error);
+      res.status(500).json({ error: error.message || "Failed to search assets" });
+    }
+  });
+
+  // Get unused assets
+  app.get("/api/admin/media/unused", verifyAdminSession, async (req, res) => {
+    try {
+      const assets = await mediaService.getUnusedAssets(
+        req.query.tagType as string | undefined,
+        req.query.tagValue as string | undefined,
+        parseInt(req.query.limit as string) || 20
+      );
+      
+      res.json(assets);
+    } catch (error: any) {
+      console.error("Error fetching unused assets:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch unused assets" });
+    }
+  });
+
+  // Assign asset to entity
+  app.post("/api/admin/media/assign", verifyAdminSession, async (req, res) => {
+    try {
+      const { assetId, entityType, entityId, variantType, isPrimary } = req.body;
+      const adminUser = (req as any).adminUser;
+      
+      await mediaService.assignAssetToEntity(
+        assetId,
+        entityType,
+        entityId,
+        variantType,
+        isPrimary,
+        adminUser.email
+      );
+      
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error assigning asset:", error);
+      res.status(500).json({ error: error.message || "Failed to assign asset" });
+    }
+  });
+
+  // Soft delete asset
+  app.delete("/api/admin/media/assets/:id", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await mediaService.softDeleteAsset(id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting asset:", error);
+      res.status(500).json({ error: error.message || "Failed to delete asset" });
+    }
+  });
+
+  // Get cleanup jobs
+  app.get("/api/admin/media/cleanup-jobs", verifyAdminSession, async (req, res) => {
+    try {
+      const jobs = await mediaService.getCleanupJobs();
+      res.json(jobs);
+    } catch (error: any) {
+      console.error("Error fetching cleanup jobs:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch cleanup jobs" });
+    }
+  });
+
+  // Create cleanup job and preview
+  app.post("/api/admin/media/cleanup-jobs", verifyAdminSession, async (req, res) => {
+    try {
+      const { jobType, scope } = req.body;
+      const adminUser = (req as any).adminUser;
+      
+      const preview = await mediaService.previewCleanup(jobType, scope || {});
+      
+      const { mediaCleanupJobs } = await import("@shared/schema");
+      const [job] = await db.insert(mediaCleanupJobs).values({
+        jobType,
+        scope: scope || {},
+        previewResults: preview,
+        affectedCount: preview.totalCount,
+        status: 'previewed',
+        createdBy: adminUser.email,
+        previewedAt: new Date(),
+      }).returning();
+      
+      res.json({ job, preview });
+    } catch (error: any) {
+      console.error("Error creating cleanup job:", error);
+      res.status(500).json({ error: error.message || "Failed to create cleanup job" });
+    }
+  });
+
+  // Execute cleanup job
+  app.post("/api/admin/media/cleanup-jobs/:id/execute", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const adminUser = (req as any).adminUser;
+      
+      const result = await mediaService.executeCleanup(id, adminUser.email);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error executing cleanup:", error);
+      res.status(500).json({ error: error.message || "Failed to execute cleanup" });
+    }
+  });
+
+  // Rollback cleanup job
+  app.post("/api/admin/media/cleanup-jobs/:id/rollback", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const result = await mediaService.rollbackCleanup(id);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error rolling back cleanup:", error);
+      res.status(500).json({ error: error.message || "Failed to rollback cleanup" });
+    }
+  });
+
+  // Get backups
+  app.get("/api/admin/media/backups", verifyAdminSession, async (req, res) => {
+    try {
+      const backups = await mediaService.getBackups();
+      res.json(backups);
+    } catch (error: any) {
+      console.error("Error fetching backups:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch backups" });
+    }
+  });
+
+  // ============================================
+  // STOCK IMAGE API ROUTES (Unsplash + Pexels)
+  // ============================================
+
+  // Get stock image config status
+  app.get("/api/admin/media/stock/status", verifyAdminSession, async (req, res) => {
+    try {
+      const status = stockImageService.getConfigStatus();
+      res.json(status);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Failed to get status" });
+    }
+  });
+
+  // Search stock images
+  app.get("/api/admin/media/stock/search", verifyAdminSession, async (req, res) => {
+    try {
+      const query = req.query.query as string;
+      if (!query) {
+        return res.status(400).json({ error: "Query parameter required" });
+      }
+      
+      const results = await stockImageService.searchStockImages({
+        query,
+        perPage: parseInt(req.query.perPage as string) || 12,
+        page: parseInt(req.query.page as string) || 1,
+        orientation: req.query.orientation as 'landscape' | 'portrait' | 'squarish' | undefined,
+      });
+      
+      res.json(results);
+    } catch (error: any) {
+      console.error("Error searching stock images:", error);
+      res.status(500).json({ error: error.message || "Failed to search stock images" });
+    }
+  });
+
+  // Import stock image
+  app.post("/api/admin/media/stock/import", verifyAdminSession, async (req, res) => {
+    try {
+      const { image, tags } = req.body;
+      
+      if (!image || !image.id || !image.provider || !image.fullUrl) {
+        return res.status(400).json({ error: "Invalid image data" });
+      }
+      
+      const result = await stockImageService.importStockImage(image, tags);
+      
+      if (!result) {
+        return res.status(500).json({ error: "Failed to import image" });
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error importing stock image:", error);
+      res.status(500).json({ error: error.message || "Failed to import stock image" });
+    }
+  });
+
+  // Search and auto-import stock images for a prompt
+  app.post("/api/admin/media/stock/auto-import", verifyAdminSession, async (req, res) => {
+    try {
+      const { prompt, count, orientation, preferProvider, tags } = req.body;
+      
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt required" });
+      }
+      
+      const results = await stockImageService.searchAndImportForPrompt(prompt, {
+        count: count || 3,
+        orientation: orientation || 'landscape',
+        preferProvider,
+        tags,
+      });
+      
+      res.json({ imported: results.length, assets: results });
+    } catch (error: any) {
+      console.error("Error auto-importing stock images:", error);
+      res.status(500).json({ error: error.message || "Failed to auto-import stock images" });
     }
   });
 

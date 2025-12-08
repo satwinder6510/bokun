@@ -90,6 +90,22 @@ export default function AdminHotels() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (data: { id: number; updates: Partial<HotelType> }) => 
+      adminFetch(`/api/admin/hotels/${data.id}`, { 
+        method: 'PATCH',
+        body: JSON.stringify(data.updates),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hotels"] });
+      toast({ title: "Hotel updated successfully" });
+      setEditingHotel(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update hotel", description: error.message, variant: "destructive" });
+    },
+  });
+
   const scrapeMutation = useMutation({
     mutationFn: async (data: { url: string; country?: string; city?: string }) => {
       const response = await adminFetch("/api/admin/hotels/scrape", {
@@ -276,6 +292,14 @@ export default function AdminHotels() {
                   </div>
                   
                   <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setEditingHotel(hotel)}
+                      data-testid={`button-edit-hotel-${hotel.id}`}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="sm" data-testid={`button-delete-hotel-${hotel.id}`}>
@@ -382,7 +406,216 @@ export default function AdminHotels() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Hotel Dialog */}
+        <Dialog open={!!editingHotel} onOpenChange={(open) => !open && setEditingHotel(null)}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Hotel</DialogTitle>
+              <DialogDescription>
+                Update hotel information
+              </DialogDescription>
+            </DialogHeader>
+            
+            {editingHotel && (
+              <EditHotelForm 
+                hotel={editingHotel}
+                onSave={(updates) => updateMutation.mutate({ id: editingHotel.id, updates })}
+                onCancel={() => setEditingHotel(null)}
+                isPending={updateMutation.isPending}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
+    </div>
+  );
+}
+
+function EditHotelForm({ 
+  hotel, 
+  onSave, 
+  onCancel, 
+  isPending 
+}: { 
+  hotel: HotelType; 
+  onSave: (updates: Partial<HotelType>) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const [name, setName] = useState(hotel.name);
+  const [description, setDescription] = useState(hotel.description || "");
+  const [country, setCountry] = useState(hotel.country || "");
+  const [city, setCity] = useState(hotel.city || "");
+  const [starRating, setStarRating] = useState(hotel.starRating?.toString() || "");
+  const [address, setAddress] = useState(hotel.address || "");
+  const [phone, setPhone] = useState(hotel.phone || "");
+  const [email, setEmail] = useState(hotel.email || "");
+  const [website, setWebsite] = useState(hotel.website || "");
+  const [amenities, setAmenities] = useState(hotel.amenities?.join(", ") || "");
+  const [featuredImage, setFeaturedImage] = useState(hotel.featuredImage || "");
+
+  const handleSubmit = () => {
+    onSave({
+      name,
+      description: description || null,
+      country: country || null,
+      city: city || null,
+      starRating: starRating ? parseInt(starRating, 10) : null,
+      address: address || null,
+      phone: phone || null,
+      email: email || null,
+      website: website || null,
+      amenities: amenities ? amenities.split(",").map(a => a.trim()).filter(Boolean) : [],
+      featuredImage: featuredImage || null,
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2">
+          <Label htmlFor="edit-name">Hotel Name</Label>
+          <Input
+            id="edit-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            data-testid="input-edit-hotel-name"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="edit-country">Country</Label>
+          <Input
+            id="edit-country"
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            data-testid="input-edit-hotel-country"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="edit-city">City</Label>
+          <Input
+            id="edit-city"
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            data-testid="input-edit-hotel-city"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="edit-star-rating">Star Rating</Label>
+          <Input
+            id="edit-star-rating"
+            type="number"
+            min="1"
+            max="5"
+            value={starRating}
+            onChange={(e) => setStarRating(e.target.value)}
+            placeholder="1-5"
+            data-testid="input-edit-hotel-rating"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="edit-phone">Phone</Label>
+          <Input
+            id="edit-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            data-testid="input-edit-hotel-phone"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="edit-email">Email</Label>
+          <Input
+            id="edit-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            data-testid="input-edit-hotel-email"
+          />
+        </div>
+        
+        <div>
+          <Label htmlFor="edit-website">Website</Label>
+          <Input
+            id="edit-website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            data-testid="input-edit-hotel-website"
+          />
+        </div>
+        
+        <div className="col-span-2">
+          <Label htmlFor="edit-address">Address</Label>
+          <Input
+            id="edit-address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            data-testid="input-edit-hotel-address"
+          />
+        </div>
+        
+        <div className="col-span-2">
+          <Label htmlFor="edit-featured-image">Featured Image URL</Label>
+          <Input
+            id="edit-featured-image"
+            value={featuredImage}
+            onChange={(e) => setFeaturedImage(e.target.value)}
+            placeholder="/api/media/image-slug/card"
+            data-testid="input-edit-hotel-featured-image"
+          />
+          {featuredImage && (
+            <div className="mt-2 rounded overflow-hidden w-32 h-20">
+              <img src={featuredImage} alt="Preview" className="w-full h-full object-cover" />
+            </div>
+          )}
+        </div>
+        
+        <div className="col-span-2">
+          <Label htmlFor="edit-amenities">Amenities (comma separated)</Label>
+          <Input
+            id="edit-amenities"
+            value={amenities}
+            onChange={(e) => setAmenities(e.target.value)}
+            placeholder="WiFi, Pool, Restaurant, Spa"
+            data-testid="input-edit-hotel-amenities"
+          />
+        </div>
+        
+        <div className="col-span-2">
+          <Label htmlFor="edit-description">Description</Label>
+          <Textarea
+            id="edit-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={5}
+            data-testid="input-edit-hotel-description"
+          />
+        </div>
+      </div>
+      
+      <DialogFooter>
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={handleSubmit} disabled={isPending} data-testid="button-save-hotel">
+          {isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </>
+          )}
+        </Button>
+      </DialogFooter>
     </div>
   );
 }

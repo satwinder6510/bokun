@@ -37,14 +37,20 @@ async function rateLimitedFetch(url: string): Promise<string> {
   
   domainLastRequest.set(domain, Date.now());
   
+  // Use AbortController for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  
   const response = await fetch(url, {
     headers: {
       'User-Agent': USER_AGENT,
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       'Accept-Language': 'en-US,en;q=0.5',
     },
-    timeout: 30000,
+    signal: controller.signal,
   });
+  
+  clearTimeout(timeoutId);
   
   if (!response.ok) {
     throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
@@ -382,46 +388,38 @@ export async function importHotelImages(
   
   for (const imageUrl of imageUrls.slice(0, 10)) { // Limit to 10 images
     try {
-      // Download the image
+      // Download the image with AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      
       const response = await fetch(imageUrl, {
         headers: { 'User-Agent': USER_AGENT },
-        timeout: 15000,
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) continue;
       
       const buffer = Buffer.from(await response.arrayBuffer());
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
       
-      // Generate a slug for the hotel image
-      const slug = `hotel-${hotelName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      // Generate a filename for the hotel image
+      const filename = `hotel-${hotelName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
       
       // Process and upload using media service
-      const asset = await mediaService.processAndUploadImage(
-        buffer,
-        `${slug}.jpg`,
-        contentType,
-        'hotel_scrape',
-        imageUrl
-      );
+      const result = await mediaService.processImage(buffer, filename, {
+        source: 'upload',
+      });
       
-      // Tag with location if provided
-      if (asset && (country || city)) {
-        const tags: string[] = [];
-        if (country) tags.push(country);
-        if (city) tags.push(city);
-        
-        for (const tag of tags) {
-          await storage.createMediaTag({
-            mediaAssetId: asset.id,
-            tagType: 'destination',
-            tagValue: tag,
-          });
+      // Add destination tags after asset is created
+      if (result && result.asset) {
+        if (country) {
+          await mediaService.addDestinationTag(result.asset.id, country);
         }
-      }
-      
-      if (asset) {
-        importedUrls.push(`/api/media/${asset.slug}/card`);
+        if (city) {
+          await mediaService.addDestinationTag(result.asset.id, city);
+        }
+        importedUrls.push(`/api/media/${result.asset.slug}/card`);
       }
     } catch (error) {
       console.error(`Failed to import image ${imageUrl}:`, error);

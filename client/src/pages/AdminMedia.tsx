@@ -90,7 +90,7 @@ export default function AdminMedia() {
   const adminQueryFn = async (url: string) => {
     const response = await fetch(url, {
       headers: {
-        'X-Admin-Session': localStorage.getItem('adminSession') || '',
+        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
       },
     });
     if (!response.ok) {
@@ -129,7 +129,7 @@ export default function AdminMedia() {
       const response = await fetch('/api/admin/media/upload', {
         method: 'POST',
         headers: {
-          'X-Admin-Session': localStorage.getItem('adminSession') || '',
+          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         },
         body: formData,
       });
@@ -152,7 +152,7 @@ export default function AdminMedia() {
       ...options,
       headers: {
         'Content-Type': 'application/json',
-        'X-Admin-Session': localStorage.getItem('adminSession') || '',
+        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         ...options.headers,
       },
     });

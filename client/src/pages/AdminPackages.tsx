@@ -1757,6 +1757,8 @@ export default function AdminPackages() {
                           </Button>
                           <MediaPicker
                             onSelect={(url) => setFormData({ ...formData, featuredImage: url })}
+                            destination={formData.category}
+                            currentPackageId={editingPackage?.id}
                             trigger={
                               <Button type="button" variant="secondary" className="flex-1" data-testid="button-media-picker-featured">
                                 <ImagePlus className="w-4 h-4 mr-2" />
@@ -1825,6 +1827,8 @@ export default function AdminPackages() {
                           </Button>
                           <MediaPicker
                             multiple
+                            destination={formData.category}
+                            currentPackageId={editingPackage?.id}
                             onSelect={(url) => {
                               const existingGallery = formData.gallery || [];
                               if (!existingGallery.includes(url)) {

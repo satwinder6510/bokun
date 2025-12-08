@@ -7,16 +7,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Upload, Image as ImageIcon, Check, ExternalLink } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Loader2, Search, Upload, Image as ImageIcon, Check, MapPin, Eye } from "lucide-react";
+
+type PackageUsage = {
+  packageId: number;
+  packageTitle: string;
+  usageType: string;
+};
 
 type MediaAsset = {
   id: number;
   slug: string;
-  filename: string;
+  filename?: string;
   mimeType: string;
   width: number;
   height: number;
   source: string;
+  destinations?: string[];
+  usedInPackages?: PackageUsage[];
 };
 
 type StockImage = {
@@ -36,16 +45,26 @@ type MediaPickerProps = {
   trigger?: React.ReactNode;
   multiple?: boolean;
   onSelectMultiple?: (imageUrls: string[]) => void;
+  destination?: string;
+  currentPackageId?: number;
 };
 
-export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMultiple }: MediaPickerProps) {
+export function MediaPicker({ 
+  onSelect, 
+  trigger, 
+  multiple = false, 
+  onSelectMultiple,
+  destination,
+  currentPackageId
+}: MediaPickerProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [stockSearchQuery, setStockSearchQuery] = useState("");
+  const [stockSearchQuery, setStockSearchQuery] = useState(destination || "");
   const [stockResults, setStockResults] = useState<StockImage[]>([]);
   const [isSearchingStock, setIsSearchingStock] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [hideInUse, setHideInUse] = useState(false);
 
   const adminFetch = async (url: string, options: RequestInit = {}) => {
     const response = await fetch(url, {
@@ -64,16 +83,25 @@ export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMulti
   };
 
   const { data: assets = [], isLoading: assetsLoading, refetch: refetchAssets } = useQuery<MediaAsset[]>({
-    queryKey: ['/api/admin/media/assets', 'picker'],
-    queryFn: () => adminFetch('/api/admin/media/assets?limit=50'),
+    queryKey: ['/api/admin/media/assets', 'picker', destination],
+    queryFn: () => {
+      const params = new URLSearchParams({ limit: '100' });
+      if (destination) {
+        params.set('destination', destination);
+      }
+      return adminFetch(`/api/admin/media/assets?${params.toString()}`);
+    },
     enabled: open,
   });
 
   const importStockMutation = useMutation({
-    mutationFn: (image: StockImage) => adminFetch('/api/admin/media/stock/import', {
-      method: 'POST',
-      body: JSON.stringify({ image, tags: [] }),
-    }),
+    mutationFn: async (image: StockImage) => {
+      const tags = destination ? [{ type: 'destination', value: destination }] : [];
+      return adminFetch('/api/admin/media/stock/import', {
+        method: 'POST',
+        body: JSON.stringify({ image, tags }),
+      });
+    },
     onSuccess: (data) => {
       toast({ title: "Image imported successfully" });
       refetchAssets();
@@ -94,7 +122,8 @@ export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMulti
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('tags', JSON.stringify([]));
+      const tags = destination ? [{ type: 'destination', value: destination }] : [];
+      formData.append('tags', JSON.stringify(tags));
       const response = await fetch('/api/admin/media/upload', {
         method: 'POST',
         headers: {
@@ -163,10 +192,43 @@ export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMulti
     }
   };
 
-  const filteredAssets = assets.filter(asset =>
-    asset.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    asset.slug.toLowerCase().includes(searchQuery.toLowerCase())
+  const isUsedInOtherPackages = (asset: MediaAsset): boolean => {
+    if (!asset.usedInPackages || asset.usedInPackages.length === 0) return false;
+    if (!currentPackageId) return asset.usedInPackages.length > 0;
+    return asset.usedInPackages.some(u => u.packageId !== currentPackageId);
+  };
+
+  const getUsageTooltip = (asset: MediaAsset): string => {
+    if (!asset.usedInPackages || asset.usedInPackages.length === 0) return "";
+    const otherPackages = currentPackageId 
+      ? asset.usedInPackages.filter(u => u.packageId !== currentPackageId)
+      : asset.usedInPackages;
+    if (otherPackages.length === 0) return "";
+    return otherPackages.map(u => `${u.packageTitle} (${u.usageType})`).join(", ");
+  };
+
+  // Filter and sort assets
+  let filteredAssets = assets.filter(asset =>
+    (asset.filename?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    asset.slug.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  // Optionally hide in-use images
+  if (hideInUse) {
+    filteredAssets = filteredAssets.filter(asset => !isUsedInOtherPackages(asset));
+  }
+
+  // Sort: matching destination first, then by whether in-use
+  if (destination) {
+    filteredAssets.sort((a, b) => {
+      const aHasDest = a.destinations?.some(d => d.toLowerCase() === destination.toLowerCase()) ? 1 : 0;
+      const bHasDest = b.destinations?.some(d => d.toLowerCase() === destination.toLowerCase()) ? 1 : 0;
+      if (aHasDest !== bHasDest) return bHasDest - aHasDest;
+      const aInUse = isUsedInOtherPackages(a) ? 1 : 0;
+      const bInUse = isUsedInOtherPackages(b) ? 1 : 0;
+      return aInUse - bInUse;
+    });
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -180,7 +242,15 @@ export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMulti
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>Select Image</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            Select Image
+            {destination && (
+              <Badge variant="outline" className="ml-2">
+                <MapPin className="h-3 w-3 mr-1" />
+                {destination}
+              </Badge>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
         <Tabs defaultValue="library" className="w-full">
@@ -199,6 +269,15 @@ export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMulti
                 className="flex-1"
                 data-testid="input-search-library"
               />
+              <Button
+                variant={hideInUse ? "default" : "outline"}
+                size="sm"
+                onClick={() => setHideInUse(!hideInUse)}
+                data-testid="button-toggle-hide-inuse"
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                {hideInUse ? "Show All" : "Hide In-Use"}
+              </Button>
             </div>
             <ScrollArea className="h-[400px]">
               {assetsLoading ? (
@@ -214,29 +293,60 @@ export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMulti
                   {filteredAssets.map((asset) => {
                     const imageUrl = `/api/media/${asset.slug}/card`;
                     const isSelected = selectedImages.includes(imageUrl);
+                    const inUse = isUsedInOtherPackages(asset);
+                    const usageTooltip = getUsageTooltip(asset);
+                    const hasDestination = destination && asset.destinations?.some(
+                      d => d.toLowerCase() === destination.toLowerCase()
+                    );
+                    
                     return (
-                      <div
-                        key={asset.id}
-                        className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
-                          isSelected ? 'border-primary ring-2 ring-primary/20' : 'border-transparent hover:border-muted-foreground/30'
-                        }`}
-                        onClick={() => handleSelectLibraryImage(asset)}
-                        data-testid={`media-item-${asset.id}`}
-                      >
-                        <img
-                          src={`/api/media/${asset.slug}/thumb`}
-                          alt={asset.filename}
-                          className="w-full aspect-[4/3] object-cover"
-                        />
-                        {isSelected && (
-                          <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
-                            <Check className="h-3 w-3" />
+                      <Tooltip key={asset.id}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${
+                              isSelected ? 'border-primary ring-2 ring-primary/20' : 
+                              inUse ? 'border-muted opacity-60' :
+                              'border-transparent hover:border-muted-foreground/30'
+                            }`}
+                            onClick={() => handleSelectLibraryImage(asset)}
+                            data-testid={`media-item-${asset.id}`}
+                          >
+                            <img
+                              src={`/api/media/${asset.slug}/thumb`}
+                              alt={asset.filename || asset.slug}
+                              className={`w-full aspect-[4/3] object-cover ${inUse ? 'grayscale-[30%]' : ''}`}
+                            />
+                            {inUse && (
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                <Badge variant="secondary" className="text-xs bg-background/90">
+                                  In Use
+                                </Badge>
+                              </div>
+                            )}
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 bg-primary text-primary-foreground rounded-full p-1">
+                                <Check className="h-3 w-3" />
+                              </div>
+                            )}
+                            {hasDestination && !inUse && (
+                              <Badge variant="default" className="absolute top-1 left-1 text-xs">
+                                <MapPin className="h-2 w-2 mr-0.5" />
+                                {destination}
+                              </Badge>
+                            )}
+                            {!hasDestination && (
+                              <Badge variant="secondary" className="absolute bottom-1 left-1 text-xs">
+                                {asset.source}
+                              </Badge>
+                            )}
                           </div>
+                        </TooltipTrigger>
+                        {usageTooltip && (
+                          <TooltipContent side="bottom" className="max-w-xs">
+                            <p className="text-xs">Used in: {usageTooltip}</p>
+                          </TooltipContent>
                         )}
-                        <Badge variant="secondary" className="absolute bottom-1 left-1 text-xs">
-                          {asset.source}
-                        </Badge>
-                      </div>
+                      </Tooltip>
                     );
                   })}
                 </div>
@@ -258,10 +368,15 @@ export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMulti
                 {isSearchingStock ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
             </div>
+            {destination && (
+              <p className="text-xs text-muted-foreground mb-3">
+                Tip: Search pre-filled with "{destination}" - imported images will be tagged with this destination.
+              </p>
+            )}
             <ScrollArea className="h-[400px]">
               {stockResults.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  Search for images above. Try "beach", "mountains", or "travel".
+                  Search for images above. Try "{destination || 'beach'}", "mountains", or "travel".
                 </div>
               ) : (
                 <div className="grid grid-cols-4 gap-3">
@@ -301,6 +416,11 @@ export function MediaPicker({ onSelect, trigger, multiple = false, onSelectMulti
             <div className="flex flex-col items-center justify-center h-[400px] border-2 border-dashed rounded-lg">
               <Upload className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground mb-4">Upload an image from your computer</p>
+              {destination && (
+                <p className="text-xs text-muted-foreground mb-4">
+                  Image will be tagged with: <Badge variant="outline">{destination}</Badge>
+                </p>
+              )}
               <input
                 type="file"
                 accept="image/*"

@@ -905,3 +905,38 @@ export const variantPresets = {
 } as const;
 
 export type VariantType = keyof typeof variantPresets;
+
+// Hotels library - stores scraped hotel information for reuse across packages
+export const hotels = pgTable("hotels", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  starRating: integer("star_rating"), // 1-5 stars
+  amenities: jsonb("amenities").$type<string[]>(), // ["WiFi", "Pool", "Spa", etc.]
+  address: text("address"),
+  city: text("city"),
+  country: text("country"),
+  sourceUrl: text("source_url"), // Original hotel website scraped
+  images: jsonb("images").$type<string[]>(), // Array of media asset URLs
+  featuredImage: text("featured_image"), // Main display image
+  roomTypes: jsonb("room_types").$type<{ name: string; description?: string }[]>(),
+  checkInTime: text("check_in_time"),
+  checkOutTime: text("check_out_time"),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  lastScrapedAt: timestamp("last_scraped_at"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertHotelSchema = createInsertSchema(hotels).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastScrapedAt: true,
+});
+
+export type Hotel = typeof hotels.$inferSelect;
+export type InsertHotel = z.infer<typeof insertHotelSchema>;

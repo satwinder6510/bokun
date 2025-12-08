@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql } from "drizzle-orm";
@@ -111,6 +111,15 @@ export interface IStorage {
   getExchangeRate(): Promise<number>;
   upsertSiteSetting(key: string, value: string, label: string, description?: string): Promise<SiteSetting>;
   updateSiteSetting(key: string, value: string): Promise<SiteSetting | undefined>;
+  
+  // Hotel methods
+  getAllHotels(): Promise<Hotel[]>;
+  getHotelById(id: number): Promise<Hotel | undefined>;
+  getHotelBySourceUrl(url: string): Promise<Hotel | undefined>;
+  createHotel(hotel: InsertHotel): Promise<Hotel>;
+  updateHotel(id: number, updates: Partial<InsertHotel>): Promise<Hotel | undefined>;
+  deleteHotel(id: number): Promise<boolean>;
+  searchHotels(query: string): Promise<Hotel[]>;
 }
 
 // In-memory storage with per-currency product caching
@@ -1139,6 +1148,85 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error updating site setting:", error);
       return undefined;
+    }
+  }
+  
+  // Hotel methods (stored in PostgreSQL)
+  async getAllHotels(): Promise<Hotel[]> {
+    try {
+      return await db.select().from(hotels)
+        .where(eq(hotels.isActive, true))
+        .orderBy(desc(hotels.createdAt));
+    } catch (error) {
+      console.error("Error fetching hotels:", error);
+      return [];
+    }
+  }
+  
+  async getHotelById(id: number): Promise<Hotel | undefined> {
+    try {
+      const results = await db.select().from(hotels)
+        .where(eq(hotels.id, id))
+        .limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching hotel by id:", error);
+      return undefined;
+    }
+  }
+  
+  async getHotelBySourceUrl(url: string): Promise<Hotel | undefined> {
+    try {
+      const results = await db.select().from(hotels)
+        .where(eq(hotels.sourceUrl, url))
+        .limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching hotel by source URL:", error);
+      return undefined;
+    }
+  }
+  
+  async createHotel(hotel: InsertHotel): Promise<Hotel> {
+    const [created] = await db.insert(hotels).values(hotel).returning();
+    return created;
+  }
+  
+  async updateHotel(id: number, updates: Partial<InsertHotel>): Promise<Hotel | undefined> {
+    try {
+      const [updated] = await db.update(hotels)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(hotels.id, id))
+        .returning();
+      return updated;
+    } catch (error) {
+      console.error("Error updating hotel:", error);
+      return undefined;
+    }
+  }
+  
+  async deleteHotel(id: number): Promise<boolean> {
+    try {
+      await db.update(hotels)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(hotels.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting hotel:", error);
+      return false;
+    }
+  }
+  
+  async searchHotels(query: string): Promise<Hotel[]> {
+    try {
+      const searchPattern = `%${query.toLowerCase()}%`;
+      return await db.select().from(hotels)
+        .where(sql`${hotels.isActive} = true AND (LOWER(${hotels.name}) LIKE ${searchPattern} OR LOWER(${hotels.city}) LIKE ${searchPattern} OR LOWER(${hotels.country}) LIKE ${searchPattern})`)
+        .orderBy(desc(hotels.createdAt))
+        .limit(50);
+    } catch (error) {
+      console.error("Error searching hotels:", error);
+      return [];
     }
   }
 }

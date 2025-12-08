@@ -203,6 +203,21 @@ export async function getAssetVariants(assetId: number): Promise<MediaVariant[]>
     .where(and(eq(mediaVariants.assetId, assetId), eq(mediaVariants.status, 'active')));
 }
 
+export async function getVariantFilePath(slug: string, variantType: string): Promise<string | null> {
+  const asset = await getAssetBySlug(slug);
+  if (!asset) return null;
+  
+  const [variant] = await db.select().from(mediaVariants)
+    .where(and(
+      eq(mediaVariants.assetId, asset.id),
+      eq(mediaVariants.variantType, variantType as VariantType),
+      eq(mediaVariants.status, 'active')
+    ));
+  
+  if (!variant) return null;
+  return variant.filepath;
+}
+
 export async function searchAssets(options: {
   tagType?: string;
   tagValue?: string;

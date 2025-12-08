@@ -527,6 +527,29 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
             </Card>
+
+            <Card data-testid="card-media-library">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <Image className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Media Library</CardTitle>
+                      <CardDescription>
+                        Manage images, stock photos, and cleanup operations
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Link href="/admin/media">
+                    <Button variant="outline" size="sm" data-testid="button-manage-media">
+                      Manage Media
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+            </Card>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

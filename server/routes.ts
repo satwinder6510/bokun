@@ -5173,6 +5173,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ============================================
+  // PUBLIC MEDIA SERVING ROUTES
+  // ============================================
+
+  // Serve media file by slug and variant
+  app.get("/api/media/:slug/:variant", async (req, res) => {
+    try {
+      const { slug, variant } = req.params;
+      
+      // Validate variant type
+      const validVariants = ['hero', 'gallery', 'card', 'thumb'];
+      if (!validVariants.includes(variant)) {
+        return res.status(400).json({ error: "Invalid variant type" });
+      }
+      
+      const filepath = await mediaService.getVariantFilePath(slug, variant);
+      
+      if (!filepath || !fs.existsSync(filepath)) {
+        return res.status(404).json({ error: "Image not found" });
+      }
+      
+      // Determine content type
+      const ext = path.extname(filepath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.webp': 'image/webp',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+      };
+      
+      res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+      
+      const stream = fs.createReadStream(filepath);
+      stream.pipe(res);
+    } catch (error: any) {
+      console.error("Error serving media:", error);
+      res.status(500).json({ error: error.message || "Failed to serve media" });
+    }
+  });
+
+  // ============================================
   // MEDIA LIBRARY API ROUTES
   // ============================================
 

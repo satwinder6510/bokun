@@ -63,10 +63,6 @@ localPort = 43311
 externalPort = 6800
 
 [[ports]]
-localPort = 44373
-externalPort = 8099
-
-[[ports]]
 localPort = 44719
 externalPort = 3000
 

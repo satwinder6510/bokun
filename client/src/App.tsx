@@ -27,6 +27,7 @@ import AdminTrackingNumbers from "@/pages/AdminTrackingNumbers";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminFlightPricing from "@/pages/AdminFlightPricing";
 import AdminSettings from "@/pages/AdminSettings";
+import AdminMedia from "@/pages/AdminMedia";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import DesignPreview from "@/pages/DesignPreview";
@@ -123,6 +124,11 @@ function Router() {
       <Route path="/admin/settings">
         <ProtectedRoute>
           <AdminSettings />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/media">
+        <ProtectedRoute>
+          <AdminMedia />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

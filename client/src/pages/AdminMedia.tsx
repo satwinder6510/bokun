@@ -29,6 +29,7 @@ import {
   Eye,
   Filter,
   Download,
+  Check,
 } from "lucide-react";
 
 type MediaAsset = {
@@ -85,6 +86,8 @@ export default function AdminMedia() {
   const [isSearchingStock, setIsSearchingStock] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [cleanupType, setCleanupType] = useState("hotel_images_in_destination");
+  const [selectedStockImages, setSelectedStockImages] = useState<Set<string>>(new Set());
+  const [isImportingBulk, setIsImportingBulk] = useState(false);
 
   // Helper for admin fetch in queries
   const adminQueryFn = async (url: string) => {
@@ -233,6 +236,7 @@ export default function AdminMedia() {
   const handleSearchStock = async () => {
     if (!stockSearchQuery.trim()) return;
     setIsSearchingStock(true);
+    setSelectedStockImages(new Set()); // Clear selection on new search
     try {
       const results = await adminFetch(`/api/admin/media/stock/search?query=${encodeURIComponent(stockSearchQuery)}&perPage=24`, { method: 'GET' });
       // Combine unsplash and pexels results into a single array
@@ -245,6 +249,68 @@ export default function AdminMedia() {
       toast({ title: "Search failed", description: error.message, variant: "destructive" });
     } finally {
       setIsSearchingStock(false);
+    }
+  };
+
+  // Toggle stock image selection
+  const toggleStockSelection = (imageKey: string) => {
+    setSelectedStockImages(prev => {
+      const next = new Set(prev);
+      if (next.has(imageKey)) {
+        next.delete(imageKey);
+      } else {
+        next.add(imageKey);
+      }
+      return next;
+    });
+  };
+
+  // Select all stock images
+  const selectAllStock = () => {
+    const allKeys = stockResults.map(img => `${img.provider}-${img.id}`);
+    setSelectedStockImages(new Set(allKeys));
+  };
+
+  // Clear stock selection
+  const clearStockSelection = () => {
+    setSelectedStockImages(new Set());
+  };
+
+  // Bulk import selected stock images
+  const handleBulkImport = async () => {
+    const selectedImages = stockResults.filter(img => 
+      selectedStockImages.has(`${img.provider}-${img.id}`)
+    );
+    if (selectedImages.length === 0) return;
+
+    setIsImportingBulk(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const image of selectedImages) {
+      try {
+        await adminFetch('/api/admin/media/stock/import', { 
+          method: 'POST', 
+          body: JSON.stringify({ image, tags: [] }) 
+        });
+        successCount++;
+      } catch (error) {
+        failCount++;
+      }
+    }
+
+    setIsImportingBulk(false);
+    setSelectedStockImages(new Set());
+    refetchAssets();
+
+    if (failCount === 0) {
+      toast({ title: `Imported ${successCount} images successfully` });
+    } else {
+      toast({ 
+        title: `Import completed`, 
+        description: `${successCount} succeeded, ${failCount} failed`,
+        variant: failCount > 0 ? "destructive" : "default"
+      });
     }
   };
 
@@ -570,37 +636,77 @@ export default function AdminMedia() {
           </Card>
 
           {stockResults.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {stockResults.map((image) => (
-                <Card key={`${image.provider}-${image.id}`} className="overflow-hidden">
-                  <div className="aspect-square relative bg-muted">
-                    <img
-                      src={image.previewUrl}
-                      alt={image.description}
-                      className="w-full h-full object-cover"
-                    />
-                    <Badge className="absolute top-2 right-2 text-xs capitalize">
-                      {image.provider}
-                    </Badge>
-                  </div>
-                  <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground truncate mb-2" title={image.photographer}>
-                      by {image.photographer}
-                    </p>
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      onClick={() => importStockMutation.mutate(image)}
-                      disabled={importStockMutation.isPending}
-                      data-testid={`button-import-${image.provider}-${image.id}`}
+            <>
+              {/* Bulk selection controls */}
+              <div className="flex items-center justify-between mb-4 p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={selectedStockImages.size === stockResults.length ? clearStockSelection : selectAllStock}
+                    data-testid="button-select-all-stock"
+                  >
+                    {selectedStockImages.size === stockResults.length ? "Deselect All" : "Select All"}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    {selectedStockImages.size} of {stockResults.length} selected
+                  </span>
+                </div>
+                {selectedStockImages.size > 0 && (
+                  <Button
+                    onClick={handleBulkImport}
+                    disabled={isImportingBulk}
+                    data-testid="button-bulk-import"
+                  >
+                    {isImportingBulk ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Importing {selectedStockImages.size}...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4 mr-2" />
+                        Import {selectedStockImages.size} Selected
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {stockResults.map((image) => {
+                  const imageKey = `${image.provider}-${image.id}`;
+                  const isSelected = selectedStockImages.has(imageKey);
+                  return (
+                    <Card 
+                      key={imageKey} 
+                      className={`overflow-hidden cursor-pointer transition-all ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                      onClick={() => toggleStockSelection(imageKey)}
                     >
-                      <Download className="w-3 h-3 mr-1" />
-                      Import
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      <div className="aspect-square relative bg-muted">
+                        <img
+                          src={image.previewUrl}
+                          alt={image.description}
+                          className="w-full h-full object-cover"
+                        />
+                        <Badge className="absolute top-2 right-2 text-xs capitalize">
+                          {image.provider}
+                        </Badge>
+                        {/* Selection checkbox */}
+                        <div className={`absolute top-2 left-2 w-6 h-6 rounded border-2 flex items-center justify-center ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'bg-background/80 border-muted-foreground'}`}>
+                          {isSelected && <Check className="w-4 h-4" />}
+                        </div>
+                      </div>
+                      <CardContent className="p-3">
+                        <p className="text-xs text-muted-foreground truncate" title={image.photographer}>
+                          by {image.photographer}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {stockResults.length === 0 && stockSearchQuery && !isSearchingStock && (

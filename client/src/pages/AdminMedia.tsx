@@ -262,8 +262,8 @@ export default function AdminMedia() {
 
   // Filter assets by search query
   const filteredAssets = assets.filter(asset => 
-    asset.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    asset.slug.toLowerCase().includes(searchQuery.toLowerCase())
+    (asset.filename?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (asset.slug?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   );
 
   const formatBytes = (bytes: number) => {

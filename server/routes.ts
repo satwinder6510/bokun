@@ -5705,6 +5705,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import hotels from existing flight packages
+  app.post("/api/admin/hotels/import-from-packages", verifyAdminSession, async (req, res) => {
+    try {
+      const packages = await storage.getAllFlightPackages();
+      const importedHotels: any[] = [];
+      const skippedHotels: string[] = [];
+      
+      // Extract unique hotels from all packages
+      const hotelMap = new Map<string, any>();
+      
+      for (const pkg of packages) {
+        if (!pkg.accommodations || !Array.isArray(pkg.accommodations)) continue;
+        
+        for (const acc of pkg.accommodations) {
+          if (!acc.name) continue;
+          
+          // Normalize hotel name for deduplication
+          const normalizedName = acc.name.trim().toLowerCase();
+          
+          if (!hotelMap.has(normalizedName)) {
+            hotelMap.set(normalizedName, {
+              name: acc.name.trim(),
+              description: acc.description || null,
+              images: acc.images || [],
+              country: pkg.category || null, // Use package category as country hint
+            });
+          }
+        }
+      }
+      
+      // Import each unique hotel
+      const { importHotelImages } = await import('./hotelScraperService');
+      
+      const entries = Array.from(hotelMap.entries());
+      for (const [normalizedName, hotelData] of entries) {
+        // Check if already exists
+        const existing = await storage.getHotelByName(hotelData.name);
+        if (existing) {
+          skippedHotels.push(hotelData.name);
+          continue;
+        }
+        
+        // Import images
+        let importedImages: string[] = [];
+        if (hotelData.images.length > 0) {
+          try {
+            importedImages = await importHotelImages(
+              hotelData.name,
+              hotelData.images,
+              hotelData.country || undefined,
+              undefined
+            );
+          } catch (err) {
+            console.error(`Failed to import images for ${hotelData.name}:`, err);
+          }
+        }
+        
+        // Create hotel record
+        const hotel = await storage.createHotel({
+          name: hotelData.name,
+          description: hotelData.description,
+          images: importedImages,
+          featuredImage: importedImages[0] || null,
+          country: hotelData.country,
+          isActive: true,
+        });
+        
+        importedHotels.push({
+          id: hotel.id,
+          name: hotel.name,
+          imageCount: importedImages.length,
+        });
+      }
+      
+      res.json({
+        success: true,
+        imported: importedHotels.length,
+        skipped: skippedHotels.length,
+        importedHotels,
+        skippedHotels,
+      });
+    } catch (error: any) {
+      console.error("Error importing hotels from packages:", error);
+      res.status(500).json({ error: error.message || "Failed to import hotels" });
+    }
+  });
+
   // Periodic cleanup of expired sessions (runs every hour)
   setInterval(async () => {
     try {

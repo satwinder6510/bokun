@@ -116,6 +116,7 @@ export interface IStorage {
   getAllHotels(): Promise<Hotel[]>;
   getHotelById(id: number): Promise<Hotel | undefined>;
   getHotelBySourceUrl(url: string): Promise<Hotel | undefined>;
+  getHotelByName(name: string): Promise<Hotel | undefined>;
   createHotel(hotel: InsertHotel): Promise<Hotel>;
   updateHotel(id: number, updates: Partial<InsertHotel>): Promise<Hotel | undefined>;
   deleteHotel(id: number): Promise<boolean>;
@@ -1183,6 +1184,18 @@ export class MemStorage implements IStorage {
       return results[0];
     } catch (error) {
       console.error("Error fetching hotel by source URL:", error);
+      return undefined;
+    }
+  }
+  
+  async getHotelByName(name: string): Promise<Hotel | undefined> {
+    try {
+      const results = await db.select().from(hotels)
+        .where(eq(hotels.name, name))
+        .limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching hotel by name:", error);
       return undefined;
     }
   }

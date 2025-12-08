@@ -130,6 +130,25 @@ export default function AdminHotels() {
     },
   });
 
+  const importFromPackagesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await adminFetch("/api/admin/hotels/import-from-packages", {
+        method: 'POST',
+      });
+      return response;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hotels"] });
+      toast({ 
+        title: "Import complete", 
+        description: `Imported ${data.imported} hotels, skipped ${data.skipped} duplicates` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to import hotels", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleScrape = () => {
     if (!scrapeUrl) {
       toast({ title: "Please enter a URL", variant: "destructive" });
@@ -188,6 +207,24 @@ export default function AdminHotels() {
               data-testid="input-search-hotels"
             />
           </div>
+          <Button 
+            variant="outline"
+            onClick={() => importFromPackagesMutation.mutate()} 
+            disabled={importFromPackagesMutation.isPending}
+            data-testid="button-import-from-packages"
+          >
+            {importFromPackagesMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <Hotel className="h-4 w-4 mr-2" />
+                Import from Packages
+              </>
+            )}
+          </Button>
           <Button onClick={() => setIsDialogOpen(true)} data-testid="button-import-hotel">
             <Plus className="h-4 w-4 mr-2" />
             Import from URL

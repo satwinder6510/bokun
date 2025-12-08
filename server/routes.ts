@@ -2107,6 +2107,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Package not found" });
       }
       
+      // Sync media usage tracking (non-blocking)
+      try {
+        await mediaService.syncPackageMediaUsage(
+          pkg.id,
+          pkg.featuredImage || null,
+          pkg.gallery || []
+        );
+      } catch (syncError) {
+        console.error("Error syncing media usage:", syncError);
+        // Don't fail the request if media sync fails
+      }
+      
       res.json(pkg);
     } catch (error: any) {
       console.error("Error updating package:", error);
@@ -5218,18 +5230,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // MEDIA LIBRARY API ROUTES
   // ============================================
 
-  // Get all media assets
+  // Get all media assets with metadata (destinations, usage)
   app.get("/api/admin/media/assets", verifyAdminSession, async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = parseInt(req.query.offset as string) || 0;
       const source = req.query.source as string | undefined;
+      const destination = req.query.destination as string | undefined;
       
-      const assets = await mediaService.getAllAssets({ limit, offset, source });
+      const assets = await mediaService.getAssetsWithMeta({ limit, offset, source, destination });
       res.json(assets);
     } catch (error: any) {
       console.error("Error fetching assets:", error);
       res.status(500).json({ error: error.message || "Failed to fetch assets" });
+    }
+  });
+
+  // Add destination tag to an asset
+  app.post("/api/admin/media/assets/:id/destinations", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { destination } = req.body;
+      
+      if (!destination) {
+        return res.status(400).json({ error: "Destination is required" });
+      }
+      
+      await mediaService.addDestinationTag(id, destination);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error adding destination tag:", error);
+      res.status(500).json({ error: error.message || "Failed to add destination tag" });
+    }
+  });
+
+  // Remove destination tag from an asset
+  app.delete("/api/admin/media/assets/:id/destinations/:destination", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const destination = req.params.destination;
+      
+      await mediaService.removeDestinationTag(id, destination);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error removing destination tag:", error);
+      res.status(500).json({ error: error.message || "Failed to remove destination tag" });
     }
   });
 

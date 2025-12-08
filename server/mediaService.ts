@@ -597,6 +597,243 @@ export async function getAllAssets(options?: {
     .offset(options?.offset || 0);
 }
 
+// Extended function to get assets with destination filtering and usage data
+export interface AssetWithMeta extends MediaAsset {
+  destinations: string[];
+  usedInPackages: { packageId: number; packageTitle: string; usageType: string }[];
+}
+
+export async function getAssetsWithMeta(options?: {
+  limit?: number;
+  offset?: number;
+  source?: string;
+  destination?: string; // Filter by destination country/city
+}): Promise<AssetWithMeta[]> {
+  const conditions: any[] = [eq(mediaAssets.isDeleted, false)];
+  
+  if (options?.source) {
+    conditions.push(eq(mediaAssets.source, options.source));
+  }
+  
+  // Get all assets (we'll filter by destination after joining tags)
+  let assets: MediaAsset[];
+  
+  if (options?.destination) {
+    // Get asset IDs that have this destination tag
+    const taggedAssetIds = await db.select({ assetId: mediaTags.assetId })
+      .from(mediaTags)
+      .where(and(
+        eq(mediaTags.tagType, 'destination'),
+        sql`LOWER(${mediaTags.tagValue}) = LOWER(${options.destination})`
+      ));
+    
+    const assetIds = taggedAssetIds.map(t => t.assetId);
+    
+    if (assetIds.length === 0) {
+      // No assets with this destination, return empty but still get untagged assets
+      assets = await db.select().from(mediaAssets)
+        .where(and(...conditions))
+        .orderBy(desc(mediaAssets.createdAt))
+        .limit(options?.limit || 50)
+        .offset(options?.offset || 0);
+    } else {
+      // Get assets with this destination first, then others
+      const destinationAssets = await db.select().from(mediaAssets)
+        .where(and(...conditions, inArray(mediaAssets.id, assetIds)))
+        .orderBy(desc(mediaAssets.createdAt))
+        .limit(options?.limit || 50);
+      
+      // Get remaining assets without this destination
+      const remaining = (options?.limit || 50) - destinationAssets.length;
+      const otherAssets = remaining > 0 ? await db.select().from(mediaAssets)
+        .where(and(...conditions, sql`${mediaAssets.id} NOT IN (${assetIds.join(',')})`))
+        .orderBy(desc(mediaAssets.createdAt))
+        .limit(remaining) : [];
+      
+      assets = [...destinationAssets, ...otherAssets];
+    }
+  } else {
+    assets = await db.select().from(mediaAssets)
+      .where(and(...conditions))
+      .orderBy(desc(mediaAssets.createdAt))
+      .limit(options?.limit || 50)
+      .offset(options?.offset || 0);
+  }
+  
+  if (assets.length === 0) return [];
+  
+  const assetIds = assets.map(a => a.id);
+  
+  // Get all destination tags for these assets
+  const tags = await db.select().from(mediaTags)
+    .where(and(
+      inArray(mediaTags.assetId, assetIds),
+      eq(mediaTags.tagType, 'destination')
+    ));
+  
+  // Get all usage for these assets
+  const usage = await db.select().from(mediaUsage)
+    .where(and(
+      inArray(mediaUsage.assetId, assetIds),
+      eq(mediaUsage.usageStatus, 'active'),
+      eq(mediaUsage.entityType, 'package')
+    ));
+  
+  // Get package titles for the usage
+  const packageIds = Array.from(new Set(usage.map(u => parseInt(u.entityId)))).filter(id => !isNaN(id));
+  let packageMap: Record<number, string> = {};
+  
+  if (packageIds.length > 0) {
+    const { flightPackages } = await import("@shared/schema");
+    const packages = await db.select({ id: flightPackages.id, title: flightPackages.title })
+      .from(flightPackages)
+      .where(inArray(flightPackages.id, packageIds));
+    packageMap = Object.fromEntries(packages.map(p => [p.id, p.title]));
+  }
+  
+  // Build the result with meta
+  return assets.map(asset => ({
+    ...asset,
+    destinations: tags
+      .filter(t => t.assetId === asset.id)
+      .map(t => t.tagValue),
+    usedInPackages: usage
+      .filter(u => u.assetId === asset.id)
+      .map(u => ({
+        packageId: parseInt(u.entityId),
+        packageTitle: packageMap[parseInt(u.entityId)] || `Package #${u.entityId}`,
+        usageType: u.isPrimary ? 'featured' : 'gallery'
+      }))
+  }));
+}
+
+// Add destination tag to an asset
+export async function addDestinationTag(assetId: number, destination: string): Promise<void> {
+  // Check if tag already exists
+  const existing = await db.select().from(mediaTags)
+    .where(and(
+      eq(mediaTags.assetId, assetId),
+      eq(mediaTags.tagType, 'destination'),
+      sql`LOWER(${mediaTags.tagValue}) = LOWER(${destination})`
+    ))
+    .limit(1);
+  
+  if (existing.length === 0) {
+    await db.insert(mediaTags).values({
+      assetId,
+      tagType: 'destination',
+      tagValue: destination,
+      isPrimary: false,
+      confidence: 1.0
+    });
+  }
+}
+
+// Remove destination tag from an asset
+export async function removeDestinationTag(assetId: number, destination: string): Promise<void> {
+  await db.delete(mediaTags)
+    .where(and(
+      eq(mediaTags.assetId, assetId),
+      eq(mediaTags.tagType, 'destination'),
+      sql`LOWER(${mediaTags.tagValue}) = LOWER(${destination})`
+    ));
+}
+
+// Record that an asset is used in a package
+export async function recordPackageUsage(assetId: number, packageId: number, isPrimary: boolean): Promise<void> {
+  // Check if already recorded
+  const existing = await db.select().from(mediaUsage)
+    .where(and(
+      eq(mediaUsage.assetId, assetId),
+      eq(mediaUsage.entityType, 'package'),
+      eq(mediaUsage.entityId, packageId.toString())
+    ))
+    .limit(1);
+  
+  if (existing.length === 0) {
+    await db.insert(mediaUsage).values({
+      assetId,
+      entityType: 'package',
+      entityId: packageId.toString(),
+      variantType: 'card',
+      isPrimary,
+      usageStatus: 'active'
+    });
+  } else {
+    // Update isPrimary if changed
+    await db.update(mediaUsage)
+      .set({ isPrimary, usageStatus: 'active' })
+      .where(and(
+        eq(mediaUsage.assetId, assetId),
+        eq(mediaUsage.entityType, 'package'),
+        eq(mediaUsage.entityId, packageId.toString())
+      ));
+  }
+}
+
+// Remove usage record
+export async function removePackageUsage(assetId: number, packageId: number): Promise<void> {
+  await db.delete(mediaUsage)
+    .where(and(
+      eq(mediaUsage.assetId, assetId),
+      eq(mediaUsage.entityType, 'package'),
+      eq(mediaUsage.entityId, packageId.toString())
+    ));
+}
+
+// Sync all package usage - call this when a package is saved
+export async function syncPackageMediaUsage(packageId: number, featuredImageUrl: string | null, galleryUrls: string[]): Promise<void> {
+  // Get all current usage for this package
+  const currentUsage = await db.select().from(mediaUsage)
+    .where(and(
+      eq(mediaUsage.entityType, 'package'),
+      eq(mediaUsage.entityId, packageId.toString()),
+      eq(mediaUsage.usageStatus, 'active')
+    ));
+  
+  // Extract slugs from URLs
+  const extractSlug = (url: string): string | null => {
+    const match = url.match(/\/api\/media\/([^\/]+)/);
+    return match ? match[1] : null;
+  };
+  
+  const featuredSlug = featuredImageUrl ? extractSlug(featuredImageUrl) : null;
+  const gallerySlugs = galleryUrls.map(extractSlug).filter(Boolean) as string[];
+  const allSlugs = Array.from(new Set([featuredSlug, ...gallerySlugs].filter(Boolean) as string[]));
+  
+  // Get asset IDs for these slugs
+  const assets = allSlugs.length > 0 ? await db.select({ id: mediaAssets.id, slug: mediaAssets.slug })
+    .from(mediaAssets)
+    .where(inArray(mediaAssets.slug, allSlugs)) : [];
+  
+  const slugToId = Object.fromEntries(assets.map(a => [a.slug, a.id]));
+  
+  // Determine which assets should be recorded
+  const newUsage: { assetId: number; isPrimary: boolean }[] = [];
+  
+  if (featuredSlug && slugToId[featuredSlug]) {
+    newUsage.push({ assetId: slugToId[featuredSlug], isPrimary: true });
+  }
+  
+  for (const slug of gallerySlugs) {
+    if (slugToId[slug] && !newUsage.some(u => u.assetId === slugToId[slug])) {
+      newUsage.push({ assetId: slugToId[slug], isPrimary: false });
+    }
+  }
+  
+  // Remove old usage that's no longer valid
+  for (const usage of currentUsage) {
+    if (!newUsage.some(u => u.assetId === usage.assetId)) {
+      await removePackageUsage(usage.assetId, packageId);
+    }
+  }
+  
+  // Add new usage
+  for (const usage of newUsage) {
+    await recordPackageUsage(usage.assetId, packageId, usage.isPrimary);
+  }
+}
+
 export async function softDeleteAsset(assetId: number): Promise<void> {
   await db.update(mediaAssets)
     .set({ isDeleted: true, updatedAt: new Date() })

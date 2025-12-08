@@ -235,7 +235,12 @@ export default function AdminMedia() {
     setIsSearchingStock(true);
     try {
       const results = await adminFetch(`/api/admin/media/stock/search?query=${encodeURIComponent(stockSearchQuery)}&perPage=24`, { method: 'GET' });
-      setStockResults(results);
+      // Combine unsplash and pexels results into a single array
+      const combined: StockImage[] = [
+        ...(results.unsplash || []),
+        ...(results.pexels || []),
+      ];
+      setStockResults(combined);
     } catch (error: any) {
       toast({ title: "Search failed", description: error.message, variant: "destructive" });
     } finally {

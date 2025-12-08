@@ -5543,6 +5543,168 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== HOTELS LIBRARY API =====
+  
+  // Get all hotels
+  app.get("/api/admin/hotels", verifyAdminSession, async (req, res) => {
+    try {
+      const hotels = await storage.getAllHotels();
+      res.json(hotels);
+    } catch (error: any) {
+      console.error("Error fetching hotels:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch hotels" });
+    }
+  });
+  
+  // Search hotels
+  app.get("/api/admin/hotels/search", verifyAdminSession, async (req, res) => {
+    try {
+      const query = req.query.q as string || '';
+      const hotels = await storage.searchHotels(query);
+      res.json(hotels);
+    } catch (error: any) {
+      console.error("Error searching hotels:", error);
+      res.status(500).json({ error: error.message || "Failed to search hotels" });
+    }
+  });
+  
+  // Get hotel by ID
+  app.get("/api/admin/hotels/:id", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid hotel ID" });
+      }
+      const hotel = await storage.getHotelById(id);
+      if (!hotel) {
+        return res.status(404).json({ error: "Hotel not found" });
+      }
+      res.json(hotel);
+    } catch (error: any) {
+      console.error("Error fetching hotel:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch hotel" });
+    }
+  });
+  
+  // Create hotel manually
+  app.post("/api/admin/hotels", verifyAdminSession, async (req, res) => {
+    try {
+      const hotel = await storage.createHotel(req.body);
+      res.json(hotel);
+    } catch (error: any) {
+      console.error("Error creating hotel:", error);
+      res.status(500).json({ error: error.message || "Failed to create hotel" });
+    }
+  });
+  
+  // Update hotel
+  app.patch("/api/admin/hotels/:id", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid hotel ID" });
+      }
+      const hotel = await storage.updateHotel(id, req.body);
+      if (!hotel) {
+        return res.status(404).json({ error: "Hotel not found" });
+      }
+      res.json(hotel);
+    } catch (error: any) {
+      console.error("Error updating hotel:", error);
+      res.status(500).json({ error: error.message || "Failed to update hotel" });
+    }
+  });
+  
+  // Delete hotel (soft delete)
+  app.delete("/api/admin/hotels/:id", verifyAdminSession, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid hotel ID" });
+      }
+      const success = await storage.deleteHotel(id);
+      if (!success) {
+        return res.status(500).json({ error: "Failed to delete hotel" });
+      }
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting hotel:", error);
+      res.status(500).json({ error: error.message || "Failed to delete hotel" });
+    }
+  });
+  
+  // Scrape hotel from URL
+  app.post("/api/admin/hotels/scrape", verifyAdminSession, async (req, res) => {
+    try {
+      const { url, country, city } = req.body;
+      
+      if (!url) {
+        return res.status(400).json({ error: "URL is required" });
+      }
+      
+      // Validate URL
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: "Invalid URL format" });
+      }
+      
+      // Import scraper dynamically to avoid circular dependencies
+      const { scrapeHotelWebsite, importHotelImages } = await import('./hotelScraperService');
+      
+      // Check if hotel already exists
+      const existing = await storage.getHotelBySourceUrl(url);
+      if (existing) {
+        return res.status(409).json({ 
+          error: "Hotel from this URL already exists", 
+          hotel: existing 
+        });
+      }
+      
+      // Scrape the hotel data
+      const scrapedData = await scrapeHotelWebsite(url);
+      
+      // Import images to media library
+      let importedImages: string[] = [];
+      if (scrapedData.images.length > 0) {
+        importedImages = await importHotelImages(
+          scrapedData.name, 
+          scrapedData.images, 
+          country, 
+          city
+        );
+      }
+      
+      // Create the hotel record
+      const hotel = await storage.createHotel({
+        name: scrapedData.name,
+        description: scrapedData.description,
+        starRating: scrapedData.starRating,
+        amenities: scrapedData.amenities,
+        images: importedImages,
+        featuredImage: importedImages[0] || null,
+        sourceUrl: url,
+        city: city || null,
+        country: country || null,
+        phone: scrapedData.phone || null,
+        email: scrapedData.email || null,
+        checkInTime: scrapedData.checkInTime || null,
+        checkOutTime: scrapedData.checkOutTime || null,
+        isActive: true,
+      });
+      
+      res.json({
+        success: true,
+        hotel,
+        scrapedData,
+        importedImageCount: importedImages.length,
+      });
+    } catch (error: any) {
+      console.error("Error scraping hotel:", error);
+      res.status(500).json({ error: error.message || "Failed to scrape hotel" });
+    }
+  });
+
   // Periodic cleanup of expired sessions (runs every hour)
   setInterval(async () => {
     try {

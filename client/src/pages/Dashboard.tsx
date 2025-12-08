@@ -11,7 +11,7 @@ import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { apiRequest } from "@/lib/queryClient";
 import type { ConnectionStatus, BokunProductSearchResponse, BokunProductDetails } from "@shared/schema";
-import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane, Image, Settings, FileText } from "lucide-react";
+import { Activity, ExternalLink, RefreshCw, Database, LogOut, Star, Phone, Users, Plane, Image, Settings, FileText, Hotel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -545,6 +545,29 @@ export default function Dashboard() {
                   <Link href="/admin/media">
                     <Button variant="outline" size="sm" data-testid="button-manage-media">
                       Manage Media
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+            </Card>
+
+            <Card data-testid="card-hotels-library">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <Hotel className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Hotels Library</CardTitle>
+                      <CardDescription>
+                        Import and manage hotel content from websites
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Link href="/admin/hotels">
+                    <Button variant="outline" size="sm" data-testid="button-manage-hotels">
+                      Manage Hotels
                     </Button>
                   </Link>
                 </div>

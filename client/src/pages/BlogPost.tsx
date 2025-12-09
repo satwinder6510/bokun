@@ -132,11 +132,11 @@ export default function BlogPostPage() {
             <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-bold mb-3">Ready to Explore?</h2>
               <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-                Discover our curated collection of tours and start planning your next adventure.
+                Discover our curated collection of flight packages and start planning your next adventure.
               </p>
-              <a href="/">
-                <Button size="lg" data-testid="button-browse-tours">
-                  Browse Land Tours
+              <a href="/packages">
+                <Button size="lg" data-testid="button-browse-packages">
+                  Browse Flight Packages
                 </Button>
               </a>
             </CardContent>

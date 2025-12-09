@@ -14,6 +14,7 @@ import { FlightPricingCalendar } from "@/components/FlightPricingCalendar";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
+import { getHeroImageUrl, getThumbImageUrl } from "@/lib/imageProxy";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 
@@ -139,12 +140,13 @@ export default function TourDetail() {
           {/* Hero Image with Title Overlay */}
           <div className="relative rounded-xl overflow-hidden mb-4">
             <img
-              src={product.keyPhoto?.originalUrl || imagePlaceholder}
+              src={getHeroImageUrl(product.keyPhoto?.originalUrl)}
               alt={product.title}
               className="w-full aspect-[21/9] object-cover"
               data-testid="img-tour-hero"
-              loading="lazy"
+              loading="eager"
               decoding="async"
+              fetchPriority="high"
             />
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
@@ -184,7 +186,7 @@ export default function TourDetail() {
                       className="flex-[0_0_auto] w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3]"
                     >
                       <img
-                        src={photo.originalUrl || imagePlaceholder}
+                        src={getThumbImageUrl(photo.originalUrl)}
                         alt={photo.description || `Tour photo ${index + 1}`}
                         className="w-full h-full object-cover"
                         data-testid={`img-gallery-${index}`}

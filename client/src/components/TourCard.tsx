@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { MapPin, Clock } from "lucide-react";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
+import { getCardImageUrl } from "@/lib/imageProxy";
 import type { BokunProduct } from "@shared/schema";
 
 interface TourCardProps {
@@ -9,8 +10,7 @@ interface TourCardProps {
 
 export function TourCard({ product }: TourCardProps) {
   const { formatBokunPrice } = useExchangeRate();
-  const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=500&q=75";
-  const imageUrl = product.keyPhoto?.originalUrl || imagePlaceholder;
+  const imageUrl = getCardImageUrl(product.keyPhoto?.originalUrl);
   
   const formatCategoryName = (category: string): string => {
     return category

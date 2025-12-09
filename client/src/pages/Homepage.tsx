@@ -5,7 +5,7 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
-import { getProxiedImageUrl, getHeroImageUrl } from "@/lib/imageProxy";
+import { getProxiedImageUrl, getHeroImageUrl, getCardImageUrl } from "@/lib/imageProxy";
 import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -190,7 +190,7 @@ export default function Homepage() {
     .map(([country, data]) => ({
       name: country,
       count: data.count,
-      image: products.find(p => p.googlePlace?.country === country)?.keyPhoto?.originalUrl
+      image: getCardImageUrl(products.find(p => p.googlePlace?.country === country)?.keyPhoto?.originalUrl)
     }));
 
   const filteredProducts = products.filter(product => {

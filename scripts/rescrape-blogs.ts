@@ -113,6 +113,9 @@ async function scrapeBlogPost(url: string): Promise<{
   
   let content = '';
   const contentSelectors = [
+    '.blog-post-section .blog',
+    '.blog-post-section .content .blog',
+    '.blog-post-section .content',
     'article .content',
     '.blog-content',
     '.post-content', 
@@ -129,8 +132,10 @@ async function scrapeBlogPost(url: string): Promise<{
     }
   }
   
-  if (!content) {
-    content = $('main').html() || $('body').html() || '';
+  // Do NOT fallback to main or body - that grabs the entire page HTML
+  if (!content || content.length < 100) {
+    console.log('  ⚠️ Could not find blog content with known selectors');
+    content = '';
   }
   
   const textContent = $('<div>').html(content).text();

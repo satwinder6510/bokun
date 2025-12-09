@@ -2,9 +2,7 @@
 
 ## Overview
 
-This project is a public-facing tour booking website for "Flights and Packages," showcasing over 700 curated tours sourced from the Bokun API. The platform aims to provide a clean, minimal interface for users to browse tours, view detailed itineraries with hotel information, check availability using a calendar-based system, and explore various pricing options.
-
-The business vision is to offer a premier travel booking experience. **Phase 2 is now active**: implementing full booking functionality with shopping cart, secure payment processing via Stripe (TEST mode), and booking confirmations. The platform will become a comprehensive tour booking platform under the custom domain tours.flightsandpackages.com.
+This project is a public-facing tour booking website for "Flights and Packages," offering over 700 curated tours from the Bokun API. The platform provides a clean interface for browsing tours, viewing itineraries, checking availability, and exploring pricing. The business vision is to evolve into a comprehensive tour booking platform with full booking functionality, shopping cart, secure Stripe payments, and booking confirmations under the domain tours.flightsandpackages.com.
 
 ## User Preferences
 
@@ -14,166 +12,97 @@ Preferred communication style: Simple, everyday language.
 
 ### UI/UX Decisions
 
-The design follows a clean, minimal aesthetic with a focus on user experience. A complete visual redesign inspired by https://demo.flightsandpackages.com/flightsandpackages/ has been implemented, featuring a primary accent color of red/orange (#E74C3C). Key UI elements include a fullscreen hero carousel with auto-advancing featured tours, redesigned tour cards with image backgrounds and gradient overlays, and horizontal scrolling category pills. The header is transparent with a backdrop blur effect and includes clickable navigation (Home, Destinations dropdown, FAQ, Blog, Contact). The footer displays all destinations in a responsive multi-column grid, company info, quick links, and contact details. The platform supports dynamic meta tags for SEO, structured data (Schema.org JSON-LD), and Open Graph tags. A multi-currency selector is available, with currency preferences persisted in local storage. Contact form integration with Privyr CRM webhook at /contact enables lead capture.
+The design is clean and minimal, featuring a visual redesign with a red/orange accent color (#E74C3C). Key UI elements include a fullscreen hero carousel, redesigned tour cards, and horizontal scrolling category pills. The header is transparent with a backdrop blur, offering navigation (Home, Destinations dropdown, FAQ, Blog, Contact). The footer displays destinations, company info, quick links, and contact details. The platform supports dynamic SEO meta tags, Schema.org JSON-LD, Open Graph tags, and a multi-currency selector (persisted in local storage). A contact form integrates with Privyr CRM.
 
-**Blog System:** A content marketing blog has been implemented at `/blog` with SEO-optimized URLs (`/blog/:slug`). Blog posts feature HTML-formatted content, excerpts, featured images, author attribution, reading time estimates, and comprehensive meta tags. The blog listing page displays posts in a responsive grid layout with card-based design. Individual blog posts include share functionality, related CTAs, and proper SEO markup. Three sample travel-focused blog posts are included: "Top 10 Hidden Gems in Southeast Asia," "Ultimate Guide to Planning Your First African Safari," and "5 Essential Travel Photography Tips for Beginners." All blog posts are included in the sitemap.xml for search engine discoverability.
+A content marketing blog is implemented at `/blog` with SEO-optimized URLs (`/blog/:slug`), featuring HTML-formatted posts, excerpts, featured images, author attribution, reading time, and comprehensive meta tags.
 
 ### URL Structure (Migration-Compatible)
 
-The URL structure is designed to match the existing site (https://holidays.flightsandpackages.com/) to prevent broken links during migration:
+The URL structure is designed for compatibility with an existing site to prevent broken links.
 
-**Flight Packages:**
-- `/packages` - All flight packages listing page
-- `/packages/:slug` - Package detail (legacy URL, still active for backward compatibility)
-- `/Holidays/:country/:slug` - Package detail (new SEO-friendly URL pattern)
+-   **Flight Packages:** `/packages`, `/packages/:slug` (legacy), `/Holidays/:country/:slug` (new SEO-friendly)
+-   **Destinations & Collections:** `/Holidays` (country listing), `/Holidays/:country` (country detail), `/holidays` (collections listing), `/holidays/:tag` (collection detail)
+-   **Other Routes:** `/tours` (Bokun products), `/tour/:id` (Tour detail), `/blog`, `/blog/:slug`, `/contact`, `/faq`, `/terms`.
 
-**Destinations & Collections:**
-- `/Holidays` - Destinations listing (shows countries)
-- `/Holidays/:country` - Destination detail (packages for a specific country)
-- `/holidays` - Collections listing (curated package groups)
-- `/holidays/:tag` - Collection detail
-
-**Other Routes:**
-- `/tours` - Land tours listing (Bokun products)
-- `/tour/:id` - Tour detail
-- `/blog`, `/blog/:slug` - Blog listing and posts
-- `/contact`, `/faq`, `/terms` - Static pages
-
-**URL Generation:** Package cards use the pattern `/Holidays/:country/:slug` where country is derived from the package category field (e.g., "Turkey", "Greece"). PackageDetail supports both old and new URL patterns via dual route matching.
+Package cards use `/Holidays/:country/:slug`.
 
 ### Frontend Architecture
 
-The frontend is built with **React 18** and **TypeScript**, using **Vite** for fast HMR and optimized builds. **Wouter** handles client-side routing. The UI component system leverages **shadcn/ui** (New York style variant) built on Radix UI primitives, styled with **Tailwind CSS**. **TanStack Query v5** manages server state, API caching, and data synchronization. The architecture is component-based, emphasizing reusability and separation of concerns, with a responsive, mobile-first design.
+Built with **React 18** and **TypeScript**, using **Vite** for builds and **Wouter** for routing. The UI uses **shadcn/ui** (New York style) built on Radix UI, styled with **Tailwind CSS**. **TanStack Query v5** manages server state. The design is component-based, reusable, and mobile-first.
 
-**Shared Header Component:** A unified `Header` component (`client/src/components/Header.tsx`) is used across all pages for consistent navigation. The header includes:
-- Flights and Packages logo
-- Travel Trust Association (TTA) logo
-- Navigation links: Home, Flight Packages, Land Tours, Destinations dropdown, Blog
-- Dynamic phone number with call tracking (DNI system)
-- Tidio chat integration trigger button
-- Mobile-responsive hamburger menu for smaller screens
-- Fixed positioning with backdrop blur effect
-
-All pages use this shared component: Homepage, Packages, PackageDetail, Blog, BlogPost, FAQ, Terms, Contact, and TourDetail.
+A shared `Header` component (`client/src/components/Header.tsx`) ensures consistent navigation across all pages, including dynamic phone numbers, Tidio chat integration, and mobile responsiveness.
 
 ### Backend Architecture
 
-The backend is an **Express.js** application written in TypeScript, providing RESTful API endpoints under the `/api` namespace. It acts as a secure intermediary (proxy pattern) for interactions with the Bokun API, protecting credentials and generating HMAC-SHA1 signatures server-side. Key integration points include connection testing, product search with pagination, product details retrieval, and availability/pricing queries. API credentials are stored as environment variables.
+An **Express.js** application in TypeScript provides RESTful API endpoints under `/api`. It acts as a secure proxy for the Bokun API, handling HMAC-SHA1 signatures and protecting credentials. Integrations include product search, details, availability, and pricing.
 
-**GBP-Fixed Currency with Admin-Configurable Exchange Rate:** The platform displays all prices in GBP (£) for the UK market. Bokun API returns prices in USD, which are converted to GBP using an admin-configurable exchange rate stored in the `site_settings` database table (default: 0.75). A 10% markup is applied after conversion. The exchange rate can be adjusted via the Admin Settings page (`/admin/settings`) with real-time price calculation preview.
+All prices are displayed in GBP (£) for the UK market. Bokun API USD prices are converted using an admin-configurable exchange rate (default: 0.75) stored in `site_settings`, plus a 10% markup. The admin panel (`/admin/settings`) allows exchange rate adjustment. Frontend must not pass a currency parameter to API calls as the server handles USD conversion.
 
-**Currency Conversion Flow:**
-1. Bokun API returns price in USD (always - regardless of currency parameter sent)
-2. USD price × Exchange Rate = GBP price
-3. GBP price × 1.10 = Final display price (with 10% markup)
-
-**CRITICAL Implementation Note:** The Bokun API always returns USD prices regardless of the currency parameter sent. Frontend code must NOT pass a currency parameter to API calls - the server defaults to USD, and the frontend `formatBokunPrice()` function handles the conversion.
-
-The `useExchangeRate` hook (`client/src/hooks/useExchangeRate.ts`) fetches the rate from `/api/exchange-rate` and provides `formatBokunPrice()` for consistent pricing across TourCard, TourDetail, and AvailabilityChecker components.
-
-**Performance Optimization:** First-time loads return the first 100 products immediately (~2-3 seconds), while remaining products are cached in the background. USD cache is used with a 30-day TTL.
+Performance is optimized by initially returning 100 products, with remaining products cached in the background (USD cache, 30-day TTL).
 
 ### Data Layer
 
-An in-memory storage system (`MemStorage`) is used for initial development, with an interface-based design to facilitate future migration to a persistent database. **Drizzle ORM** is configured for PostgreSQL integration (using Neon Serverless PostgreSQL), with schema definitions in TypeScript and **Zod** for runtime validation.
+An in-memory storage system (`MemStorage`) is used during development, with an interface for future persistence. **Drizzle ORM** is configured for **Neon Serverless PostgreSQL** with TypeScript schema definitions and **Zod** for validation.
 
-**Flight Packages & Pricing:** Flight packages are stored in the `flight_packages` table with comprehensive fields for itinerary, accommodations, and media. A dedicated `package_pricing` table enables date-specific pricing with fields for departure airport, date, and price. The admin panel (/admin/packages) includes a "Pricing" tab with:
-- UK airport dropdown (15 major airports)
-- Price input in GBP
-- Multi-date calendar picker for batch date selection
-- Existing pricing entries display with delete functionality
-- API endpoints: GET/POST/DELETE for /api/admin/packages/:id/pricing
+Flight packages are stored in the `flight_packages` table with `package_pricing` for date-specific pricing (departure airport, date, price). The admin panel (`/admin/packages`) includes a "Pricing" tab for managing these entries.
 
 ### Build & Deployment
 
-Development uses `tsx` for the backend and Vite for the frontend, with concurrent processes. Production builds involve Vite for the frontend (output to `dist/public`) and `esbuild` for the backend (output to `dist/index.js`), served by a single Node.js process.
+Development uses `tsx` for backend and Vite for frontend. Production builds use Vite for frontend (`dist/public`) and `esbuild` for backend (`dist/index.js`), served by a single Node.js process.
+
+### Admin Authentication System
+
+A multi-user admin authentication system with role-based access control is implemented.
+
+-   **Admin Users:** Stored in `admin_users` (PostgreSQL) with email, bcrypt-hashed passwords, and TOTP secrets for 2FA.
+-   **Roles:** `super_admin` (full access) and `editor` (content management).
+-   **Session Management:** 24-hour session tokens are stored in `admin_sessions` (PostgreSQL) and extended on each request.
+-   **2FA Flow:** New users set up 2FA on first login; returning users verify with an authenticator app.
+
+### Dynamic Flight + Tour Pricing
+
+The platform supports dynamic combined pricing for Bokun land tours with external flight prices, integrated into the Flight Packages admin workflow.
+
+**Admin Workflow (`Flight Packages` → `Pricing Tab`):**
+1.  Import Bokun Tour.
+2.  Configure Flight Settings: Destination Airport Code, Departure Airports, Duration, Date Range, Markup %.
+3.  "Fetch Flight Prices & Save to Package": Fetches live flight prices, combines with Bokun land tour price (with 10% markup), applies configured markup, smart-rounds to x49, x69, or x99, and populates `package_pricing`.
+
+**Pricing Calculation Flow:**
+1.  Flight prices from external API.
+2.  Land Tour Price from Bokun (with 10% markup).
+3.  Combined Price: `(Flight Price + Land Tour Price) * (1 + Markup%)`.
+4.  Smart Rounding.
+
+The external flight API requires IP whitelisting.
 
 ## External Dependencies
 
 ### Third-Party Services
 
--   **Bokun API:** Used for tour data, including searching, retrieving details, checking availability, and creating bookings. Authenticated via HMAC-SHA1 signatures. **Pricing Markup:** Bokun API returns net prices; a flat 10% markup is applied on all per-person prices via the `applyBokunMarkup()` function in `client/src/lib/pricing.ts`. This markup is applied to tour listing cards, availability checker, add-ons, and SEO schema data. **Booking Flow:** After successful Stripe payment verification, bookings are reserved with Bokun using `RESERVE_FOR_EXTERNAL_PAYMENT` payment method, then immediately confirmed with the verified payment details. Bokun confirmation codes are stored in the booking record for reference.
--   **Stripe:** Payment processing via Stripe Elements integration (TEST mode). Payment Intent creation derives amounts exclusively from server-side cart storage. Payment verification occurs before booking creation, ensuring all monetary values are server-authoritative with zero trust in client-supplied amounts.
--   **Privyr CRM:** Integrated for handling contact form submissions via a secure webhook.
+-   **Bokun API:** Tour data (search, details, availability, booking). Authenticated via HMAC-SHA1. A 10% markup is applied to all per-person prices from Bokun. Bookings are reserved with Bokun using `RESERVE_FOR_EXTERNAL_PAYMENT` and then confirmed after Stripe payment verification.
+-   **Stripe:** Payment processing via Stripe Elements (TEST mode). Payment amounts are derived server-side.
+-   **Privyr CRM:** Webhook integration for contact form submissions.
 
 ### Database & Infrastructure
 
--   **Neon Serverless PostgreSQL:** Configured for database operations via Drizzle ORM, utilizing a WebSocket-based connection.
+-   **Neon Serverless PostgreSQL:** Database operations via Drizzle ORM.
+-   **Replit Object Storage:** For media library images, enabling instant production availability upon upload.
+
+### Media Library Storage
+
+Supports `local` storage (legacy) and `object_storage` (Replit Object Storage at `/objects/media/`) for immediate production access. A migration system tracks `storage_type` and allows migrating local files to Object Storage.
 
 ### UI Component Libraries
 
--   **Radix UI Primitives:** Provides accessible, unstyled UI components (e.g., dialogs, dropdowns).
--   **shadcn/ui:** Component library built on Radix UI and styled with Tailwind CSS.
--   **embla-carousel-react:** For carousel functionality.
+-   **Radix UI Primitives:** Accessible, unstyled UI components.
+-   **shadcn/ui:** Component library built on Radix UI and Tailwind CSS.
+-   **embla-carousel-react:** Carousel functionality.
 -   **lucide-react:** Icon system.
--   **react-day-picker:** Date picker component.
+-   **react-day-picker:** Date picker.
 
 ### Supporting Libraries
 
--   **class-variance-authority:** For type-safe component variants.
--   **nanoid:** For unique ID generation.
--   **date-fns:** For date formatting and manipulation.
-
-## Admin Authentication System
-
-The platform features a comprehensive multi-user admin authentication system with role-based access control.
-
-### Admin User Management
-
--   **Database-backed accounts:** Admin users are stored in the `admin_users` PostgreSQL table with email, bcrypt-hashed passwords (12 rounds), and individual TOTP secrets for 2FA.
--   **Roles:** Two roles are supported: `super_admin` (full access including user management) and `editor` (content management only).
--   **Session management:** 24-hour session tokens are persisted in the `admin_sessions` PostgreSQL table (not in-memory), ensuring sessions survive server restarts. Sessions are validated via `X-Admin-Session` header. Session expiry is automatically extended on each request. Expired sessions are cleaned up hourly.
--   **2FA flow:** New users set up 2FA on first login (QR code generation), returning users verify with their authenticator app. Pending 2FA sessions are stored in-memory (5-10 minute expiry) since they are short-lived.
-
-### Admin Routes
-
--   `/admin/login` - Admin login page with email/password + 2FA
--   `/admin/dashboard` - Main admin console for Bokun API, packages, reviews, FAQs
--   `/admin/users` - User management (super admins only)
--   `/admin/packages` - Flight package management with pricing calendar
--   `/admin/reviews` - Customer reviews management
--   `/admin/faq` - FAQ content management
--   `/admin/tracking-numbers` - DNI phone tracking configuration
--   `/admin/settings` - Site settings including USD→GBP exchange rate configuration
-
-## Dynamic Flight + Tour Pricing (Integrated into Flight Packages)
-
-The platform supports dynamic combined pricing for Bokun land tours with external flight prices. This enables displaying per-date package prices that include return flights from UK airports. **Dynamic flight pricing is now integrated directly into the Flight Packages admin workflow.**
-
-### Admin Workflow (Flight Packages → Pricing Tab)
-
-1. **Import Bokun Tour**: Use the Bokun import feature in Flight Packages to link a land tour
-2. **Configure Flight Settings**: In the Pricing tab, when a Bokun tour is linked, a "Dynamic Flight Pricing" panel appears with:
-   - Destination Airport Code (3-letter IATA, e.g., SOF, ATH, IST)
-   - Departure Airports (clickable badges for UK airports)
-   - Duration (nights for flight search)
-   - Date Range (start/end dates for availability)
-   - Markup % (applied on top of flight + land tour price)
-3. **Fetch Flight Prices**: Click "Fetch Flight Prices & Save to Package" to:
-   - Call the external flight API for live prices
-   - Combine with Bokun land tour price (10% markup applied)
-   - Apply the configured markup percentage
-   - Smart-round to x49, x69, or x99 endpoints
-   - Auto-populate the `package_pricing` table
-
-### API Endpoint
-
-- `POST /api/admin/packages/fetch-flight-prices` - Fetches flight prices and saves combined prices to package_pricing table
-
-### Pricing Calculation Flow
-
-1. **Flight API** (`server/flightApi.ts`): Fetches flight prices from external API (http://87.102.127.86:8119/search/searchoffers.dll) with Agent ID 122
-2. **Land Tour Price**: Retrieved from Bokun with 10% markup applied
-3. **Combined Price**: `(Flight Price + Land Tour Price) * (1 + Markup%)`
-4. **Smart Rounding**: Final price rounded to nearest x49, x69, or x99 endpoint (e.g., £449, £569, £699)
-
-### Flight API Requirement
-
-The external flight API requires IP whitelisting. Contact Sunshine Technology Ltd to add the server IP (34.168.167.182) with Agent ID 122.
-
-### Bootstrap Process
-
-The first super admin is created via `POST /api/auth/admin/bootstrap` (one-time use). Default credentials:
--   Email: satwinder@flightsandpackages.com
--   Password: Set during bootstrap
--   Role: super_admin
+-   **class-variance-authority:** Type-safe component variants.
+-   **nanoid:** Unique ID generation.
+-   **date-fns:** Date formatting and manipulation.

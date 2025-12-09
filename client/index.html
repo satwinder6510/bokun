@@ -9,9 +9,13 @@
     <meta name="author" content="Flights and Packages" />
     <link rel="canonical" href="https://tours.flightsandpackages.com/" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <!-- Preconnect to font origins for faster loading -->
+    <!-- Preconnect to external origins for faster loading -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+    <link rel="preconnect" href="https://bokun.s3.amazonaws.com" crossorigin>
+    <!-- Preload fallback hero image for fast LCP -->
+    <link rel="preload" href="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1280&q=70&auto=format" as="image" fetchpriority="high">
     <!-- Preload critical fonts -->
     <link rel="preload" href="/fonts/BentonSans_Regular_1764707919108.otf" as="font" type="font/otf" crossorigin>
     <link rel="preload" href="/fonts/BentonSans_Bold_1764707919106.otf" as="font" type="font/otf" crossorigin>

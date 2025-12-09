@@ -5,7 +5,7 @@ import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
-import { getProxiedImageUrl } from "@/lib/imageProxy";
+import { getProxiedImageUrl, getHeroImageUrl } from "@/lib/imageProxy";
 import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -228,7 +228,7 @@ export default function Homepage() {
   // Add featured packages to hero (max 2)
   featuredPackages.slice(0, 2).forEach(pkg => {
     heroSlides.push({
-      image: getProxiedImageUrl(pkg.featuredImage) || fallbackHeroImages[0],
+      image: getHeroImageUrl(pkg.featuredImage) || fallbackHeroImages[0],
       title: pkg.title,
       subtitle: pkg.category,
       price: pkg.price,
@@ -238,10 +238,11 @@ export default function Homepage() {
   });
 
   // Add featured tours to hero (fill up to 5 slides)
+  // Use getHeroImageUrl to optimize Bokun S3 images (resized to 1600px, WebP)
   const toursWithImages = products.filter(p => p.keyPhoto?.originalUrl);
   toursWithImages.slice(0, 5 - heroSlides.length).forEach(tour => {
     heroSlides.push({
-      image: tour.keyPhoto?.originalUrl || fallbackHeroImages[1],
+      image: getHeroImageUrl(tour.keyPhoto?.originalUrl) || fallbackHeroImages[1],
       title: tour.title,
       subtitle: tour.locationCode?.name || 'Explore Now',
       price: tour.price,

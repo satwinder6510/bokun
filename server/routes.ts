@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import bcrypt from "bcrypt";
+import sharp from "sharp";
 import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions } from "@shared/schema";
 import { calculateCombinedPrices, getFlightsForDateWithPrices, UK_AIRPORTS, getDefaultDepartAirports, searchFlights } from "./flightApi";
 import { db } from "./db";
@@ -172,24 +173,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Image proxy - bypasses CORS for external images
+  // Image proxy - bypasses CORS for external images with optional resizing/optimization
   app.get("/api/image-proxy", async (req, res) => {
     try {
-      const { url } = req.query;
+      const { url, w, q, format } = req.query;
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ error: "URL parameter is required" });
       }
 
-      // Only allow specific trusted domains
+      // Only allow specific trusted domains (includes all Bokun S3 bucket variants)
       const allowedDomains = [
         'admin.citiesandbeaches.com',
         'citiesandbeaches.com',
         'bokun.s3.amazonaws.com',
+        'bokun-images.s3.amazonaws.com',
+        's3.amazonaws.com',
         'images.unsplash.com'
       ];
       
       const urlObj = new URL(url);
-      if (!allowedDomains.some(domain => urlObj.hostname.includes(domain))) {
+      // Allow any S3 bucket with 'bokun' in the name, or exact domain matches
+      const isBokunS3 = urlObj.hostname.includes('bokun') && urlObj.hostname.includes('s3.amazonaws.com');
+      const isAllowedDomain = allowedDomains.some(domain => urlObj.hostname.includes(domain));
+      
+      if (!isBokunS3 && !isAllowedDomain) {
         return res.status(403).json({ error: "Domain not allowed" });
       }
 
@@ -198,15 +205,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(response.status).json({ error: "Failed to fetch image" });
       }
 
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-      const buffer = await response.arrayBuffer();
+      const buffer = Buffer.from(await response.arrayBuffer());
+      
+      // Parse optimization parameters
+      const width = w ? Math.min(parseInt(w as string, 10), 1920) : undefined;
+      const quality = q ? Math.min(Math.max(parseInt(q as string, 10), 10), 100) : 75;
+      const outputFormat = format === 'webp' ? 'webp' : (format === 'avif' ? 'avif' : 'jpeg');
+      
+      // If no resizing requested, return original
+      if (!width && !format) {
+        const contentType = response.headers.get('content-type') || 'image/jpeg';
+        res.set({
+          'Content-Type': contentType,
+          'Cache-Control': 'public, max-age=604800', // 7-day cache
+          'Access-Control-Allow-Origin': '*'
+        });
+        return res.send(buffer);
+      }
+      
+      // Resize and optimize with sharp
+      let sharpPipeline = sharp(buffer);
+      
+      if (width) {
+        sharpPipeline = sharpPipeline.resize(width, undefined, {
+          withoutEnlargement: true,
+          fit: 'inside'
+        });
+      }
+      
+      let optimizedBuffer: Buffer;
+      let contentType: string;
+      
+      if (outputFormat === 'webp') {
+        optimizedBuffer = await sharpPipeline.webp({ quality }).toBuffer();
+        contentType = 'image/webp';
+      } else if (outputFormat === 'avif') {
+        optimizedBuffer = await sharpPipeline.avif({ quality }).toBuffer();
+        contentType = 'image/avif';
+      } else {
+        optimizedBuffer = await sharpPipeline.jpeg({ quality, progressive: true }).toBuffer();
+        contentType = 'image/jpeg';
+      }
 
       res.set({
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=86400', // 24-hour cache
-        'Access-Control-Allow-Origin': '*'
+        'Cache-Control': 'public, max-age=604800', // 7-day cache for optimized images
+        'Access-Control-Allow-Origin': '*',
+        'Vary': 'Accept'
       });
-      res.send(Buffer.from(buffer));
+      res.send(optimizedBuffer);
     } catch (error) {
       console.error("Image proxy error:", error);
       res.status(500).json({ error: "Failed to proxy image" });

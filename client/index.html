@@ -56,8 +56,11 @@
               person_profiles: 'identified_only'
           });
           
-          // Tidio Chat Widget - disabled on admin pages
-          if (!window.location.pathname.startsWith('/admin')) {
+          // Tidio Chat Widget - only on tour and package detail pages
+          var path = window.location.pathname;
+          var isTourDetail = /^\/tour\/\d+/.test(path);
+          var isPackageDetail = /^\/packages\/[^\/]+$/.test(path) || /^\/Holidays\/[^\/]+\/[^\/]+$/.test(path);
+          if (isTourDetail || isPackageDetail) {
             var tidioScript = document.createElement('script');
             tidioScript.src = '//code.tidio.co/umkdiuqjxuccie7jbxsnr0f6pj3lkfcs.js';
             tidioScript.async = true;

@@ -1854,6 +1854,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get package categories (for navigation) - MUST be before :slug route
+  app.get("/api/packages/categories", async (req, res) => {
+    try {
+      const categories = await storage.getFlightPackageCategories();
+      res.json(categories);
+    } catch (error: any) {
+      console.error("Error fetching categories:", error);
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
+  });
+
   // Get single package by slug (public - only published packages)
   app.get("/api/packages/:slug", async (req, res) => {
     try {
@@ -3321,17 +3332,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching exchange rate:", error);
       res.status(500).json({ error: "Failed to fetch exchange rate" });
-    }
-  });
-
-  // Get package categories (for navigation)
-  app.get("/api/packages/categories", async (req, res) => {
-    try {
-      const categories = await storage.getFlightPackageCategories();
-      res.json(categories);
-    } catch (error: any) {
-      console.error("Error fetching categories:", error);
-      res.status(500).json({ error: "Failed to fetch categories" });
     }
   });
 

@@ -1,6 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
-
-/* Benton Sans Font Family */
+/* Benton Sans Font Family - Google Fonts loaded via HTML with preconnect */
 @font-face {
   font-family: 'Benton Sans';
   src: url('/fonts/BentonSans_Thin_1764707919109.otf') format('opentype');

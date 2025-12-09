@@ -18,14 +18,15 @@ import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } 
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 
 // Fallback hero images (used when no products/packages have images)
+// Optimized: reduced width to 1280px and quality to 70 for faster loading
 const fallbackHeroImages = [
-  "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80",
-  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1920&q=80",
-  "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1920&q=80"
+  "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1280&q=70&auto=format",
+  "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=1280&q=70&auto=format",
+  "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=1280&q=70&auto=format"
 ];
 
 // Placeholder image for destinations without images
-const placeholderImage = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=75";
+const placeholderImage = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=60&auto=format";
 
 // Fallback testimonials (used when no reviews in database)
 const fallbackTestimonials = [
@@ -331,6 +332,8 @@ export default function Homepage() {
               alt={slide.title}
               className="w-full h-full object-cover"
               loading={index === 0 ? "eager" : "lazy"}
+              fetchPriority={index === 0 ? "high" : "low"}
+              decoding={index === 0 ? "sync" : "async"}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 if (target.src !== fallbackHeroImages[0]) {

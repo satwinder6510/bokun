@@ -369,10 +369,9 @@ export default function TourDetail() {
                 </div>
               )}
 
-              {/* Flight Packages Section */}
+              {/* Flight Packages Section - only renders content if flight pricing exists */}
               {productId && (
-                <div id="flight-packages-section" className="space-y-4 pt-8 scroll-mt-32" data-testid="content-flight-packages">
-                  <h2 className="text-2xl font-semibold mb-4">Flight + Tour Packages</h2>
+                <div id="flight-packages-section" className="pt-8 scroll-mt-32" data-testid="content-flight-packages">
                   <FlightPricingCalendar
                     bokunProductId={productId}
                     productTitle={product.title}

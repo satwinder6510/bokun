@@ -9,10 +9,10 @@ export function cn(...inputs: ClassValue[]) {
 export function stripHtmlToText(html: string): string {
   if (!html) return '';
   
-  // First, try to extract text from HTML using a temporary element
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  let text = temp.textContent || temp.innerText || '';
+  // Use DOMParser for safe HTML parsing (doesn't execute scripts or event handlers)
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  let text = doc.body.textContent || '';
   
   // Clean up any remaining style fragments that might appear as text
   // These patterns match orphaned CSS property fragments
@@ -52,9 +52,10 @@ export function cleanFragmentedHtmlArray(items: string[]): string[] {
   // Join all fragments back together
   const combined = items.join('');
   
-  // Parse as HTML
-  const temp = document.createElement('div');
-  temp.innerHTML = combined;
+  // Parse as HTML safely using DOMParser (doesn't execute scripts or event handlers)
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(combined, 'text/html');
+  const temp = doc.body;
   
   // Extract meaningful list items and paragraphs
   const results: string[] = [];

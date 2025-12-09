@@ -332,7 +332,6 @@ export default function Homepage() {
               alt={slide.title}
               className="w-full h-full object-cover"
               loading={index === 0 ? "eager" : "lazy"}
-              fetchPriority={index === 0 ? "high" : "low"}
               decoding={index === 0 ? "sync" : "async"}
               onError={(e) => {
                 const target = e.target as HTMLImageElement;

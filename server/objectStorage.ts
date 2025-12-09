@@ -172,7 +172,7 @@ export class ObjectStorageService {
     }
   }
 
-  async uploadFromBuffer(buffer: Buffer, filename: string): Promise<string> {
+  async uploadFromBuffer(buffer: Buffer, filename: string, folder: string = 'images'): Promise<string> {
     const client = await this.getClient();
     if (!client) {
       throw new Error("Object storage is not available. Please configure a bucket in the Object Storage tab.");
@@ -180,7 +180,7 @@ export class ObjectStorageService {
 
     const safeFilename = sanitizeFilename(filename);
     const objectId = `${randomUUID()}-${safeFilename}`;
-    const objectPath = `images/${objectId}`;
+    const objectPath = `${folder}/${objectId}`;
 
     console.log(`[ObjectStorage] Uploading: path=${objectPath}, bufferSize=${buffer.length}`);
 
@@ -201,6 +201,18 @@ export class ObjectStorageService {
       console.error(`uploadFromBuffer error:`, error);
       throw new Error(`Upload failed: ${error.message || 'Unknown error'}`);
     }
+  }
+
+  async downloadToBuffer(objectPath: string): Promise<Buffer> {
+    const normalizedPath = objectPath.startsWith('/objects/') 
+      ? objectPath.replace('/objects/', '') 
+      : objectPath;
+    
+    const result = await this.getObject(normalizedPath);
+    if (!result) {
+      throw new ObjectNotFoundError();
+    }
+    return result.data;
   }
 
   async exists(objectPath: string): Promise<boolean> {

@@ -112,8 +112,8 @@ export async function processImage(
   let storagePath: string;
   
   if (useObjectStorage) {
-    // Upload original to Object Storage
-    storagePath = await objectStorage.uploadFromBuffer(originalBuffer, `${slug}-original.webp`);
+    // Upload original to Object Storage in 'media' folder
+    storagePath = await objectStorage.uploadFromBuffer(originalBuffer, `${slug}-original.webp`, 'media');
     console.log(`[Media] Uploaded original to Object Storage: ${storagePath}`);
   } else {
     // Fallback to local filesystem
@@ -171,8 +171,8 @@ export async function processImage(
       let storageType: string;
       
       if (useObjectStorage) {
-        // Upload variant to Object Storage
-        variantPath = await objectStorage.uploadFromBuffer(variantBuffer, `${slug}-${variantType}.webp`);
+        // Upload variant to Object Storage in 'media' folder
+        variantPath = await objectStorage.uploadFromBuffer(variantBuffer, `${slug}-${variantType}.webp`, 'media');
         storageType = 'object_storage';
         console.log(`[Media] Uploaded ${variantType} to Object Storage: ${variantPath}`);
       } else {
@@ -246,6 +246,48 @@ export async function getVariantFilePath(slug: string, variantType: string): Pro
   
   if (!variant) return null;
   return variant.filepath;
+}
+
+export async function getVariantInfo(slug: string, variantType: string): Promise<{ filepath: string; storageType: string } | null> {
+  const asset = await getAssetBySlug(slug);
+  if (!asset) return null;
+  
+  const [variant] = await db.select().from(mediaVariants)
+    .where(and(
+      eq(mediaVariants.assetId, asset.id),
+      eq(mediaVariants.variantType, variantType as VariantType),
+      eq(mediaVariants.status, 'active')
+    ));
+  
+  if (!variant) return null;
+  return { 
+    filepath: variant.filepath, 
+    storageType: variant.storageType || 'local' 
+  };
+}
+
+// Get buffer from storage (handles both local and object storage)
+export async function getVariantBuffer(slug: string, variantType: string): Promise<Buffer | null> {
+  const info = await getVariantInfo(slug, variantType);
+  if (!info) return null;
+  
+  if (info.storageType === 'object_storage') {
+    // Object Storage path format: /objects/media/filename.webp
+    // Extract just the key part for download
+    const key = info.filepath.replace('/objects/', '');
+    try {
+      return await objectStorage.downloadToBuffer(key);
+    } catch (error) {
+      console.error(`Failed to download from Object Storage: ${info.filepath}`, error);
+      return null;
+    }
+  } else {
+    // Local filesystem
+    if (fs.existsSync(info.filepath)) {
+      return fs.readFileSync(info.filepath);
+    }
+    return null;
+  }
 }
 
 export async function searchAssets(options: {
@@ -930,4 +972,119 @@ export async function getBackups(): Promise<Array<{
     status: b.status,
     createdAt: b.createdAt,
   }));
+}
+
+// Migrate existing local images to Object Storage
+export async function migrateLocalToObjectStorage(limit: number = 50): Promise<{
+  migrated: number;
+  failed: number;
+  remaining: number;
+  errors: string[];
+}> {
+  const result = { migrated: 0, failed: 0, remaining: 0, errors: [] as string[] };
+  
+  // Check if object storage is available
+  const isAvailable = await objectStorage.isAvailable();
+  if (!isAvailable) {
+    result.errors.push('Object Storage is not available');
+    return result;
+  }
+  
+  // Get local variants that need migration
+  const localVariants = await db.select().from(mediaVariants)
+    .where(and(
+      eq(mediaVariants.storageType, 'local'),
+      eq(mediaVariants.status, 'active')
+    ))
+    .limit(limit);
+  
+  // Count remaining
+  const [countResult] = await db.select({ count: sql<number>`count(*)` })
+    .from(mediaVariants)
+    .where(and(
+      eq(mediaVariants.storageType, 'local'),
+      eq(mediaVariants.status, 'active')
+    ));
+  result.remaining = (countResult?.count || 0) - localVariants.length;
+  
+  for (const variant of localVariants) {
+    try {
+      // Check if local file exists
+      if (!fs.existsSync(variant.filepath)) {
+        console.log(`[Migration] File not found, skipping: ${variant.filepath}`);
+        result.failed++;
+        result.errors.push(`File not found: ${variant.filepath}`);
+        continue;
+      }
+      
+      // Read the local file
+      const buffer = fs.readFileSync(variant.filepath);
+      
+      // Get the asset slug for naming
+      const [asset] = await db.select({ slug: mediaAssets.slug })
+        .from(mediaAssets)
+        .where(eq(mediaAssets.id, variant.assetId));
+      
+      if (!asset) {
+        result.failed++;
+        result.errors.push(`Asset not found for variant ${variant.id}`);
+        continue;
+      }
+      
+      // Upload to Object Storage
+      const objectPath = await objectStorage.uploadFromBuffer(
+        buffer, 
+        `${asset.slug}-${variant.variantType}.webp`,
+        'media'
+      );
+      
+      // Update the variant record
+      await db.update(mediaVariants)
+        .set({ 
+          filepath: objectPath,
+          storageType: 'object_storage'
+        })
+        .where(eq(mediaVariants.id, variant.id));
+      
+      console.log(`[Migration] Migrated variant ${variant.id}: ${variant.filepath} -> ${objectPath}`);
+      result.migrated++;
+      
+    } catch (error: any) {
+      console.error(`[Migration] Failed to migrate variant ${variant.id}:`, error);
+      result.failed++;
+      result.errors.push(`Variant ${variant.id}: ${error.message}`);
+    }
+  }
+  
+  return result;
+}
+
+// Get migration status
+export async function getMigrationStatus(): Promise<{
+  totalLocal: number;
+  totalObjectStorage: number;
+  percentComplete: number;
+}> {
+  const [localCount] = await db.select({ count: sql<number>`count(*)` })
+    .from(mediaVariants)
+    .where(and(
+      eq(mediaVariants.storageType, 'local'),
+      eq(mediaVariants.status, 'active')
+    ));
+  
+  const [objectCount] = await db.select({ count: sql<number>`count(*)` })
+    .from(mediaVariants)
+    .where(and(
+      eq(mediaVariants.storageType, 'object_storage'),
+      eq(mediaVariants.status, 'active')
+    ));
+  
+  const total = (localCount?.count || 0) + (objectCount?.count || 0);
+  const percentComplete = total > 0 ? Math.round(((objectCount?.count || 0) / total) * 100) : 100;
+  
+  return {
+    totalLocal: localCount?.count || 0,
+    totalObjectStorage: objectCount?.count || 0,
+    percentComplete
+  };
 }

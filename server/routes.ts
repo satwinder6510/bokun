@@ -5199,27 +5199,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid variant type" });
       }
       
-      const filepath = await mediaService.getVariantFilePath(slug, variant);
+      // Get variant info to check storage type
+      const variantInfo = await mediaService.getVariantInfo(slug, variant);
       
-      if (!filepath || !fs.existsSync(filepath)) {
+      if (!variantInfo) {
         return res.status(404).json({ error: "Image not found" });
       }
       
-      // Determine content type
-      const ext = path.extname(filepath).toLowerCase();
-      const mimeTypes: Record<string, string> = {
-        '.webp': 'image/webp',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-      };
-      
-      res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      // Set headers
+      res.setHeader('Content-Type', 'image/webp');
       res.setHeader('Cache-Control', 'public, max-age=31536000');
       
-      const stream = fs.createReadStream(filepath);
-      stream.pipe(res);
+      if (variantInfo.storageType === 'object_storage') {
+        // Redirect to Object Storage URL for efficiency
+        // Object paths are like: /objects/media/filename.webp
+        const objectUrl = variantInfo.filepath;
+        return res.redirect(objectUrl);
+      } else {
+        // Serve from local filesystem
+        if (!fs.existsSync(variantInfo.filepath)) {
+          return res.status(404).json({ error: "Image file not found" });
+        }
+        const stream = fs.createReadStream(variantInfo.filepath);
+        stream.pipe(res);
+      }
     } catch (error: any) {
       console.error("Error serving media:", error);
       res.status(500).json({ error: error.message || "Failed to serve media" });
@@ -5459,6 +5462,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching backups:", error);
       res.status(500).json({ error: error.message || "Failed to fetch backups" });
+    }
+  });
+
+  // ============================================
+  // OBJECT STORAGE MIGRATION ROUTES
+  // ============================================
+
+  // Get migration status
+  app.get("/api/admin/media/migration/status", verifyAdminSession, async (req, res) => {
+    try {
+      const status = await mediaService.getMigrationStatus();
+      res.json(status);
+    } catch (error: any) {
+      console.error("Error fetching migration status:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch migration status" });
+    }
+  });
+
+  // Trigger migration batch
+  app.post("/api/admin/media/migration/run", verifyAdminSession, async (req, res) => {
+    try {
+      const limit = parseInt(req.body.limit) || 50;
+      const result = await mediaService.migrateLocalToObjectStorage(limit);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error running migration:", error);
+      res.status(500).json({ error: error.message || "Failed to run migration" });
     }
   });
 

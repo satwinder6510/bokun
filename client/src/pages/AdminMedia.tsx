@@ -39,7 +39,7 @@ type MediaAsset = {
   mimeType: string;
   width: number;
   height: number;
-  fileSize: number;
+  sizeBytes: number;
   source: string;
   externalSourceId: string | null;
   externalSourceUrl: string | null;
@@ -49,6 +49,7 @@ type MediaAsset = {
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
+  destinations?: string[];
 };
 
 type CleanupJob = {
@@ -88,6 +89,7 @@ export default function AdminMedia() {
   const [cleanupType, setCleanupType] = useState("hotel_images_in_destination");
   const [selectedStockImages, setSelectedStockImages] = useState<Set<string>>(new Set());
   const [isImportingBulk, setIsImportingBulk] = useState(false);
+  const [importDestination, setImportDestination] = useState("");
 
   // Helper for admin fetch in queries
   const adminQueryFn = async (url: string) => {
@@ -219,10 +221,13 @@ export default function AdminMedia() {
 
   // Stock image import mutation
   const importStockMutation = useMutation({
-    mutationFn: (image: StockImage) => adminFetch('/api/admin/media/stock/import', { 
-      method: 'POST', 
-      body: JSON.stringify({ image, tags: [] }) 
-    }),
+    mutationFn: ({ image, destination }: { image: StockImage; destination: string }) => {
+      const tags = destination ? [destination] : [];
+      return adminFetch('/api/admin/media/stock/import', { 
+        method: 'POST', 
+        body: JSON.stringify({ image, tags }) 
+      });
+    },
     onSuccess: () => {
       toast({ title: "Image imported successfully" });
       refetchAssets();
@@ -287,11 +292,12 @@ export default function AdminMedia() {
     let successCount = 0;
     let failCount = 0;
 
+    const tags = importDestination ? [importDestination] : [];
     for (const image of selectedImages) {
       try {
         await adminFetch('/api/admin/media/stock/import', { 
           method: 'POST', 
-          body: JSON.stringify({ image, tags: [] }) 
+          body: JSON.stringify({ image, tags }) 
         });
         successCount++;
       } catch (error) {
@@ -481,13 +487,18 @@ export default function AdminMedia() {
                     <Badge className="absolute top-2 right-2 text-xs" variant="secondary">
                       {asset.source}
                     </Badge>
+                    {asset.destinations && asset.destinations.length > 0 && (
+                      <Badge className="absolute bottom-2 left-2 text-xs bg-blue-600 text-white">
+                        {asset.destinations[0]}
+                      </Badge>
+                    )}
                   </div>
                   <CardContent className="p-2">
                     <p className="text-xs font-medium truncate" title={asset.filename}>
                       {asset.filename}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {asset.width}x{asset.height} · {formatBytes(asset.fileSize)}
+                      {asset.width}x{asset.height} · {formatBytes(asset.sizeBytes)}
                     </p>
                   </CardContent>
                 </Card>
@@ -554,13 +565,23 @@ export default function AdminMedia() {
                       </div>
                       <div>
                         <Label className="text-muted-foreground">File Size</Label>
-                        <p>{formatBytes(selectedAsset.fileSize)}</p>
+                        <p>{formatBytes(selectedAsset.sizeBytes)}</p>
                       </div>
                     </div>
                     <div>
                       <Label className="text-muted-foreground">Source</Label>
                       <Badge variant="outline" className="ml-2">{selectedAsset.source}</Badge>
                     </div>
+                    {selectedAsset.destinations && selectedAsset.destinations.length > 0 && (
+                      <div>
+                        <Label className="text-muted-foreground">Destinations</Label>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {selectedAsset.destinations.map((dest) => (
+                            <Badge key={dest} className="bg-blue-600 text-white">{dest}</Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {selectedAsset.creditRequired && selectedAsset.creditText && (
                       <div>
                         <Label className="text-muted-foreground">Credit Required</Label>
@@ -612,6 +633,20 @@ export default function AdminMedia() {
                   {isSearchingStock ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                   <span className="ml-2">Search</span>
                 </Button>
+              </div>
+
+              <div className="flex gap-4 mb-4 items-center">
+                <Label className="text-sm font-medium whitespace-nowrap">Tag imported images with destination:</Label>
+                <Input
+                  placeholder="e.g., Turkey, Greece, Vienna"
+                  value={importDestination}
+                  onChange={(e) => setImportDestination(e.target.value)}
+                  className="max-w-xs"
+                  data-testid="input-import-destination"
+                />
+                {!importDestination && (
+                  <span className="text-yellow-600 text-xs">⚠️ No destination set - images won't be tagged</span>
+                )}
               </div>
 
               <div className="flex gap-4 text-sm">

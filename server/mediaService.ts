@@ -18,13 +18,17 @@ import {
   type InsertMediaTag,
   type VariantType
 } from '@shared/schema';
-import { eq, and, desc, sql, isNull, or, like, inArray } from 'drizzle-orm';
+import { eq, and, desc, sql, isNull, or, like, inArray, notInArray } from 'drizzle-orm';
+import { ObjectStorageService } from './objectStorage';
 
 const MEDIA_BASE_PATH = process.env.NODE_ENV === 'production' 
   ? 'public/media/prod' 
   : 'public/media/dev';
 
 const BACKUP_PATH = 'backups/media';
+
+// Object storage instance for cloud storage
+const objectStorage = new ObjectStorageService();
 
 function ensureDir(dir: string) {
   if (!fs.existsSync(dir)) {
@@ -87,8 +91,6 @@ export async function processImage(
   }
 ): Promise<{ asset: MediaAsset; variants: MediaVariant[] }> {
   const slug = generateSlug(originalFilename);
-  const assetDir = path.join(MEDIA_BASE_PATH, slug);
-  ensureDir(assetDir);
   
   const metadata = await sharp(buffer).metadata();
   const perceptualHash = await computePerceptualHash(buffer);
@@ -101,16 +103,30 @@ export async function processImage(
     console.log(`Duplicate image detected: ${perceptualHash}`);
   }
   
-  const originalPath = path.join(assetDir, `original.webp`);
   const originalBuffer = await sharp(buffer)
     .webp({ quality: 95 })
     .toBuffer();
   
-  fs.writeFileSync(originalPath, originalBuffer);
+  // Check if object storage is available
+  const useObjectStorage = await objectStorage.isAvailable();
+  let storagePath: string;
+  
+  if (useObjectStorage) {
+    // Upload original to Object Storage
+    storagePath = await objectStorage.uploadFromBuffer(originalBuffer, `${slug}-original.webp`);
+    console.log(`[Media] Uploaded original to Object Storage: ${storagePath}`);
+  } else {
+    // Fallback to local filesystem
+    const assetDir = path.join(MEDIA_BASE_PATH, slug);
+    ensureDir(assetDir);
+    storagePath = path.join(assetDir, `original.webp`);
+    fs.writeFileSync(storagePath, originalBuffer);
+    console.log(`[Media] Saved original to local: ${storagePath}`);
+  }
   
   const [asset] = await db.insert(mediaAssets).values({
     slug,
-    storagePath: originalPath,
+    storagePath,
     perceptualHash,
     mimeType: 'image/webp',
     width: metadata.width || 0,
@@ -151,9 +167,22 @@ export async function processImage(
         .toBuffer();
       
       const variantMeta = await sharp(variantBuffer).metadata();
-      const variantPath = path.join(assetDir, `${variantType}.webp`);
+      let variantPath: string;
+      let storageType: string;
       
-      fs.writeFileSync(variantPath, variantBuffer);
+      if (useObjectStorage) {
+        // Upload variant to Object Storage
+        variantPath = await objectStorage.uploadFromBuffer(variantBuffer, `${slug}-${variantType}.webp`);
+        storageType = 'object_storage';
+        console.log(`[Media] Uploaded ${variantType} to Object Storage: ${variantPath}`);
+      } else {
+        // Fallback to local filesystem
+        const assetDir = path.join(MEDIA_BASE_PATH, slug);
+        ensureDir(assetDir);
+        variantPath = path.join(assetDir, `${variantType}.webp`);
+        fs.writeFileSync(variantPath, variantBuffer);
+        storageType = 'local';
+      }
       
       const [variant] = await db.insert(mediaVariants).values({
         assetId: asset.id,
@@ -163,6 +192,7 @@ export async function processImage(
         quality: preset.quality,
         format: 'webp',
         filepath: variantPath,
+        storageType,
         sizeBytes: variantBuffer.length,
         checksum: computeChecksum(variantBuffer),
         status: 'active',
@@ -646,7 +676,7 @@ export async function getAssetsWithMeta(options?: {
       // Get remaining assets without this destination
       const remaining = (options?.limit || 50) - destinationAssets.length;
       const otherAssets = remaining > 0 ? await db.select().from(mediaAssets)
-        .where(and(...conditions, sql`${mediaAssets.id} NOT IN (${assetIds.join(',')})`))
+        .where(and(...conditions, notInArray(mediaAssets.id, assetIds)))
         .orderBy(desc(mediaAssets.createdAt))
         .limit(remaining) : [];
       

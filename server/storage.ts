@@ -1220,9 +1220,7 @@ export class MemStorage implements IStorage {
   
   async deleteHotel(id: number): Promise<boolean> {
     try {
-      await db.update(hotels)
-        .set({ isActive: false, updatedAt: new Date() })
-        .where(eq(hotels.id, id));
+      await db.delete(hotels).where(eq(hotels.id, id));
       return true;
     } catch (error) {
       console.error("Error deleting hotel:", error);

@@ -95,8 +95,10 @@ export function MediaPicker({
   });
 
   const importStockMutation = useMutation({
-    mutationFn: async (image: StockImage) => {
-      const tags = destination ? [{ type: 'destination', value: destination }] : [];
+    mutationFn: async ({ image, currentDestination }: { image: StockImage; currentDestination?: string }) => {
+      console.log('[MediaPicker] Importing image with destination:', currentDestination);
+      const tags = currentDestination ? [{ tagType: 'destination', tagValue: currentDestination }] : [];
+      console.log('[MediaPicker] Tags to send:', tags);
       return adminFetch('/api/admin/media/stock/import', {
         method: 'POST',
         body: JSON.stringify({ image, tags }),
@@ -105,7 +107,8 @@ export function MediaPicker({
     onSuccess: (data) => {
       toast({ title: "Image imported successfully" });
       refetchAssets();
-      const imageUrl = `/api/media/${data.slug}/card`;
+      const slug = data.asset?.slug || data.slug;
+      const imageUrl = `/api/media/${slug}/card`;
       if (multiple) {
         setSelectedImages(prev => [...prev, imageUrl]);
       } else {
@@ -122,7 +125,7 @@ export function MediaPicker({
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('image', file);
-      const tags = destination ? [{ type: 'destination', value: destination }] : [];
+      const tags = destination ? [{ tagType: 'destination', tagValue: destination }] : [];
       formData.append('tags', JSON.stringify(tags));
       const response = await fetch('/api/admin/media/upload', {
         method: 'POST',
@@ -137,7 +140,8 @@ export function MediaPicker({
     onSuccess: (data) => {
       toast({ title: "Image uploaded successfully" });
       refetchAssets();
-      const imageUrl = `/api/media/${data.slug}/card`;
+      const slug = data.asset?.slug || data.slug;
+      const imageUrl = `/api/media/${slug}/card`;
       if (multiple) {
         setSelectedImages(prev => [...prev, imageUrl]);
       } else {
@@ -155,7 +159,9 @@ export function MediaPicker({
     setIsSearchingStock(true);
     try {
       const results = await adminFetch(`/api/admin/media/stock/search?query=${encodeURIComponent(stockSearchQuery)}&perPage=20`);
-      setStockResults(results);
+      // API returns { unsplash: [], pexels: [] } - combine them
+      const combined = [...(results.unsplash || []), ...(results.pexels || [])];
+      setStockResults(combined);
     } catch (error: any) {
       toast({ title: "Search failed", description: error.message, variant: "destructive" });
     } finally {
@@ -368,11 +374,13 @@ export function MediaPicker({
                 {isSearchingStock ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </Button>
             </div>
-            {destination && (
-              <p className="text-xs text-muted-foreground mb-3">
-                Tip: Search pre-filled with "{destination}" - imported images will be tagged with this destination.
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground mb-3">
+              {destination ? (
+                <>Tip: Search pre-filled with "<strong>{destination}</strong>" - imported images will be tagged with this destination.</>
+              ) : (
+                <span className="text-yellow-600">Warning: No destination set - images will NOT be tagged. Set the package Category first.</span>
+              )}
+            </p>
             <ScrollArea className="h-[400px]">
               {stockResults.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -384,7 +392,7 @@ export function MediaPicker({
                     <div
                       key={`${image.provider}-${image.id}`}
                       className="relative cursor-pointer rounded-lg overflow-hidden border hover:border-primary transition-colors group"
-                      onClick={() => importStockMutation.mutate(image)}
+                      onClick={() => importStockMutation.mutate({ image, currentDestination: destination })}
                       data-testid={`stock-image-${image.id}`}
                     >
                       <img

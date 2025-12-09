@@ -17,7 +17,7 @@ import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { apiRequest } from "@/lib/queryClient";
-import { getProxiedImageUrl } from "@/lib/imageProxy";
+import { getProxiedImageUrl, getHeroImageUrl, getGalleryImageUrl } from "@/lib/imageProxy";
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
@@ -494,11 +494,12 @@ export default function PackageDetail() {
   });
   
   // Combine images and videos into gallery items
+  // Featured image uses hero variant (1920px), gallery images use gallery variant (1280px)
   const allGalleryItems: GalleryItem[] = [
-    // Featured image first
-    ...(pkg.featuredImage ? [{ type: 'image' as const, url: getProxiedImageUrl(pkg.featuredImage) }] : []),
-    // Then gallery images
-    ...gallery.filter(Boolean).map(img => ({ type: 'image' as const, url: getProxiedImageUrl(img) })),
+    // Featured image first - hero variant for full-width display
+    ...(pkg.featuredImage ? [{ type: 'image' as const, url: getHeroImageUrl(pkg.featuredImage) }] : []),
+    // Then gallery images - gallery variant for lightbox display
+    ...gallery.filter(Boolean).map(img => ({ type: 'image' as const, url: getGalleryImageUrl(img) })),
     // Then videos at the end (only valid structured videos)
     ...videos.map(video => ({ type: 'video' as const, url: getVideoThumbnail(video), video })),
   ];

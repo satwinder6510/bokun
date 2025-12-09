@@ -5503,11 +5503,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { image, tags } = req.body;
       
+      console.log("Stock import request - tags received:", JSON.stringify(tags));
+      
       if (!image || !image.id || !image.provider || !image.fullUrl) {
         return res.status(400).json({ error: "Invalid image data" });
       }
       
-      const result = await stockImageService.importStockImage(image, tags);
+      // Handle both string tags (from AdminMedia) and object tags (from MediaPicker)
+      const formattedTags = (tags || []).map((tag: any) => {
+        if (typeof tag === 'string') {
+          return { tagType: 'destination', tagValue: tag };
+        }
+        // Already an object with tagType/tagValue
+        return tag;
+      });
+      
+      const result = await stockImageService.importStockImage(image, formattedTags);
       
       if (!result) {
         return res.status(500).json({ error: "Failed to import image" });
@@ -5636,7 +5647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Scrape hotel from URL
   app.post("/api/admin/hotels/scrape", verifyAdminSession, async (req, res) => {
     try {
-      const { url, country, city } = req.body;
+      const { url, galleryUrl, country, city } = req.body;
       
       if (!url) {
         return res.status(400).json({ error: "URL is required" });
@@ -5647,6 +5658,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         new URL(url);
       } catch {
         return res.status(400).json({ error: "Invalid URL format" });
+      }
+      
+      // Validate gallery URL if provided
+      if (galleryUrl) {
+        try {
+          new URL(galleryUrl);
+        } catch {
+          return res.status(400).json({ error: "Invalid gallery URL format" });
+        }
       }
       
       // Import scraper dynamically to avoid circular dependencies
@@ -5661,8 +5681,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Scrape the hotel data
-      const scrapedData = await scrapeHotelWebsite(url);
+      // Scrape the hotel data (homepage for description, gallery URL for images)
+      const scrapedData = await scrapeHotelWebsite(url, galleryUrl);
       
       // Import images to media library
       let importedImages: string[] = [];
@@ -5789,6 +5809,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error importing hotels from packages:", error);
       res.status(500).json({ error: error.message || "Failed to import hotels" });
+    }
+  });
+
+  // Remove duplicate hotels (keeps the first/oldest record for each normalized name)
+  app.post("/api/admin/hotels/remove-duplicates", verifyAdminSession, async (req, res) => {
+    try {
+      const allHotels = await storage.getAllHotels();
+      
+      // Group hotels by normalized name
+      const hotelGroups = new Map<string, typeof allHotels>();
+      for (const hotel of allHotels) {
+        const normalizedName = hotel.name.trim().toLowerCase().replace(/\s+/g, ' ');
+        const existing = hotelGroups.get(normalizedName) || [];
+        existing.push(hotel);
+        hotelGroups.set(normalizedName, existing);
+      }
+      
+      // Find duplicates and remove them (keep the first/oldest by ID)
+      const removedHotels: string[] = [];
+      const entries = Array.from(hotelGroups.entries());
+      
+      for (const [normalizedName, hotels] of entries) {
+        if (hotels.length > 1) {
+          // Sort by ID (ascending) to keep the oldest
+          hotels.sort((a, b) => a.id - b.id);
+          
+          // Remove all but the first one
+          for (let i = 1; i < hotels.length; i++) {
+            await storage.deleteHotel(hotels[i].id);
+            removedHotels.push(hotels[i].name);
+          }
+        }
+      }
+      
+      res.json({
+        success: true,
+        removed: removedHotels.length,
+        removedHotels,
+      });
+    } catch (error: any) {
+      console.error("Error removing duplicate hotels:", error);
+      res.status(500).json({ error: error.message || "Failed to remove duplicates" });
     }
   });
 

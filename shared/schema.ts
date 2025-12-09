@@ -786,6 +786,7 @@ export const mediaVariants = pgTable("media_variants", {
   quality: integer("quality").notNull().default(80), // WebP quality
   format: text("format").notNull().default("webp"),
   filepath: text("filepath").notNull(), // Storage path for this variant
+  storageType: text("storage_type").notNull().default("local"), // local, object_storage
   sizeBytes: integer("size_bytes"),
   checksum: text("checksum"), // File integrity check
   status: text("status").notNull().default("pending"), // pending, active, failed, superseded

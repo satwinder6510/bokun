@@ -40,6 +40,7 @@ export default function AdminHotels() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingHotel, setEditingHotel] = useState<HotelType | null>(null);
   const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scrapeGalleryUrl, setScrapeGalleryUrl] = useState("");
   const [scrapeCountry, setScrapeCountry] = useState("");
   const [scrapeCity, setScrapeCity] = useState("");
   const [isScraping, setIsScraping] = useState(false);
@@ -107,7 +108,7 @@ export default function AdminHotels() {
   });
 
   const scrapeMutation = useMutation({
-    mutationFn: async (data: { url: string; country?: string; city?: string }) => {
+    mutationFn: async (data: { url: string; galleryUrl?: string; country?: string; city?: string }) => {
       const response = await adminFetch("/api/admin/hotels/scrape", {
         method: 'POST',
         body: JSON.stringify(data),
@@ -116,11 +117,17 @@ export default function AdminHotels() {
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/hotels"] });
+      const galleryInfo = data.scrapedData?.gallerySource === 'auto-discovered' 
+        ? ` (images from gallery: ${data.scrapedData?.galleryUrl})`
+        : data.scrapedData?.gallerySource === 'manual'
+        ? ' (images from custom gallery URL)'
+        : ' (images from homepage)';
       toast({ 
         title: "Hotel imported successfully", 
-        description: `${data.hotel?.name || 'Hotel'} added with ${data.importedImageCount || 0} images` 
+        description: `${data.hotel?.name || 'Hotel'} added with ${data.importedImageCount || 0} images${galleryInfo}` 
       });
       setScrapeUrl("");
+      setScrapeGalleryUrl("");
       setScrapeCountry("");
       setScrapeCity("");
       setIsDialogOpen(false);
@@ -149,13 +156,33 @@ export default function AdminHotels() {
     },
   });
 
+  const removeDuplicatesMutation = useMutation({
+    mutationFn: async () => {
+      const response = await adminFetch("/api/admin/hotels/remove-duplicates", {
+        method: 'POST',
+      });
+      return response;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hotels"] });
+      toast({ 
+        title: "Duplicates removed", 
+        description: `Removed ${data.removed} duplicate hotels` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to remove duplicates", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleScrape = () => {
     if (!scrapeUrl) {
       toast({ title: "Please enter a URL", variant: "destructive" });
       return;
     }
     scrapeMutation.mutate({ 
-      url: scrapeUrl, 
+      url: scrapeUrl,
+      galleryUrl: scrapeGalleryUrl || undefined,
       country: scrapeCountry || undefined, 
       city: scrapeCity || undefined 
     });
@@ -207,6 +234,24 @@ export default function AdminHotels() {
               data-testid="input-search-hotels"
             />
           </div>
+          <Button 
+            variant="outline"
+            onClick={() => removeDuplicatesMutation.mutate()} 
+            disabled={removeDuplicatesMutation.isPending}
+            data-testid="button-remove-duplicates"
+          >
+            {removeDuplicatesMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Removing...
+              </>
+            ) : (
+              <>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Remove Duplicates
+              </>
+            )}
+          </Button>
           <Button 
             variant="outline"
             onClick={() => importFromPackagesMutation.mutate()} 
@@ -380,7 +425,7 @@ export default function AdminHotels() {
             
             <div className="space-y-4">
               <div>
-                <Label htmlFor="scrape-url">Hotel Website URL</Label>
+                <Label htmlFor="scrape-url">Hotel Homepage URL</Label>
                 <Input
                   id="scrape-url"
                   placeholder="https://www.hotel-example.com"
@@ -388,6 +433,23 @@ export default function AdminHotels() {
                   onChange={(e) => setScrapeUrl(e.target.value)}
                   data-testid="input-scrape-url"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Used to extract hotel name and description
+                </p>
+              </div>
+              
+              <div>
+                <Label htmlFor="scrape-gallery-url">Gallery/Photos Page URL (optional)</Label>
+                <Input
+                  id="scrape-gallery-url"
+                  placeholder="https://www.hotel-example.com/gallery"
+                  value={scrapeGalleryUrl}
+                  onChange={(e) => setScrapeGalleryUrl(e.target.value)}
+                  data-testid="input-scrape-gallery-url"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Leave empty to auto-discover gallery. Only use if auto-discovery fails.
+                </p>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -414,8 +476,8 @@ export default function AdminHotels() {
               </div>
               
               <p className="text-sm text-muted-foreground">
-                The scraper will extract hotel information and images. Adding country/city helps 
-                organize the images in your media library.
+                The scraper will automatically search for a gallery or photos page to get 
+                high-quality images. If none found, it will fall back to homepage images.
               </p>
             </div>
             

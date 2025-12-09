@@ -14,6 +14,8 @@ export interface ScrapedHotelData {
   email?: string;
   checkInTime?: string;
   checkOutTime?: string;
+  galleryUrl?: string; // The URL used for images (for admin display)
+  gallerySource?: 'auto-discovered' | 'manual' | 'homepage-fallback';
 }
 
 // Common user agent to avoid blocking
@@ -367,24 +369,163 @@ function cleanText(text: string): string {
     .trim();
 }
 
-// Main scraping function
-export async function scrapeHotelWebsite(url: string): Promise<ScrapedHotelData> {
+// Gallery URL discovery keywords with priority weights
+const GALLERY_KEYWORDS = [
+  { pattern: '/gallery', weight: 10 },
+  { pattern: '/photos', weight: 10 },
+  { pattern: '/photo-gallery', weight: 10 },
+  { pattern: '/images', weight: 8 },
+  { pattern: '/media', weight: 7 },
+  { pattern: '/rooms', weight: 6 },
+  { pattern: '/accommodation', weight: 6 },
+  { pattern: '/our-rooms', weight: 6 },
+  { pattern: '/suites', weight: 5 },
+  { pattern: '/facilities', weight: 4 },
+  { pattern: '/amenities', weight: 4 },
+  { pattern: '/virtual-tour', weight: 3 },
+  { pattern: 'gallery', weight: 5 },  // keyword anywhere in URL
+  { pattern: 'photos', weight: 5 },
+  { pattern: 'bildergalerie', weight: 8 }, // German
+  { pattern: 'galerie', weight: 7 }, // French/German
+  { pattern: 'fotos', weight: 7 }, // Spanish
+  { pattern: 'bilder', weight: 6 }, // German
+];
+
+// Discover gallery URLs from homepage
+function discoverGalleryUrls($: cheerio.CheerioAPI, baseUrl: string): string[] {
+  const candidates: { url: string; weight: number }[] = [];
+  const seenUrls = new Set<string>();
+  const baseUrlObj = new URL(baseUrl);
+  
+  // Find all links on the page
+  $('a[href]').each((_, el) => {
+    const href = $(el).attr('href');
+    if (!href) return;
+    
+    const resolvedUrl = resolveUrl(href, baseUrl);
+    if (!resolvedUrl) return;
+    
+    // Only consider same-origin URLs
+    try {
+      const linkUrlObj = new URL(resolvedUrl);
+      if (linkUrlObj.hostname !== baseUrlObj.hostname) return;
+    } catch {
+      return;
+    }
+    
+    if (seenUrls.has(resolvedUrl)) return;
+    seenUrls.add(resolvedUrl);
+    
+    const lowerUrl = resolvedUrl.toLowerCase();
+    const linkText = $(el).text().toLowerCase();
+    
+    // Calculate weight based on URL patterns
+    let totalWeight = 0;
+    for (const { pattern, weight } of GALLERY_KEYWORDS) {
+      if (lowerUrl.includes(pattern)) {
+        totalWeight += weight;
+      }
+      // Also check link text
+      if (linkText.includes(pattern.replace('/', ''))) {
+        totalWeight += weight * 0.5;
+      }
+    }
+    
+    // Boost if in navigation
+    const isInNav = $(el).closest('nav, header, .nav, .menu, .navigation').length > 0;
+    if (isInNav && totalWeight > 0) {
+      totalWeight += 3;
+    }
+    
+    if (totalWeight > 0) {
+      candidates.push({ url: resolvedUrl, weight: totalWeight });
+    }
+  });
+  
+  // Sort by weight descending
+  candidates.sort((a, b) => b.weight - a.weight);
+  
+  // Return top candidates
+  return candidates.slice(0, 5).map(c => c.url);
+}
+
+// Main scraping function with two-step workflow
+export async function scrapeHotelWebsite(
+  url: string, 
+  galleryUrl?: string // Optional manual gallery URL override
+): Promise<ScrapedHotelData> {
   console.log(`Scraping hotel website: ${url}`);
   
-  const html = await rateLimitedFetch(url);
-  const $ = cheerio.load(html);
+  // Step 1: Fetch homepage for description and metadata
+  const homepageHtml = await rateLimitedFetch(url);
+  const $homepage = cheerio.load(homepageHtml);
   
-  const name = extractName($);
-  const description = extractDescription($);
-  const starRating = extractStarRating($);
-  const amenities = extractAmenities($);
-  const images = extractImages($, url);
+  const name = extractName($homepage);
+  const description = extractDescription($homepage);
+  const starRating = extractStarRating($homepage);
+  const amenities = extractAmenities($homepage);
   
-  // Try to extract contact info
-  const emailMatch = html.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-  const phoneMatch = html.match(/(?:\+|00)?[\d\s\-().]{10,}/);
+  // Try to extract contact info from homepage
+  const emailMatch = homepageHtml.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  const phoneMatch = homepageHtml.match(/(?:\+|00)?[\d\s\-().]{10,}/);
   
-  console.log(`Scraped hotel: ${name}, ${images.length} images, ${amenities.length} amenities`);
+  // Step 2: Determine gallery URL for images
+  let images: string[] = [];
+  let usedGalleryUrl: string | undefined;
+  let gallerySource: 'auto-discovered' | 'manual' | 'homepage-fallback' = 'homepage-fallback';
+  
+  if (galleryUrl) {
+    // Use manually provided gallery URL
+    console.log(`Using manual gallery URL: ${galleryUrl}`);
+    try {
+      const galleryHtml = await rateLimitedFetch(galleryUrl);
+      const $gallery = cheerio.load(galleryHtml);
+      images = extractImages($gallery, galleryUrl);
+      usedGalleryUrl = galleryUrl;
+      gallerySource = 'manual';
+      console.log(`Extracted ${images.length} images from manual gallery URL`);
+    } catch (error) {
+      console.error(`Failed to fetch manual gallery URL, falling back to homepage:`, error);
+    }
+  }
+  
+  // If no manual URL or it failed, try auto-discovery
+  if (images.length === 0) {
+    const discoveredGalleryUrls = discoverGalleryUrls($homepage, url);
+    console.log(`Discovered ${discoveredGalleryUrls.length} potential gallery URLs:`, discoveredGalleryUrls.slice(0, 3));
+    
+    // Try each discovered gallery URL until we find one with images
+    for (const candidateUrl of discoveredGalleryUrls) {
+      try {
+        console.log(`Trying gallery URL: ${candidateUrl}`);
+        const galleryHtml = await rateLimitedFetch(candidateUrl);
+        const $gallery = cheerio.load(galleryHtml);
+        const galleryImages = extractImages($gallery, candidateUrl);
+        
+        if (galleryImages.length > images.length) {
+          images = galleryImages;
+          usedGalleryUrl = candidateUrl;
+          gallerySource = 'auto-discovered';
+          console.log(`Found ${galleryImages.length} images from: ${candidateUrl}`);
+          
+          // If we found a good number of images, stop searching
+          if (images.length >= 5) break;
+        }
+      } catch (error) {
+        console.error(`Failed to fetch gallery URL ${candidateUrl}:`, error);
+      }
+    }
+  }
+  
+  // If still no images, fall back to homepage images
+  if (images.length === 0) {
+    console.log(`No gallery found, falling back to homepage images`);
+    images = extractImages($homepage, url);
+    usedGalleryUrl = url;
+    gallerySource = 'homepage-fallback';
+  }
+  
+  console.log(`Scraped hotel: ${name}, ${images.length} images from ${gallerySource}, ${amenities.length} amenities`);
   
   return {
     name: name || 'Unknown Hotel',
@@ -394,6 +535,8 @@ export async function scrapeHotelWebsite(url: string): Promise<ScrapedHotelData>
     images,
     email: emailMatch?.[0],
     phone: phoneMatch?.[0]?.trim(),
+    galleryUrl: usedGalleryUrl,
+    gallerySource,
   };
 }
 

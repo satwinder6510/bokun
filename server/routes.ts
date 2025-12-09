@@ -2050,6 +2050,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Collections API - get all available tags with product counts
+  app.get("/api/collections", async (req, res) => {
+    try {
+      const tagDefinitions = [
+        { tag: "Beach", slug: "beach", title: "Beach Holidays", description: "Sun, sand and sea - perfect beach getaways" },
+        { tag: "City Break", slug: "city-break", title: "City Breaks", description: "Explore vibrant cities and urban adventures" },
+        { tag: "Family", slug: "family", title: "Family Holidays", description: "Create lasting memories with the whole family" },
+        { tag: "Adventure", slug: "adventure", title: "Adventure Tours", description: "Thrilling experiences for the adventurous spirit" },
+        { tag: "Luxury", slug: "luxury", title: "Luxury Escapes", description: "Premium experiences and five-star service" },
+        { tag: "Budget", slug: "budget", title: "Value Holidays", description: "Amazing holidays that won't break the bank" },
+        { tag: "Cultural", slug: "cultural", title: "Cultural Journeys", description: "Immerse yourself in rich history and traditions" },
+        { tag: "Safari", slug: "safari", title: "Safari Adventures", description: "Witness incredible wildlife in their natural habitat" },
+        { tag: "Cruise", slug: "cruise", title: "Ocean Cruises", description: "Set sail on unforgettable ocean voyages" },
+        { tag: "River Cruise", slug: "river-cruise", title: "River Cruises", description: "Scenic journeys along the world's great rivers" },
+        { tag: "Golden Triangle", slug: "golden-triangle", title: "Golden Triangle Tours", description: "India's iconic Delhi, Agra and Jaipur circuit" },
+        { tag: "Multi-Centre", slug: "multi-centre", title: "Multi-Centre Holidays", description: "Visit multiple destinations in one amazing trip" },
+        { tag: "Wellness", slug: "wellness", title: "Wellness Retreats", description: "Rejuvenate mind, body and soul" },
+        { tag: "Religious", slug: "religious", title: "Pilgrimage Tours", description: "Spiritual journeys to sacred destinations" },
+        { tag: "Wildlife", slug: "wildlife", title: "Wildlife Experiences", description: "Get close to nature's most amazing creatures" },
+        { tag: "Island", slug: "island", title: "Island Escapes", description: "Discover paradise on stunning island getaways" }
+      ];
+      
+      // Get all published flight packages and cached products
+      const allPackages = await storage.getPublishedFlightPackages();
+      const cachedProducts = await storage.getCachedProducts("USD");
+      
+      // Count products for each tag
+      const collectionsWithCounts = tagDefinitions.map(def => {
+        // Count flight packages with this tag
+        const packageCount = allPackages.filter(pkg => 
+          pkg.tags && Array.isArray(pkg.tags) && 
+          pkg.tags.some(t => t.toLowerCase() === def.tag.toLowerCase())
+        ).length;
+        
+        // Count Bokun products with matching activityCategories
+        const tourCount = cachedProducts.filter(product => 
+          product.activityCategories && 
+          Array.isArray(product.activityCategories) &&
+          product.activityCategories.some(cat => 
+            cat.toLowerCase().includes(def.tag.toLowerCase()) ||
+            def.tag.toLowerCase().includes(cat.toLowerCase())
+          )
+        ).length;
+        
+        return {
+          ...def,
+          packageCount,
+          tourCount,
+          totalCount: packageCount + tourCount
+        };
+      });
+      
+      // Only return tags that have at least one product
+      const availableCollections = collectionsWithCounts.filter(c => c.totalCount > 0);
+      
+      res.json({
+        collections: availableCollections,
+        total: availableCollections.length
+      });
+    } catch (error: any) {
+      console.error("Error fetching collections:", error);
+      res.status(500).json({ error: "Failed to fetch collections" });
+    }
+  });
+
   // Collections API - get packages and tours by tag
   app.get("/api/collections/:tagSlug", async (req, res) => {
     try {

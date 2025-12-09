@@ -101,7 +101,6 @@ waitForPort = 5000
 [userenv]
 
 [userenv.shared]
-TOTP_SECRET = "4GEISI5JKZKBAV52OMUSF7DBJS4OJIJW"
 PRIVATE_OBJECT_DIR = "/replit-objstore"
 PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore/public"
 

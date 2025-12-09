@@ -80,8 +80,9 @@ function LandTourCard({ tour }: { tour: BokunProduct }) {
 }
 
 export default function DestinationDetail() {
-  const [, params] = useRoute("/Holidays/:country");
-  const countrySlug = params?.country || "";
+  const [, holidaysParams] = useRoute("/Holidays/:country");
+  const [, destinationsParams] = useRoute("/destinations/:country");
+  const countrySlug = holidaysParams?.country || destinationsParams?.country || "";
   
   // Convert slug back to destination name (e.g., "united-arab-emirates" -> "United Arab Emirates")
   const destinationName = countrySlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -101,7 +102,7 @@ export default function DestinationDetail() {
       <main className="flex-1">
         <div className="bg-slate-800 text-white py-12">
           <div className="container mx-auto px-4">
-            <Link href="/Holidays" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors">
+            <Link href="/destinations" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back to Destinations
             </Link>
@@ -165,7 +166,7 @@ export default function DestinationDetail() {
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground text-lg">No holidays found for this destination yet.</p>
-              <Link href="/Holidays" className="text-primary hover:underline mt-2 inline-block">
+              <Link href="/destinations" className="text-primary hover:underline mt-2 inline-block">
                 Browse other destinations
               </Link>
             </div>

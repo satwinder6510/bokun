@@ -64,6 +64,7 @@ function Router() {
       <Route path="/holidays" component={Collections} />
       <Route path="/holidays/:tag" component={CollectionDetail} />
       <Route path="/destinations" component={Destinations} />
+      <Route path="/destinations/:country" component={DestinationDetail} />
       <Route path="/Holidays" component={Destinations} />
       <Route path="/Holidays/:country" component={DestinationDetail} />
       <Route path="/Holidays/:country/:slug" component={PackageDetail} />

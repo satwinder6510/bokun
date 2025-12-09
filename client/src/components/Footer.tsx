@@ -66,7 +66,7 @@ export function Footer() {
               <h4 className="font-bold text-lg mb-4">Popular Destinations</h4>
               <div className="grid grid-cols-2 gap-2">
                 {destinations.slice(0, 12).map((dest) => (
-                  <Link key={dest} href={`/Holidays/${encodeURIComponent(dest.toLowerCase().replace(/\s+/g, '-'))}`} className="text-stone-400 hover:text-white text-sm transition-colors">
+                  <Link key={dest} href={`/destinations/${encodeURIComponent(dest.toLowerCase().replace(/\s+/g, '-'))}`} className="text-stone-400 hover:text-white text-sm transition-colors">
                     {dest}
                   </Link>
                 ))}

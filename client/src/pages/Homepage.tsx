@@ -225,8 +225,8 @@ export default function Homepage() {
 
   const heroSlides: HeroSlide[] = [];
   
-  // Add featured packages to hero (max 2)
-  featuredPackages.slice(0, 2).forEach(pkg => {
+  // Add featured packages to hero (max 1 for faster LCP)
+  featuredPackages.slice(0, 1).forEach(pkg => {
     heroSlides.push({
       image: getHeroImageUrl(pkg.featuredImage) || fallbackHeroImages[0],
       title: pkg.title,
@@ -237,10 +237,10 @@ export default function Homepage() {
     });
   });
 
-  // Add featured tours to hero (fill up to 5 slides)
+  // Add featured tours to hero (fill up to 3 slides total for faster LCP)
   // Use getHeroImageUrl to optimize Bokun S3 images (resized to 1600px, WebP)
   const toursWithImages = products.filter(p => p.keyPhoto?.originalUrl);
-  toursWithImages.slice(0, 5 - heroSlides.length).forEach(tour => {
+  toursWithImages.slice(0, 3 - heroSlides.length).forEach(tour => {
     heroSlides.push({
       image: getHeroImageUrl(tour.keyPhoto?.originalUrl) || fallbackHeroImages[1],
       title: tour.title,

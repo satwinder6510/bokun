@@ -76,19 +76,30 @@ export function Header() {
               </Link>
             </nav>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Mobile phone icon only */}
               <a 
                 href={`tel:${phoneNumberClean}`}
-                className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-5 py-2.5 rounded-md font-semibold transition-colors"
-                data-testid="link-header-phone"
+                className="flex md:hidden items-center justify-center w-10 h-10 bg-slate-800 hover:bg-slate-900 text-white rounded-md transition-colors"
+                data-testid="link-header-phone-mobile"
+                aria-label="Call us"
               >
                 <Phone className="h-4 w-4" />
-                {phoneNumber}
+              </a>
+              {/* Desktop phone with number */}
+              <a 
+                href={`tel:${phoneNumberClean}`}
+                className="hidden md:flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-4 lg:px-5 py-2.5 rounded-md font-semibold transition-colors whitespace-nowrap"
+                data-testid="link-header-phone"
+              >
+                <Phone className="h-4 w-4 shrink-0" />
+                <span className="hidden lg:inline">{phoneNumber}</span>
+                <span className="lg:hidden">Call</span>
               </a>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="lg:hidden"
+                className="lg:hidden shrink-0"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 data-testid="button-mobile-menu"
               >

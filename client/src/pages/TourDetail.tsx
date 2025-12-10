@@ -151,25 +151,25 @@ export default function TourDetail() {
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             {/* Title Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1">
+                <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1 text-[10px] sm:text-xs">
                   LAND TOUR
                 </Badge>
               </div>
-              <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-tour-title-overlay">
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-tour-title-overlay">
                 {product.title}
               </h1>
-              <div className="flex flex-wrap items-center gap-3 text-white/90">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-white/90">
                 {product.durationText && (
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Clock className="w-4 h-4" />
+                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                     <span>{product.durationText}</span>
                   </div>
                 )}
                 {product.locationCode?.name && (
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <MapPin className="w-4 h-4" />
+                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                     <span>{product.locationCode.name}</span>
                   </div>
                 )}

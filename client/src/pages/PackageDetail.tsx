@@ -533,28 +533,29 @@ export default function PackageDetail() {
             {/* Gradient Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             {/* Title Overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30" data-testid="badge-category-overlay">
+                <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-[10px] sm:text-xs" data-testid="badge-category-overlay">
                   {pkg.category}
                 </Badge>
-                <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1">
-                  <Plane className="w-3 h-3" />
-                  Flights Included
+                <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1 text-[10px] sm:text-xs">
+                  <Plane className="w-3 h-3 shrink-0" />
+                  <span className="hidden sm:inline">Flights Included</span>
+                  <span className="sm:hidden">FLIGHT+</span>
                 </Badge>
               </div>
-              <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-title-overlay">
+              <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-title-overlay">
                 {pkg.title}
               </h1>
-              <div className="flex flex-wrap items-center gap-3 text-white/90">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-white/90">
                 {pkg.duration && (
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Clock className="w-4 h-4" />
+                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                     <span>{pkg.duration}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 text-sm">
-                  <MapPin className="w-4 h-4" />
+                <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                   <span>{pkg.category}</span>
                 </div>
               </div>

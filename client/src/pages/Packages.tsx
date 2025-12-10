@@ -185,60 +185,60 @@ export default function Packages() {
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 
                       {/* Top Badge - Category */}
-                      <div className="absolute top-4 left-4 z-10">
-                        <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-foreground">
+                      <div className="absolute top-3 sm:top-4 left-3 sm:left-4 z-10">
+                        <span className="bg-white/90 backdrop-blur-sm px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold text-foreground line-clamp-1 max-w-[140px] sm:max-w-[180px]">
                           {pkg.category}
                         </span>
                       </div>
 
                       {/* "FLIGHT +" label */}
-                      <div className="absolute top-4 right-4 z-10">
-                        <span className="text-white/80 text-xs font-bold tracking-wider flex items-center gap-1">
-                          <Plane className="w-3 h-3" />
+                      <div className="absolute top-3 sm:top-4 right-3 sm:right-4 z-10">
+                        <span className="text-white/80 text-[10px] sm:text-xs font-bold tracking-wider flex items-center gap-1">
+                          <Plane className="w-3 h-3 shrink-0" />
                           FLIGHT+
                         </span>
                       </div>
 
                       {/* Bottom content overlay */}
-                      <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 z-10">
                         {/* Package Title */}
                         <h3 
-                          className="text-white text-2xl font-bold mb-3 line-clamp-2 leading-tight"
+                          className="text-white text-lg sm:text-2xl font-bold mb-2 sm:mb-3 line-clamp-2 leading-tight"
                           data-testid={`text-title-${pkg.id}`}
                         >
                           {pkg.title}
                         </h3>
 
                         {/* Location and Duration */}
-                        <div className="flex items-center gap-4 text-sm text-white/90 mb-4">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-white/90 mb-3 sm:mb-4">
                           <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                             <span>{pkg.category}</span>
                           </div>
                           {pkg.duration && (
                             <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
+                              <Clock className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
                               <span>{pkg.duration}</span>
                             </div>
                           )}
                         </div>
 
                         {/* Price */}
-                        <div className="flex items-baseline gap-1 mb-4">
-                          <span className="text-sm text-white/80">from</span>
+                        <div className="flex items-baseline gap-1 mb-3 sm:mb-4">
+                          <span className="text-xs sm:text-sm text-white/80">from</span>
                           <div className="flex flex-col">
                             <span 
-                              className="text-3xl font-bold text-white"
+                              className="text-2xl sm:text-3xl font-bold text-white"
                               data-testid={`text-price-${pkg.id}`}
                             >
                               {formatPrice(pkg.price)}
                             </span>
-                            <span className="text-xs text-white/60">{pkg.priceLabel}</span>
+                            <span className="text-[10px] sm:text-xs text-white/60">{pkg.priceLabel}</span>
                           </div>
                         </div>
                         
                         {/* View More Button */}
-                        <div className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-4 py-2 rounded-md text-sm font-semibold transition-colors text-center">
+                        <div className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-colors text-center">
                           view more
                         </div>
                       </div>

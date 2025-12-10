@@ -70,7 +70,7 @@ function FlightPackageCard({ pkg, countrySlug }: { pkg: FlightPackage; countrySl
 function LandTourCard({ tour }: { tour: BokunProduct }) {
   return (
     <div className="relative">
-      <Badge className="absolute top-3 left-3 z-10 bg-emerald-600 text-white">
+      <Badge className="absolute top-4 left-4 z-20 bg-emerald-600 text-white">
         <Map className="h-3 w-3 mr-1" />
         Land Only
       </Badge>

@@ -2515,6 +2515,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         airportSummary[entry.departureAirport] = (airportSummary[entry.departureAirport] || 0) + 1;
       });
       
+      // Delete existing pricing for this package before inserting new data
+      await storage.deletePackagePricingByPackage(packageId);
+      console.log(`Deleted existing pricing for package ${packageId} before CSV import`);
+      
       // Insert all pricing entries
       const created = await storage.createPackagePricingBatch(pricingEntries);
       

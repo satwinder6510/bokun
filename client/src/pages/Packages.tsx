@@ -200,7 +200,7 @@ export default function Packages() {
                       </div>
 
                       {/* Bottom content overlay */}
-                      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 z-10">
+                      <div className="absolute bottom-0 left-0 right-0 p-4 pb-6 sm:p-6 sm:pb-8 z-10">
                         {/* Package Title */}
                         <h3 
                           className="text-white text-lg sm:text-2xl font-bold mb-2 sm:mb-3 line-clamp-2 leading-tight"
@@ -238,9 +238,9 @@ export default function Packages() {
                         </div>
                         
                         {/* View More Button */}
-                        <div className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-colors text-center">
+                        <Button variant="secondary" size="sm" className="w-full">
                           view more
-                        </div>
+                        </Button>
                       </div>
                     </div>
                   </Link>

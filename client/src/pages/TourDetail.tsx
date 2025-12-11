@@ -40,6 +40,20 @@ export default function TourDetail() {
     enabled: !!productId,
   });
 
+  // Check if there are flight packages linked to this tour
+  const { data: flightPricingData } = useQuery<{ enabled: boolean; prices: any[] }>({
+    queryKey: ["/api/tours", productId, "flight-pricing-check"],
+    queryFn: async () => {
+      const response = await fetch(`/api/tours/${productId}/flight-pricing`);
+      if (!response.ok) return { enabled: false, prices: [] };
+      return response.json();
+    },
+    enabled: !!productId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const hasFlightPackages = flightPricingData?.enabled && flightPricingData?.prices?.length > 0;
+
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80";
   const photos = product?.photos || [];
 
@@ -288,15 +302,17 @@ export default function TourDetail() {
                       Itinerary
                     </Button>
                   )}
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => document.getElementById('flight-packages-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                    data-testid="nav-flight-packages"
-                  >
-                    <Plane className="w-4 h-4 mr-1" />
-                    Flight Packages
-                  </Button>
+                  {hasFlightPackages && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => document.getElementById('flight-packages-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      data-testid="nav-flight-packages"
+                    >
+                      <Plane className="w-4 h-4 mr-1" />
+                      Flight Packages
+                    </Button>
+                  )}
                   <Button 
                     variant="ghost" 
                     size="sm"
@@ -370,7 +386,7 @@ export default function TourDetail() {
               )}
 
               {/* Flight Packages Section - only renders content if flight pricing exists */}
-              {productId && (
+              {productId && hasFlightPackages && (
                 <div id="flight-packages-section" className="pt-8 scroll-mt-32" data-testid="content-flight-packages">
                   <FlightPricingCalendar
                     bokunProductId={productId}

@@ -822,15 +822,27 @@ export default function PackageDetail() {
               <div className="sticky top-24">
                 <Card className="border-2 border-secondary/30">
                   <CardHeader className="bg-secondary/5">
-                    <div className="flex items-center justify-between">
-                      <div>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1">
                         <span className="text-sm text-muted-foreground">From</span>
-                        <p className="text-3xl font-bold text-foreground" data-testid="text-price">
-                          {formatPrice(pkg.price)}
-                        </p>
-                        <span className="text-sm text-muted-foreground">{pkg.priceLabel}</span>
+                        <div className="flex items-baseline gap-3 flex-wrap">
+                          <div>
+                            <p className="text-3xl font-bold text-foreground" data-testid="text-price">
+                              {formatPrice(pkg.price)}
+                            </p>
+                            <span className="text-xs text-muted-foreground">pp twin share</span>
+                          </div>
+                          {pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
+                            <div className="border-l pl-3 border-border">
+                              <p className="text-xl font-semibold text-foreground" data-testid="text-single-price">
+                                {formatPrice(pkg.singlePrice)}
+                              </p>
+                              <span className="text-xs text-muted-foreground">pp solo</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <Badge className="bg-secondary text-white">
+                      <Badge className="bg-secondary text-white shrink-0">
                         <Plane className="w-4 h-4 mr-1" />
                         Flights Included
                       </Badge>

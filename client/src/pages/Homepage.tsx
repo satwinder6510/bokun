@@ -569,14 +569,24 @@ export default function Homepage() {
                         </div>
 
                         {/* Price */}
-                        <div className="flex items-baseline gap-1 mb-3 sm:mb-4">
-                          <span className="text-xs sm:text-sm text-white/80">from</span>
-                          <div className="flex flex-col">
-                            <span className="text-2xl sm:text-3xl font-bold text-white">
-                              £{pkg.price.toFixed(0)}
-                            </span>
-                            <span className="text-[10px] sm:text-xs text-white/60">{pkg.priceLabel || 'per person'}</span>
+                        <div className="flex items-baseline gap-2 mb-3 sm:mb-4 flex-wrap">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-xs sm:text-sm text-white/80">from</span>
+                            <div className="flex flex-col">
+                              <span className="text-2xl sm:text-3xl font-bold text-white">
+                                £{pkg.price.toFixed(0)}
+                              </span>
+                              <span className="text-[10px] sm:text-xs text-white/60">pp twin share</span>
+                            </div>
                           </div>
+                          {pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
+                            <div className="flex flex-col">
+                              <span className="text-lg sm:text-xl font-semibold text-white/90">
+                                £{pkg.singlePrice.toFixed(0)}
+                              </span>
+                              <span className="text-[10px] sm:text-xs text-white/60">pp solo</span>
+                            </div>
+                          )}
                         </div>
                         
                         {/* View More Button */}

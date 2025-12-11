@@ -46,6 +46,18 @@ An in-memory storage system (`MemStorage`) is used during development, with an i
 
 Flight packages are stored in the `flight_packages` table with `package_pricing` for date-specific pricing (departure airport, date, price). The admin panel (`/admin/packages`) includes a "Pricing" tab for managing these entries.
 
+### Dual Pricing (Twin Share vs Solo)
+
+Flight packages support dual pricing for different room types:
+-   **Twin Share Price (`price`):** Price per person when 2 people share a room (required)
+-   **Solo Traveller Price (`singlePrice`):** Price per person for single occupancy (optional)
+
+When importing a Bokun tour, the system automatically detects room types from the rates array:
+-   Rates with `minPerBooking: 2` → Twin share / double room pricing
+-   Rates with `minPerBooking: 1` → Single room / solo traveller pricing
+
+Both prices are displayed on package cards (Homepage, Packages page) and the package detail page when available.
+
 ### Build & Deployment
 
 Development uses `tsx` for backend and Vite for frontend. Production builds use Vite for frontend (`dist/public`) and `esbuild` for backend (`dist/index.js`), served by a single Node.js process.

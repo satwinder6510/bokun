@@ -515,7 +515,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { currency = "USD" } = req.query;
       const data = await getBokunProductDetails(id, currency as string);
-      res.json(data);
+      
+      // Transform agendaItems to itinerary format for frontend
+      // Bokun often stores day-by-day itinerary in agendaItems, not itinerary field
+      let itinerary: any[] = [];
+      
+      if (data.itinerary?.length > 0) {
+        // Use native itinerary if available
+        itinerary = data.itinerary;
+      } else if (data.agendaItems?.length > 0) {
+        // Transform agendaItems to itinerary format
+        itinerary = data.agendaItems.map((item: any) => ({
+          id: item.id,
+          day: item.day || item.index + 1,
+          title: item.title || `Day ${item.day || item.index + 1}`,
+          body: item.body || item.description || '',
+          excerpt: item.excerpt || '',
+        }));
+      }
+      
+      res.json({
+        ...data,
+        itinerary,
+      });
     } catch (error: any) {
       console.error("Error fetching product details:", error.message);
       const statusMatch = error.message.match(/API returned status (\d+)/);

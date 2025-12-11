@@ -3052,13 +3052,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         importPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
       }
       
+      // Extract room type prices from rates array
+      // minPerBooking: 1 = single room, minPerBooking: 2 = double/twin room
+      let singleRoomPrice: number | null = null;
+      let doubleRoomPrice: number | null = null;
+      let availableRates: { id: string; title: string; minPerBooking: number; price: number }[] = [];
+      
+      if (details.rates && Array.isArray(details.rates)) {
+        console.log("\n=== EXTRACTING ROOM TYPE PRICES ===");
+        details.rates.forEach((rate: any) => {
+          // Get the per-person price from the rate
+          const ratePrice = rate.defaultPricePerPerson?.amount || rate.price || 0;
+          const rateInfo = {
+            id: rate.id,
+            title: rate.title || rate.name || 'Unknown Rate',
+            minPerBooking: rate.minPerBooking || 1,
+            price: ratePrice,
+          };
+          availableRates.push(rateInfo);
+          
+          console.log(`Rate: "${rateInfo.title}" - minPerBooking: ${rateInfo.minPerBooking}, price: ${ratePrice}`);
+          
+          // Categorize by minPerBooking
+          if (rate.minPerBooking === 1 && ratePrice > 0) {
+            // Single room (solo traveler)
+            if (!singleRoomPrice || ratePrice < singleRoomPrice) {
+              singleRoomPrice = ratePrice;
+            }
+          } else if (rate.minPerBooking === 2 && ratePrice > 0) {
+            // Double/twin room (2 sharing)
+            if (!doubleRoomPrice || ratePrice < doubleRoomPrice) {
+              doubleRoomPrice = ratePrice;
+            }
+          }
+        });
+        console.log(`Single room price: ${singleRoomPrice ? `£${singleRoomPrice}` : 'not found'}`);
+        console.log(`Double room price: ${doubleRoomPrice ? `£${doubleRoomPrice}` : 'not found'}`);
+        console.log("===================================\n");
+      }
+      
+      // Use double room price as main price if available, otherwise use import price
+      const finalPrice = doubleRoomPrice || importPrice;
+      
       // Transform Bokun data into flight package format
       const importData = {
         bokunProductId: productId,
         title: details.title,
         excerpt: details.excerpt || details.summary || '',
         description: details.description || details.summary || details.longDescription || '',
-        price: importPrice,
+        price: finalPrice,
+        singlePrice: singleRoomPrice,
+        // Include rate info for admin panel display
+        _rateInfo: {
+          rates: availableRates,
+          singleRoomPrice,
+          doubleRoomPrice,
+        },
         duration: details.durationText || details.duration || '',
         category: details.googlePlace?.country || details.locationCode?.country || 'Worldwide',
         slug: (details.title || '')

@@ -108,7 +108,7 @@ export function Footer() {
               </p>
               <div className="flex items-center gap-4">
                 <img src={travelTrustLogo} alt="Travel Trust Association" className="h-12 brightness-0 invert opacity-80" />
-                <img src={atolLogo} alt="ATOL Protected" className="h-12 brightness-0 invert opacity-80" />
+                <img src={atolLogo} alt="ATOL Protected" className="h-14 invert" />
               </div>
             </div>
 

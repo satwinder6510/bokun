@@ -2739,6 +2739,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Bokun Product: ${bokunProductId}, Dest: ${destAirport}, Duration: ${durationNights} nights`);
       console.log(`Date Range: ${startDate} - ${endDate}, Markup: ${markupPercent}%`);
       
+      // Convert dates from DD/MM/YYYY to YYYY-MM-DD for Bokun API
+      const convertToIsoDate = (dateStr: string): string => {
+        // Handle both DD/MM/YYYY and YYYY-MM-DD formats
+        if (dateStr.includes('-')) {
+          return dateStr; // Already ISO format
+        }
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      };
+      
+      const isoStartDate = convertToIsoDate(startDate);
+      const isoEndDate = convertToIsoDate(endDate);
+      
+      console.log(`Converted dates: ${isoStartDate} - ${isoEndDate}`);
+      
+      // First, fetch Bokun availability to know which dates the tour actually operates
+      const bokunAvailability = await getBokunAvailability(bokunProductId, isoStartDate, isoEndDate, 'USD');
+      
+      // Build a set of available dates from Bokun (format: YYYY-MM-DD)
+      const availableDates = new Set<string>();
+      if (Array.isArray(bokunAvailability)) {
+        for (const slot of bokunAvailability) {
+          if (slot.date && !slot.soldOut && !slot.unavailable) {
+            // Convert timestamp to YYYY-MM-DD
+            const dateObj = new Date(slot.date);
+            const isoDate = dateObj.toISOString().split('T')[0];
+            availableDates.add(isoDate);
+          }
+        }
+      }
+      
+      console.log(`Bokun availability: ${availableDates.size} dates with tour availability`);
+      
+      if (availableDates.size === 0) {
+        return res.status(200).json({ 
+          pricesFound: 0, 
+          saved: 0, 
+          message: "No tour availability found in Bokun for the specified date range. The tour may not operate during these dates." 
+        });
+      }
+      
       // Import the flight API functions
       const { searchFlights, smartRoundPrice } = await import("./flightApi");
       
@@ -2782,11 +2823,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         combinedPrice: number;
       }>();
       
+      let skippedDates = 0;
       for (const offer of flightOffers) {
         // Parse date from outdep (format: DD/MM/YYYY HH:mm)
         const datePart = offer.outdep.split(" ")[0]; // DD/MM/YYYY
         const [day, month, year] = datePart.split("/");
         const isoDate = `${year}-${month}-${day}`; // YYYY-MM-DD for database
+        
+        // Only include dates where Bokun tour has availability
+        if (!availableDates.has(isoDate)) {
+          skippedDates++;
+          continue; // Skip dates where tour isn't available
+        }
         
         const flightPrice = parseFloat(offer.fltnetpricepp);
         const subtotal = flightPrice + landTourPriceWithMarkup;
@@ -2807,7 +2855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      console.log(`Grouped into ${priceMap.size} unique departure/date combinations`);
+      console.log(`Grouped into ${priceMap.size} unique departure/date combinations (skipped ${skippedDates} flights on dates without tour availability)`);
       
       // Convert to pricing entries and save
       const pricingEntries = Array.from(priceMap.values()).map(p => ({
@@ -2829,12 +2877,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`Saved ${created.length} pricing entries to package ${packageId}`);
       console.log(`=== FLIGHT PRICING COMPLETE ===\n`);
       
+      // Provide helpful feedback about what was saved vs skipped
+      let message = `Successfully imported ${created.length} flight-inclusive prices`;
+      if (skippedDates > 0) {
+        message += ` (${skippedDates} flight offers were skipped because the tour isn't available on those dates)`;
+      }
+      if (created.length === 0 && flightOffers.length > 0) {
+        message = "No prices saved - none of the flight dates match tour availability dates. Check that your date range overlaps with when the tour operates.";
+      }
+      
       res.json({ 
         pricesFound: flightOffers.length,
         uniqueCombinations: priceMap.size,
         saved: created.length,
+        skippedFlights: skippedDates,
+        tourAvailableDates: availableDates.size,
         landTourPrice: landTourPriceWithMarkup,
-        message: `Successfully imported ${created.length} flight-inclusive prices`
+        message
       });
     } catch (error: any) {
       console.error("Error fetching flight prices:", error);
@@ -4648,7 +4707,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             accommodations,
             departureInfo: 'Departures available year-round',
             isPublished: true,
-            displayOrder: i
+            displayOrder: i,
+            pricingDisplay: 'both' as const
           };
           
           await storage.createFlightPackage(packageData);

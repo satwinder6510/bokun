@@ -933,14 +933,26 @@ export default function PackageDetail() {
                     )}
 
                     <Separator />
-                    <Button className="w-full" size="lg" asChild>
+                    <Button 
+                      className="w-full" 
+                      size="lg" 
+                      asChild
+                      onClick={() => {
+                        const win = window as any;
+                        if (win.posthog) {
+                          win.posthog.capture('call_cta_clicked', {
+                            package_title: pkg?.title,
+                            package_id: pkg?.id,
+                            package_slug: slug,
+                            phone_number: phoneNumber,
+                            page_type: 'package_detail'
+                          });
+                        }
+                      }}
+                    >
                       <a 
                         href={`tel:${phoneNumber.replace(/\s/g, "")}`} 
                         data-testid="button-call"
-                        data-ph-capture-attribute-action="call_cta_clicked"
-                        data-ph-capture-attribute-package-title={pkg?.title}
-                        data-ph-capture-attribute-package-id={pkg?.id}
-                        data-ph-capture-attribute-phone-number={phoneNumber}
                       >
                         <Phone className="w-5 h-5 mr-2" />
                         {phoneNumber}
@@ -952,6 +964,18 @@ export default function PackageDetail() {
                       size="lg" 
                       onClick={() => {
                         const win = window as any;
+                        
+                        // Track PostHog event
+                        if (win.posthog) {
+                          win.posthog.capture('chat_cta_clicked', {
+                            package_title: pkg?.title,
+                            package_id: pkg?.id,
+                            package_slug: slug,
+                            page_type: 'package_detail'
+                          });
+                        }
+                        
+                        // Open Tidio chat
                         const openTidio = () => {
                           if (win.tidioChatApi) {
                             win.tidioChatApi.show();
@@ -962,14 +986,10 @@ export default function PackageDetail() {
                         if (win.tidioChatApi) {
                           openTidio();
                         } else {
-                          // Tidio not loaded yet, set up callback for when it's ready
                           document.addEventListener("tidioChat-ready", openTidio);
                         }
                       }}
                       data-testid="button-chat"
-                      data-ph-capture-attribute-action="chat_cta_clicked"
-                      data-ph-capture-attribute-package-title={pkg?.title}
-                      data-ph-capture-attribute-package-id={pkg?.id}
                     >
                       <MessageCircle className="w-5 h-5 mr-2" />
                       Chat with us
@@ -981,9 +1001,17 @@ export default function PackageDetail() {
                           className="w-full" 
                           size="lg" 
                           data-testid="button-enquire"
-                          data-ph-capture-attribute-action="enquire_cta_clicked"
-                          data-ph-capture-attribute-package-title={pkg?.title}
-                          data-ph-capture-attribute-package-id={pkg?.id}
+                          onClick={() => {
+                            const win = window as any;
+                            if (win.posthog) {
+                              win.posthog.capture('enquire_cta_clicked', {
+                                package_title: pkg?.title,
+                                package_id: pkg?.id,
+                                package_slug: slug,
+                                page_type: 'package_detail'
+                              });
+                            }
+                          }}
                         >
                           <Mail className="w-5 h-5 mr-2" />
                           Enquire Now

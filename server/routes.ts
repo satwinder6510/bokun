@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { testBokunConnection, searchBokunProducts, searchBokunProductsByKeyword, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking } from "./bokun";
+import { testBokunConnection, searchBokunProducts, searchBokunProductsByKeyword, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking, getBatchSingleTravellerPrices, SingleTravellerPrice } from "./bokun";
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
@@ -2321,10 +2321,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
       );
       
+      const limitedTours = matchingTours.slice(0, 50); // Limit to 50 tours per collection
+      
+      // For solo travellers collection, fetch single traveller prices
+      let singlePrices: Record<string, SingleTravellerPrice> = {};
+      if (tagSlug.toLowerCase() === "solo-travellers" && limitedTours.length > 0) {
+        try {
+          const productIds = limitedTours.map(t => String(t.id));
+          // Get exchange rate from settings
+          const exchangeRate = await storage.getExchangeRate();
+          singlePrices = await getBatchSingleTravellerPrices(productIds, "USD", exchangeRate);
+        } catch (error) {
+          console.error("Error fetching single traveller prices:", error);
+        }
+      }
+      
       res.json({
         tag: tagName,
         flightPackages: matchingPackages,
-        landTours: matchingTours.slice(0, 50) // Limit to 50 tours per collection
+        landTours: limitedTours,
+        singlePrices: Object.keys(singlePrices).length > 0 ? singlePrices : undefined
       });
     } catch (error: any) {
       console.error("Error fetching collection:", error);

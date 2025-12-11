@@ -117,7 +117,9 @@ export default function PreviewFooter() {
                   <MapPin className="h-5 w-5 mt-0.5" />
                   <div>
                     <p>Flights and Packages Ltd</p>
-                    <p className="text-sm">London, United Kingdom</p>
+                    <p className="text-sm">Airport House, Purley Way</p>
+                    <p className="text-sm">Croydon, Surrey CR0 0XZ</p>
+                    <p className="text-sm">United Kingdom</p>
                   </div>
                 </div>
               </div>

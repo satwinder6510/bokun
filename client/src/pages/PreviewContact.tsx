@@ -89,7 +89,9 @@ export default function PreviewContact() {
                       <div>
                         <p className="font-semibold text-slate-800">Address</p>
                         <p className="text-slate-600">Flights and Packages Ltd</p>
-                        <p className="text-sm text-slate-500">London, United Kingdom</p>
+                        <p className="text-sm text-slate-500">Airport House, Purley Way</p>
+                        <p className="text-sm text-slate-500">Croydon, Surrey CR0 0XZ</p>
+                        <p className="text-sm text-slate-500">United Kingdom</p>
                       </div>
                     </div>
 
@@ -99,7 +101,7 @@ export default function PreviewContact() {
                       </div>
                       <div>
                         <p className="font-semibold text-slate-800">Opening Hours</p>
-                        <p className="text-slate-600">Monday - Saturday</p>
+                        <p className="text-slate-600">Monday - Sunday</p>
                         <p className="text-sm text-slate-500">9:00 AM - 6:00 PM</p>
                       </div>
                     </div>

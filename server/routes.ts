@@ -1290,6 +1290,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Spotler Mail+ Newsletter Subscription
+  // Uses the subscription endpoint specifically designed for newsletter signups
   app.post("/api/newsletter/subscribe", async (req, res) => {
     try {
       const { email } = req.body;
@@ -1306,8 +1307,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Newsletter service not configured" });
       }
 
-      // Spotler Mail+ API endpoint
-      const apiUrl = "https://restapi.mailplus.nl/integrationservice-1.1.0/contact";
+      // Spotler Mail+ Subscription endpoint (specifically for newsletter signups)
+      const apiUrl = "https://restapi.mailplus.nl/integrationservice-1.1.0/subscription";
       
       // Generate OAuth 1.0a signature
       const crypto = await import('crypto');
@@ -1338,17 +1339,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
         .join(', ');
 
-      // Prepare contact data for Spotler Mail+
-      // Only include email - permission/subscription is handled by Spotler's list settings
-      const contactData = {
-        update: true,
-        purge: false,
-        contact: {
-          externalId: email,
-          properties: {
-            email: { value: email }
-          }
-        }
+      // Prepare subscription data for Spotler Mail+
+      // The subscription endpoint requires email and permission
+      const subscriptionData = {
+        email: email,
+        permission: "newsletter"  // This should match a permission name in your Spotler account
       };
 
       console.log("Sending newsletter subscription to Spotler Mail+...");
@@ -1360,7 +1355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(contactData)
+        body: JSON.stringify(subscriptionData)
       });
 
       if (!response.ok) {

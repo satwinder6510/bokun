@@ -2398,6 +2398,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parseResult = updateFlightPackageSchema.safeParse(req.body);
       
       if (!parseResult.success) {
+        console.error("Package PATCH validation failed:", JSON.stringify(parseResult.error.errors, null, 2));
+        console.error("Request body:", JSON.stringify(req.body, null, 2).slice(0, 1000));
         return res.status(400).json({ 
           error: "Validation failed", 
           details: parseResult.error.errors 

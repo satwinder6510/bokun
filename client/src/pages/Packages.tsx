@@ -91,7 +91,10 @@ export default function Packages() {
             >
               All Destinations
             </Button>
-            {categories.slice(0, 4).map((cat) => (
+            {/* Show preferred destinations in order: Italy, Greece, India, Thailand, Indonesia */}
+            {["Italy", "Greece", "India", "Thailand", "Indonesia"]
+              .filter(dest => categories.includes(dest))
+              .map((cat) => (
               <Button 
                 key={cat}
                 variant="outline"

@@ -53,7 +53,7 @@ export default function PreviewFooter() {
             <div>
               <img src={logoImage} alt="Flights and Packages" className="h-10 mb-4 brightness-0 invert" />
               <p className="text-stone-400 mb-6 leading-relaxed">
-                Your trusted travel partner for over 10 years. We create unforgettable holidays with personal service and complete financial protection.
+                Your trusted travel partner for over 15 years. We create unforgettable holidays with personal service and complete financial protection.
               </p>
               <img src={travelTrustLogo} alt="Travel Trust Association" className="h-12 brightness-0 invert opacity-80" />
             </div>

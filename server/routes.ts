@@ -1338,15 +1338,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
         .join(', ');
 
-      // Prepare contact data for Spotler
+      // Prepare contact data for Spotler Mail+
+      // Only include email - permission/subscription is handled by Spotler's list settings
       const contactData = {
         update: true,
         purge: false,
         contact: {
           externalId: email,
           properties: {
-            email: { value: email },
-            permission: { value: true }
+            email: { value: email }
           }
         }
       };

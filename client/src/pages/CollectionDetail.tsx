@@ -26,7 +26,8 @@ const TAG_DISPLAY_NAMES: Record<string, string> = {
   "wellness": "Wellness Retreats",
   "religious": "Pilgrimage Tours",
   "wildlife": "Wildlife Experiences",
-  "island": "Island Escapes"
+  "island": "Island Escapes",
+  "solo-travellers": "Solo Travel"
 };
 
 interface CollectionData {

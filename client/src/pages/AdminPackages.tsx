@@ -96,6 +96,7 @@ type PackageFormData = {
   category: string;
   tags: string[];
   price: number;
+  singlePrice: number | null;
   currency: string;
   priceLabel: string;
   description: string;
@@ -140,6 +141,7 @@ const emptyPackage: PackageFormData = {
   category: "",
   tags: [],
   price: 0,
+  singlePrice: null,
   currency: "GBP",
   priceLabel: "per adult",
   description: "",
@@ -588,6 +590,7 @@ export default function AdminPackages() {
       category: pkg.category,
       tags: (pkg.tags || []) as string[],
       price: pkg.price,
+      singlePrice: pkg.singlePrice || null,
       currency: pkg.currency,
       priceLabel: pkg.priceLabel,
       description: pkg.description,
@@ -798,6 +801,7 @@ export default function AdminPackages() {
         slug: tourData.slug,
         category: tourData.category,
         price: tourData.price || 0,
+        singlePrice: tourData.singlePrice || null,
         description: tourData.description,
         excerpt: tourData.excerpt,
         highlights: tourData.highlights || [],
@@ -1709,7 +1713,8 @@ export default function AdminPackages() {
                       </div>
                       
                       <div>
-                        <Label htmlFor="price">Price (GBP) *</Label>
+                        <Label htmlFor="price">Twin Share Price (GBP) *</Label>
+                        <p className="text-xs text-muted-foreground mb-1">Price per person when 2 sharing</p>
                         <Input
                           id="price"
                           type="number"
@@ -1722,7 +1727,22 @@ export default function AdminPackages() {
                         />
                       </div>
                       <div>
+                        <Label htmlFor="singlePrice">Solo Traveller Price (GBP)</Label>
+                        <p className="text-xs text-muted-foreground mb-1">Price per person for single room (optional)</p>
+                        <Input
+                          id="singlePrice"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.singlePrice ?? ""}
+                          onChange={(e) => setFormData({ ...formData, singlePrice: e.target.value ? parseFloat(e.target.value) : null })}
+                          placeholder="Leave blank if not applicable"
+                          data-testid="input-single-price"
+                        />
+                      </div>
+                      <div>
                         <Label htmlFor="priceLabel">Price Label</Label>
+                        <p className="text-xs text-muted-foreground mb-1">Shown under price</p>
                         <Input
                           id="priceLabel"
                           value={formData.priceLabel}

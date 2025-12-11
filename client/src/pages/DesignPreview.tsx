@@ -274,7 +274,7 @@ export default function DesignPreview() {
               <Phone className="mr-2 h-5 w-5" />
               Speak to an Advisor
             </Button>
-            <p className="text-slate-500 mt-3 text-sm">Mon-Sat 9am-6pm • No obligation</p>
+            <p className="text-slate-500 mt-3 text-sm">Mon-Sun 9am - 6pm • No obligation</p>
           </div>
         </div>
       </section>

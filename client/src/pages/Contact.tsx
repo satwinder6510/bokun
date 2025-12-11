@@ -110,6 +110,7 @@ export default function Contact() {
                       >
                         {phoneNumber}
                       </a>
+                      <p className="text-sm text-muted-foreground mt-1">Mon-Sun 9am - 6pm</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">

@@ -203,7 +203,7 @@ export default function PreviewPackageDetail() {
                   <a href="tel:02081830518" className="text-xl font-bold text-slate-800 hover:text-slate-600">
                     0208 183 0518
                   </a>
-                  <p className="text-xs text-slate-500 mt-1">Mon-Sat 9am-6pm</p>
+                  <p className="text-xs text-slate-500 mt-1">Mon-Sun 9am - 6pm</p>
                 </CardContent>
               </Card>
             </div>

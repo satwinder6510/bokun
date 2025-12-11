@@ -67,7 +67,7 @@ export default function PreviewContact() {
                       <div>
                         <p className="font-semibold text-slate-800">Phone</p>
                         <p className="text-slate-600">0208 183 0518</p>
-                        <p className="text-sm text-slate-500">Mon-Sat, 9am-6pm</p>
+                        <p className="text-sm text-slate-500">Mon-Sun 9am - 6pm</p>
                       </div>
                     </a>
 

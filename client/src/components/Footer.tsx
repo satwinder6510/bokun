@@ -156,7 +156,7 @@ export function Footer() {
                   <Phone className="h-5 w-5" />
                   <div>
                     <p className="font-semibold text-white">{phoneNumber}</p>
-                    <p className="text-sm">Mon-Sat 9am-6pm</p>
+                    <p className="text-sm">Mon-Sun 9am - 6pm</p>
                   </div>
                 </a>
                 <a href="mailto:holidayenq@flightsandpackages.com" className="flex items-center gap-3 text-stone-400 hover:text-white transition-colors">

@@ -83,7 +83,7 @@ export default function PreviewFAQ() {
                       <Phone className="h-5 w-5 text-slate-600" />
                       <div>
                         <p className="font-semibold text-slate-800">0208 183 0518</p>
-                        <p className="text-sm text-slate-500">Mon-Sat 9am-6pm</p>
+                        <p className="text-sm text-slate-500">Mon-Sun 9am - 6pm</p>
                       </div>
                     </a>
                     

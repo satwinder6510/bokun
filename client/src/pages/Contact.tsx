@@ -142,7 +142,6 @@ export default function Contact() {
                   <li>✓ 700+ unique tours worldwide</li>
                   <li>✓ Expert travel guidance</li>
                   <li>✓ Secure payment processing</li>
-                  <li>✓ 24/7 customer support</li>
                   <li>✓ TTA & ATOL protected</li>
                 </ul>
               </div>

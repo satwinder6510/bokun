@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
+import atolLogo from "@assets/atol_1765460218085.png";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -47,8 +48,9 @@ export function Header() {
               <Link href="/">
                 <img src={logoImage} alt="Flights and Packages" className="h-12 md:h-14 cursor-pointer" data-testid="img-logo" />
               </Link>
-              <div className="hidden md:block border-l border-stone-200 pl-6">
+              <div className="hidden md:flex items-center gap-4 border-l border-stone-200 pl-6">
                 <img src={travelTrustLogo} alt="Travel Trust Association" className="h-10" />
+                <img src={atolLogo} alt="ATOL Protected" className="h-10 rounded-full" />
               </div>
             </div>
             

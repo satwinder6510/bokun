@@ -826,13 +826,23 @@ export default function PackageDetail() {
                       <div className="flex-1">
                         <span className="text-sm text-muted-foreground">From</span>
                         <div className="flex items-baseline gap-3 flex-wrap">
-                          <div>
-                            <p className="text-3xl font-bold text-foreground" data-testid="text-price">
-                              {formatPrice(pkg.price)}
-                            </p>
-                            <span className="text-xs text-muted-foreground">pp twin share</span>
-                          </div>
-                          {pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
+                          {(pkg.pricingDisplay === "both" || pkg.pricingDisplay === "twin" || !pkg.pricingDisplay) && (
+                            <div>
+                              <p className="text-3xl font-bold text-foreground" data-testid="text-price">
+                                {formatPrice(pkg.price)}
+                              </p>
+                              <span className="text-xs text-muted-foreground">pp twin share</span>
+                            </div>
+                          )}
+                          {pkg.pricingDisplay === "single" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
+                            <div>
+                              <p className="text-3xl font-bold text-foreground" data-testid="text-single-price">
+                                {formatPrice(pkg.singlePrice)}
+                              </p>
+                              <span className="text-xs text-muted-foreground">pp solo</span>
+                            </div>
+                          )}
+                          {pkg.pricingDisplay === "both" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
                             <div className="border-l pl-3 border-border">
                               <p className="text-xl font-semibold text-foreground" data-testid="text-single-price">
                                 {formatPrice(pkg.singlePrice)}

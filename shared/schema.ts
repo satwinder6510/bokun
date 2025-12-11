@@ -359,6 +359,7 @@ export const flightPackages = pgTable("flight_packages", {
   // Pricing
   price: real("price").notNull(), // Double room / twin share price per person
   singlePrice: real("single_price"), // Single room / solo traveler price (optional)
+  pricingDisplay: text("pricing_display").notNull().default("both"), // "both", "twin", "single"
   currency: text("currency").notNull().default("GBP"),
   priceLabel: text("price_label").notNull().default("per adult"),
   
@@ -424,6 +425,7 @@ export const insertFlightPackageSchema = createInsertSchema(flightPackages).omit
   category: z.string().min(1, "Category is required"),
   price: z.number().positive("Price must be positive"),
   singlePrice: z.number().positive("Single price must be positive").optional().nullable(),
+  pricingDisplay: z.enum(["both", "twin", "single"]).default("both"),
   description: z.string().min(1, "Description is required"),
   bokunProductId: z.string().optional().nullable(),
 });

@@ -51,12 +51,16 @@ Flight packages are stored in the `flight_packages` table with `package_pricing`
 Flight packages support dual pricing for different room types:
 -   **Twin Share Price (`price`):** Price per person when 2 people share a room (required)
 -   **Solo Traveller Price (`singlePrice`):** Price per person for single occupancy (optional)
+-   **Pricing Display (`pricingDisplay`):** Controls which prices to show - "both", "twin", or "single"
 
 When importing a Bokun tour, the system automatically detects room types from the rates array:
 -   Rates with `minPerBooking: 2` → Twin share / double room pricing
 -   Rates with `minPerBooking: 1` → Single room / solo traveller pricing
 
-Both prices are displayed on package cards (Homepage, Packages page) and the package detail page when available.
+The admin panel includes a "Pricing Display" dropdown to control which prices appear on the frontend. Options:
+-   **Show Both Prices:** Displays both twin share and solo pricing side by side
+-   **Twin Share Only:** Shows only the twin share price
+-   **Solo Traveller Only:** Shows only the solo price
 
 ### Build & Deployment
 

@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
   Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
@@ -97,6 +98,7 @@ type PackageFormData = {
   tags: string[];
   price: number;
   singlePrice: number | null;
+  pricingDisplay: "both" | "twin" | "single";
   currency: string;
   priceLabel: string;
   description: string;
@@ -142,6 +144,7 @@ const emptyPackage: PackageFormData = {
   tags: [],
   price: 0,
   singlePrice: null,
+  pricingDisplay: "both",
   currency: "GBP",
   priceLabel: "per adult",
   description: "",
@@ -591,6 +594,7 @@ export default function AdminPackages() {
       tags: (pkg.tags || []) as string[],
       price: pkg.price,
       singlePrice: pkg.singlePrice || null,
+      pricingDisplay: (pkg.pricingDisplay as "both" | "twin" | "single") || "both",
       currency: pkg.currency,
       priceLabel: pkg.priceLabel,
       description: pkg.description,
@@ -1750,6 +1754,23 @@ export default function AdminPackages() {
                           placeholder="per adult"
                           data-testid="input-price-label"
                         />
+                      </div>
+                      <div>
+                        <Label htmlFor="pricingDisplay">Pricing Display</Label>
+                        <p className="text-xs text-muted-foreground mb-1">Which prices to show</p>
+                        <Select
+                          value={formData.pricingDisplay}
+                          onValueChange={(value: "both" | "twin" | "single") => setFormData({ ...formData, pricingDisplay: value })}
+                        >
+                          <SelectTrigger id="pricingDisplay" data-testid="select-pricing-display">
+                            <SelectValue placeholder="Select display option" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="both">Show Both Prices</SelectItem>
+                            <SelectItem value="twin">Twin Share Only</SelectItem>
+                            <SelectItem value="single">Solo Traveller Only</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 

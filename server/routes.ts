@@ -1289,6 +1289,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Spotler Mail+ Newsletter Subscription
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ error: "Valid email address is required" });
+      }
+
+      const consumerKey = process.env.SPOTLER_CONSUMER_KEY;
+      const consumerSecret = process.env.SPOTLER_CONSUMER_SECRET;
+      
+      if (!consumerKey || !consumerSecret) {
+        console.error("Spotler credentials not configured");
+        return res.status(500).json({ error: "Newsletter service not configured" });
+      }
+
+      // Spotler Mail+ API endpoint
+      const apiUrl = "https://restapi.mailplus.nl/integrationservice-1.1.0/contact";
+      
+      // Generate OAuth 1.0a signature
+      const crypto = await import('crypto');
+      const oauth: Record<string, string> = {
+        oauth_consumer_key: consumerKey,
+        oauth_nonce: crypto.randomBytes(16).toString('hex'),
+        oauth_signature_method: 'HMAC-SHA1',
+        oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+        oauth_version: '1.0'
+      };
+
+      // Create signature base string
+      const sortedParams = Object.keys(oauth)
+        .sort()
+        .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauth[key])}`)
+        .join('&');
+      
+      const signatureBase = `POST&${encodeURIComponent(apiUrl)}&${encodeURIComponent(sortedParams)}`;
+      const signingKey = `${encodeURIComponent(consumerSecret)}&`;
+      
+      oauth.oauth_signature = crypto
+        .createHmac('sha1', signingKey)
+        .update(signatureBase)
+        .digest('base64');
+
+      // Build Authorization header
+      const authHeader = 'OAuth ' + Object.entries(oauth)
+        .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
+        .join(', ');
+
+      // Prepare contact data for Spotler
+      const contactData = {
+        update: true,
+        purge: false,
+        contact: {
+          externalId: email,
+          properties: {
+            email: { value: email },
+            permission: { value: true }
+          }
+        }
+      };
+
+      console.log("Sending newsletter subscription to Spotler Mail+...");
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(contactData)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Spotler API error:", response.status, errorText);
+        return res.status(502).json({ 
+          error: "Failed to subscribe. Please try again.",
+          details: process.env.NODE_ENV === 'development' ? errorText : undefined
+        });
+      }
+
+      const result = await response.json();
+      console.log("Newsletter subscription successful:", result);
+
+      res.json({
+        success: true,
+        message: "Successfully subscribed to our newsletter!"
+      });
+    } catch (error: any) {
+      console.error("Newsletter subscription error:", error);
+      res.status(500).json({
+        error: "Failed to subscribe. Please try again later.",
+        details: error.message
+      });
+    }
+  });
+
   // FAQ Routes
   // NOTE: Admin FAQ endpoints (POST/PATCH/DELETE) are currently not protected by server-side auth.
   // Frontend uses ProtectedRoute for UI access control. In production, add proper API authentication.

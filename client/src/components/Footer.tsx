@@ -4,13 +4,54 @@ import { Phone, Mail, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
+import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 
 export function Footer() {
   const [email, setEmail] = useState("");
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const { toast } = useToast();
   const phoneNumber = useDynamicPhoneNumber();
   const phoneNumberClean = phoneNumber.replace(/\s/g, "");
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    
+    setIsSubscribing(true);
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Successfully subscribed!",
+          description: "You'll receive our latest offers and travel inspiration.",
+        });
+        setEmail("");
+      } else {
+        toast({
+          title: "Subscription failed",
+          description: data.error || "Please try again later.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Subscription failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
 
   const destinations = [
     "India", "Thailand", "Vietnam", "Sri Lanka", "Maldives", "Bali",
@@ -30,7 +71,7 @@ export function Footer() {
             <p className="text-slate-600 mb-6">
               Receive exclusive offers and travel ideas straight to your inbox
             </p>
-            <div className="flex gap-2">
+            <form onSubmit={handleSubscribe} className="flex gap-2">
               <Input 
                 type="email"
                 placeholder="Your email address"
@@ -38,11 +79,17 @@ export function Footer() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="flex-1 border-stone-300"
                 data-testid="input-newsletter-email"
+                required
               />
-              <Button className="bg-slate-800 hover:bg-slate-900 px-6" data-testid="button-subscribe">
-                Subscribe
+              <Button 
+                type="submit"
+                className="bg-slate-800 hover:bg-slate-900 px-6" 
+                data-testid="button-subscribe"
+                disabled={isSubscribing}
+              >
+                {isSubscribing ? "..." : "Subscribe"}
               </Button>
-            </div>
+            </form>
             <p className="text-xs text-slate-400 mt-3">We respect your privacy. Unsubscribe at any time.</p>
           </div>
         </div>

@@ -289,20 +289,27 @@ export default function Homepage() {
     
     setIsSubscribing(true);
     try {
-      // Send to contact endpoint as newsletter signup
-      await apiRequest("POST", "/api/contact", {
-        firstName: "Newsletter",
-        lastName: "Subscriber",
-        email: email,
-        phone: "",
-        subject: "Newsletter Subscription",
-        message: `Newsletter signup from: ${email}`,
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
       });
-      toast({
-        title: "Successfully subscribed!",
-        description: "You'll receive our latest travel deals and offers.",
-      });
-      setEmail("");
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Successfully subscribed!",
+          description: "You'll receive our latest travel deals and offers.",
+        });
+        setEmail("");
+      } else {
+        toast({
+          title: "Subscription failed",
+          description: data.error || "Please try again or contact us directly.",
+          variant: "destructive",
+        });
+      }
     } catch {
       toast({
         title: "Subscription failed",

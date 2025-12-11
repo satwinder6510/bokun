@@ -71,13 +71,13 @@ export default function PreviewContact() {
                       </div>
                     </a>
 
-                    <a href="mailto:info@flightsandpackages.com" className="flex items-start gap-4 group">
+                    <a href="mailto:holidayenq@flightsandpackages.com" className="flex items-start gap-4 group">
                       <div className="p-3 bg-slate-100 rounded-lg group-hover:bg-slate-200 transition-colors">
                         <Mail className="h-5 w-5 text-slate-600" />
                       </div>
                       <div>
                         <p className="font-semibold text-slate-800">Email</p>
-                        <p className="text-slate-600">info@flightsandpackages.com</p>
+                        <p className="text-slate-600">holidayenq@flightsandpackages.com</p>
                         <p className="text-sm text-slate-500">We reply within 24 hours</p>
                       </div>
                     </a>

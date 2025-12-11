@@ -87,11 +87,11 @@ export default function PreviewFAQ() {
                       </div>
                     </a>
                     
-                    <a href="mailto:info@flightsandpackages.com" className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                    <a href="mailto:holidayenq@flightsandpackages.com" className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
                       <Mail className="h-5 w-5 text-slate-600" />
                       <div>
                         <p className="font-semibold text-slate-800">Email Us</p>
-                        <p className="text-sm text-slate-500">info@flightsandpackages.com</p>
+                        <p className="text-sm text-slate-500">holidayenq@flightsandpackages.com</p>
                       </div>
                     </a>
                   </div>

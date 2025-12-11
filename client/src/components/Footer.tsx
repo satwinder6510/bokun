@@ -112,9 +112,9 @@ export function Footer() {
                     <p className="text-sm">Mon-Sat 9am-6pm</p>
                   </div>
                 </a>
-                <a href="mailto:info@flightsandpackages.com" className="flex items-center gap-3 text-stone-400 hover:text-white transition-colors">
+                <a href="mailto:holidayenq@flightsandpackages.com" className="flex items-center gap-3 text-stone-400 hover:text-white transition-colors">
                   <Mail className="h-5 w-5" />
-                  <span>info@flightsandpackages.com</span>
+                  <span>holidayenq@flightsandpackages.com</span>
                 </a>
                 <div className="flex items-start gap-3 text-stone-400">
                   <MapPin className="h-5 w-5 mt-0.5" />

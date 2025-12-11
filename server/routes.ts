@@ -3609,6 +3609,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get homepage settings (public - needed for frontend)
+  app.get("/api/homepage-settings", async (req, res) => {
+    try {
+      const settings = await storage.getAllSiteSettings();
+      const carouselSlides = settings.find(s => s.key === "homepage_carousel_slides");
+      const packagesCount = settings.find(s => s.key === "homepage_packages_count");
+      const carouselInterval = settings.find(s => s.key === "homepage_carousel_interval");
+      
+      res.json({
+        carouselSlides: parseInt(carouselSlides?.value || "3"),
+        packagesCount: parseInt(packagesCount?.value || "3"),
+        carouselInterval: parseInt(carouselInterval?.value || "6")
+      });
+    } catch (error: any) {
+      console.error("Error fetching homepage settings:", error);
+      res.json({
+        carouselSlides: 3,
+        packagesCount: 3,
+        carouselInterval: 6
+      });
+    }
+  });
+
   // Configure multer for memory storage (for Object Storage uploads)
   const memoryUpload = multer({
     storage: multer.memoryStorage(),

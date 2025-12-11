@@ -87,6 +87,21 @@ export default function Homepage() {
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
 
+  // Fetch homepage settings
+  interface HomepageSettings {
+    carouselSlides: number;
+    packagesCount: number;
+    carouselInterval: number;
+  }
+  
+  const { data: homepageSettings } = useQuery<HomepageSettings>({
+    queryKey: ['/api/homepage-settings'],
+  });
+  
+  const carouselSlideCount = homepageSettings?.carouselSlides || 3;
+  const packagesDisplayCount = homepageSettings?.packagesCount || 3;
+  const carouselIntervalMs = (homepageSettings?.carouselInterval || 6) * 1000;
+
   // Fetch flight packages with loading/error handling
   const { 
     data: flightPackages = [], 
@@ -96,12 +111,12 @@ export default function Homepage() {
     queryKey: ['/api/packages'],
   });
 
-  // Get featured packages (first 3 with images, or first 3 overall)
+  // Get featured packages based on admin settings
   const featuredPackages = flightPackages
     .filter(pkg => pkg.featuredImage)
-    .slice(0, 3)
+    .slice(0, packagesDisplayCount)
     .concat(flightPackages.filter(pkg => !pkg.featuredImage))
-    .slice(0, 3);
+    .slice(0, packagesDisplayCount);
 
   // Fetch customer reviews from database
   const { data: reviews = [] } = useQuery<Review[]>({
@@ -225,8 +240,10 @@ export default function Homepage() {
 
   const heroSlides: HeroSlide[] = [];
   
-  // Add featured packages to hero (max 1 for faster LCP)
-  featuredPackages.slice(0, 1).forEach(pkg => {
+  // Add featured packages to hero carousel (based on admin settings)
+  // Show packages first, then fill with tours up to carouselSlideCount
+  const packagesForCarousel = featuredPackages.slice(0, Math.min(carouselSlideCount, featuredPackages.length));
+  packagesForCarousel.forEach(pkg => {
     heroSlides.push({
       image: getHeroImageUrl(pkg.featuredImage) || fallbackHeroImages[0],
       title: pkg.title,
@@ -237,10 +254,11 @@ export default function Homepage() {
     });
   });
 
-  // Add featured tours to hero (fill up to 3 slides total for faster LCP)
+  // Add featured tours to hero (fill up to carouselSlideCount total)
   // Use getHeroImageUrl to optimize Bokun S3 images (resized to 1600px, WebP)
   const toursWithImages = products.filter(p => p.keyPhoto?.originalUrl);
-  toursWithImages.slice(0, 3 - heroSlides.length).forEach(tour => {
+  const remainingSlots = carouselSlideCount - heroSlides.length;
+  toursWithImages.slice(0, remainingSlots).forEach(tour => {
     heroSlides.push({
       image: getHeroImageUrl(tour.keyPhoto?.originalUrl) || fallbackHeroImages[1],
       title: tour.title,
@@ -264,14 +282,14 @@ export default function Homepage() {
     });
   }
 
-  // Auto-advance hero carousel
+  // Auto-advance hero carousel based on admin settings
   useEffect(() => {
     if (heroSlides.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 6000);
+    }, carouselIntervalMs);
     return () => clearInterval(interval);
-  }, [heroSlides.length]);
+  }, [heroSlides.length, carouselIntervalMs]);
 
   const nextSlide = () => {
     if (heroSlides.length <= 1) return;

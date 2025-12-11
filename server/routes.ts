@@ -6,10 +6,10 @@ import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import bcrypt from "bcrypt";
 import sharp from "sharp";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions, newsletterSubscribers } from "@shared/schema";
 import { calculateCombinedPrices, getFlightsForDateWithPrices, UK_AIRPORTS, getDefaultDepartAirports, searchFlights } from "./flightApi";
 import { db } from "./db";
-import { eq, lt } from "drizzle-orm";
+import { eq, lt, desc } from "drizzle-orm";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { randomBytes } from "crypto";
 import multer from "multer";
@@ -1289,28 +1289,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Spotler Mail+ Newsletter Subscription
-  // Uses the subscription endpoint specifically designed for newsletter signups
-  app.post("/api/newsletter/subscribe", async (req, res) => {
+  // Spotler Mail+ - Get available contact properties (debug endpoint)
+  app.get("/api/spotler/properties", async (req, res) => {
     try {
-      const { email } = req.body;
-      
-      if (!email || typeof email !== 'string' || !email.includes('@')) {
-        return res.status(400).json({ error: "Valid email address is required" });
-      }
-
       const consumerKey = process.env.SPOTLER_CONSUMER_KEY;
       const consumerSecret = process.env.SPOTLER_CONSUMER_SECRET;
       
       if (!consumerKey || !consumerSecret) {
-        console.error("Spotler credentials not configured");
-        return res.status(500).json({ error: "Newsletter service not configured" });
+        return res.status(500).json({ error: "Spotler credentials not configured" });
       }
 
-      // Spotler Mail+ Subscription endpoint (specifically for newsletter signups)
-      const apiUrl = "https://restapi.mailplus.nl/integrationservice-1.1.0/subscription";
+      // Note: base URL is integrationservice (not integrationservice-1.1.0)
+      const apiUrl = "https://restapi.mailplus.nl/integrationservice/contact/properties";
       
-      // Generate OAuth 1.0a signature
       const crypto = await import('crypto');
       const oauth: Record<string, string> = {
         oauth_consumer_key: consumerKey,
@@ -1320,13 +1311,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         oauth_version: '1.0'
       };
 
-      // Create signature base string
       const sortedParams = Object.keys(oauth)
         .sort()
         .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauth[key])}`)
         .join('&');
       
-      const signatureBase = `POST&${encodeURIComponent(apiUrl)}&${encodeURIComponent(sortedParams)}`;
+      const signatureBase = `GET&${encodeURIComponent(apiUrl)}&${encodeURIComponent(sortedParams)}`;
       const signingKey = `${encodeURIComponent(consumerSecret)}&`;
       
       oauth.oauth_signature = crypto
@@ -1334,41 +1324,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(signatureBase)
         .digest('base64');
 
-      // Build Authorization header
       const authHeader = 'OAuth ' + Object.entries(oauth)
         .map(([k, v]) => `${encodeURIComponent(k)}="${encodeURIComponent(v)}"`)
         .join(', ');
 
-      // Prepare subscription data for Spotler Mail+
-      // The subscription endpoint requires email and permission
-      const subscriptionData = {
-        email: email,
-        permission: "newsletter"  // This should match a permission name in your Spotler account
-      };
-
-      console.log("Sending newsletter subscription to Spotler Mail+...");
-      
       const response = await fetch(apiUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Authorization': authHeader,
-          'Content-Type': 'application/json',
           'Accept': 'application/json'
-        },
-        body: JSON.stringify(subscriptionData)
+        }
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error("Spotler API error:", response.status, errorText);
-        return res.status(502).json({ 
-          error: "Failed to subscribe. Please try again.",
-          details: process.env.NODE_ENV === 'development' ? errorText : undefined
-        });
+        return res.status(502).json({ error: "Spotler API error", details: errorText });
       }
 
-      const result = await response.json();
-      console.log("Newsletter subscription successful:", result);
+      const properties = await response.json();
+      res.json(properties);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Newsletter Subscription - stores locally in database
+  app.post("/api/newsletter/subscribe", async (req, res) => {
+    try {
+      const { email, source } = req.body;
+      
+      if (!email || typeof email !== 'string' || !email.includes('@')) {
+        return res.status(400).json({ error: "Valid email address is required" });
+      }
+
+      // Normalize email
+      const normalizedEmail = email.toLowerCase().trim();
+
+      // Check if already subscribed
+      const existing = await db.select()
+        .from(newsletterSubscribers)
+        .where(eq(newsletterSubscribers.email, normalizedEmail))
+        .limit(1);
+
+      if (existing.length > 0) {
+        const subscriber = existing[0];
+        if (subscriber.isActive) {
+          return res.json({
+            success: true,
+            message: "You're already subscribed to our newsletter!"
+          });
+        } else {
+          // Reactivate subscription
+          await db.update(newsletterSubscribers)
+            .set({ isActive: true, unsubscribedAt: null })
+            .where(eq(newsletterSubscribers.email, normalizedEmail));
+          
+          console.log("Newsletter subscription reactivated:", normalizedEmail);
+          return res.json({
+            success: true,
+            message: "Welcome back! You've been resubscribed to our newsletter."
+          });
+        }
+      }
+
+      // Create new subscriber
+      await db.insert(newsletterSubscribers).values({
+        email: normalizedEmail,
+        source: source || 'website',
+        isActive: true
+      });
+
+      console.log("Newsletter subscription created:", normalizedEmail);
 
       res.json({
         success: true,
@@ -1377,9 +1403,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Newsletter subscription error:", error);
       res.status(500).json({
-        error: "Failed to subscribe. Please try again later.",
-        details: error.message
+        error: "Failed to subscribe. Please try again later."
       });
+    }
+  });
+
+  // Admin: Get all newsletter subscribers
+  app.get("/api/admin/newsletter/subscribers", verifyAdminSession, async (req, res) => {
+    try {
+      const subscribers = await db.select()
+        .from(newsletterSubscribers)
+        .orderBy(desc(newsletterSubscribers.subscribedAt));
+
+      res.json(subscribers);
+    } catch (error: any) {
+      console.error("Error fetching newsletter subscribers:", error);
+      res.status(500).json({ error: "Failed to fetch subscribers" });
+    }
+  });
+
+  // Admin: Export newsletter subscribers as CSV
+  app.get("/api/admin/newsletter/export", verifyAdminSession, async (req, res) => {
+    try {
+      const subscribers = await db.select()
+        .from(newsletterSubscribers)
+        .where(eq(newsletterSubscribers.isActive, true))
+        .orderBy(desc(newsletterSubscribers.subscribedAt));
+
+      // Generate CSV
+      const csvHeader = "Email,Source,Subscribed At\n";
+      const csvRows = subscribers.map(s => 
+        `"${s.email}","${s.source || 'website'}","${s.subscribedAt?.toISOString() || ''}"`
+      ).join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=newsletter-subscribers.csv');
+      res.send(csvHeader + csvRows);
+    } catch (error: any) {
+      console.error("Error exporting newsletter subscribers:", error);
+      res.status(500).json({ error: "Failed to export subscribers" });
     }
   });
 

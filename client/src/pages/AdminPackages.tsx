@@ -130,7 +130,8 @@ type BokunTourResult = {
 const COMMON_TAGS = [
   "Beach", "City Break", "Family", "Adventure", "Luxury", 
   "Budget", "Cultural", "Safari", "Cruise", "River Cruise",
-  "Golden Triangle", "Multi-Centre", "Wellness", "Religious", "Wildlife", "Island"
+  "Golden Triangle", "Multi-Centre", "Wellness", "Religious", "Wildlife", "Island",
+  "Solo Travellers"
 ];
 
 const emptyPackage: PackageFormData = {

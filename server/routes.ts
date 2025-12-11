@@ -2225,7 +2225,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { tag: "Wellness", slug: "wellness", title: "Wellness Retreats", description: "Rejuvenate mind, body and soul" },
         { tag: "Religious", slug: "religious", title: "Pilgrimage Tours", description: "Spiritual journeys to sacred destinations" },
         { tag: "Wildlife", slug: "wildlife", title: "Wildlife Experiences", description: "Get close to nature's most amazing creatures" },
-        { tag: "Island", slug: "island", title: "Island Escapes", description: "Discover paradise on stunning island getaways" }
+        { tag: "Island", slug: "island", title: "Island Escapes", description: "Discover paradise on stunning island getaways" },
+        { tag: "Solo Travellers", slug: "solo-travellers", title: "Solo Travel", description: "Perfect adventures designed for independent explorers" }
       ];
       
       // Get all published flight packages and cached products
@@ -2293,7 +2294,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "wellness": "Wellness",
         "religious": "Religious",
         "wildlife": "Wildlife",
-        "island": "Island"
+        "island": "Island",
+        "solo-travellers": "Solo Travellers"
       };
       
       const tagName = tagDisplayNames[tagSlug.toLowerCase()];

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Palmtree, Building2, Users, Mountain, Gem, Wallet, 
   Landmark, Binoculars, Ship, Waves, Triangle, Map,
-  Flower2, Church, PawPrint, Umbrella, ArrowRight
+  Flower2, Church, PawPrint, Umbrella, ArrowRight, User
 } from "lucide-react";
 
 interface CollectionData {
@@ -41,7 +41,8 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   "Wellness": <Flower2 className="h-8 w-8" />,
   "Religious": <Church className="h-8 w-8" />,
   "Wildlife": <PawPrint className="h-8 w-8" />,
-  "Island": <Umbrella className="h-8 w-8" />
+  "Island": <Umbrella className="h-8 w-8" />,
+  "Solo Travellers": <User className="h-8 w-8" />
 };
 
 export default function Collections() {

@@ -2802,17 +2802,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found ${flightOffers.length} flight offers`);
       
-      // Get Bokun land tour price from nextDefaultPriceMoney.amount
-      const bokunDetails: any = await getBokunProductDetails(bokunProductId, 'GBP');
+      // Get Bokun land tour price - Bokun returns USD prices regardless of currency parameter
+      const bokunDetails: any = await getBokunProductDetails(bokunProductId, 'USD');
       
-      // Extract price: Bokun returns price in nextDefaultPriceMoney.amount
-      const landTourPrice = bokunDetails?.nextDefaultPriceMoney?.amount || 
-                           bokunDetails?.nextDefaultPrice || 
-                           bokunDetails?.price || 
-                           0;
-      const landTourPriceWithMarkup = landTourPrice * 1.1; // 10% Bokun markup
+      // Extract USD price from Bokun
+      const landTourPriceUSD = bokunDetails?.nextDefaultPriceMoney?.amount || 
+                               bokunDetails?.nextDefaultPrice || 
+                               bokunDetails?.price || 
+                               0;
       
-      console.log(`Bokun land tour price: £${landTourPrice}, with 10% markup: £${landTourPriceWithMarkup}`);
+      // Get exchange rate and convert USD to GBP
+      const exchangeRate = await storage.getExchangeRate(); // e.g., 0.79
+      const landTourPriceGBP = landTourPriceUSD * exchangeRate;
+      
+      // Apply 10% Bokun markup
+      const landTourPriceWithMarkup = landTourPriceGBP * 1.1;
+      
+      console.log(`Bokun land tour price: $${landTourPriceUSD} USD -> £${landTourPriceGBP.toFixed(2)} GBP (rate: ${exchangeRate})`);
+      console.log(`With 10% markup: £${landTourPriceWithMarkup.toFixed(2)}`);
       
       // Group flight offers by departure date and airport for best price per combination
       const priceMap = new Map<string, { 

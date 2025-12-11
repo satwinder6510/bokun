@@ -7,6 +7,7 @@ import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { useToast } from "@/hooks/use-toast";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
+import atolLogo from "@assets/atol-protected-logo-png_seeklogo-13189_1765460348402.png";
 
 export function Footer() {
   const [email, setEmail] = useState("");
@@ -105,7 +106,10 @@ export function Footer() {
               <p className="text-stone-400 mb-6 leading-relaxed">
                 Your trusted travel partner for over 15 years. We create unforgettable holidays with personal service and complete financial protection.
               </p>
-              <img src={travelTrustLogo} alt="Travel Trust Association" className="h-12 brightness-0 invert opacity-80" />
+              <div className="flex items-center gap-4">
+                <img src={travelTrustLogo} alt="Travel Trust Association" className="h-12 brightness-0 invert opacity-80" />
+                <img src={atolLogo} alt="ATOL Protected" className="h-12 brightness-0 invert opacity-80" />
+              </div>
             </div>
 
             {/* Destinations */}

@@ -934,7 +934,14 @@ export default function PackageDetail() {
 
                     <Separator />
                     <Button className="w-full" size="lg" asChild>
-                      <a href={`tel:${phoneNumber.replace(/\s/g, "")}`} data-testid="button-call">
+                      <a 
+                        href={`tel:${phoneNumber.replace(/\s/g, "")}`} 
+                        data-testid="button-call"
+                        data-ph-capture-attribute-action="call_cta_clicked"
+                        data-ph-capture-attribute-package-title={pkg?.title}
+                        data-ph-capture-attribute-package-id={pkg?.id}
+                        data-ph-capture-attribute-phone-number={phoneNumber}
+                      >
                         <Phone className="w-5 h-5 mr-2" />
                         {phoneNumber}
                       </a>
@@ -960,13 +967,24 @@ export default function PackageDetail() {
                         }
                       }}
                       data-testid="button-chat"
+                      data-ph-capture-attribute-action="chat_cta_clicked"
+                      data-ph-capture-attribute-package-title={pkg?.title}
+                      data-ph-capture-attribute-package-id={pkg?.id}
                     >
                       <MessageCircle className="w-5 h-5 mr-2" />
                       Chat with us
                     </Button>
                     <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="w-full" size="lg" data-testid="button-enquire">
+                        <Button 
+                          variant="outline" 
+                          className="w-full" 
+                          size="lg" 
+                          data-testid="button-enquire"
+                          data-ph-capture-attribute-action="enquire_cta_clicked"
+                          data-ph-capture-attribute-package-title={pkg?.title}
+                          data-ph-capture-attribute-package-id={pkg?.id}
+                        >
                           <Mail className="w-5 h-5 mr-2" />
                           Enquire Now
                         </Button>

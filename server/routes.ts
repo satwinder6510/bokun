@@ -2737,9 +2737,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
       
+      // Load the package to get pricingDisplay setting
+      const pkg = await storage.getFlightPackageById(parseInt(packageId));
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      const pricingDisplay = pkg.pricingDisplay || "both";
+      
       console.log(`\n=== FETCHING FLIGHT PRICES FOR PACKAGE ${packageId} ===`);
       console.log(`Bokun Product: ${bokunProductId}, Dest: ${destAirport}, Duration: ${durationNights} nights`);
       console.log(`Date Range: ${startDate} - ${endDate}, Markup: ${markupPercent}%`);
+      console.log(`Pricing Display Mode: ${pricingDisplay}`);
       
       // Convert dates from DD/MM/YYYY to YYYY-MM-DD for Bokun API
       const convertToIsoDate = (dateStr: string): string => {
@@ -2804,17 +2812,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`Found ${flightOffers.length} flight offers`);
       
-      // Get Bokun land tour price - Bokun returns USD prices regardless of currency parameter
-      const bokunDetails: any = await getBokunProductDetails(bokunProductId, 'USD');
+      // Get exchange rate for USD to GBP conversion
+      const exchangeRate = await storage.getExchangeRate(); // e.g., 0.75
       
-      // Extract USD price from Bokun
-      const landTourPriceUSD = bokunDetails?.nextDefaultPriceMoney?.amount || 
-                               bokunDetails?.nextDefaultPrice || 
-                               bokunDetails?.price || 
-                               0;
+      // Extract the correct Bokun rate price based on pricingDisplay
+      // The availability data has rates with minPerBooking:
+      // - minPerBooking: 2 = Double/Twin room (twin share price)
+      // - minPerBooking: 1 = Single room (solo traveller price)
+      let landTourPriceUSD = 0;
+      let selectedRateType = "default";
       
-      // Get exchange rate and convert USD to GBP
-      const exchangeRate = await storage.getExchangeRate(); // e.g., 0.79
+      if (Array.isArray(bokunAvailability) && bokunAvailability.length > 0) {
+        const firstSlot = bokunAvailability[0];
+        const rates = firstSlot.rates || [];
+        const pricesByRate = firstSlot.pricesByRate || [];
+        
+        // Find the appropriate rate based on pricingDisplay
+        let targetRate: any = null;
+        
+        if (pricingDisplay === "single") {
+          // Look for single room rate (minPerBooking === 1)
+          targetRate = rates.find((r: any) => r.minPerBooking === 1);
+          selectedRateType = "single (minPerBooking=1)";
+        } else {
+          // Default to twin/double rate (minPerBooking === 2)
+          targetRate = rates.find((r: any) => r.minPerBooking === 2);
+          selectedRateType = "twin (minPerBooking=2)";
+        }
+        
+        // Fallback to first rate if specific rate not found
+        if (!targetRate && rates.length > 0) {
+          targetRate = rates[0];
+          selectedRateType = `fallback to first rate (${targetRate.title})`;
+          console.warn(`Could not find rate for pricingDisplay=${pricingDisplay}, using first rate`);
+        }
+        
+        // Get the price for the selected rate
+        if (targetRate && pricesByRate.length > 0) {
+          const ratePrice = pricesByRate.find((p: any) => p.activityRateId === targetRate.id);
+          if (ratePrice && ratePrice.pricePerCategoryUnit && ratePrice.pricePerCategoryUnit.length > 0) {
+            // Get the adult price (first category, usually id 16308)
+            landTourPriceUSD = ratePrice.pricePerCategoryUnit[0]?.amount?.amount || 0;
+          }
+        }
+        
+        console.log(`Selected Bokun rate: ${selectedRateType}`);
+        console.log(`Rate details: ${targetRate?.title || 'N/A'}`);
+      }
+      
+      // Fallback to product details if availability didn't have pricing
+      if (landTourPriceUSD === 0) {
+        const bokunDetails: any = await getBokunProductDetails(bokunProductId, 'USD');
+        landTourPriceUSD = bokunDetails?.nextDefaultPriceMoney?.amount || 
+                          bokunDetails?.nextDefaultPrice || 
+                          bokunDetails?.price || 
+                          0;
+        console.log(`Using fallback price from product details`);
+      }
+      
+      // Convert USD to GBP
       const landTourPriceGBP = landTourPriceUSD * exchangeRate;
       
       // Apply 10% Bokun markup

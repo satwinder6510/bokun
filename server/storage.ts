@@ -52,6 +52,7 @@ export interface IStorage {
   // Flight packages methods
   getPublishedFlightPackages(category?: string): Promise<FlightPackage[]>;
   getAllFlightPackages(): Promise<FlightPackage[]>;
+  getFlightPackageById(id: number): Promise<FlightPackage | undefined>;
   getFlightPackageBySlug(slug: string): Promise<FlightPackage | undefined>;
   createFlightPackage(pkg: InsertFlightPackage): Promise<FlightPackage>;
   updateFlightPackage(id: number, pkg: UpdateFlightPackage): Promise<FlightPackage | undefined>;
@@ -660,6 +661,18 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error fetching all packages:", error);
       return [];
+    }
+  }
+
+  async getFlightPackageById(id: number): Promise<FlightPackage | undefined> {
+    try {
+      const results = await db.select().from(flightPackages)
+        .where(eq(flightPackages.id, id))
+        .limit(1);
+      return results[0];
+    } catch (error) {
+      console.error("Error fetching package by id:", error);
+      return undefined;
     }
   }
 

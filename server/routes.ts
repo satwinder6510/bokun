@@ -3538,8 +3538,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const availabilities = Array.isArray(availability) ? availability : availability.availabilities || [];
       console.log(`Found ${availabilities.length} availability entries`);
       
-      // Build a map of date -> price data
-      const dateData: Map<string, { date: string; bokunUsdPrice: number; bokunGbpPrice: number }> = new Map();
+      // Build a map of date -> price data with both single and twin share prices
+      const dateData: Map<string, { 
+        date: string; 
+        twinShareUsd: number | null;
+        twinShareGbp: number | null;
+        singleRoomUsd: number | null;
+        singleRoomGbp: number | null;
+      }> = new Map();
       
       // Get exchange rate from settings
       const exchangeRate = await storage.getExchangeRate(); // e.g., 0.75
@@ -3557,32 +3563,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
         
-        // Extract the lowest price
-        let lowestUsdPrice = Infinity;
+        // Extract prices by room type
+        // minPerBooking: 2 = Twin share / double room
+        // minPerBooking: 1 = Single room / solo traveller
+        let twinShareUsd: number | null = null;
+        let singleRoomUsd: number | null = null;
         
         if (avail.pricesByRate && avail.pricesByRate.length > 0) {
           avail.pricesByRate.forEach((rate: any) => {
+            const minPerBooking = rate.minPerBooking || 1;
+            
+            // Get price from pricePerCategoryUnit or direct price
+            let ratePrice: number | null = null;
             if (rate.pricePerCategoryUnit && rate.pricePerCategoryUnit.length > 0) {
               rate.pricePerCategoryUnit.forEach((cat: any) => {
                 if (cat.amount && typeof cat.amount.amount === 'number') {
-                  lowestUsdPrice = Math.min(lowestUsdPrice, cat.amount.amount);
+                  if (ratePrice === null || cat.amount.amount < ratePrice) {
+                    ratePrice = cat.amount.amount;
+                  }
                 }
               });
             }
-            if (typeof rate.price === 'number') {
-              lowestUsdPrice = Math.min(lowestUsdPrice, rate.price);
+            if (typeof rate.price === 'number' && (ratePrice === null || rate.price < ratePrice)) {
+              ratePrice = rate.price;
+            }
+            
+            if (ratePrice !== null) {
+              if (minPerBooking >= 2) {
+                // Twin share / double room
+                if (twinShareUsd === null || ratePrice < twinShareUsd) {
+                  twinShareUsd = ratePrice;
+                }
+              } else {
+                // Single room
+                if (singleRoomUsd === null || ratePrice < singleRoomUsd) {
+                  singleRoomUsd = ratePrice;
+                }
+              }
             }
           });
         }
         
-        if (lowestUsdPrice !== Infinity) {
+        // If we only found one type, use it for both (fallback)
+        if (twinShareUsd === null && singleRoomUsd !== null) {
+          twinShareUsd = singleRoomUsd;
+        }
+        if (singleRoomUsd === null && twinShareUsd !== null) {
+          singleRoomUsd = twinShareUsd;
+        }
+        
+        if (twinShareUsd !== null || singleRoomUsd !== null) {
           // Apply USD to GBP conversion and 10% markup
-          const bokunGbpPrice = Math.round(lowestUsdPrice * exchangeRate * BOKUN_MARKUP * 100) / 100;
+          const twinShareGbp = twinShareUsd !== null 
+            ? Math.round(twinShareUsd * exchangeRate * BOKUN_MARKUP * 100) / 100 
+            : null;
+          const singleRoomGbp = singleRoomUsd !== null 
+            ? Math.round(singleRoomUsd * exchangeRate * BOKUN_MARKUP * 100) / 100 
+            : null;
           
           dateData.set(dateStr, {
             date: dateStr,
-            bokunUsdPrice: lowestUsdPrice,
-            bokunGbpPrice,
+            twinShareUsd,
+            twinShareGbp,
+            singleRoomUsd,
+            singleRoomGbp,
           });
         }
       });
@@ -3596,16 +3640,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Build CSV content - simple format for user to fill in package prices
+      // Build CSV content - includes both twin share and single room prices
       // Instructions go first (as comments), then header, then data
       let csvContent = "";
       csvContent += "# BOKUN PRICING TEMPLATE\n";
-      csvContent += "# Fill in the 'package_price_gbp' column with your final selling price\n";
-      csvContent += "# land_price_gbp shows the Bokun tour cost (for your reference)\n";
+      csvContent += "# twin_share_gbp = price per person when 2 share a room\n";
+      csvContent += "# single_room_gbp = price per person for single occupancy\n";
+      csvContent += "# Fill in package_price_gbp with your final selling price\n";
       csvContent += "#\n";
       
-      // Header row - simple columns
-      csvContent += "departure_airport,departure_date,land_price_gbp,package_price_gbp\n";
+      // Header row - includes both room type prices
+      csvContent += "departure_airport,departure_date,twin_share_gbp,single_room_gbp,package_price_gbp\n";
       
       // Sort dates chronologically
       const sortedDates = Array.from(dateData.values()).sort((a, b) => a.date.localeCompare(b.date));
@@ -3617,8 +3662,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const [year, month, day] = data.date.split('-');
           const ukDate = `${day}/${month}/${year}`;
           
-          // Land price pre-filled, package_price empty for user to fill
-          csvContent += `${airport},${ukDate},${data.bokunGbpPrice.toFixed(2)},\n`;
+          // Both prices pre-filled, package_price empty for user to fill
+          const twinPrice = data.twinShareGbp !== null ? data.twinShareGbp.toFixed(2) : '';
+          const singlePrice = data.singleRoomGbp !== null ? data.singleRoomGbp.toFixed(2) : '';
+          csvContent += `${airport},${ukDate},${twinPrice},${singlePrice},\n`;
         });
       });
       

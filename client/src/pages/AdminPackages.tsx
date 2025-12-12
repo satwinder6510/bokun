@@ -3146,7 +3146,8 @@ export default function AdminPackages() {
                                   <ul className="text-green-700 dark:text-green-300 list-disc list-inside">
                                     <li><strong>departure_airport</strong> - Pre-filled</li>
                                     <li><strong>departure_date</strong> - Pre-filled from Bokun</li>
-                                    <li><strong>land_price_gbp</strong> - Bokun tour cost (reference)</li>
+                                    <li><strong>twin_share_gbp</strong> - Twin room price (2 sharing)</li>
+                                    <li><strong>single_room_gbp</strong> - Single room price</li>
                                     <li><strong>package_price_gbp</strong> - YOUR selling price (fill this in)</li>
                                   </ul>
                                 </div>

@@ -385,6 +385,11 @@ export const flightPackages = pgTable("flight_packages", {
     description: string;
   }[]>().notNull().default([]),
   
+  // Additional tour info (from Bokun)
+  excluded: text("excluded"), // HTML - what's not included
+  requirements: text("requirements"), // HTML - what to bring
+  attention: text("attention"), // HTML - please note / important info
+  
   // Gallery videos (YouTube/Vimeo)
   videos: jsonb("videos").$type<{
     url: string;

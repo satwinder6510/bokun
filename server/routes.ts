@@ -3269,6 +3269,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         featuredImage: details.keyPhoto?.derived?.find((d: any) => d.name === 'large')?.url || 
                        details.keyPhoto?.originalUrl || '',
         gallery,
+        // Additional info from Bokun
+        excluded: details.excluded || null,
+        requirements: details.requirements || null,
+        attention: details.attention || null,
         // Include raw Bokun response for debugging (only in dev)
         _rawBokunFields: process.env.NODE_ENV === 'development' ? Object.keys(details) : undefined,
         _hasItinerary: itinerary.length > 0,

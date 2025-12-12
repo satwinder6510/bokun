@@ -794,7 +794,52 @@ export default function PackageDetail() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="info">
+                <TabsContent value="info" className="space-y-4">
+                  {pkg.excluded && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Exclusions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm max-w-none dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: pkg.excluded }}
+                          data-testid="content-excluded"
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {pkg.requirements && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>What Do I Need to Bring?</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm max-w-none dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: pkg.requirements }}
+                          data-testid="content-requirements"
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {pkg.attention && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Please Note</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm max-w-none dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: pkg.attention }}
+                          data-testid="content-attention"
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+
                   <Card>
                     <CardHeader>
                       <CardTitle>Other Information</CardTitle>

@@ -3526,11 +3526,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse airports (comma-separated list)
       const airportList = airports ? (airports as string).split(',').map(a => a.trim().toUpperCase()) : ['LHR', 'MAN', 'BHX', 'STN', 'LGW'];
       
-      // Fetch Bokun availability
+      // Fetch Bokun product details first to get rate info with minPerBooking
       console.log(`\n=== FETCHING BOKUN PRICES FOR CSV TEMPLATE ===`);
       console.log(`Product ID: ${productId}`);
       console.log(`Date range: ${start} to ${end}`);
       console.log(`Airports: ${airportList.join(', ')}`);
+      
+      // Get product details to extract rate metadata (minPerBooking)
+      const details: any = await getBokunProductDetails(productId, 'USD');
+      
+      // Build rate map: rateId -> { minPerBooking, title }
+      const rateMap: Map<string, { minPerBooking: number; title: string }> = new Map();
+      if (details.rates && Array.isArray(details.rates)) {
+        details.rates.forEach((rate: any) => {
+          const rateId = String(rate.id);
+          rateMap.set(rateId, {
+            minPerBooking: rate.minPerBooking || 1,
+            title: rate.title || rate.name || '',
+          });
+          console.log(`Rate ${rateId}: "${rate.title}" - minPerBooking: ${rate.minPerBooking}`);
+        });
+      }
+      console.log(`Found ${rateMap.size} rates in product details`);
       
       const availability: any = await getBokunAvailability(productId, start as string, end as string, 'USD');
       
@@ -3563,20 +3580,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
         
-        // Extract prices by room type
-        // minPerBooking: 2 = Twin share / double room
-        // minPerBooking: 1 = Single room / solo traveller
+        // Extract prices by room type using the rate map from product details
         let twinShareUsd: number | null = null;
         let singleRoomUsd: number | null = null;
         
         if (avail.pricesByRate && avail.pricesByRate.length > 0) {
-          avail.pricesByRate.forEach((rate: any) => {
-            const minPerBooking = rate.minPerBooking || 1;
+          avail.pricesByRate.forEach((priceByRate: any) => {
+            // Get the rateId and look up in our map
+            const rateId = String(priceByRate.rateId || priceByRate.id);
+            const rateInfo = rateMap.get(rateId);
             
             // Get price from pricePerCategoryUnit or direct price
             let ratePrice: number | null = null;
-            if (rate.pricePerCategoryUnit && rate.pricePerCategoryUnit.length > 0) {
-              rate.pricePerCategoryUnit.forEach((cat: any) => {
+            if (priceByRate.pricePerCategoryUnit && priceByRate.pricePerCategoryUnit.length > 0) {
+              priceByRate.pricePerCategoryUnit.forEach((cat: any) => {
                 if (cat.amount && typeof cat.amount.amount === 'number') {
                   if (ratePrice === null || cat.amount.amount < ratePrice) {
                     ratePrice = cat.amount.amount;
@@ -3584,18 +3601,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               });
             }
-            if (typeof rate.price === 'number' && (ratePrice === null || rate.price < ratePrice)) {
-              ratePrice = rate.price;
+            if (typeof priceByRate.price === 'number' && (ratePrice === null || priceByRate.price < ratePrice)) {
+              ratePrice = priceByRate.price;
             }
             
-            if (ratePrice !== null) {
+            if (ratePrice !== null && ratePrice > 0) {
+              // Use minPerBooking from product details to categorize
+              const minPerBooking = rateInfo?.minPerBooking || 1;
+              
               if (minPerBooking >= 2) {
-                // Twin share / double room
+                // Twin share / double room (minPerBooking = 2)
                 if (twinShareUsd === null || ratePrice < twinShareUsd) {
                   twinShareUsd = ratePrice;
                 }
               } else {
-                // Single room
+                // Single room (minPerBooking = 1)
                 if (singleRoomUsd === null || ratePrice < singleRoomUsd) {
                   singleRoomUsd = ratePrice;
                 }
@@ -3604,13 +3624,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        // If we only found one type, use it for both (fallback)
-        if (twinShareUsd === null && singleRoomUsd !== null) {
-          twinShareUsd = singleRoomUsd;
-        }
-        if (singleRoomUsd === null && twinShareUsd !== null) {
-          singleRoomUsd = twinShareUsd;
-        }
+        // If we only found one type, don't duplicate - leave the other as null
         
         if (twinShareUsd !== null || singleRoomUsd !== null) {
           // Apply USD to GBP conversion and 10% markup

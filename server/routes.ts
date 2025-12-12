@@ -3109,6 +3109,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Add "Flights Included" as first item for flight packages
+      whatsIncluded.unshift("Flights Included");
+      
       // Extract itinerary from multiple possible sources
       let itinerary: { day: number; title: string; description: string }[] = [];
       

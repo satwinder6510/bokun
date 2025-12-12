@@ -1913,13 +1913,13 @@ export default function AdminPackages() {
                           className="hidden"
                           data-testid="input-featured-image-file"
                         />
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             onClick={() => featuredImageRef.current?.click()}
                             disabled={isUploadingFeatured}
-                            className="flex-1"
+                            className="w-full sm:flex-1"
                             data-testid="button-upload-featured"
                           >
                             {isUploadingFeatured ? (
@@ -1939,7 +1939,7 @@ export default function AdminPackages() {
                             destination={formData.category}
                             currentPackageId={editingPackage?.id}
                             trigger={
-                              <Button type="button" variant="secondary" className="flex-1" data-testid="button-media-picker-featured">
+                              <Button type="button" variant="secondary" className="w-full sm:flex-1" data-testid="button-media-picker-featured">
                                 <ImagePlus className="w-4 h-4 mr-2" />
                                 Browse Library / Stock
                               </Button>
@@ -1983,13 +1983,13 @@ export default function AdminPackages() {
                           className="hidden"
                           data-testid="input-gallery-files"
                         />
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button
                             type="button"
                             variant="outline"
                             onClick={() => galleryImagesRef.current?.click()}
                             disabled={isUploadingGallery}
-                            className="flex-1"
+                            className="w-full sm:flex-1"
                             data-testid="button-upload-gallery"
                           >
                             {isUploadingGallery ? (
@@ -2022,7 +2022,7 @@ export default function AdminPackages() {
                               }
                             }}
                             trigger={
-                              <Button type="button" variant="secondary" className="flex-1" data-testid="button-media-picker-gallery">
+                              <Button type="button" variant="secondary" className="w-full sm:flex-1" data-testid="button-media-picker-gallery">
                                 <ImagePlus className="w-4 h-4 mr-2" />
                                 Browse Library / Stock
                               </Button>

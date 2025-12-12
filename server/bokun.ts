@@ -131,6 +131,121 @@ export async function searchBokunProducts(page: number = 1, pageSize: number = 2
   }
 }
 
+// Map common destination names to ISO country codes for location-based search
+const COUNTRY_CODE_MAP: Record<string, string> = {
+  "greece": "GR",
+  "greek": "GR",
+  "costa rica": "CR",
+  "costarica": "CR",
+  "spain": "ES",
+  "italy": "IT",
+  "france": "FR",
+  "germany": "DE",
+  "portugal": "PT",
+  "turkey": "TR",
+  "egypt": "EG",
+  "morocco": "MA",
+  "thailand": "TH",
+  "vietnam": "VN",
+  "japan": "JP",
+  "india": "IN",
+  "maldives": "MV",
+  "mauritius": "MU",
+  "dubai": "AE",
+  "uae": "AE",
+  "mexico": "MX",
+  "peru": "PE",
+  "brazil": "BR",
+  "argentina": "AR",
+  "south africa": "ZA",
+  "kenya": "KE",
+  "tanzania": "TZ",
+  "bali": "ID",
+  "indonesia": "ID",
+  "malaysia": "MY",
+  "singapore": "SG",
+  "australia": "AU",
+  "new zealand": "NZ",
+  "croatia": "HR",
+  "montenegro": "ME",
+  "albania": "AL",
+  "cyprus": "CY",
+  "malta": "MT",
+  "iceland": "IS",
+  "norway": "NO",
+  "sweden": "SE",
+  "finland": "FI",
+  "denmark": "DK",
+  "netherlands": "NL",
+  "belgium": "BE",
+  "austria": "AT",
+  "switzerland": "CH",
+  "poland": "PL",
+  "czech": "CZ",
+  "hungary": "HU",
+  "ireland": "IE",
+  "scotland": "GB",
+  "england": "GB",
+  "uk": "GB",
+  "united kingdom": "GB",
+  "canada": "CA",
+  "usa": "US",
+  "united states": "US",
+  "caribbean": "JM",
+  "jamaica": "JM",
+  "cuba": "CU",
+  "dominican republic": "DO",
+  "bahamas": "BS",
+  "sri lanka": "LK",
+  "nepal": "NP",
+  "cambodia": "KH",
+  "laos": "LA",
+  "myanmar": "MM",
+  "philippines": "PH",
+  "china": "CN",
+  "hong kong": "HK",
+  "taiwan": "TW",
+  "south korea": "KR",
+  "korea": "KR",
+  "jordan": "JO",
+  "israel": "IL",
+  "oman": "OM",
+  "qatar": "QA",
+  "saudi arabia": "SA",
+  "tunisia": "TN",
+  "colombia": "CO",
+  "chile": "CL",
+  "ecuador": "EC",
+  "bolivia": "BO",
+  "panama": "PA",
+  "guatemala": "GT",
+  "nicaragua": "NI",
+  "belize": "BZ",
+  "seychelles": "SC",
+  "zanzibar": "TZ",
+  "fiji": "FJ",
+  "tahiti": "PF",
+  "french polynesia": "PF",
+};
+
+function getCountryCodeFromKeyword(keyword: string): string | null {
+  const normalizedKeyword = keyword.toLowerCase().trim();
+  
+  // Direct match
+  if (COUNTRY_CODE_MAP[normalizedKeyword]) {
+    return COUNTRY_CODE_MAP[normalizedKeyword];
+  }
+  
+  // Check if keyword contains a country name
+  for (const [name, code] of Object.entries(COUNTRY_CODE_MAP)) {
+    if (normalizedKeyword.includes(name) || name.includes(normalizedKeyword)) {
+      return code;
+    }
+  }
+  
+  return null;
+}
+
 export async function searchBokunProductsByKeyword(keyword: string, page: number = 1, pageSize: number = 20, currency: string = "USD") {
   const path = "/activity.json/search";
   const queryParams = `?currency=${currency}`;
@@ -139,15 +254,28 @@ export async function searchBokunProductsByKeyword(keyword: string, page: number
 
   try {
     const headers = getBokunHeaders(method, fullPath);
+    
+    // Check if keyword matches a country - use location filter
+    const countryCode = getCountryCodeFromKeyword(keyword);
+    
+    const filter: any = {};
+    
+    if (countryCode) {
+      // Use country filter for destination searches
+      filter.countries = [countryCode];
+      console.log(`Bokun search: Using country filter for "${keyword}" -> ${countryCode}`);
+    } else {
+      // Fall back to text search for non-country queries
+      filter.textSearch = keyword;
+    }
+    
     const response = await fetch(`${BOKUN_API_BASE}${fullPath}`, {
       method,
       headers,
       body: JSON.stringify({ 
         page, 
         pageSize,
-        filter: {
-          textSearch: keyword
-        }
+        filter
       }),
     });
 
@@ -157,7 +285,7 @@ export async function searchBokunProductsByKeyword(keyword: string, page: number
     }
 
     const data = await response.json();
-    console.log("Bokun keyword search for:", keyword, "found:", data.totalHits, "results");
+    console.log("Bokun keyword search for:", keyword, countryCode ? `(country: ${countryCode})` : "(text)", "found:", data.totalHits, "results");
     return data;
   } catch (error: any) {
     throw new Error(error.message || "Failed to search products from Bokun API");

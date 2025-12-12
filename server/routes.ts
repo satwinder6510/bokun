@@ -3063,6 +3063,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Has schedule:", !!details.schedule);
       console.log("Has customFields:", !!details.customFields, "length:", details.customFields?.length || 0);
       console.log("Has included/excluded:", !!details.included, !!details.excluded);
+      console.log("Included value:", details.included);
+      console.log("Excluded value:", details.excluded);
+      console.log("Requirements value:", details.requirements);
+      console.log("Attention value:", details.attention);
       console.log("Has photos:", !!details.photos, "length:", details.photos?.length || 0);
       console.log("Has keyPhoto:", !!details.keyPhoto);
       
@@ -3111,6 +3115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Add "Flights Included" as first item for flight packages
       whatsIncluded.unshift("Flights Included");
+      console.log("Final whatsIncluded array:", whatsIncluded);
       
       // Extract itinerary from multiple possible sources
       let itinerary: { day: number; title: string; description: string }[] = [];

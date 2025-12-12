@@ -3076,11 +3076,11 @@ export default function AdminPackages() {
                               <CardHeader className="pb-3">
                                 <CardTitle className="text-base flex items-center gap-2 text-green-700 dark:text-green-300">
                                   <Download className="w-4 h-4" />
-                                  Fetch Bokun Prices for Manual Flight Entry
+                                  Get Bokun Availability Template
                                 </CardTitle>
                                 <CardDescription>
-                                  Download available Bokun dates with land tour prices as a CSV template.
-                                  Add your flight prices manually, then re-upload.
+                                  Download available dates from Bokun with land tour costs pre-filled.
+                                  Fill in your package prices and upload.
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
@@ -3110,7 +3110,7 @@ export default function AdminPackages() {
                                 </div>
                                 
                                 <div>
-                                  <Label className="text-xs">Departure Airports (comma-separated)</Label>
+                                  <Label className="text-xs">Departure Airports</Label>
                                   <Input
                                     type="text"
                                     value={bokunCsvAirports.join(', ')}
@@ -3119,9 +3119,6 @@ export default function AdminPackages() {
                                     className="mt-1 font-mono text-sm"
                                     data-testid="input-bokun-csv-airports"
                                   />
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    One row per airport per date will be generated
-                                  </p>
                                 </div>
                                 
                                 <Button
@@ -3134,20 +3131,24 @@ export default function AdminPackages() {
                                   {isFetchingBokunCsv ? (
                                     <>
                                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Fetching Bokun Prices...
+                                      Fetching from Bokun...
                                     </>
                                   ) : (
                                     <>
                                       <Download className="w-4 h-4 mr-2" />
-                                      Download Bokun Prices Template
+                                      Download Template
                                     </>
                                   )}
                                 </Button>
                                 
-                                <div className="p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-xs">
-                                  <p className="text-green-800 dark:text-green-200">
-                                    <strong>Workflow:</strong> Download CSV → Add flight prices in the "price" column → Upload via "Upload Pricing CSV"
-                                  </p>
+                                <div className="p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-xs space-y-1">
+                                  <p className="text-green-800 dark:text-green-200 font-medium">CSV columns:</p>
+                                  <ul className="text-green-700 dark:text-green-300 list-disc list-inside">
+                                    <li><strong>departure_airport</strong> - Pre-filled</li>
+                                    <li><strong>departure_date</strong> - Pre-filled from Bokun</li>
+                                    <li><strong>land_price_gbp</strong> - Bokun tour cost (reference)</li>
+                                    <li><strong>package_price_gbp</strong> - YOUR selling price (fill this in)</li>
+                                  </ul>
                                 </div>
                               </CardContent>
                             </Card>

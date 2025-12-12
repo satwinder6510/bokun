@@ -2612,15 +2612,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                              (header[0] === 'departure_airport' || header[0] === 'airport');
       
       if (isSimpleFormat) {
-        // Find column indices
+        // Find column indices - support multiple naming conventions
         const airportIdx = header.findIndex(h => h === 'departure_airport' || h === 'airport');
-        const dateIdx = header.findIndex(h => h === 'date');
-        const priceIdx = header.findIndex(h => h === 'price' || h === 'your price (gbp)');
+        const dateIdx = header.findIndex(h => h === 'date' || h === 'departure_date');
+        const priceIdx = header.findIndex(h => h === 'price' || h === 'package_price_gbp' || h === 'your price (gbp)');
         
         if (dateIdx === -1 || priceIdx === -1) {
           return res.status(400).json({ 
             error: "CSV missing required columns",
-            details: "Expected columns: departure_airport (or airport), date, price"
+            details: "Expected columns: departure_airport, departure_date (or date), package_price_gbp (or price)"
           });
         }
         
@@ -3596,12 +3596,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Build CSV content - format that can be directly imported
-      // Header row
-      let csvContent = "departure_airport,date,price,bokun_land_price_gbp,bokun_usd_price,flight_price_estimate\n";
-      csvContent += "# Instructions: Fill in 'departure_airport' (e.g. LHR) and 'price' (your total package price)\n";
-      csvContent += "# bokun_land_price_gbp = Bokun USD price x ${exchangeRate} x 1.10 (10% markup)\n";
-      csvContent += "# flight_price_estimate = price - bokun_land_price_gbp (for your reference)\n";
+      // Build CSV content - simple format for user to fill in package prices
+      // Instructions go first (as comments), then header, then data
+      let csvContent = "";
+      csvContent += "# BOKUN PRICING TEMPLATE\n";
+      csvContent += "# Fill in the 'package_price_gbp' column with your final selling price\n";
+      csvContent += "# land_price_gbp shows the Bokun tour cost (for your reference)\n";
+      csvContent += "#\n";
+      
+      // Header row - simple columns
+      csvContent += "departure_airport,departure_date,land_price_gbp,package_price_gbp\n";
       
       // Sort dates chronologically
       const sortedDates = Array.from(dateData.values()).sort((a, b) => a.date.localeCompare(b.date));
@@ -3613,8 +3617,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const [year, month, day] = data.date.split('-');
           const ukDate = `${day}/${month}/${year}`;
           
-          // Leave price empty for user to fill in, flight_price_estimate will be calculated on import
-          csvContent += `${airport},${ukDate},,${data.bokunGbpPrice.toFixed(2)},${data.bokunUsdPrice.toFixed(2)},\n`;
+          // Land price pre-filled, package_price empty for user to fill
+          csvContent += `${airport},${ukDate},${data.bokunGbpPrice.toFixed(2)},\n`;
         });
       });
       

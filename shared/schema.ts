@@ -45,6 +45,7 @@ export const bokunProductDetailsSchema = z.object({
   excerpt: z.string().optional(),
   summary: z.string().optional(),
   description: z.string().optional(),
+  included: z.string().optional(),
   activityCategories: z.array(z.string()).optional(),
   price: z.number().optional(),
   durationText: z.string().optional(),

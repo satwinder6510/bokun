@@ -292,6 +292,16 @@ export default function TourDetail() {
                   >
                     Description
                   </Button>
+                  {product.included && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => document.getElementById('included-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      data-testid="nav-included"
+                    >
+                      What's Included
+                    </Button>
+                  )}
                   {product.itinerary && product.itinerary.length > 0 && (
                     <Button 
                       variant="ghost" 
@@ -362,6 +372,21 @@ export default function TourDetail() {
                     </div>
                   )}
                 </div>
+
+              {/* What's Included Section */}
+              {product.included && (
+                <div id="included-section" className="space-y-4 pt-8 scroll-mt-32" data-testid="content-included">
+                  <h2 className="text-2xl font-semibold mb-4">What's Included</h2>
+                  <Card>
+                    <CardContent className="p-6">
+                      <div 
+                        className="prose prose-sm max-w-none text-base leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: product.included }}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
 
               {/* Itinerary Section */}
               {product.itinerary && product.itinerary.length > 0 && (

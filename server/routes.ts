@@ -3001,19 +3001,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Search query is required" });
       }
       
-      // Get products from cache
-      let cachedProducts = await storage.getCachedProducts('GBP');
+      // Use USD cache (which has all products) since it's fully populated
+      // We convert prices to GBP on display anyway
+      let cachedProducts = await storage.getCachedProducts('USD');
       
-      // If cache is empty, trigger a cache fill by fetching first page
+      // If USD cache is empty, try GBP cache
       if (cachedProducts.length === 0) {
-        console.log("Bokun cache empty - fetching products for search...");
-        const firstPageData = await searchBokunProducts(1, 100, 'GBP');
+        cachedProducts = await storage.getCachedProducts('GBP');
+      }
+      
+      // If cache is still empty, fetch ALL products from Bokun API directly
+      if (cachedProducts.length === 0) {
+        console.log("Bokun cache empty - fetching all products for search...");
+        
+        // Fetch first page to get total count
+        const firstPageData = await searchBokunProducts(1, 100, 'USD');
         cachedProducts = firstPageData.items || [];
+        const totalHits = firstPageData.totalHits || 0;
+        
+        // Fetch remaining pages
+        if (totalHits > 100) {
+          const totalPages = Math.ceil(totalHits / 100);
+          const remainingPages = [];
+          for (let page = 2; page <= totalPages; page++) {
+            remainingPages.push(page);
+          }
+          
+          // Fetch remaining pages in parallel (batches of 3)
+          for (let i = 0; i < remainingPages.length; i += 3) {
+            const batch = remainingPages.slice(i, i + 3);
+            const results = await Promise.all(
+              batch.map(page => searchBokunProducts(page, 100, 'USD'))
+            );
+            for (const result of results) {
+              if (result.items) {
+                cachedProducts = cachedProducts.concat(result.items);
+              }
+            }
+          }
+        }
         
         // Cache for future use
         if (cachedProducts.length > 0) {
-          await storage.setCachedProducts(cachedProducts, 'GBP');
+          await storage.setCachedProducts(cachedProducts, 'USD');
         }
+        console.log(`Fetched and cached ${cachedProducts.length} products for search`);
       }
       
       // Filter products by keyword in title, excerpt, or location
@@ -3024,6 +3056,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const summary = (item.summary || '').toLowerCase();
         const city = (item.googlePlace?.city || '').toLowerCase();
         const country = (item.googlePlace?.country || '').toLowerCase();
+        const countryCode = (item.googlePlace?.countryCode || '').toLowerCase();
+        const locationCountry = (item.locationCode?.country || '').toLowerCase();
         const location = (item.locationCode?.location || '').toLowerCase();
         
         return title.includes(searchTerm) || 
@@ -3031,6 +3065,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                summary.includes(searchTerm) ||
                city.includes(searchTerm) ||
                country.includes(searchTerm) ||
+               countryCode.includes(searchTerm) ||
+               locationCountry.includes(searchTerm) ||
                location.includes(searchTerm);
       });
       
@@ -3045,7 +3081,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         location: item.googlePlace?.city || item.locationCode?.location || item.googlePlace?.country || '',
       }));
       
-      console.log(`Bokun admin search for "${query}": found ${filteredItems.length} tours, returning ${tours.length}`);
+      console.log(`Bokun admin search for "${query}": searching ${cachedProducts.length} products, found ${filteredItems.length} tours, returning ${tours.length}`);
       res.json({ tours, total: filteredItems.length });
     } catch (error: any) {
       console.error("Error searching Bokun tours:", error);

@@ -2612,15 +2612,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                              (header[0] === 'departure_airport' || header[0] === 'airport');
       
       if (isSimpleFormat) {
-        // Find column indices - support multiple naming conventions
+        // Find column indices
         const airportIdx = header.findIndex(h => h === 'departure_airport' || h === 'airport');
-        const dateIdx = header.findIndex(h => h === 'date' || h === 'departure_date');
-        const priceIdx = header.findIndex(h => h === 'price' || h === 'package_price_gbp' || h === 'your price (gbp)');
+        const dateIdx = header.findIndex(h => h === 'date');
+        const priceIdx = header.findIndex(h => h === 'price' || h === 'your price (gbp)');
         
         if (dateIdx === -1 || priceIdx === -1) {
           return res.status(400).json({ 
             error: "CSV missing required columns",
-            details: "Expected columns: departure_airport, departure_date (or date), package_price_gbp (or price)"
+            details: "Expected columns: departure_airport (or airport), date, price"
           });
         }
         
@@ -3509,192 +3509,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error exporting pricing CSV:", error);
       res.status(500).json({ error: "Failed to export pricing" });
-    }
-  });
-
-  // Fetch Bokun prices as CSV template for manual flight price entry (admin)
-  // This is used during Bokun import to get availability dates and land tour prices
-  app.get("/api/admin/bokun-prices-csv/:productId", async (req, res) => {
-    try {
-      const { productId } = req.params;
-      const { start, end, airports } = req.query;
-      
-      if (!start || !end) {
-        return res.status(400).json({ error: "Missing required query parameters: start and end dates" });
-      }
-      
-      // Parse airports (comma-separated list)
-      const airportList = airports ? (airports as string).split(',').map(a => a.trim().toUpperCase()) : ['LHR', 'MAN', 'BHX', 'STN', 'LGW'];
-      
-      // Fetch Bokun product details first to get rate info with minPerBooking
-      console.log(`\n=== FETCHING BOKUN PRICES FOR CSV TEMPLATE ===`);
-      console.log(`Product ID: ${productId}`);
-      console.log(`Date range: ${start} to ${end}`);
-      console.log(`Airports: ${airportList.join(', ')}`);
-      
-      // Get product details to extract rate metadata (minPerBooking)
-      const details: any = await getBokunProductDetails(productId, 'USD');
-      
-      // Build rate map: rateId -> { minPerBooking, title }
-      const rateMap: Map<string, { minPerBooking: number; title: string }> = new Map();
-      if (details.rates && Array.isArray(details.rates)) {
-        details.rates.forEach((rate: any) => {
-          const rateId = String(rate.id);
-          rateMap.set(rateId, {
-            minPerBooking: rate.minPerBooking || 1,
-            title: rate.title || rate.name || '',
-          });
-          console.log(`Rate ${rateId}: "${rate.title}" - minPerBooking: ${rate.minPerBooking}`);
-        });
-      }
-      console.log(`Found ${rateMap.size} rates in product details`);
-      
-      const availability: any = await getBokunAvailability(productId, start as string, end as string, 'USD');
-      
-      // Process availability to extract dates and prices
-      const availabilities = Array.isArray(availability) ? availability : availability.availabilities || [];
-      console.log(`Found ${availabilities.length} availability entries`);
-      
-      // Build a map of date -> price data with both single and twin share prices
-      const dateData: Map<string, { 
-        date: string; 
-        twinShareUsd: number | null;
-        twinShareGbp: number | null;
-        singleRoomUsd: number | null;
-        singleRoomGbp: number | null;
-      }> = new Map();
-      
-      // Get exchange rate from settings
-      const exchangeRate = await storage.getExchangeRate(); // e.g., 0.75
-      const BOKUN_MARKUP = 1.10; // 10% markup on Bokun prices
-      
-      availabilities.forEach((avail: any) => {
-        // Date can be a timestamp (milliseconds) or a string
-        let dateStr: string;
-        if (typeof avail.date === 'number') {
-          const d = new Date(avail.date);
-          dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
-        } else if (typeof avail.date === 'string') {
-          dateStr = avail.date;
-        } else {
-          return;
-        }
-        
-        // Extract prices by room type using the rate map from product details
-        let twinShareUsd: number | null = null;
-        let singleRoomUsd: number | null = null;
-        
-        if (avail.pricesByRate && avail.pricesByRate.length > 0) {
-          avail.pricesByRate.forEach((priceByRate: any) => {
-            // Get the rateId and look up in our map
-            const rateId = String(priceByRate.rateId || priceByRate.id);
-            const rateInfo = rateMap.get(rateId);
-            
-            // Get price from pricePerCategoryUnit or direct price
-            let ratePrice: number | null = null;
-            if (priceByRate.pricePerCategoryUnit && priceByRate.pricePerCategoryUnit.length > 0) {
-              priceByRate.pricePerCategoryUnit.forEach((cat: any) => {
-                if (cat.amount && typeof cat.amount.amount === 'number') {
-                  if (ratePrice === null || cat.amount.amount < ratePrice) {
-                    ratePrice = cat.amount.amount;
-                  }
-                }
-              });
-            }
-            if (typeof priceByRate.price === 'number' && (ratePrice === null || priceByRate.price < ratePrice)) {
-              ratePrice = priceByRate.price;
-            }
-            
-            if (ratePrice !== null && ratePrice > 0) {
-              // Use minPerBooking from product details to categorize
-              const minPerBooking = rateInfo?.minPerBooking || 1;
-              
-              if (minPerBooking >= 2) {
-                // Twin share / double room (minPerBooking = 2)
-                if (twinShareUsd === null || ratePrice < twinShareUsd) {
-                  twinShareUsd = ratePrice;
-                }
-              } else {
-                // Single room (minPerBooking = 1)
-                if (singleRoomUsd === null || ratePrice < singleRoomUsd) {
-                  singleRoomUsd = ratePrice;
-                }
-              }
-            }
-          });
-        }
-        
-        // If we only found one type, don't duplicate - leave the other as null
-        
-        if (twinShareUsd !== null || singleRoomUsd !== null) {
-          // Apply USD to GBP conversion and 10% markup
-          const twinShareGbp = twinShareUsd !== null 
-            ? Math.round(twinShareUsd * exchangeRate * BOKUN_MARKUP * 100) / 100 
-            : null;
-          const singleRoomGbp = singleRoomUsd !== null 
-            ? Math.round(singleRoomUsd * exchangeRate * BOKUN_MARKUP * 100) / 100 
-            : null;
-          
-          dateData.set(dateStr, {
-            date: dateStr,
-            twinShareUsd,
-            twinShareGbp,
-            singleRoomUsd,
-            singleRoomGbp,
-          });
-        }
-      });
-      
-      console.log(`Extracted ${dateData.size} dates with pricing`);
-      
-      if (dateData.size === 0) {
-        return res.status(404).json({ 
-          error: "No availability found for this date range",
-          message: "The Bokun tour has no available dates in the specified range"
-        });
-      }
-      
-      // Build CSV content - includes both twin share and single room prices
-      // Instructions go first (as comments), then header, then data
-      let csvContent = "";
-      csvContent += "# BOKUN PRICING TEMPLATE\n";
-      csvContent += "# twin_share_gbp = price per person when 2 share a room\n";
-      csvContent += "# single_room_gbp = price per person for single occupancy\n";
-      csvContent += "# Fill in package_price_gbp with your final selling price\n";
-      csvContent += "#\n";
-      
-      // Header row - includes both room type prices
-      csvContent += "departure_airport,departure_date,twin_share_gbp,single_room_gbp,package_price_gbp\n";
-      
-      // Sort dates chronologically
-      const sortedDates = Array.from(dateData.values()).sort((a, b) => a.date.localeCompare(b.date));
-      
-      // For each airport, create rows for each available date
-      airportList.forEach(airport => {
-        sortedDates.forEach(data => {
-          // Convert YYYY-MM-DD to DD/MM/YYYY for UK format
-          const [year, month, day] = data.date.split('-');
-          const ukDate = `${day}/${month}/${year}`;
-          
-          // Both prices pre-filled, package_price empty for user to fill
-          const twinPrice = data.twinShareGbp !== null ? data.twinShareGbp.toFixed(2) : '';
-          const singlePrice = data.singleRoomGbp !== null ? data.singleRoomGbp.toFixed(2) : '';
-          csvContent += `${airport},${ukDate},${twinPrice},${singlePrice},\n`;
-        });
-      });
-      
-      // Generate filename
-      const filename = `bokun-${productId}-pricing-template.csv`;
-      
-      // Send as CSV file
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.send(csvContent);
-      
-      console.log(`=== CSV TEMPLATE GENERATED: ${sortedDates.length} dates x ${airportList.length} airports ===\n`);
-    } catch (error: any) {
-      console.error("Error generating Bokun prices CSV:", error);
-      res.status(500).json({ error: error.message || "Failed to generate Bokun prices CSV" });
     }
   });
 

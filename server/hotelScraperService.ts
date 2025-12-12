@@ -39,9 +39,9 @@ async function rateLimitedFetch(url: string): Promise<string> {
   
   domainLastRequest.set(domain, Date.now());
   
-  // Use AbortController for timeout
+  // Use AbortController for timeout (60 seconds for slow hotel sites)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
   
   const response = await fetch(url, {
     headers: {

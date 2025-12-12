@@ -260,6 +260,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Diagnostic: List objects in storage (admin only)
+  app.get("/api/admin/storage-diagnostic", async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const isAvailable = await objectStorageService.isAvailable();
+      
+      if (!isAvailable) {
+        return res.json({ 
+          available: false, 
+          message: "Object Storage is not available",
+          objects: []
+        });
+      }
+      
+      const objects = await objectStorageService.listObjects("");
+      res.json({ 
+        available: true, 
+        count: objects.length,
+        objects: objects.slice(0, 100) // Limit to first 100
+      });
+    } catch (error: any) {
+      console.error("Error listing objects:", error);
+      res.status(500).json({ error: error.message || "Failed to list objects" });
+    }
+  });
+
   // Migrate image from external URL to object storage (admin only)
   app.post("/api/objects/migrate-url", verifyAdminSession, async (req, res) => {
     try {
@@ -3853,15 +3879,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image file provided" });
       }
       
+      console.log(`[Upload] Received file: ${req.file.originalname}, size: ${req.file.size} bytes`);
+      
       const objectStorageService = new ObjectStorageService();
       const isAvailable = await objectStorageService.isAvailable();
       
+      console.log(`[Upload] Object Storage available: ${isAvailable}`);
+      
       if (isAvailable) {
         // Upload to Object Storage for persistence
+        console.log(`[Upload] Uploading to Object Storage...`);
         const imageUrl = await objectStorageService.uploadFromBuffer(
           req.file.buffer,
           req.file.originalname
         );
+        console.log(`[Upload] Success - stored at: ${imageUrl}`);
         res.json({ 
           success: true, 
           url: imageUrl,
@@ -3872,6 +3904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } else {
         // Fallback to local disk (won't persist after deploy)
+        console.warn(`[Upload] WARNING: Object Storage not available! Using local storage (will NOT persist in production)`);
         const filename = `${Date.now()}-${req.file.originalname}`;
         const filePath = path.join(uploadDir, filename);
         fs.writeFileSync(filePath, req.file.buffer);
@@ -3881,12 +3914,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           filename: filename,
           size: req.file.size,
           mimetype: req.file.mimetype,
-          storage: 'local'
+          storage: 'local',
+          warning: 'Using local storage - images will NOT persist after redeployment'
         });
       }
     } catch (error: any) {
-      console.error("Error uploading image:", error);
-      res.status(500).json({ error: "Failed to upload image" });
+      console.error("[Upload] Error uploading image:", error);
+      res.status(500).json({ error: "Failed to upload image", details: error.message });
     }
   });
 
@@ -3898,17 +3932,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No image files provided" });
       }
       
+      console.log(`[Upload-Multiple] Received ${files.length} files`);
+      
       const objectStorageService = new ObjectStorageService();
       const isAvailable = await objectStorageService.isAvailable();
+      
+      console.log(`[Upload-Multiple] Object Storage available: ${isAvailable}`);
+      
+      if (!isAvailable) {
+        console.warn(`[Upload-Multiple] WARNING: Object Storage not available! Using local storage (will NOT persist in production)`);
+      }
       
       const uploadedImages = [];
       
       for (const file of files) {
+        console.log(`[Upload-Multiple] Processing: ${file.originalname}`);
         if (isAvailable) {
           const imageUrl = await objectStorageService.uploadFromBuffer(
             file.buffer,
             file.originalname
           );
+          console.log(`[Upload-Multiple] Uploaded to Object Storage: ${imageUrl}`);
           uploadedImages.push({
             url: imageUrl,
             filename: file.originalname,
@@ -3932,11 +3976,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         images: uploadedImages,
         count: uploadedImages.length,
-        storage: isAvailable ? 'object-storage' : 'local'
+        storage: isAvailable ? 'object-storage' : 'local',
+        warning: isAvailable ? undefined : 'Using local storage - images will NOT persist after redeployment'
       });
     } catch (error: any) {
-      console.error("Error uploading images:", error);
-      res.status(500).json({ error: "Failed to upload images" });
+      console.error("[Upload-Multiple] Error uploading images:", error);
+      res.status(500).json({ error: "Failed to upload images", details: error.message });
     }
   });
 

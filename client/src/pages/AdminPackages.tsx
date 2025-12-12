@@ -2413,6 +2413,52 @@ export default function AdminPackages() {
                       </ul>
                     </div>
 
+                    <Separator className="my-4" />
+                    <h4 className="font-medium text-sm text-muted-foreground mb-3">Additional Tour Information (from Bokun)</h4>
+                    
+                    <div className="grid gap-4">
+                      <div>
+                        <Label htmlFor="excluded">What's Not Included (HTML)</Label>
+                        <p className="text-xs text-muted-foreground mb-1">Items/services NOT included in the package</p>
+                        <Textarea
+                          id="excluded"
+                          value={formData.excluded || ""}
+                          onChange={(e) => setFormData({ ...formData, excluded: e.target.value || null })}
+                          placeholder="Flights, travel insurance, personal expenses..."
+                          rows={4}
+                          data-testid="input-excluded"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="requirements">What to Bring (HTML)</Label>
+                        <p className="text-xs text-muted-foreground mb-1">Items guests should bring</p>
+                        <Textarea
+                          id="requirements"
+                          value={formData.requirements || ""}
+                          onChange={(e) => setFormData({ ...formData, requirements: e.target.value || null })}
+                          placeholder="Passport, comfortable walking shoes, sun protection..."
+                          rows={4}
+                          data-testid="input-requirements"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="attention">Please Note (HTML)</Label>
+                        <p className="text-xs text-muted-foreground mb-1">Important information guests should be aware of</p>
+                        <Textarea
+                          id="attention"
+                          value={formData.attention || ""}
+                          onChange={(e) => setFormData({ ...formData, attention: e.target.value || null })}
+                          placeholder="Physical fitness required, not suitable for children under 5..."
+                          rows={4}
+                          data-testid="input-attention"
+                        />
+                      </div>
+                    </div>
+
+                    <Separator className="my-4" />
+
                     <div>
                       <Label htmlFor="otherInfo">Other Information (HTML)</Label>
                       <Textarea

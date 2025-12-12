@@ -341,6 +341,16 @@ export default function TourDetail() {
                       Add-ons
                     </Button>
                   )}
+                  {(product.excluded || product.requirements || product.attention) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => document.getElementById('more-info-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      data-testid="nav-more-info"
+                    >
+                      More Info
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -468,6 +478,55 @@ export default function TourDetail() {
                         </CardContent>
                       </Card>
                     ))}
+                </div>
+              )}
+
+              {/* More Info Section */}
+              {(product.excluded || product.requirements || product.attention) && (
+                <div id="more-info-section" className="space-y-6 pt-8 scroll-mt-32" data-testid="content-more-info">
+                  <h2 className="text-2xl font-semibold mb-4">More Information</h2>
+                  
+                  {product.excluded && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Exclusions</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm max-w-none text-base leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: product.excluded }}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {product.requirements && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">What Do I Need to Bring?</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm max-w-none text-base leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: product.requirements }}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {product.attention && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Please Note</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm max-w-none text-base leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: product.attention }}
+                        />
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
             </div>

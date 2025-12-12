@@ -16,8 +16,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
   Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
-  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling, GripVertical
+  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling, GripVertical, Info
 } from "lucide-react";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import {
@@ -108,6 +113,9 @@ type PackageFormData = {
   itinerary: ItineraryDay[];
   accommodations: Accommodation[];
   otherInfo: string;
+  excluded: string | null;
+  requirements: string | null;
+  attention: string | null;
   featuredImage: string;
   gallery: string[];
   videos: VideoItem[];
@@ -154,6 +162,9 @@ const emptyPackage: PackageFormData = {
   itinerary: [],
   accommodations: [],
   otherInfo: "",
+  excluded: null,
+  requirements: null,
+  attention: null,
   featuredImage: "",
   gallery: [],
   videos: [],
@@ -280,6 +291,11 @@ export default function AdminPackages() {
   const [bokunSearchResults, setBokunSearchResults] = useState<BokunTourResult[]>([]);
   const [isSearchingBokun, setIsSearchingBokun] = useState(false);
   const [isImportingBokun, setIsImportingBokun] = useState(false);
+  const [importedPriceBreakdown, setImportedPriceBreakdown] = useState<{
+    singleRoomPrice?: number;
+    doubleRoomPrice?: number;
+    rates?: { id: number; title: string; minPerBooking: number; price: number }[];
+  } | null>(null);
   
   // Hotel library picker state
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
@@ -604,6 +620,9 @@ export default function AdminPackages() {
       itinerary: (pkg.itinerary || []) as ItineraryDay[],
       accommodations: (pkg.accommodations || []) as Accommodation[],
       otherInfo: pkg.otherInfo || "",
+      excluded: pkg.excluded || null,
+      requirements: pkg.requirements || null,
+      attention: pkg.attention || null,
       featuredImage: pkg.featuredImage || "",
       gallery: (pkg.gallery || []) as string[],
       videos: (pkg.videos || []) as VideoItem[],
@@ -614,6 +633,8 @@ export default function AdminPackages() {
       displayOrder: pkg.displayOrder,
       bokunProductId: pkg.bokunProductId || null,
     });
+    // Clear imported price breakdown when editing existing package
+    setImportedPriceBreakdown(null);
     setEditingPackage(pkg);
     setIsCreating(false);
     
@@ -814,7 +835,15 @@ export default function AdminPackages() {
         duration: tourData.duration,
         featuredImage: tourData.featuredImage,
         gallery: tourData.gallery || [],
+        excluded: tourData.excluded || null,
+        requirements: tourData.requirements || null,
+        attention: tourData.attention || null,
       });
+      
+      // Store price breakdown for tooltip display
+      if (tourData._rateInfo) {
+        setImportedPriceBreakdown(tourData._rateInfo);
+      }
       
       setBokunSearchOpen(false);
       setIsCreating(true);
@@ -1717,7 +1746,43 @@ export default function AdminPackages() {
                       </div>
                       
                       <div>
-                        <Label htmlFor="price">Twin Share Price (GBP) *</Label>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="price">Twin Share Price (GBP) *</Label>
+                          {importedPriceBreakdown && importedPriceBreakdown.doubleRoomPrice && (
+                            <HoverCard>
+                              <HoverCardTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-5 w-5">
+                                  <Info className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-80">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold">Bokun Rate Breakdown</h4>
+                                  {importedPriceBreakdown.rates?.map((rate, idx) => (
+                                    <div key={idx} className="flex justify-between text-sm">
+                                      <span className="text-muted-foreground">{rate.title}</span>
+                                      <span>£{rate.price.toFixed(2)}</span>
+                                    </div>
+                                  ))}
+                                  <Separator className="my-2" />
+                                  <div className="flex justify-between text-sm font-medium">
+                                    <span>Double Room (Twin Share)</span>
+                                    <span>£{importedPriceBreakdown.doubleRoomPrice.toFixed(2)}</span>
+                                  </div>
+                                  {importedPriceBreakdown.singleRoomPrice && (
+                                    <div className="flex justify-between text-sm font-medium">
+                                      <span>Single Room (Solo)</span>
+                                      <span>£{importedPriceBreakdown.singleRoomPrice.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Prices include 10% markup on Bokun USD rate (converted at 0.75 exchange rate)
+                                  </p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground mb-1">Price per person when 2 sharing</p>
                         <Input
                           id="price"
@@ -1731,7 +1796,30 @@ export default function AdminPackages() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="singlePrice">Solo Traveller Price (GBP)</Label>
+                        <div className="flex items-center gap-2">
+                          <Label htmlFor="singlePrice">Solo Traveller Price (GBP)</Label>
+                          {importedPriceBreakdown && importedPriceBreakdown.singleRoomPrice && (
+                            <HoverCard>
+                              <HoverCardTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-5 w-5">
+                                  <Info className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </HoverCardTrigger>
+                              <HoverCardContent className="w-80">
+                                <div className="space-y-2">
+                                  <h4 className="font-semibold">Single Room Rate</h4>
+                                  <div className="flex justify-between text-sm font-medium">
+                                    <span>Single Room (Solo)</span>
+                                    <span>£{importedPriceBreakdown.singleRoomPrice.toFixed(2)}</span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    Price includes 10% markup on Bokun USD rate
+                                  </p>
+                                </div>
+                              </HoverCardContent>
+                            </HoverCard>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground mb-1">Price per person for single room (optional)</p>
                         <Input
                           id="singlePrice"

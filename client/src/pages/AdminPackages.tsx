@@ -252,6 +252,8 @@ export default function AdminPackages() {
   const [dragOverGalleryIndex, setDragOverGalleryIndex] = useState<number | null>(null);
   const [draggedVideoIndex, setDraggedVideoIndex] = useState<number | null>(null);
   const [dragOverVideoIndex, setDragOverVideoIndex] = useState<number | null>(null);
+  const [draggedAccommodationIndex, setDraggedAccommodationIndex] = useState<number | null>(null);
+  const [dragOverAccommodationIndex, setDragOverAccommodationIndex] = useState<number | null>(null);
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
@@ -1202,6 +1204,31 @@ export default function AdminPackages() {
     
     setDraggedVideoIndex(null);
     setDragOverVideoIndex(null);
+  };
+
+  const handleAccommodationDragStart = (index: number) => {
+    setDraggedAccommodationIndex(index);
+  };
+
+  const handleAccommodationDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverAccommodationIndex(index);
+  };
+
+  const handleAccommodationDragEnd = () => {
+    if (draggedAccommodationIndex !== null && dragOverAccommodationIndex !== null && 
+        draggedAccommodationIndex !== dragOverAccommodationIndex) {
+      
+      const accommodations = [...(formData.accommodations || [])];
+      const [movedAccommodation] = accommodations.splice(draggedAccommodationIndex, 1);
+      accommodations.splice(dragOverAccommodationIndex, 0, movedAccommodation);
+      
+      setFormData({ ...formData, accommodations });
+      toast({ title: "Hotel order updated" });
+    }
+    
+    setDraggedAccommodationIndex(null);
+    setDragOverAccommodationIndex(null);
   };
 
   const isEditing = isCreating || editingPackage !== null;
@@ -2535,11 +2562,32 @@ export default function AdminPackages() {
                         </Button>
                       </div>
                     </div>
+                    {(formData.accommodations || []).length > 1 && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <GripVertical className="w-3 h-3" />
+                        Drag hotels to reorder. First hotel appears first on the package page.
+                      </p>
+                    )}
                     {(formData.accommodations || []).map((hotel, index) => (
-                      <Card key={index}>
+                      <Card 
+                        key={index}
+                        className={`cursor-move transition-all ${
+                          draggedAccommodationIndex === index ? 'opacity-50 scale-[0.98]' : ''
+                        } ${
+                          dragOverAccommodationIndex === index ? 'ring-2 ring-primary ring-offset-2' : ''
+                        }`}
+                        draggable
+                        onDragStart={() => handleAccommodationDragStart(index)}
+                        onDragOver={(e) => handleAccommodationDragOver(e, index)}
+                        onDragEnd={handleAccommodationDragEnd}
+                        data-testid={`card-hotel-draggable-${index}`}
+                      >
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">{hotel.name || `Hotel ${index + 1}`}</CardTitle>
+                            <div className="flex items-center gap-2">
+                              <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab" />
+                              <CardTitle className="text-base">{hotel.name || `Hotel ${index + 1}`}</CardTitle>
+                            </div>
                             <Button
                               type="button"
                               variant="ghost"

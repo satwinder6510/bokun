@@ -2409,8 +2409,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const pkg = await storage.createFlightPackage(parseResult.data);
-      res.status(201).json(pkg);
+      // Try to create the package, handling duplicate slug errors
+      let packageData = parseResult.data;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (attempts < maxAttempts) {
+        try {
+          const pkg = await storage.createFlightPackage(packageData);
+          return res.status(201).json(pkg);
+        } catch (createError: any) {
+          // Check if it's a duplicate slug error
+          if (createError.code === '23505' && createError.constraint === 'flight_packages_slug_unique') {
+            attempts++;
+            // Append a unique suffix to the slug
+            const suffix = `-${Date.now().toString(36).slice(-4)}`;
+            packageData = {
+              ...packageData,
+              slug: parseResult.data.slug + suffix
+            };
+            console.log(`Slug collision, trying with new slug: ${packageData.slug}`);
+          } else {
+            throw createError;
+          }
+        }
+      }
+      
+      throw new Error("Failed to create package after multiple attempts due to slug conflicts");
     } catch (error: any) {
       console.error("Error creating package:", error);
       res.status(500).json({ error: error.message || "Failed to create package" });

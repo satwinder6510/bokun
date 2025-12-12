@@ -299,6 +299,12 @@ export default function AdminPackages() {
     rates?: { id: number; title: string; minPerBooking: number; price: number }[];
   } | null>(null);
   
+  // Bokun CSV pricing template state
+  const [bokunCsvStartDate, setBokunCsvStartDate] = useState("");
+  const [bokunCsvEndDate, setBokunCsvEndDate] = useState("");
+  const [bokunCsvAirports, setBokunCsvAirports] = useState<string[]>(["LHR", "MAN", "BHX", "STN", "LGW"]);
+  const [isFetchingBokunCsv, setIsFetchingBokunCsv] = useState(false);
+  
   // Hotel library picker state
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
   const [hotelSearchQuery, setHotelSearchQuery] = useState("");
@@ -882,6 +888,44 @@ export default function AdminPackages() {
       toast({ title: "Downloading pricing CSV" });
     } catch (error: any) {
       toast({ title: "Export failed", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleFetchBokunPricesCsv = async () => {
+    if (!formData.bokunProductId) {
+      toast({ title: "No Bokun tour linked", description: "Import a Bokun tour first", variant: "destructive" });
+      return;
+    }
+    
+    if (!bokunCsvStartDate || !bokunCsvEndDate) {
+      toast({ title: "Please enter date range", variant: "destructive" });
+      return;
+    }
+    
+    setIsFetchingBokunCsv(true);
+    try {
+      // Convert DD/MM/YYYY to YYYY-MM-DD for API
+      const parseUkDate = (dateStr: string) => {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        }
+        return dateStr; // Assume it's already ISO format
+      };
+      
+      const startDate = parseUkDate(bokunCsvStartDate);
+      const endDate = parseUkDate(bokunCsvEndDate);
+      const airports = bokunCsvAirports.join(',');
+      
+      const url = `/api/admin/bokun-prices-csv/${formData.bokunProductId}?start=${startDate}&end=${endDate}&airports=${airports}`;
+      
+      // Trigger download
+      window.location.href = url;
+      toast({ title: "Downloading Bokun prices CSV template" });
+    } catch (error: any) {
+      toast({ title: "Failed to fetch Bokun prices", description: error.message, variant: "destructive" });
+    } finally {
+      setIsFetchingBokunCsv(false);
     }
   };
 
@@ -3025,6 +3069,89 @@ export default function AdminPackages() {
                               </div>
                             </CardContent>
                           </Card>
+
+                          {/* Bokun Pricing Template - for manual flight price entry */}
+                          {formData.bokunProductId && (
+                            <Card className="border-green-200 dark:border-green-800">
+                              <CardHeader className="pb-3">
+                                <CardTitle className="text-base flex items-center gap-2 text-green-700 dark:text-green-300">
+                                  <Download className="w-4 h-4" />
+                                  Fetch Bokun Prices for Manual Flight Entry
+                                </CardTitle>
+                                <CardDescription>
+                                  Download available Bokun dates with land tour prices as a CSV template.
+                                  Add your flight prices manually, then re-upload.
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <Label className="text-xs">Start Date</Label>
+                                    <Input
+                                      type="text"
+                                      value={bokunCsvStartDate}
+                                      onChange={(e) => setBokunCsvStartDate(e.target.value)}
+                                      placeholder="DD/MM/YYYY"
+                                      className="mt-1"
+                                      data-testid="input-bokun-csv-start"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">End Date</Label>
+                                    <Input
+                                      type="text"
+                                      value={bokunCsvEndDate}
+                                      onChange={(e) => setBokunCsvEndDate(e.target.value)}
+                                      placeholder="DD/MM/YYYY"
+                                      className="mt-1"
+                                      data-testid="input-bokun-csv-end"
+                                    />
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <Label className="text-xs">Departure Airports (comma-separated)</Label>
+                                  <Input
+                                    type="text"
+                                    value={bokunCsvAirports.join(', ')}
+                                    onChange={(e) => setBokunCsvAirports(e.target.value.split(',').map(a => a.trim().toUpperCase()).filter(a => a))}
+                                    placeholder="LHR, MAN, BHX, STN, LGW"
+                                    className="mt-1 font-mono text-sm"
+                                    data-testid="input-bokun-csv-airports"
+                                  />
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    One row per airport per date will be generated
+                                  </p>
+                                </div>
+                                
+                                <Button
+                                  type="button"
+                                  onClick={handleFetchBokunPricesCsv}
+                                  disabled={isFetchingBokunCsv || !bokunCsvStartDate || !bokunCsvEndDate}
+                                  className="w-full bg-green-600 hover:bg-green-700"
+                                  data-testid="button-fetch-bokun-csv"
+                                >
+                                  {isFetchingBokunCsv ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Fetching Bokun Prices...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Download className="w-4 h-4 mr-2" />
+                                      Download Bokun Prices Template
+                                    </>
+                                  )}
+                                </Button>
+                                
+                                <div className="p-2 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded text-xs">
+                                  <p className="text-green-800 dark:text-green-200">
+                                    <strong>Workflow:</strong> Download CSV → Add flight prices in the "price" column → Upload via "Upload Pricing CSV"
+                                  </p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
 
                           {/* Existing Pricing Entries */}
                           <Card>

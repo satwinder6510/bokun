@@ -3512,6 +3512,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fetch Bokun prices as CSV template for manual flight price entry (admin)
+  // This is used during Bokun import to get availability dates and land tour prices
+  app.get("/api/admin/bokun-prices-csv/:productId", async (req, res) => {
+    try {
+      const { productId } = req.params;
+      const { start, end, airports } = req.query;
+      
+      if (!start || !end) {
+        return res.status(400).json({ error: "Missing required query parameters: start and end dates" });
+      }
+      
+      // Parse airports (comma-separated list)
+      const airportList = airports ? (airports as string).split(',').map(a => a.trim().toUpperCase()) : ['LHR', 'MAN', 'BHX', 'STN', 'LGW'];
+      
+      // Fetch Bokun availability
+      console.log(`\n=== FETCHING BOKUN PRICES FOR CSV TEMPLATE ===`);
+      console.log(`Product ID: ${productId}`);
+      console.log(`Date range: ${start} to ${end}`);
+      console.log(`Airports: ${airportList.join(', ')}`);
+      
+      const availability: any = await getBokunAvailability(productId, start as string, end as string, 'USD');
+      
+      // Process availability to extract dates and prices
+      const availabilities = Array.isArray(availability) ? availability : availability.availabilities || [];
+      console.log(`Found ${availabilities.length} availability entries`);
+      
+      // Build a map of date -> price data
+      const dateData: Map<string, { date: string; bokunUsdPrice: number; bokunGbpPrice: number }> = new Map();
+      
+      // Get exchange rate from settings
+      const exchangeRate = await storage.getExchangeRate(); // e.g., 0.75
+      const BOKUN_MARKUP = 1.10; // 10% markup on Bokun prices
+      
+      availabilities.forEach((avail: any) => {
+        // Date can be a timestamp (milliseconds) or a string
+        let dateStr: string;
+        if (typeof avail.date === 'number') {
+          const d = new Date(avail.date);
+          dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+        } else if (typeof avail.date === 'string') {
+          dateStr = avail.date;
+        } else {
+          return;
+        }
+        
+        // Extract the lowest price
+        let lowestUsdPrice = Infinity;
+        
+        if (avail.pricesByRate && avail.pricesByRate.length > 0) {
+          avail.pricesByRate.forEach((rate: any) => {
+            if (rate.pricePerCategoryUnit && rate.pricePerCategoryUnit.length > 0) {
+              rate.pricePerCategoryUnit.forEach((cat: any) => {
+                if (cat.amount && typeof cat.amount.amount === 'number') {
+                  lowestUsdPrice = Math.min(lowestUsdPrice, cat.amount.amount);
+                }
+              });
+            }
+            if (typeof rate.price === 'number') {
+              lowestUsdPrice = Math.min(lowestUsdPrice, rate.price);
+            }
+          });
+        }
+        
+        if (lowestUsdPrice !== Infinity) {
+          // Apply USD to GBP conversion and 10% markup
+          const bokunGbpPrice = Math.round(lowestUsdPrice * exchangeRate * BOKUN_MARKUP * 100) / 100;
+          
+          dateData.set(dateStr, {
+            date: dateStr,
+            bokunUsdPrice: lowestUsdPrice,
+            bokunGbpPrice,
+          });
+        }
+      });
+      
+      console.log(`Extracted ${dateData.size} dates with pricing`);
+      
+      if (dateData.size === 0) {
+        return res.status(404).json({ 
+          error: "No availability found for this date range",
+          message: "The Bokun tour has no available dates in the specified range"
+        });
+      }
+      
+      // Build CSV content - format that can be directly imported
+      // Header row
+      let csvContent = "departure_airport,date,price,bokun_land_price_gbp,bokun_usd_price,flight_price_estimate\n";
+      csvContent += "# Instructions: Fill in 'departure_airport' (e.g. LHR) and 'price' (your total package price)\n";
+      csvContent += "# bokun_land_price_gbp = Bokun USD price x ${exchangeRate} x 1.10 (10% markup)\n";
+      csvContent += "# flight_price_estimate = price - bokun_land_price_gbp (for your reference)\n";
+      
+      // Sort dates chronologically
+      const sortedDates = Array.from(dateData.values()).sort((a, b) => a.date.localeCompare(b.date));
+      
+      // For each airport, create rows for each available date
+      airportList.forEach(airport => {
+        sortedDates.forEach(data => {
+          // Convert YYYY-MM-DD to DD/MM/YYYY for UK format
+          const [year, month, day] = data.date.split('-');
+          const ukDate = `${day}/${month}/${year}`;
+          
+          // Leave price empty for user to fill in, flight_price_estimate will be calculated on import
+          csvContent += `${airport},${ukDate},,${data.bokunGbpPrice.toFixed(2)},${data.bokunUsdPrice.toFixed(2)},\n`;
+        });
+      });
+      
+      // Generate filename
+      const filename = `bokun-${productId}-pricing-template.csv`;
+      
+      // Send as CSV file
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(csvContent);
+      
+      console.log(`=== CSV TEMPLATE GENERATED: ${sortedDates.length} dates x ${airportList.length} airports ===\n`);
+    } catch (error: any) {
+      console.error("Error generating Bokun prices CSV:", error);
+      res.status(500).json({ error: error.message || "Failed to generate Bokun prices CSV" });
+    }
+  });
+
   // Submit package enquiry (public)
   app.post("/api/packages/:slug/enquiry", async (req, res) => {
     try {

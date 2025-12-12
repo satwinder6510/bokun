@@ -56,7 +56,7 @@ function FlightPackageCard({ pkg, countrySlug }: { pkg: FlightPackage; countrySl
             <div>
               <span className="text-sm text-muted-foreground">From</span>
               <p className="text-xl font-bold text-primary">
-                {pkg.price ? formatGBP(pkg.price) : "Price on request"}
+                {(pkg.price || pkg.singlePrice) ? formatGBP(pkg.price || pkg.singlePrice || 0) : "Price on request"}
               </p>
               <span className="text-xs text-muted-foreground">per person</span>
             </div>

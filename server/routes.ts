@@ -3104,8 +3104,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (Array.isArray(details.included)) {
           whatsIncluded.push(...details.included.map((i: any) => typeof i === 'string' ? i : i.title || i.description || '').filter(Boolean));
         } else if (typeof details.included === 'string') {
-          // Split by newlines or bullets
-          whatsIncluded.push(...details.included.split(/[\n•\-]/).map((s: string) => s.trim()).filter(Boolean));
+          // Split by newlines or bullets (not hyphens - they may be part of content like "Day 2-4")
+          whatsIncluded.push(...details.included.split(/[\n•]/).map((s: string) => s.trim()).filter(Boolean));
         }
       }
       

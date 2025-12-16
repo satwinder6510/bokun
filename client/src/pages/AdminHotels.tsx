@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Star, Save, X, Search, Hotel, Loader2, 
-  Globe, MapPin, Phone, Mail, ExternalLink, Image as ImageIcon
+  Globe, MapPin, Phone, Mail, ExternalLink, Image as ImageIcon, Upload, GripVertical
 } from "lucide-react";
 import {
   Dialog,
@@ -542,6 +542,7 @@ function EditHotelForm({
   onCancel: () => void;
   isPending: boolean;
 }) {
+  const { toast } = useToast();
   const [name, setName] = useState(hotel.name);
   const [description, setDescription] = useState(hotel.description || "");
   const [country, setCountry] = useState(hotel.country || "");
@@ -553,6 +554,79 @@ function EditHotelForm({
   const [website, setWebsite] = useState(hotel.website || "");
   const [amenities, setAmenities] = useState(hotel.amenities?.join(", ") || "");
   const [featuredImage, setFeaturedImage] = useState(hotel.featuredImage || "");
+  const [images, setImages] = useState<string[]>(hotel.images || []);
+  const [isUploading, setIsUploading] = useState(false);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('images', files[i]);
+      }
+      
+      const response = await fetch('/api/admin/upload-multiple', {
+        method: 'POST',
+        headers: {
+          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) throw new Error('Upload failed');
+      
+      const data = await response.json();
+      const newUrls = data.images.map((img: any) => img.url);
+      setImages([...images, ...newUrls]);
+      
+      if (!featuredImage && newUrls.length > 0) {
+        setFeaturedImage(newUrls[0]);
+      }
+      
+      toast({ title: `${data.count} image(s) uploaded` });
+    } catch (error) {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const removed = images[index];
+    setImages(images.filter((_, i) => i !== index));
+    if (featuredImage === removed) {
+      setFeaturedImage(images[0] || "");
+    }
+  };
+
+  const setAsFeatured = (url: string) => {
+    setFeaturedImage(url);
+    toast({ title: "Featured image updated" });
+  };
+
+  const handleDragStart = (index: number) => setDraggedIndex(index);
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+  const handleDragEnd = () => {
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      const newImages = [...images];
+      const [moved] = newImages.splice(draggedIndex, 1);
+      newImages.splice(dragOverIndex, 0, moved);
+      setImages(newImages);
+      toast({ title: "Image order updated" });
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+  };
 
   const handleSubmit = () => {
     onSave({
@@ -567,6 +641,7 @@ function EditHotelForm({
       website: website || null,
       amenities: amenities ? amenities.split(",").map(a => a.trim()).filter(Boolean) : [],
       featuredImage: featuredImage || null,
+      images: images,
     });
   };
 
@@ -659,19 +734,95 @@ function EditHotelForm({
         </div>
         
         <div className="col-span-2">
-          <Label htmlFor="edit-featured-image">Featured Image URL</Label>
-          <Input
-            id="edit-featured-image"
-            value={featuredImage}
-            onChange={(e) => setFeaturedImage(e.target.value)}
-            placeholder="/api/media/image-slug/card"
-            data-testid="input-edit-hotel-featured-image"
-          />
-          {featuredImage && (
-            <div className="mt-2 rounded overflow-hidden w-32 h-20">
-              <img src={featuredImage} alt="Preview" className="w-full h-full object-cover" />
+          <Label>Hotel Images</Label>
+          <div className="mt-2 space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+                data-testid="input-hotel-image-upload"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                data-testid="button-upload-hotel-images"
+              >
+                {isUploading ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading...</>
+                ) : (
+                  <><Upload className="h-4 w-4 mr-2" />Upload Images</>
+                )}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {images.length} image{images.length !== 1 ? 's' : ''}
+              </span>
             </div>
-          )}
+            
+            {images.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <GripVertical className="w-3 h-3" />
+                  Drag to reorder. Click star to set as featured image.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {images.map((url, index) => (
+                    <div
+                      key={index}
+                      className={`relative group w-24 h-24 rounded overflow-visible cursor-move transition-all ${
+                        draggedIndex === index ? 'opacity-50 scale-95' : ''
+                      } ${dragOverIndex === index ? 'ring-2 ring-primary' : ''}`}
+                      draggable
+                      onDragStart={() => handleDragStart(index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragEnd={handleDragEnd}
+                      data-testid={`hotel-image-${index}`}
+                    >
+                      <img
+                        src={url}
+                        alt={`Hotel ${index + 1}`}
+                        className="w-full h-full object-cover rounded"
+                      />
+                      {featuredImage === url && (
+                        <div className="absolute top-1 left-1 bg-yellow-500 text-white rounded-full p-0.5">
+                          <Star className="w-3 h-3 fill-current" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-1">
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-white hover:bg-white/20"
+                          onClick={() => setAsFeatured(url)}
+                          title="Set as featured"
+                          data-testid={`button-set-featured-${index}`}
+                        >
+                          <Star className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-white hover:bg-red-500/50"
+                          onClick={() => removeImage(index)}
+                          title="Remove"
+                          data-testid={`button-remove-image-${index}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="col-span-2">

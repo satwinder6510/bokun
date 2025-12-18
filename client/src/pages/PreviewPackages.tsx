@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, Plane, MapPin, ArrowRight } from "lucide-react";
 import PreviewHeader from "@/components/PreviewHeader";
 import PreviewFooter from "@/components/PreviewFooter";
+import { siteConfig } from "@/config/site";
 import type { FlightPackage } from "@shared/schema";
 
 export default function PreviewPackages() {
@@ -87,7 +88,7 @@ export default function PreviewPackages() {
                         <div className="text-right">
                           <p className="text-xs text-slate-500">From</p>
                           <p className="text-xl font-bold text-slate-800">
-                            £{pkg.price}
+                            {siteConfig.currency.symbol}{pkg.price}
                             <span className="text-sm font-normal text-slate-500">pp</span>
                           </p>
                         </div>

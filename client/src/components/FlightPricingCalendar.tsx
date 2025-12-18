@@ -23,6 +23,7 @@ import {
   Loader2, Clock, MapPin, Info 
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isToday, getDay, isBefore, startOfDay } from "date-fns";
+import { siteConfig } from "@/config/site";
 
 type CombinedPrice = {
   date: string;
@@ -205,7 +206,7 @@ export function FlightPricingCalendar({ bokunProductId, productTitle }: FlightPr
             <div className="text-right">
               <div className="text-sm text-muted-foreground">From</div>
               <div className="text-2xl font-bold text-primary">
-                £{formatPrice(minPrice)}
+                {siteConfig.currency.symbol}{formatPrice(minPrice)}
               </div>
               <div className="text-xs text-muted-foreground">per person</div>
             </div>
@@ -275,7 +276,7 @@ export function FlightPricingCalendar({ bokunProductId, productTitle }: FlightPr
                     <span
                       className={`text-xs font-semibold px-1.5 py-0.5 rounded-full mt-0.5 ${getPriceColorClass(dateMinPrice)}`}
                     >
-                      £{formatPrice(dateMinPrice)}
+                      {siteConfig.currency.symbol}{formatPrice(dateMinPrice)}
                     </span>
                   )}
                 </div>
@@ -355,7 +356,7 @@ export function FlightPricingCalendar({ bokunProductId, productTitle }: FlightPr
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="font-bold text-lg">£{formatPrice(option.finalPrice)}</div>
+                        <div className="font-bold text-lg">{siteConfig.currency.symbol}{formatPrice(option.finalPrice)}</div>
                         <div className="text-xs text-muted-foreground">per person</div>
                       </TableCell>
                     </TableRow>

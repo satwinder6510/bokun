@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MapPin, Clock, Users, Star, Calendar, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
+import { siteConfig } from "@/config/site";
 import type { BokunProductDetails } from "@shared/schema";
 
 interface ProductDetailsModalProps {
@@ -89,7 +90,7 @@ export function ProductDetailsModal({
                   <div className="text-right shrink-0">
                     <div className="text-sm text-muted-foreground">From</div>
                     <div className="text-2xl font-semibold text-primary" data-testid="text-product-price">
-                      £{(product.nextDefaultPrice || product.price)?.toFixed(2)}
+                      {siteConfig.currency.symbol}{(product.nextDefaultPrice || product.price)?.toFixed(2)}
                     </div>
                     {product.rates && product.rates.length > 0 && (
                       <div className="text-xs text-muted-foreground mt-1">

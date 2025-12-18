@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Package, RefreshCw, PackageOpen, Eye } from "lucide-react";
+import { siteConfig } from "@/config/site";
 import type { BokunProduct } from "@shared/schema";
 
 interface ProductsCardProps {
@@ -61,7 +62,7 @@ export function ProductsCard({ products, isLoading, onProductClick, totalCount }
                     </code>
                     {product.price && (
                       <span className="text-xs font-medium text-primary">
-                        £{product.price.toFixed(2)}
+                        {siteConfig.currency.symbol}{product.price.toFixed(2)}
                       </span>
                     )}
                   </div>

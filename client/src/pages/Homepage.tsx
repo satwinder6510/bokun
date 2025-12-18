@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { siteConfig } from "@/config/site";
 import { useToast } from "@/hooks/use-toast";
 import { getProxiedImageUrl, getHeroImageUrl, getCardImageUrl } from "@/lib/imageProxy";
 import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
@@ -389,7 +390,7 @@ export default function Homepage() {
               <div className="mb-6 md:mb-8">
                 <span className="text-sm md:text-lg text-white/80">from </span>
                 <span className="text-3xl md:text-5xl font-bold">
-                  {heroSlides[currentSlide]?.type === 'package' ? '£' : selectedCurrency.symbol}
+                  {siteConfig.currency.symbol}
                   {heroSlides[currentSlide]?.price?.toFixed(0)}
                 </span>
                 <span className="text-sm md:text-lg text-white/80 ml-1">/pp</span>
@@ -575,7 +576,7 @@ export default function Homepage() {
                               <span className="text-xs sm:text-sm text-white/80">from</span>
                               <div className="flex flex-col">
                                 <span className="text-2xl sm:text-3xl font-bold text-white">
-                                  £{pkg.price.toFixed(0)}
+                                  {siteConfig.currency.symbol}{pkg.price.toFixed(0)}
                                 </span>
                                 <span className="text-[10px] sm:text-xs text-white/60">pp twin share</span>
                               </div>
@@ -586,7 +587,7 @@ export default function Homepage() {
                               <span className="text-xs sm:text-sm text-white/80">from</span>
                               <div className="flex flex-col">
                                 <span className="text-2xl sm:text-3xl font-bold text-white">
-                                  £{pkg.singlePrice.toFixed(0)}
+                                  {siteConfig.currency.symbol}{pkg.singlePrice.toFixed(0)}
                                 </span>
                                 <span className="text-[10px] sm:text-xs text-white/60">pp solo</span>
                               </div>
@@ -595,7 +596,7 @@ export default function Homepage() {
                           {pkg.pricingDisplay === "both" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
                             <div className="flex flex-col">
                               <span className="text-lg sm:text-xl font-semibold text-white/90">
-                                £{pkg.singlePrice.toFixed(0)}
+                                {siteConfig.currency.symbol}{pkg.singlePrice.toFixed(0)}
                               </span>
                               <span className="text-[10px] sm:text-xs text-white/60">pp solo</span>
                             </div>

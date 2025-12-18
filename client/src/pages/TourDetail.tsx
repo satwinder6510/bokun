@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { FlightPricingCalendar } from "@/components/FlightPricingCalendar";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { siteConfig } from "@/config/site";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { getHeroImageUrl, getThumbImageUrl } from "@/lib/imageProxy";
@@ -465,7 +466,7 @@ export default function TourDetail() {
                             </div>
                             {extra.price && !extra.free && (
                               <span className="font-semibold" data-testid={`text-extra-price-${extra.id}`}>
-                                £{formatBokunPrice(extra.price).toFixed(2)}
+                                {siteConfig.currency.symbol}{formatBokunPrice(extra.price).toFixed(2)}
                               </span>
                             )}
                             {extra.free && (

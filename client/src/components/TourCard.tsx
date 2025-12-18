@@ -3,7 +3,6 @@ import { MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { getCardImageUrl } from "@/lib/imageProxy";
-import { siteConfig } from "@/config/site";
 import type { BokunProduct } from "@shared/schema";
 
 interface TourCardProps {
@@ -86,7 +85,7 @@ export function TourCard({ product }: TourCardProps) {
             )}
           </div>
 
-          {/* Price (with markup applied) */}
+          {/* Price (converted from USD to GBP with 10% markup) */}
           {product.price && (
             <div className="flex items-baseline gap-1 mb-3 sm:mb-4">
               <span className="text-xs sm:text-sm text-white/80">from</span>
@@ -95,9 +94,9 @@ export function TourCard({ product }: TourCardProps) {
                   className="text-2xl sm:text-3xl font-bold text-white"
                   data-testid={`text-price-${product.id}`}
                 >
-                  {siteConfig.currency.symbol}{formatBokunPrice(product.price).toFixed(0)}
+                  £{formatBokunPrice(product.price).toFixed(0)}
                 </span>
-                <span className="text-[10px] sm:text-xs text-white/60">{siteConfig.currency.code}</span>
+                <span className="text-[10px] sm:text-xs text-white/60">GBP</span>
               </div>
               <span className="text-xs sm:text-sm text-white/80">/pp</span>
             </div>

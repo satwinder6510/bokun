@@ -2,18 +2,15 @@
  * Bokun Pricing Utilities
  * 
  * Bokun API returns net prices in USD. This module:
- * 1. Converts USD to target currency using the configurable exchange rate
- * 2. Applies markup for display and booking purposes.
+ * 1. Converts USD to GBP using the configurable exchange rate
+ * 2. Applies the 10% markup for display and booking purposes.
  */
 
-import { siteConfig } from '@/config/site';
+// 10% markup on all Bokun net prices
+const BOKUN_MARKUP_PERCENTAGE = 10;
 
-// Markup on all Bokun net prices (from site config)
-const BOKUN_MARKUP_PERCENTAGE = siteConfig.markupPercentage;
-
-// Default exchange rate from site config
-// For USD sites, this should be 1.0 (no conversion)
-const DEFAULT_EXCHANGE_RATE = siteConfig.exchangeRate;
+// Default exchange rate (fallback if API unavailable)
+const DEFAULT_USD_TO_GBP_RATE = 0.79;
 
 // Cache for exchange rate to avoid repeated API calls
 let cachedExchangeRate: number | null = null;
@@ -43,7 +40,7 @@ export async function fetchExchangeRate(): Promise<number> {
     console.warn('Failed to fetch exchange rate, using default:', error);
   }
   
-  return DEFAULT_EXCHANGE_RATE;
+  return DEFAULT_USD_TO_GBP_RATE;
 }
 
 /**
@@ -51,7 +48,7 @@ export async function fetchExchangeRate(): Promise<number> {
  * Returns the cached rate or default if not cached
  */
 export function getExchangeRate(): number {
-  return cachedExchangeRate ?? DEFAULT_EXCHANGE_RATE;
+  return cachedExchangeRate ?? DEFAULT_USD_TO_GBP_RATE;
 }
 
 /**

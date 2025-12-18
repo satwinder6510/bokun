@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import { Menu, Phone, Shield, Headphones, X, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
-import { siteConfig } from "@/config/site";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import atolLogo from "@assets/atol_1765460218085.png";
@@ -12,7 +11,6 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const phoneNumber = useDynamicPhoneNumber();
   const phoneNumberClean = phoneNumber.replace(/\s/g, "");
-  const showFlightPackages = siteConfig.features.flightPackages;
 
   return (
     <div className="sticky top-0 z-50">
@@ -60,13 +58,11 @@ export function Header() {
               <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-home">
                 Home
               </Link>
-              {showFlightPackages && (
-                <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-packages">
-                  Flight Packages
-                </Link>
-              )}
+              <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-packages">
+                Flight Packages
+              </Link>
               <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-tours">
-                {showFlightPackages ? 'Land Tours' : 'Tours'}
+                Land Tours
               </Link>
               <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-collections">
                 Collections
@@ -121,13 +117,11 @@ export function Header() {
                 <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-home">
                   Home
                 </Link>
-                {showFlightPackages && (
-                  <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-packages">
-                    Flight Packages
-                  </Link>
-                )}
+                <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-packages">
+                  Flight Packages
+                </Link>
                 <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-tours">
-                  {showFlightPackages ? 'Land Tours' : 'Tours'}
+                  Land Tours
                 </Link>
                 <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-collections">
                   Collections

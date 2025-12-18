@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Clock, MapPin, Search, ArrowRight, Users, Star } from "lucide-react";
 import PreviewHeader from "@/components/PreviewHeader";
 import PreviewFooter from "@/components/PreviewFooter";
-import { siteConfig } from "@/config/site";
 
 interface BokunProduct {
   id: string;
@@ -126,7 +125,7 @@ export default function PreviewTours() {
                         <div className="text-left">
                           <p className="text-xs text-slate-500">From</p>
                           <p className="text-xl font-bold text-slate-800">
-                            {siteConfig.currency.symbol}{product.priceFrom || 0}
+                            £{product.priceFrom || 0}
                             <span className="text-sm font-normal text-slate-500">pp</span>
                           </p>
                         </div>

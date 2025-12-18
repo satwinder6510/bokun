@@ -1,5 +1,4 @@
 import { createContext, useContext, ReactNode } from 'react';
-import { siteConfig } from '@/config/site';
 
 export interface Currency {
   code: string;
@@ -7,8 +6,8 @@ export interface Currency {
   name: string;
 }
 
-// Get currency from site configuration
-const SITE_CURRENCY: Currency = siteConfig.currency;
+// Fixed currency for UK-based business - all prices in GBP
+const GBP_CURRENCY: Currency = { code: 'GBP', symbol: '£', name: 'British Pound' };
 
 interface CurrencyContextType {
   selectedCurrency: Currency;
@@ -19,11 +18,11 @@ const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
   const formatCurrency = (amount: number): string => {
-    return `${SITE_CURRENCY.symbol}${amount.toFixed(2)}`;
+    return `${GBP_CURRENCY.symbol}${amount.toFixed(2)}`;
   };
 
   return (
-    <CurrencyContext.Provider value={{ selectedCurrency: SITE_CURRENCY, formatCurrency }}>
+    <CurrencyContext.Provider value={{ selectedCurrency: GBP_CURRENCY, formatCurrency }}>
       {children}
     </CurrencyContext.Provider>
   );

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Clock, MapPin, ArrowLeft, Check, Phone, Shield, Calendar, Star, Users, Globe } from "lucide-react";
 import PreviewHeader from "@/components/PreviewHeader";
 import PreviewFooter from "@/components/PreviewFooter";
-import { siteConfig } from "@/config/site";
 
 export default function PreviewTourDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -172,7 +171,7 @@ export default function PreviewTourDetail() {
                   <div className="text-center mb-6">
                     <p className="text-sm text-slate-500 mb-1">From</p>
                     <p className="text-4xl font-bold text-slate-800">
-                      {siteConfig.currency.symbol}{markedUpPrice}
+                      £{markedUpPrice}
                       <span className="text-lg font-normal text-slate-500">pp</span>
                     </p>
                     <p className="text-sm text-slate-500 mt-1">Land tour only</p>

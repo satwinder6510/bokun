@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/contexts/CartContext";
 import { apiRequest } from "@/lib/queryClient";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
-import { siteConfig } from "@/config/site";
 import { format, addMonths } from "date-fns";
 import { useLocation } from "wouter";
 import {
@@ -487,13 +486,13 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
               <div className="space-y-1">
                 {pricing.isPricedPerPerson && (
                   <p className="text-sm text-muted-foreground">
-                    {siteConfig.currency.symbol}{pricing.pricePerPerson.toFixed(2)} × {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}
+                    £{pricing.pricePerPerson.toFixed(2)} × {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">Total price</p>
               </div>
               <p className="text-3xl font-bold text-primary" data-testid="text-total-price">
-                {siteConfig.currency.symbol}{pricing.totalPrice.toFixed(2)}
+                £{pricing.totalPrice.toFixed(2)}
               </p>
             </div>
           </div>
@@ -569,7 +568,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                   <>
                     <p className="text-xs text-muted-foreground">From</p>
                     <p className="text-xl font-bold" data-testid="text-mobile-price">
-                      {siteConfig.currency.symbol}{startingPrice.toFixed(2)}
+                      £{startingPrice.toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground">per person</p>
                   </>

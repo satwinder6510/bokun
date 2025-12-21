@@ -57,6 +57,7 @@ import Collections from "@/pages/Collections";
 import CollectionDetail from "@/pages/CollectionDetail";
 import Destinations from "@/pages/Destinations";
 import DestinationDetail from "@/pages/DestinationDetail";
+import SpecialOffers from "@/pages/SpecialOffers";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -67,6 +68,7 @@ function Router() {
       <Route path="/tour/:id" component={TourDetail} />
       <Route path="/packages" component={Packages} />
       <Route path="/packages/:slug" component={PackageDetail} />
+      <Route path="/special-offers" component={SpecialOffers} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/booking/:reference" component={BookingConfirmation} />
       <Route path="/terms" component={Terms} />

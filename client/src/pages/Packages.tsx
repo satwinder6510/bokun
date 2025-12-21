@@ -222,7 +222,7 @@ export default function Packages() {
               <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-special-offers">
                 Special Offers
               </h2>
-              <Link href="/packages">
+              <Link href="/special-offers">
                 <Button variant="ghost" className="gap-2" data-testid="link-view-all-offers">
                   View All <ChevronRight className="w-4 h-4" />
                 </Button>

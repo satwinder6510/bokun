@@ -2116,6 +2116,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all special offer packages (public)
+  app.get("/api/packages/special-offers", async (req, res) => {
+    try {
+      const packages = await storage.getSpecialOfferPackages(); // No limit - get all
+      res.json(packages);
+    } catch (error: any) {
+      console.error("Error fetching special offers:", error);
+      res.status(500).json({ error: "Failed to fetch special offers" });
+    }
+  });
+
   // Homepage aggregated data endpoint - MUST be before :slug route
   app.get("/api/packages/homepage", async (req, res) => {
     try {

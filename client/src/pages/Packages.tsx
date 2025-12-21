@@ -361,9 +361,14 @@ export default function Packages() {
         <section className="py-12 md:py-16 bg-muted/30">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-blog">
-                Travel Inspiration
-              </h2>
+              <div>
+                <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
+                  Read all about it
+                </p>
+                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-blog">
+                  Travel Inspiration
+                </h2>
+              </div>
               <Link href="/blog">
                 <Button variant="ghost" className="gap-2" data-testid="link-view-all-blog">
                   View All <ChevronRight className="w-4 h-4" />

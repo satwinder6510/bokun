@@ -12,7 +12,24 @@ Preferred communication style: Simple, everyday language.
 
 ### UI/UX Decisions
 
-The design is clean and minimal, featuring a visual redesign with a red/orange accent color (#E74C3C). Key UI elements include a fullscreen hero carousel, redesigned tour cards, and horizontal scrolling category pills. The header is transparent with a backdrop blur, offering navigation (Home, Destinations dropdown, FAQ, Blog, Contact). The footer displays destinations, company info, quick links, and contact details. The platform supports dynamic SEO meta tags, Schema.org JSON-LD, Open Graph tags, and a multi-currency selector (persisted in local storage). A contact form integrates with Privyr CRM.
+The design is clean and minimal, featuring a visual redesign with a red/orange accent color (#E74C3C). Key UI elements include a fullscreen hero carousel, redesigned tour cards, and horizontal scrolling category pills. The header is transparent with a backdrop blur, offering navigation (Home, Destinations dropdown, FAQ, Blog, Contact). The footer displays destinations, company info, quick links, and contact details. A contact form integrates with Privyr CRM.
+
+### SEO Implementation
+
+Comprehensive SEO optimization is implemented across all pages:
+
+-   **Meta Tags Utility (`client/src/lib/meta-tags.ts`):** Centralized functions for managing dynamic meta tags, canonical URLs, Open Graph tags, and Twitter Cards.
+-   **Structured Data (JSON-LD):** Multiple schema types using the `@graph` pattern:
+    -   `BreadcrumbList` on all detail pages for navigation hierarchy
+    -   `TouristTrip` / `TravelAction` on tour and package detail pages
+    -   `Article` on blog posts with author, publisher, and date info
+    -   `FAQPage` on FAQ page
+    -   `TravelAgency` / `Organization` on homepage
+    -   `TouristDestination` on destination pages
+    -   `CollectionPage` on collection pages
+-   **Canonical URLs:** Case-preserving canonical links match actual routes (e.g., `/Holidays/india` not `/holidays/india`)
+-   **Default OG Image:** Fallback image (`/og-image.jpg`) for pages without specific images
+-   **Twitter Cards:** Large summary cards with title, description, and image on all pages
 
 A content marketing blog is implemented at `/blog` with SEO-optimized URLs (`/blog/:slug`), featuring HTML-formatted posts, excerpts, featured images, author attribution, reading time, and comprehensive meta tags.
 

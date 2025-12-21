@@ -477,9 +477,8 @@ export default function Homepage() {
       <section className="py-16 md:py-24 bg-white border-y border-stone-200">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-12">
-            <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2 flex items-center justify-center gap-2">
-              <Plane className="w-4 h-4" />
-              FLIGHTS INCLUDED
+            <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
+              Exclusive offers for you
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4" data-testid="text-packages-title">
               Flight Inclusive Packages

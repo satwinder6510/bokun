@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
-import { Search, MapPin, Clock, Plane, Star, ChevronRight, ArrowRight } from "lucide-react";
+import { Search, MapPin, Clock, Plane, Star, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -108,6 +108,17 @@ function PackageCard({ pkg, showSpecialBadge = false }: { pkg: FlightPackage; sh
 
 export default function Packages() {
   const [searchQuery, setSearchQuery] = useState("");
+  const destinationsRef = useRef<HTMLDivElement>(null);
+
+  const scrollDestinations = (direction: 'left' | 'right') => {
+    if (destinationsRef.current) {
+      const scrollAmount = 300;
+      destinationsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const { data: homepageData, isLoading } = useQuery<HomepageData>({
     queryKey: ["/api/packages/homepage"],
@@ -299,58 +310,73 @@ export default function Packages() {
         </section>
       )}
 
-      {/* Destinations Section */}
+      {/* Destinations Section - Carousel Style */}
       {!searchQuery && destinations.length > 0 && (
-        <section className="py-12 md:py-16">
+        <section className="py-12 md:py-16 bg-stone-100">
           <div className="container mx-auto px-4 md:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
-                  Dive in and discover
-                </p>
-                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-destinations">
-                  Destinations
-                </h2>
-              </div>
-              <Link href="/Holidays">
-                <Button variant="ghost" className="gap-2" data-testid="link-view-all-destinations">
-                  View All <ChevronRight className="w-4 h-4" />
-                </Button>
-              </Link>
+            <div className="text-center mb-10">
+              <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
+                Dive in and discover
+              </p>
+              <h2 className="text-2xl md:text-4xl font-bold" data-testid="heading-destinations">
+                Our Destinations
+              </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {destinations.slice(0, 10).map((destination) => {
-                const destinationSlug = destination.name.toLowerCase().replace(/\s+/g, '-');
-                return (
-                <Link key={destination.name} href={`/Holidays/${destinationSlug}`}>
-                  <div 
-                    className="relative rounded-xl overflow-hidden aspect-[4/3] group cursor-pointer"
-                    data-testid={`card-destination-${destination.name}`}
-                  >
-                    <img 
-                      src={getProxiedImageUrl(destination.image)}
-                      alt={destination.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      loading="lazy"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80";
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                      <h3 className="font-bold text-lg">{destination.name}</h3>
-                      <p className="text-sm text-white/80">{destination.count} package{destination.count !== 1 ? 's' : ''}</p>
-                    </div>
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-white/90 backdrop-blur-sm rounded-full p-2">
-                        <ArrowRight className="w-4 h-4 text-foreground" />
+            
+            <div className="relative">
+              {/* Left Arrow */}
+              <button
+                onClick={() => scrollDestinations('left')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all hover:scale-110 -ml-4 md:-ml-6"
+                aria-label="Scroll left"
+                data-testid="button-destinations-prev"
+              >
+                <ChevronLeft className="w-5 h-5 text-slate-700" />
+              </button>
+              
+              {/* Right Arrow */}
+              <button
+                onClick={() => scrollDestinations('right')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all hover:scale-110 -mr-4 md:-mr-6"
+                aria-label="Scroll right"
+                data-testid="button-destinations-next"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-700" />
+              </button>
+              
+              {/* Carousel Container */}
+              <div 
+                ref={destinationsRef}
+                className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-2 py-2"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {destinations.map((destination) => {
+                  const destinationSlug = destination.name.toLowerCase().replace(/\s+/g, '-');
+                  return (
+                    <Link key={destination.name} href={`/Holidays/${destinationSlug}`}>
+                      <div 
+                        className="relative flex-shrink-0 w-40 md:w-48 rounded-2xl overflow-hidden aspect-[3/4] group cursor-pointer shadow-md hover:shadow-xl transition-shadow"
+                        data-testid={`card-destination-${destination.name}`}
+                      >
+                        <img 
+                          src={getProxiedImageUrl(destination.image)}
+                          alt={destination.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          loading="lazy"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80";
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-4 text-center">
+                          <h3 className="font-bold text-lg text-white drop-shadow-lg">{destination.name}</h3>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-              })}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>

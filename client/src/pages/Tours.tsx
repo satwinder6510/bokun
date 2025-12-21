@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { apiRequest } from "@/lib/queryClient";
 import type { BokunProduct } from "@shared/schema";
 
@@ -53,19 +53,24 @@ export default function Tours() {
     
     setMetaTags(title, description);
 
-    const schema = {
-      '@context': 'https://schema.org',
-      '@type': 'CollectionPage',
-      name: 'Land Tours',
-      description: description,
-      url: 'https://tours.flightsandpackages.com/tours',
-      isPartOf: {
-        '@type': 'WebSite',
-        name: 'Flights and Packages',
-        url: 'https://tours.flightsandpackages.com'
+    addJsonLD([
+      generateBreadcrumbSchema([
+        { name: "Home", url: "/" },
+        { name: "Land Tours", url: "/tours" }
+      ]),
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Land Tours",
+        "description": description,
+        "url": "https://tours.flightsandpackages.com/tours",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "Flights and Packages",
+          "url": "https://tours.flightsandpackages.com"
+        }
       }
-    };
-    addJsonLD(schema);
+    ]);
   }, []);
 
   const formatCategoryName = (category: string): string => {

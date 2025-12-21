@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { setMetaTags } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateFAQSchema, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
@@ -11,17 +11,25 @@ import type { Faq } from "@shared/schema";
 export default function FAQ() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  // Fetch published FAQs
   const { data: faqs = [], isLoading } = useQuery<Faq[]>({
     queryKey: ["/api/faqs"],
   });
 
-  // Set meta tags for SEO
   useEffect(() => {
     const title = "Frequently Asked Questions - Flights and Packages";
     const description = "Find answers to common questions about booking tours, travel packages, and our services. Get help with your travel planning needs.";
     setMetaTags(title, description);
-  }, []);
+    
+    if (faqs.length > 0) {
+      addJsonLD([
+        generateBreadcrumbSchema([
+          { name: "Home", url: "/" },
+          { name: "FAQ", url: "/faq" }
+        ]),
+        generateFAQSchema(faqs.map(f => ({ question: f.question, answer: f.answer })))
+      ]);
+    }
+  }, [faqs]);
 
   const toggleExpand = (id: number) => {
     setExpandedId(expandedId === id ? null : id);

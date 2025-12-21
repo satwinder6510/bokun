@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { setMetaTags } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Clock, ArrowRight } from "lucide-react";
@@ -17,6 +17,24 @@ export default function Blog() {
     const title = "Travel Blog & Tips - Flights and Packages";
     const description = "Read our latest travel guides, destination highlights, and expert tips for planning your perfect vacation. Discover hidden gems and insider knowledge.";
     setMetaTags(title, description);
+    
+    addJsonLD([
+      generateBreadcrumbSchema([
+        { name: "Home", url: "/" },
+        { name: "Blog", url: "/blog" }
+      ]),
+      {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "Flights and Packages Travel Blog",
+        "description": description,
+        "url": "https://tours.flightsandpackages.com/blog",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Flights and Packages"
+        }
+      }
+    ]);
   }, []);
 
   return (

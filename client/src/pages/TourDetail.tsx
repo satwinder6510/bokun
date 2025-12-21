@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityChecker } from "@/components/AvailabilityChecker";
 import { FlightPricingCalendar } from "@/components/FlightPricingCalendar";
 import { useCurrency } from "@/contexts/CurrencyContext";
-import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema, generateTourSchema } from "@/lib/meta-tags";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { getHeroImageUrl, getThumbImageUrl } from "@/lib/imageProxy";
 import type { BokunProductDetails } from "@shared/schema";
@@ -57,43 +57,36 @@ export default function TourDetail() {
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80";
   const photos = product?.photos || [];
 
-  // Set meta tags and structured data when product loads
   useEffect(() => {
     if (product) {
       const title = `${product.title} - Tour in ${product.locationCode?.name || 'Worldwide'} | Flights and Packages`;
       const excerpt = product.excerpt || product.title;
       const description = excerpt.length > 160 ? excerpt.substring(0, 157) + '...' : excerpt;
-      const schemaDescription = excerpt.length > 200 ? excerpt.substring(0, 200) : excerpt;
       const ogImage = product.keyPhoto?.originalUrl || imagePlaceholder;
+      const destination = product.locationCode?.name || 'Worldwide';
       
-      setMetaTags(title, description, ogImage);
+      setMetaTags(title, description, ogImage, { type: 'product' });
 
-      // Add structured data for rich snippets
-      // Convert USD to GBP with 10% markup for pricing display
       const netPrice = product.nextDefaultPriceMoney?.amount ?? product.nextDefaultPrice ?? product.price ?? 0;
       const priceAmount = formatBokunPrice(netPrice);
-      const priceCurrency = 'GBP'; // Fixed to GBP for UK customers
       
-      const schema = {
-        '@context': 'https://schema.org',
-        '@type': 'Tour',
-        name: product.title,
-        description: schemaDescription,
-        image: ogImage,
-        offers: {
-          '@type': 'Offer',
-          price: priceAmount.toFixed(2),
-          priceCurrency: priceCurrency,
-          availability: 'https://schema.org/InStock'
-        },
-        destination: {
-          '@type': 'Place',
-          name: product.locationCode?.name || 'Worldwide'
-        },
-        duration: product.durationText || 'Variable',
-        url: `https://tours.flightsandpackages.com/tour/${product.id}`
-      };
-      addJsonLD(schema);
+      addJsonLD([
+        generateBreadcrumbSchema([
+          { name: "Home", url: "/" },
+          { name: "Land Tours", url: "/tours" },
+          { name: product.title, url: `/tour/${product.id}` }
+        ]),
+        generateTourSchema({
+          name: product.title,
+          description: excerpt.length > 200 ? excerpt.substring(0, 200) : excerpt,
+          image: ogImage,
+          price: priceAmount,
+          currency: 'GBP',
+          duration: product.durationText || undefined,
+          destination: destination,
+          url: `/tour/${product.id}`
+        })
+      ]);
     }
   }, [product, selectedCurrency.code]);
 

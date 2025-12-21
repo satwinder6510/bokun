@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { setMetaTags } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateArticleSchema, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { useEffect } from "react";
 import { useRoute } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,24 @@ export default function BlogPostPage() {
     if (post) {
       const title = post.metaTitle || `${post.title} - Flights and Packages Blog`;
       const description = post.metaDescription || post.excerpt;
-      setMetaTags(title, description);
+      setMetaTags(title, description, post.featuredImage || undefined, { type: 'article' });
+      
+      addJsonLD([
+        generateBreadcrumbSchema([
+          { name: "Home", url: "/" },
+          { name: "Blog", url: "/blog" },
+          { name: post.title, url: `/blog/${post.slug}` }
+        ]),
+        generateArticleSchema({
+          title: post.title,
+          description: post.excerpt,
+          image: post.featuredImage || undefined,
+          author: post.author,
+          publishedAt: post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date(post.createdAt).toISOString(),
+          modifiedAt: new Date(post.updatedAt).toISOString(),
+          url: `/blog/${post.slug}`
+        })
+      ]);
     }
   }, [post]);
 

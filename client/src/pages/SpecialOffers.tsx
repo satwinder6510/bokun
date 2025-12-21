@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { MapPin, Clock, Plane, Star, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/Header";
@@ -102,14 +102,21 @@ export default function SpecialOffers() {
     
     setMetaTags(title, description, logoImage);
     
-    addJsonLD({
-      "@context": "https://schema.org",
-      "@type": "CollectionPage",
-      "name": "Special Offers - Flight Inclusive Packages",
-      "description": description,
-      "url": window.location.href,
-      "numberOfItems": packages.length,
-    });
+    addJsonLD([
+      generateBreadcrumbSchema([
+        { name: "Home", url: "/" },
+        { name: "Flight Packages", url: "/packages" },
+        { name: "Special Offers", url: "/special-offers" }
+      ]),
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Special Offers - Flight Inclusive Packages",
+        "description": description,
+        "url": "https://tours.flightsandpackages.com/special-offers",
+        "numberOfItems": packages.length,
+      }
+    ]);
   }, [packages.length]);
 
   return (

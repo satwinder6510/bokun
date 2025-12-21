@@ -22,14 +22,14 @@ export function setMetaTags(
   }
   descMeta.setAttribute('content', description);
 
-  // Update/create canonical link (normalize to lowercase for consistency)
+  // Update/create canonical link (preserve case for route consistency)
   let canonical = document.querySelector('link[rel="canonical"]');
   if (!canonical) {
     canonical = document.createElement('link');
     canonical.setAttribute('rel', 'canonical');
     document.head.appendChild(canonical);
   }
-  const canonicalUrl = BASE_URL + window.location.pathname.toLowerCase();
+  const canonicalUrl = BASE_URL + window.location.pathname;
   canonical.setAttribute('href', canonicalUrl);
 
   // Handle robots meta for noIndex pages
@@ -81,24 +81,30 @@ function updateMetaTag(name: string, content: string) {
 // Store schemas to allow multiple
 let currentSchemas: object[] = [];
 
+function stripContext(schema: object): object {
+  const { "@context": _, ...rest } = schema as { "@context"?: string; [key: string]: unknown };
+  return rest;
+}
+
 export function addJsonLD(schema: object | object[], replace: boolean = true) {
   if (replace) {
-    // Remove any existing JSON-LD scripts
     const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
     existingScripts.forEach(script => script.remove());
     currentSchemas = [];
   }
   
-  // Add schema(s)
   const schemas = Array.isArray(schema) ? schema : [schema];
   currentSchemas.push(...schemas);
   
-  // Create a combined graph for better SEO
+  // When combining multiple schemas, use @graph with single @context at root
+  // Strip @context from individual nodes to avoid invalid JSON-LD
   const combinedSchema = currentSchemas.length === 1 
     ? currentSchemas[0] 
-    : { "@context": "https://schema.org", "@graph": currentSchemas };
+    : { 
+        "@context": "https://schema.org", 
+        "@graph": currentSchemas.map(stripContext) 
+      };
   
-  // Remove old and add new
   const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
   existingScripts.forEach(script => script.remove());
   

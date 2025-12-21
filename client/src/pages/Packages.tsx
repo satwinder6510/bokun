@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
-import { Search, MapPin, Clock, Plane, Star, Tag, ChevronRight, ArrowRight, BookOpen } from "lucide-react";
+import { Search, MapPin, Clock, Plane, Star, ChevronRight, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -219,12 +219,9 @@ export default function Packages() {
         <section className="py-12 md:py-16">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <Star className="w-6 h-6 text-amber-500" />
-                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-special-offers">
-                  Special Offers
-                </h2>
-              </div>
+              <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-special-offers">
+                Special Offers
+              </h2>
               <Link href="/packages">
                 <Button variant="ghost" className="gap-2" data-testid="link-view-all-offers">
                   View All <ChevronRight className="w-4 h-4" />
@@ -245,12 +242,9 @@ export default function Packages() {
         <section className="py-12 md:py-16 bg-muted/30">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <Tag className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-collections">
-                  Collections
-                </h2>
-              </div>
+              <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-collections">
+                Collections
+              </h2>
               <Link href="/holidays">
                 <Button variant="ghost" className="gap-2" data-testid="link-view-all-collections">
                   View All <ChevronRight className="w-4 h-4" />
@@ -291,12 +285,9 @@ export default function Packages() {
         <section className="py-12 md:py-16">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <MapPin className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-destinations">
-                  Destinations
-                </h2>
-              </div>
+              <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-destinations">
+                Destinations
+              </h2>
               <Link href="/Holidays">
                 <Button variant="ghost" className="gap-2" data-testid="link-view-all-destinations">
                   View All <ChevronRight className="w-4 h-4" />
@@ -346,12 +337,9 @@ export default function Packages() {
         <section className="py-12 md:py-16 bg-muted/30">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <BookOpen className="w-6 h-6 text-primary" />
-                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-blog">
-                  Travel Inspiration
-                </h2>
-              </div>
+              <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-blog">
+                Travel Inspiration
+              </h2>
               <Link href="/blog">
                 <Button variant="ghost" className="gap-2" data-testid="link-view-all-blog">
                   View All <ChevronRight className="w-4 h-4" />

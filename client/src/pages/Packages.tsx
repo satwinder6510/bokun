@@ -256,9 +256,14 @@ export default function Packages() {
         <section className="py-12 md:py-16 bg-muted/30">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-collections">
-                Collections
-              </h2>
+              <div>
+                <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
+                  That extra special something
+                </p>
+                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-collections">
+                  Collections
+                </h2>
+              </div>
               <Link href="/holidays">
                 <Button variant="ghost" className="gap-2" data-testid="link-view-all-collections">
                   View All <ChevronRight className="w-4 h-4" />

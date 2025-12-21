@@ -228,9 +228,14 @@ export default function Packages() {
         <section className="py-12 md:py-16">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-special-offers">
-                Special Offers
-              </h2>
+              <div>
+                <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
+                  Exclusive offers for you
+                </p>
+                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-special-offers">
+                  Special Offers
+                </h2>
+              </div>
               <Link href="/special-offers">
                 <Button variant="ghost" className="gap-2" data-testid="link-view-all-offers">
                   View All <ChevronRight className="w-4 h-4" />

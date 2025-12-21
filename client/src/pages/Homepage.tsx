@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateOrganizationSchema } from "@/lib/meta-tags";
 import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
@@ -150,23 +150,30 @@ export default function Homepage() {
     fetchProductsMutation.mutate();
   }, []);
 
-  // Set meta tags and structured data for homepage
   useEffect(() => {
     const title = "Flights and Packages - Book 700+ Tours Worldwide";
     const description = "Discover and book 700+ unique tours worldwide with Flights and Packages. Explore destinations, compare prices, check availability, and find your perfect adventure.";
     
     setMetaTags(title, description, logoImage);
 
-    const schema = {
-      '@context': 'https://schema.org',
-      '@type': 'TravelAgency',
-      name: 'Flights and Packages',
-      url: 'https://tours.flightsandpackages.com',
-      logo: logoImage,
-      description: description,
-      sameAs: []
-    };
-    addJsonLD(schema);
+    addJsonLD([
+      generateOrganizationSchema(),
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Flights and Packages",
+        "url": "https://tours.flightsandpackages.com",
+        "description": description,
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://tours.flightsandpackages.com/tours?search={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
+    ]);
   }, []);
 
   const formatCategoryName = (category: string): string => {

@@ -1,5 +1,6 @@
 import { useRoute, Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TourCard } from "@/components/TourCard";
@@ -8,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, MapPin, Plane, Map } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import type { FlightPackage, BokunProduct } from "@shared/schema";
 
 const TAG_DISPLAY_NAMES: Record<string, string> = {
@@ -113,6 +115,32 @@ export default function CollectionDetail() {
     queryFn: () => apiRequest('GET', `/api/collections/${encodeURIComponent(tagSlug)}`),
     enabled: !!tagSlug,
   });
+
+  useEffect(() => {
+    if (data) {
+      const totalHolidays = data.flightPackages.length + data.landTours.length;
+      const title = `${displayName} - ${totalHolidays} Holiday Packages | Flights and Packages`;
+      const description = `Browse ${totalHolidays} ${displayName.toLowerCase()} from Flights and Packages. Find flight-inclusive packages and land tours for your perfect getaway.`;
+      
+      setMetaTags(title, description);
+      
+      addJsonLD([
+        generateBreadcrumbSchema([
+          { name: "Home", url: "/" },
+          { name: "Collections", url: "/holidays" },
+          { name: displayName, url: `/holidays/${tagSlug}` }
+        ]),
+        {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          "name": displayName,
+          "description": description,
+          "url": `https://tours.flightsandpackages.com/holidays/${tagSlug}`,
+          "numberOfItems": totalHolidays
+        }
+      ]);
+    }
+  }, [data, displayName, tagSlug]);
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col">

@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, MapPin, Plane, Map, BookOpen, Calendar, User } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
 import type { FlightPackage, BokunProduct, BlogPost } from "@shared/schema";
 
@@ -163,22 +163,29 @@ export default function DestinationDetail() {
       
       setMetaTags(title, description);
       
-      addJsonLD({
-        "@context": "https://schema.org",
-        "@type": "TouristDestination",
-        "name": displayName,
-        "description": description,
-        "url": window.location.href,
-        "touristType": {
-          "@type": "Audience",
-          "audienceType": "Holidaymakers"
-        },
-        "containsPlace": data.flightPackages.map(pkg => ({
-          "@type": "TouristAttraction",
-          "name": pkg.title,
-          "url": `https://tours.flightsandpackages.com/Holidays/${countrySlug}/${pkg.slug}`
-        }))
-      });
+      addJsonLD([
+        generateBreadcrumbSchema([
+          { name: "Home", url: "/" },
+          { name: "Destinations", url: "/Holidays" },
+          { name: displayName, url: `/Holidays/${countrySlug}` }
+        ]),
+        {
+          "@context": "https://schema.org",
+          "@type": "TouristDestination",
+          "name": displayName,
+          "description": description,
+          "url": `https://tours.flightsandpackages.com/Holidays/${countrySlug}`,
+          "touristType": {
+            "@type": "Audience",
+            "audienceType": "Holidaymakers"
+          },
+          "containsPlace": data.flightPackages.map(pkg => ({
+            "@type": "TouristAttraction",
+            "name": pkg.title,
+            "url": `https://tours.flightsandpackages.com/Holidays/${countrySlug}/${pkg.slug}`
+          }))
+        }
+      ]);
     }
   }, [data, displayName, countrySlug]);
 

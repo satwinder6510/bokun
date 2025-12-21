@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema, generateTourSchema } from "@/lib/meta-tags";
 import { useToast } from "@/hooks/use-toast";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { Header } from "@/components/Header";
@@ -389,28 +389,28 @@ export default function PackageDetail() {
       const title = `${pkg.title} | Flight Package - Flights and Packages`;
       const description = pkg.excerpt || pkg.description.replace(/<[^>]*>/g, '').substring(0, 160);
       const ogImage = pkg.featuredImage || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80";
+      const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
       
-      setMetaTags(title, description, ogImage);
+      setMetaTags(title, description, ogImage, { type: 'product' });
 
-      const schema = {
-        '@context': 'https://schema.org',
-        '@type': 'TravelAction',
-        name: pkg.title,
-        description: description,
-        image: ogImage,
-        offers: {
-          '@type': 'Offer',
-          price: pkg.price.toString(),
-          priceCurrency: pkg.currency,
-          availability: 'https://schema.org/InStock'
-        },
-        destination: {
-          '@type': 'Place',
-          name: pkg.category
-        },
-        url: `https://tours.flightsandpackages.com/packages/${pkg.slug}`
-      };
-      addJsonLD(schema);
+      addJsonLD([
+        generateBreadcrumbSchema([
+          { name: "Home", url: "/" },
+          { name: "Flight Packages", url: "/packages" },
+          { name: pkg.category, url: `/Holidays/${countrySlug}` },
+          { name: pkg.title, url: `/Holidays/${countrySlug}/${pkg.slug}` }
+        ]),
+        generateTourSchema({
+          name: pkg.title,
+          description: description,
+          image: ogImage,
+          price: pkg.price,
+          currency: pkg.currency,
+          duration: pkg.duration || undefined,
+          destination: pkg.category,
+          url: `/Holidays/${countrySlug}/${pkg.slug}`
+        })
+      ]);
     }
   }, [pkg]);
 

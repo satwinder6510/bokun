@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { setMetaTags } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { contactLeadSchema, type ContactLead } from "@shared/schema";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import { Mail, Phone, MapPin, Loader2 } from "lucide-react";
@@ -30,11 +30,24 @@ export default function Contact() {
   const phoneNumber = useDynamicPhoneNumber();
 
   useEffect(() => {
-    setMetaTags(
-      "Contact Us | Flights and Packages",
-      "Get in touch with Flights and Packages for tour inquiries, bookings, and customer support. We're here to help plan your perfect journey.",
-      logoImage
-    );
+    const title = "Contact Us | Flights and Packages";
+    const description = "Get in touch with Flights and Packages for tour inquiries, bookings, and customer support. We're here to help plan your perfect journey.";
+    
+    setMetaTags(title, description, logoImage);
+    
+    addJsonLD([
+      generateBreadcrumbSchema([
+        { name: "Home", url: "/" },
+        { name: "Contact Us", url: "/contact" }
+      ]),
+      {
+        "@context": "https://schema.org",
+        "@type": "ContactPage",
+        "name": title,
+        "description": description,
+        "url": "https://tours.flightsandpackages.com/contact"
+      }
+    ]);
   }, []);
 
   const form = useForm<ContactLead>({

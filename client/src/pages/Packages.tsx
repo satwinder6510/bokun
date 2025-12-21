@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { setMetaTags, addJsonLD } from "@/lib/meta-tags";
+import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { Search, MapPin, Clock, Plane, Star, ChevronRight, ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -123,15 +123,24 @@ export default function Packages() {
     
     setMetaTags(title, description, logoImage);
 
-    const schema = {
-      '@context': 'https://schema.org',
-      '@type': 'TravelAgency',
-      name: 'Flights and Packages',
-      url: 'https://tours.flightsandpackages.com/packages',
-      logo: logoImage,
-      description: description,
-    };
-    addJsonLD(schema);
+    addJsonLD([
+      generateBreadcrumbSchema([
+        { name: "Home", url: "/" },
+        { name: "Flight Packages", url: "/packages" }
+      ]),
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Flight Inclusive Packages",
+        "description": description,
+        "url": "https://tours.flightsandpackages.com/packages",
+        "isPartOf": {
+          "@type": "WebSite",
+          "name": "Flights and Packages",
+          "url": "https://tours.flightsandpackages.com"
+        }
+      }
+    ]);
   }, []);
 
   // Filter packages by search

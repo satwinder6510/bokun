@@ -123,6 +123,7 @@ type PackageFormData = {
   metaTitle: string;
   metaDescription: string;
   isPublished: boolean;
+  isSpecialOffer: boolean;
   displayOrder: number;
   bokunProductId: string | null;
 };
@@ -172,6 +173,7 @@ const emptyPackage: PackageFormData = {
   metaTitle: "",
   metaDescription: "",
   isPublished: false,
+  isSpecialOffer: false,
   displayOrder: 0,
   bokunProductId: null,
 };
@@ -632,6 +634,7 @@ export default function AdminPackages() {
       metaTitle: pkg.metaTitle || "",
       metaDescription: pkg.metaDescription || "",
       isPublished: pkg.isPublished,
+      isSpecialOffer: pkg.isSpecialOffer || false,
       displayOrder: pkg.displayOrder,
       bokunProductId: pkg.bokunProductId || null,
     });
@@ -2209,7 +2212,7 @@ export default function AdminPackages() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 flex-wrap">
                       <div className="flex items-center gap-2">
                         <Switch
                           id="isPublished"
@@ -2218,6 +2221,17 @@ export default function AdminPackages() {
                           data-testid="switch-published"
                         />
                         <Label htmlFor="isPublished">Published</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="isSpecialOffer"
+                          checked={formData.isSpecialOffer}
+                          onCheckedChange={(checked) => setFormData({ ...formData, isSpecialOffer: checked })}
+                          data-testid="switch-special-offer"
+                        />
+                        <Label htmlFor="isSpecialOffer" className="flex items-center gap-1">
+                          <span className="text-amber-600">★</span> Special Offer
+                        </Label>
                       </div>
                     </div>
                   </TabsContent>

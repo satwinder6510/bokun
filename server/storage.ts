@@ -1,7 +1,7 @@
 import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, desc, asc, sql } from "drizzle-orm";
+import { eq, desc, asc, sql, and } from "drizzle-orm";
 
 // modify the interface with any CRUD methods
 // you might need
@@ -51,6 +51,7 @@ export interface IStorage {
   
   // Flight packages methods
   getPublishedFlightPackages(category?: string): Promise<FlightPackage[]>;
+  getSpecialOfferPackages(limit?: number): Promise<FlightPackage[]>;
   getAllFlightPackages(): Promise<FlightPackage[]>;
   getFlightPackageById(id: number): Promise<FlightPackage | undefined>;
   getFlightPackageBySlug(slug: string): Promise<FlightPackage | undefined>;
@@ -650,6 +651,23 @@ export class MemStorage implements IStorage {
       return results;
     } catch (error) {
       console.error("Error fetching published packages:", error);
+      return [];
+    }
+  }
+
+  async getSpecialOfferPackages(limit?: number): Promise<FlightPackage[]> {
+    try {
+      const query = db.select().from(flightPackages)
+        .where(and(
+          eq(flightPackages.isPublished, true),
+          eq(flightPackages.isSpecialOffer, true)
+        ))
+        .orderBy(asc(flightPackages.displayOrder), desc(flightPackages.createdAt));
+      
+      const results = await query;
+      return limit ? results.slice(0, limit) : results;
+    } catch (error) {
+      console.error("Error fetching special offer packages:", error);
       return [];
     }
   }

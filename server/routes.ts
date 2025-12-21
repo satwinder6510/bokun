@@ -2116,6 +2116,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Homepage aggregated data endpoint - MUST be before :slug route
+  app.get("/api/packages/homepage", async (req, res) => {
+    try {
+      // Fetch all sections in parallel for performance
+      const [specialOffers, allPackages, blogPosts] = await Promise.all([
+        storage.getSpecialOfferPackages(8), // Limit special offers to 8
+        storage.getPublishedFlightPackages(),
+        storage.getPublishedBlogPosts(),
+      ]);
+
+      // Build destinations from published packages
+      const destinationMap = new Map<string, { name: string; count: number; image: string | null }>();
+      allPackages.forEach(pkg => {
+        const existing = destinationMap.get(pkg.category);
+        if (existing) {
+          existing.count++;
+        } else {
+          destinationMap.set(pkg.category, {
+            name: pkg.category,
+            count: 1,
+            image: pkg.featuredImage
+          });
+        }
+      });
+      const destinations = Array.from(destinationMap.values())
+        .sort((a, b) => b.count - a.count);
+
+      // Build collections from tags
+      const tagMap = new Map<string, { tag: string; count: number; image: string | null }>();
+      allPackages.forEach(pkg => {
+        const tags = pkg.tags || [];
+        tags.forEach(tag => {
+          const existing = tagMap.get(tag);
+          if (existing) {
+            existing.count++;
+          } else {
+            tagMap.set(tag, {
+              tag,
+              count: 1,
+              image: pkg.featuredImage
+            });
+          }
+        });
+      });
+      const collections = Array.from(tagMap.values())
+        .filter(c => c.count >= 2) // Only show collections with 2+ packages
+        .sort((a, b) => b.count - a.count);
+
+      // Return aggregated data
+      res.json({
+        specialOffers,
+        destinations,
+        collections,
+        blogPosts: blogPosts.slice(0, 6), // Limit blog posts to 6
+      });
+    } catch (error: any) {
+      console.error("Error fetching homepage data:", error);
+      res.status(500).json({ error: "Failed to fetch homepage data" });
+    }
+  });
+
   // Get single package by slug (public - only published packages)
   app.get("/api/packages/:slug", async (req, res) => {
     try {

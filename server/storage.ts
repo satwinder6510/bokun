@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql, and } from "drizzle-orm";
@@ -123,6 +123,13 @@ export interface IStorage {
   updateHotel(id: number, updates: Partial<InsertHotel>): Promise<Hotel | undefined>;
   deleteHotel(id: number): Promise<boolean>;
   searchHotels(query: string): Promise<Hotel[]>;
+  
+  // Content images methods (for collections and destinations)
+  getAllContentImages(): Promise<ContentImage[]>;
+  getContentImagesByType(type: string): Promise<ContentImage[]>;
+  getContentImage(type: string, name: string): Promise<ContentImage | undefined>;
+  upsertContentImage(type: string, name: string, imageUrl: string): Promise<ContentImage>;
+  deleteContentImage(id: number): Promise<boolean>;
 }
 
 // In-memory storage with per-currency product caching
@@ -1269,6 +1276,69 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error searching hotels:", error);
       return [];
+    }
+  }
+  
+  // Content images methods
+  async getAllContentImages(): Promise<ContentImage[]> {
+    try {
+      return await db.select().from(contentImages).orderBy(asc(contentImages.type), asc(contentImages.name));
+    } catch (error) {
+      console.error("Error getting content images:", error);
+      return [];
+    }
+  }
+  
+  async getContentImagesByType(type: string): Promise<ContentImage[]> {
+    try {
+      return await db.select().from(contentImages)
+        .where(eq(contentImages.type, type))
+        .orderBy(asc(contentImages.name));
+    } catch (error) {
+      console.error("Error getting content images by type:", error);
+      return [];
+    }
+  }
+  
+  async getContentImage(type: string, name: string): Promise<ContentImage | undefined> {
+    try {
+      const [image] = await db.select().from(contentImages)
+        .where(and(eq(contentImages.type, type), eq(contentImages.name, name)));
+      return image;
+    } catch (error) {
+      console.error("Error getting content image:", error);
+      return undefined;
+    }
+  }
+  
+  async upsertContentImage(type: string, name: string, imageUrl: string): Promise<ContentImage> {
+    try {
+      const existing = await this.getContentImage(type, name);
+      if (existing) {
+        const [updated] = await db.update(contentImages)
+          .set({ imageUrl, updatedAt: new Date() })
+          .where(eq(contentImages.id, existing.id))
+          .returning();
+        return updated;
+      } else {
+        const [created] = await db.insert(contentImages)
+          .values({ type, name, imageUrl })
+          .returning();
+        return created;
+      }
+    } catch (error) {
+      console.error("Error upserting content image:", error);
+      throw error;
+    }
+  }
+  
+  async deleteContentImage(id: number): Promise<boolean> {
+    try {
+      await db.delete(contentImages).where(eq(contentImages.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting content image:", error);
+      return false;
     }
   }
 }

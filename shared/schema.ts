@@ -977,3 +977,22 @@ export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSub
 
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+
+// Content Images for Collections and Destinations
+export const contentImages = pgTable("content_images", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // "collection" or "destination"
+  name: text("name").notNull(), // tag name or country name
+  imageUrl: text("image_url").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertContentImageSchema = createInsertSchema(contentImages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type ContentImage = typeof contentImages.$inferSelect;
+export type InsertContentImage = z.infer<typeof insertContentImageSchema>;

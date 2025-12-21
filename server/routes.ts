@@ -2120,11 +2120,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/packages/homepage", async (req, res) => {
     try {
       // Fetch all sections in parallel for performance
-      const [specialOffers, allPackages, blogPosts] = await Promise.all([
+      const [specialOffers, allPackages, blogPosts, contentImagesData] = await Promise.all([
         storage.getSpecialOfferPackages(8), // Limit special offers to 8
         storage.getPublishedFlightPackages(),
         storage.getPublishedBlogPosts(),
+        storage.getAllContentImages(),
       ]);
+
+      // Build lookup maps for custom images
+      const destinationImages = new Map<string, string>();
+      const collectionImages = new Map<string, string>();
+      contentImagesData.forEach(img => {
+        if (img.type === 'destination') {
+          destinationImages.set(img.name, img.imageUrl);
+        } else if (img.type === 'collection') {
+          collectionImages.set(img.name, img.imageUrl);
+        }
+      });
 
       // Build destinations from published packages
       const destinationMap = new Map<string, { name: string; count: number; image: string | null }>();
@@ -2136,7 +2148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           destinationMap.set(pkg.category, {
             name: pkg.category,
             count: 1,
-            image: pkg.featuredImage
+            image: destinationImages.get(pkg.category) || pkg.featuredImage
           });
         }
       });
@@ -2155,7 +2167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tagMap.set(tag, {
               tag,
               count: 1,
-              image: pkg.featuredImage
+              image: collectionImages.get(tag) || pkg.featuredImage
             });
           }
         });
@@ -2623,6 +2635,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting package pricing:", error);
       res.status(500).json({ error: "Failed to delete pricing" });
+    }
+  });
+
+  // ==================== Content Images Admin Routes ====================
+  
+  // Get all content images
+  app.get("/api/admin/content-images", async (req, res) => {
+    try {
+      const images = await storage.getAllContentImages();
+      res.json(images);
+    } catch (error: any) {
+      console.error("Error fetching content images:", error);
+      res.status(500).json({ error: "Failed to fetch content images" });
+    }
+  });
+
+  // Get content images by type
+  app.get("/api/admin/content-images/:type", async (req, res) => {
+    try {
+      const { type } = req.params;
+      const images = await storage.getContentImagesByType(type);
+      res.json(images);
+    } catch (error: any) {
+      console.error("Error fetching content images:", error);
+      res.status(500).json({ error: "Failed to fetch content images" });
+    }
+  });
+
+  // Upsert content image (create or update)
+  app.post("/api/admin/content-images", async (req, res) => {
+    try {
+      const { type, name, imageUrl } = req.body;
+      
+      if (!type || !name || !imageUrl) {
+        return res.status(400).json({ error: "type, name, and imageUrl are required" });
+      }
+      
+      if (type !== 'destination' && type !== 'collection') {
+        return res.status(400).json({ error: "type must be 'destination' or 'collection'" });
+      }
+      
+      const image = await storage.upsertContentImage(type, name, imageUrl);
+      res.status(201).json(image);
+    } catch (error: any) {
+      console.error("Error upserting content image:", error);
+      res.status(500).json({ error: "Failed to save content image" });
+    }
+  });
+
+  // Delete content image
+  app.delete("/api/admin/content-images/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteContentImage(parseInt(id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting content image:", error);
+      res.status(500).json({ error: "Failed to delete content image" });
     }
   });
 

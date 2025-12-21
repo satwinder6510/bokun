@@ -41,6 +41,7 @@ import AdminFlightPricing from "@/pages/AdminFlightPricing";
 import AdminSettings from "@/pages/AdminSettings";
 import AdminMedia from "@/pages/AdminMedia";
 import AdminHotels from "@/pages/AdminHotels";
+import AdminContentImages from "@/pages/AdminContentImages";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import DesignPreview from "@/pages/DesignPreview";
@@ -149,6 +150,11 @@ function Router() {
       <Route path="/admin/hotels">
         <ProtectedRoute>
           <AdminHotels />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/content-images">
+        <ProtectedRoute>
+          <AdminContentImages />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

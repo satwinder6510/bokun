@@ -132,6 +132,9 @@ export default function SpecialOffers() {
               </Button>
             </Link>
             
+            <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
+              Exclusive offers for you
+            </p>
             <div className="flex items-center gap-3 mb-2">
               <Star className="w-8 h-8 text-amber-500" />
               <h1 className="text-3xl sm:text-4xl font-bold text-foreground" data-testid="text-special-offers-title">

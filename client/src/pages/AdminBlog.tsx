@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
-import { Plus, Edit, Trash2, X, Check, Eye, ExternalLink, Search } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Edit, Trash2, X, Check, Eye, ExternalLink, Search, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -33,6 +34,7 @@ export default function AdminBlog() {
       metaDescription: "",
       featuredImage: "",
       author: "Flights and Packages",
+      destination: null,
       isPublished: true,
       publishedAt: null,
     },
@@ -40,6 +42,10 @@ export default function AdminBlog() {
 
   const { data: posts = [], isLoading } = useQuery<BlogPost[]>({
     queryKey: ["/api/blog/admin"],
+  });
+
+  const { data: destinations = [] } = useQuery<string[]>({
+    queryKey: ["/api/packages/categories"],
   });
 
   const filteredPosts = posts.filter(post => 
@@ -130,6 +136,7 @@ export default function AdminBlog() {
       metaDescription: post.metaDescription || "",
       featuredImage: post.featuredImage || "",
       author: post.author,
+      destination: post.destination || null,
       isPublished: post.isPublished,
       publishedAt: post.publishedAt,
     });
@@ -148,6 +155,7 @@ export default function AdminBlog() {
       metaDescription: "",
       featuredImage: "",
       author: "Flights and Packages",
+      destination: null,
       isPublished: true,
       publishedAt: null,
     });
@@ -282,7 +290,7 @@ export default function AdminBlog() {
                     )}
                   />
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                       control={form.control}
                       name="metaTitle"
@@ -314,6 +322,37 @@ export default function AdminBlog() {
                               data-testid="input-author"
                             />
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="destination"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              Destination (for SEO)
+                            </span>
+                          </FormLabel>
+                          <Select 
+                            onValueChange={(value) => field.onChange(value === "none" ? null : value)} 
+                            value={field.value || "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-destination">
+                                <SelectValue placeholder="Select destination" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">No destination</SelectItem>
+                              {destinations.map((dest) => (
+                                <SelectItem key={dest} value={dest}>{dest}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -418,12 +457,18 @@ export default function AdminBlog() {
                       <CardDescription className="line-clamp-2" data-testid={`text-excerpt-${post.id}`}>
                         {post.excerpt}
                       </CardDescription>
-                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
                         <span>/{post.slug}</span>
                         {post.publishedAt && (
                           <span>{format(new Date(post.publishedAt), "dd MMM yyyy")}</span>
                         )}
                         <span>by {post.author}</span>
+                        {post.destination && (
+                          <Badge variant="outline" className="gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {post.destination}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-2 flex-shrink-0">

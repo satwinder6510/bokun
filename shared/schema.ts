@@ -253,6 +253,7 @@ export const blogPosts = pgTable("blog_posts", {
   metaDescription: text("meta_description"),
   featuredImage: text("featured_image"),
   author: text("author").notNull().default("Flights and Packages"),
+  destination: text("destination"), // Country/destination for SEO linking
   isPublished: boolean("is_published").notNull().default(false),
   publishedAt: timestamp("published_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -273,6 +274,7 @@ export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
   content: z.string().min(1, "Content is required"),
   metaTitle: z.string().max(70, "Meta title should be under 70 characters").optional(),
   metaDescription: z.string().max(160, "Meta description should be under 160 characters").optional(),
+  destination: z.string().max(100, "Destination name too long").optional().nullable(),
 });
 
 export const updateBlogPostSchema = insertBlogPostSchema.partial();

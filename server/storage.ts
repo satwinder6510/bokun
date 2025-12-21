@@ -31,6 +31,7 @@ export interface IStorage {
   // Blog post methods
   getAllBlogPosts(): Promise<BlogPost[]>;
   getPublishedBlogPosts(): Promise<BlogPost[]>;
+  getBlogPostsByDestination(destination: string): Promise<BlogPost[]>;
   getBlogPostById(id: number): Promise<BlogPost | undefined>;
   getBlogPostBySlug(slug: string): Promise<BlogPost | undefined>;
   createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
@@ -490,6 +491,24 @@ export class MemStorage implements IStorage {
         );
     } catch (error) {
       console.error("Error fetching published blog posts:", error);
+      return [];
+    }
+  }
+
+  async getBlogPostsByDestination(destination: string): Promise<BlogPost[]> {
+    try {
+      return await db.select().from(blogPosts)
+        .where(and(
+          eq(blogPosts.isPublished, true),
+          sql`LOWER(${blogPosts.destination}) = LOWER(${destination})`
+        ))
+        .orderBy(
+          sql`CASE WHEN ${blogPosts.featuredImage} IS NOT NULL AND ${blogPosts.featuredImage} != '' THEN 0 ELSE 1 END`,
+          desc(blogPosts.publishedAt),
+          desc(blogPosts.createdAt)
+        );
+    } catch (error) {
+      console.error("Error fetching blog posts by destination:", error);
       return [];
     }
   }

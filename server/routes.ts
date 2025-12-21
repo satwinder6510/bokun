@@ -2333,10 +2333,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
       
+      // Get related blog posts for this destination
+      const relatedBlogs = await storage.getBlogPostsByDestination(destinationName);
+      
       res.json({
         destination: destinationName,
         flightPackages: finalPackages,
-        landTours: finalTours.slice(0, 100) // Limit to 100 tours per destination
+        landTours: finalTours.slice(0, 100), // Limit to 100 tours per destination
+        blogPosts: relatedBlogs
       });
     } catch (error: any) {
       console.error("Error fetching destination:", error);

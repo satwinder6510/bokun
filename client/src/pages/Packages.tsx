@@ -109,11 +109,22 @@ function PackageCard({ pkg, showSpecialBadge = false }: { pkg: FlightPackage; sh
 export default function Packages() {
   const [searchQuery, setSearchQuery] = useState("");
   const destinationsRef = useRef<HTMLDivElement>(null);
+  const collectionsRef = useRef<HTMLDivElement>(null);
 
   const scrollDestinations = (direction: 'left' | 'right') => {
     if (destinationsRef.current) {
       const scrollAmount = 300;
       destinationsRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollCollections = (direction: 'left' | 'right') => {
+    if (collectionsRef.current) {
+      const scrollAmount = 300;
+      collectionsRef.current.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth'
       });
@@ -262,49 +273,70 @@ export default function Packages() {
         </section>
       )}
 
-      {/* Collections Section */}
+      {/* Collections Section - Carousel Style */}
       {!searchQuery && collections.length > 0 && (
-        <section className="py-12 md:py-16 bg-muted/30">
+        <section className="py-12 md:py-16 bg-stone-100">
           <div className="container mx-auto px-4 md:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
-                  That extra special something
-                </p>
-                <h2 className="text-2xl md:text-3xl font-bold" data-testid="heading-collections">
-                  Collections
-                </h2>
-              </div>
-              <Link href="/holidays">
-                <Button variant="ghost" className="gap-2" data-testid="link-view-all-collections">
-                  View All <ChevronRight className="w-4 h-4" />
-                </Button>
-              </Link>
+            <div className="text-center mb-10">
+              <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
+                That extra special something
+              </p>
+              <h2 className="text-2xl md:text-4xl font-bold" data-testid="heading-collections">
+                Our Collections
+              </h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {collections.slice(0, 6).map((collection) => (
-                <Link key={collection.tag} href={`/holidays/${collection.tag.toLowerCase().replace(/\s+/g, '-')}`}>
-                  <Card className="hover-elevate cursor-pointer overflow-hidden h-full" data-testid={`card-collection-${collection.tag}`}>
-                    <div className="relative h-32">
+            
+            <div className="relative">
+              {/* Left Arrow */}
+              <button
+                onClick={() => scrollCollections('left')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all hover:scale-110 -ml-4 md:-ml-6"
+                aria-label="Scroll left"
+                data-testid="button-collections-prev"
+              >
+                <ChevronLeft className="w-5 h-5 text-slate-700" />
+              </button>
+              
+              {/* Right Arrow */}
+              <button
+                onClick={() => scrollCollections('right')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white shadow-lg rounded-full p-3 transition-all hover:scale-110 -mr-4 md:-mr-6"
+                aria-label="Scroll right"
+                data-testid="button-collections-next"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-700" />
+              </button>
+              
+              {/* Carousel Container */}
+              <div 
+                ref={collectionsRef}
+                className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-2 py-2"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {collections.map((collection) => (
+                  <Link key={collection.tag} href={`/holidays/${collection.tag.toLowerCase().replace(/\s+/g, '-')}`}>
+                    <div 
+                      className="relative flex-shrink-0 w-40 md:w-48 rounded-2xl overflow-hidden aspect-[3/4] group cursor-pointer shadow-md hover:shadow-xl transition-shadow"
+                      data-testid={`card-collection-${collection.tag}`}
+                    >
                       <img 
                         src={getProxiedImageUrl(collection.image)}
                         alt={collection.tag}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         loading="lazy"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
-                          target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=400&q=80";
+                          target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80";
                         }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-4 text-center">
+                        <h3 className="font-bold text-lg text-white drop-shadow-lg">{collection.tag}</h3>
+                      </div>
                     </div>
-                    <CardContent className="p-3 text-center">
-                      <h3 className="font-semibold text-sm">{collection.tag}</h3>
-                      <p className="text-xs text-muted-foreground">{collection.count} packages</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         </section>

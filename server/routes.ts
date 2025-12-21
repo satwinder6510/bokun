@@ -2123,12 +2123,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pkg = await storage.getFlightPackageBySlug(slug);
       
       if (!pkg) {
-        return res.status(404).json({ error: "Package not found" });
+        return res.status(404).json({ error: "Package not found", code: "NOT_FOUND" });
       }
       
-      // Only return published packages for public access
+      // Return coming soon status for unpublished packages
       if (!pkg.isPublished) {
-        return res.status(404).json({ error: "Package not found" });
+        return res.status(200).json({ 
+          comingSoon: true,
+          title: pkg.title,
+          category: pkg.category,
+          featuredImage: pkg.featuredImage,
+          excerpt: pkg.excerpt
+        });
       }
       
       res.json(pkg);

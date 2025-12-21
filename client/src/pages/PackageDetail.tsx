@@ -286,10 +286,23 @@ export default function PackageDetail() {
     message: "",
   });
 
-  const { data: pkg, isLoading } = useQuery<FlightPackage>({
+  // Type for coming soon response
+  type ComingSoonResponse = {
+    comingSoon: true;
+    title: string;
+    category: string;
+    featuredImage?: string;
+    excerpt?: string;
+  };
+
+  const { data: packageData, isLoading } = useQuery<FlightPackage | ComingSoonResponse>({
     queryKey: ["/api/packages", slug],
     enabled: !!slug,
   });
+
+  // Check if it's a coming soon response
+  const isComingSoon = packageData && 'comingSoon' in packageData && packageData.comingSoon;
+  const pkg = isComingSoon ? undefined : packageData as FlightPackage | undefined;
 
   const { data: pricing = [] } = useQuery<PackagePricing[]>({
     queryKey: ["/api/packages", pkg?.id, "pricing"],
@@ -463,6 +476,64 @@ export default function PackageDetail() {
             <div className="h-4 bg-stone-200 rounded w-1/2" />
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Coming Soon page for unpublished packages
+  if (isComingSoon && packageData && 'comingSoon' in packageData) {
+    const comingSoonData = packageData as ComingSoonResponse;
+    return (
+      <div className="min-h-screen bg-stone-50">
+        <Header />
+        <div className="relative">
+          {comingSoonData.featuredImage && (
+            <div className="absolute inset-0 h-[50vh]">
+              <img 
+                src={comingSoonData.featuredImage} 
+                alt={comingSoonData.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-stone-50" />
+            </div>
+          )}
+          <div className="relative container mx-auto px-6 md:px-8 pt-32 pb-16">
+            <div className="max-w-2xl mx-auto text-center">
+              <Badge className="mb-4 bg-amber-500 hover:bg-amber-600" data-testid="badge-coming-soon">
+                Coming Soon
+              </Badge>
+              <h1 className={`text-3xl md:text-4xl font-bold mb-4 ${comingSoonData.featuredImage ? 'text-white' : 'text-stone-900'}`}>
+                {comingSoonData.title}
+              </h1>
+              {comingSoonData.excerpt && (
+                <p className={`text-lg mb-8 ${comingSoonData.featuredImage ? 'text-white/90' : 'text-stone-600'}`}>
+                  {comingSoonData.excerpt}
+                </p>
+              )}
+              <div className="bg-white rounded-xl shadow-lg p-8 mt-8">
+                <h2 className="text-xl font-semibold mb-4">Be the First to Know!</h2>
+                <p className="text-stone-600 mb-6">
+                  This exciting package is coming soon. Contact us to register your interest and be notified when it becomes available.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link href={`/Holidays/${comingSoonData.category}`}>
+                    <Button variant="outline" data-testid="button-explore-country">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Explore {comingSoonData.category}
+                    </Button>
+                  </Link>
+                  <Link href="/contact">
+                    <Button data-testid="button-contact-us">
+                      <Mail className="w-4 h-4 mr-2" />
+                      Contact Us
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
       </div>
     );
   }

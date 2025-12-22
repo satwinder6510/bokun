@@ -23,6 +23,7 @@ import { Mail, Phone, MapPin, Loader2 } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
+import { captureContactFormSubmitted } from "@/lib/posthog";
 
 export default function Contact() {
   const { toast } = useToast();
@@ -67,6 +68,7 @@ export default function Contact() {
       return await apiRequest("POST", "/api/contact", data);
     },
     onSuccess: () => {
+      captureContactFormSubmitted(true);
       toast({
         title: "Message sent successfully!",
         description: "We'll get back to you soon. Thank you for contacting us.",
@@ -77,6 +79,7 @@ export default function Contact() {
       }, 2000);
     },
     onError: (error: any) => {
+      captureContactFormSubmitted(false, { error_message: error.message });
       toast({
         title: "Failed to send message",
         description: error.message || "Please try again later.",

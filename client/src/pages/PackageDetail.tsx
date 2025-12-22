@@ -19,6 +19,16 @@ import { Footer } from "@/components/Footer";
 import { apiRequest } from "@/lib/queryClient";
 import { getProxiedImageUrl, getHeroImageUrl, getGalleryImageUrl } from "@/lib/imageProxy";
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
+import { 
+  capturePackageViewed,
+  captureCallCtaClicked, 
+  captureChatCtaClicked, 
+  captureEnquireCtaClicked,
+  captureEnquirySubmitted,
+  captureDateSelected,
+  captureTabChanged,
+  captureGalleryInteraction
+} from "@/lib/posthog";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import atolLogo from "@assets/atol-protected-logo-png_seeklogo-13189_1765460348402.png";
@@ -32,6 +42,14 @@ import {
 } from "@/components/ui/dialog";
 import type { FlightPackage, PackagePricing } from "@shared/schema";
 
+// Window type with Tidio chat
+interface WindowWithTidio extends Window {
+  tidioChatApi?: {
+    show: () => void;
+    open: () => void;
+  };
+}
+
 // Video type for gallery
 type VideoItem = {
   url: string;
@@ -44,6 +62,14 @@ type GalleryItem = {
   type: 'image' | 'video';
   url: string;
   video?: VideoItem;
+};
+
+// Extended hotel type with optional location
+type HotelWithLocation = {
+  name: string;
+  images: string[];
+  description: string;
+  location?: string;
 };
 
 // Get video thumbnail URL
@@ -412,6 +438,16 @@ export default function PackageDetail() {
           url: `/Holidays/${countrySlug}/${pkg.slug}`
         })
       ]);
+
+      // Track package viewed event
+      capturePackageViewed({
+        package_id: pkg.id,
+        package_title: pkg.title,
+        package_slug: pkg.slug,
+        package_country: pkg.category,
+        package_duration: pkg.duration || undefined,
+        package_price: pkg.price
+      });
     }
   }, [pkg]);
 
@@ -440,6 +476,13 @@ export default function PackageDetail() {
         pricePerPerson: selectedPricing?.price || pkg?.price || null,
       });
 
+      // Track successful enquiry submission
+      captureEnquirySubmitted(true, {
+        package_id: pkg?.id,
+        package_title: pkg?.title,
+        package_slug: slug
+      });
+
       toast({
         title: "Enquiry Submitted",
         description: "Thank you! Our team will contact you within 24 hours.",
@@ -456,6 +499,14 @@ export default function PackageDetail() {
         message: "",
       });
     } catch (error) {
+      // Track failed enquiry submission
+      captureEnquirySubmitted(false, {
+        package_id: pkg?.id,
+        package_title: pkg?.title,
+        package_slug: slug,
+        error_message: error instanceof Error ? error.message : 'Unknown error'
+      });
+
       toast({
         title: "Error",
         description: "Failed to submit enquiry. Please try again.",
@@ -942,7 +993,7 @@ export default function PackageDetail() {
                     </Card>
                   ) : (
                     <div className="space-y-4">
-                      {accommodations.map((hotel, index) => (
+                      {(accommodations as HotelWithLocation[]).map((hotel, index) => (
                         <Card key={index}>
                           <CardHeader>
                             <CardTitle>{hotel.name}</CardTitle>
@@ -1394,16 +1445,12 @@ export default function PackageDetail() {
                       size="lg" 
                       asChild
                       onClick={() => {
-                        const win = window as any;
-                        if (win.posthog) {
-                          win.posthog.capture('call_cta_clicked', {
-                            package_title: pkg?.title,
-                            package_id: pkg?.id,
-                            package_slug: slug,
-                            phone_number: phoneNumber,
-                            page_type: 'package_detail'
-                          });
-                        }
+                        captureCallCtaClicked({
+                          package_title: pkg?.title,
+                          package_id: pkg?.id,
+                          package_slug: slug,
+                          phone_number: phoneNumber
+                        });
                       }}
                     >
                       <a 
@@ -1419,17 +1466,14 @@ export default function PackageDetail() {
                       className="w-full" 
                       size="lg" 
                       onClick={() => {
-                        const win = window as any;
+                        const win = window as WindowWithTidio;
                         
                         // Track PostHog event
-                        if (win.posthog) {
-                          win.posthog.capture('chat_cta_clicked', {
-                            package_title: pkg?.title,
-                            package_id: pkg?.id,
-                            package_slug: slug,
-                            page_type: 'package_detail'
-                          });
-                        }
+                        captureChatCtaClicked({
+                          package_title: pkg?.title,
+                          package_id: pkg?.id,
+                          package_slug: slug
+                        });
                         
                         // Open Tidio chat
                         const openTidio = () => {
@@ -1457,15 +1501,11 @@ export default function PackageDetail() {
                           size="lg" 
                           data-testid="button-enquire"
                           onClick={() => {
-                            const win = window as any;
-                            if (win.posthog) {
-                              win.posthog.capture('enquire_cta_clicked', {
-                                package_title: pkg?.title,
-                                package_id: pkg?.id,
-                                package_slug: slug,
-                                page_type: 'package_detail'
-                              });
-                            }
+                            captureEnquireCtaClicked({
+                              package_title: pkg?.title,
+                              package_id: pkg?.id,
+                              package_slug: slug
+                            });
                           }}
                         >
                           <Mail className="w-5 h-5 mr-2" />

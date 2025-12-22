@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { useToast } from "@/hooks/use-toast";
+import { captureNewsletterSignup } from "@/lib/posthog";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import atolLogo from "@assets/atol-protected-logo-png_seeklogo-13189_1765460348402.png";
@@ -31,12 +32,14 @@ export function Footer() {
       const data = await response.json();
       
       if (response.ok) {
+        captureNewsletterSignup(true, email);
         toast({
           title: "Successfully subscribed!",
           description: "You'll receive our latest offers and travel inspiration.",
         });
         setEmail("");
       } else {
+        captureNewsletterSignup(false, email);
         toast({
           title: "Subscription failed",
           description: data.error || "Please try again later.",

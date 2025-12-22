@@ -15,6 +15,7 @@ import { useCurrency } from "@/contexts/CurrencyContext";
 import { setMetaTags, addJsonLD, generateBreadcrumbSchema, generateTourSchema } from "@/lib/meta-tags";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { getHeroImageUrl, getThumbImageUrl } from "@/lib/imageProxy";
+import { captureTourViewed } from "@/lib/posthog";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 
@@ -87,6 +88,14 @@ export default function TourDetail() {
           url: `/tour/${product.id}`
         })
       ]);
+
+      // Track tour viewed event
+      captureTourViewed({
+        tour_id: product.id,
+        tour_title: product.title,
+        tour_duration: product.durationText || undefined,
+        tour_price: priceAmount
+      });
     }
   }, [product, selectedCurrency.code]);
 

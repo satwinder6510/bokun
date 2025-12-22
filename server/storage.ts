@@ -81,16 +81,15 @@ export interface IStorage {
   updateReview(id: number, review: UpdateReview): Promise<Review | undefined>;
   deleteReview(id: number): Promise<boolean>;
   
-  // Tracking number methods (DNI)
+  // Tracking number methods (DNI) - simplified tag-based matching
   getAllTrackingNumbers(): Promise<TrackingNumber[]>;
   getActiveTrackingNumbers(): Promise<TrackingNumber[]>;
   getTrackingNumberById(id: number): Promise<TrackingNumber | undefined>;
-  getTrackingNumberBySource(source: string | null, campaign: string | null, medium: string | null): Promise<TrackingNumber | undefined>;
+  getTrackingNumberByTag(tag: string): Promise<TrackingNumber | undefined>;
   getDefaultTrackingNumber(): Promise<TrackingNumber | undefined>;
   createTrackingNumber(number: InsertTrackingNumber): Promise<TrackingNumber>;
   updateTrackingNumber(id: number, updates: UpdateTrackingNumber): Promise<TrackingNumber | undefined>;
   deleteTrackingNumber(id: number): Promise<boolean>;
-  incrementTrackingNumberImpressions(id: number): Promise<void>;
   
   // Admin user methods (stored in PostgreSQL)
   getAllAdminUsers(): Promise<AdminUser[]>;
@@ -880,11 +879,11 @@ export class MemStorage implements IStorage {
     return true;
   }
 
-  // Tracking number methods (DNI)
+  // Tracking number methods (DNI) - simplified tag-based matching
   async getAllTrackingNumbers(): Promise<TrackingNumber[]> {
     try {
       return await db.select().from(trackingNumbers)
-        .orderBy(asc(trackingNumbers.displayOrder), desc(trackingNumbers.createdAt));
+        .orderBy(desc(trackingNumbers.createdAt));
     } catch (error) {
       console.error("Error fetching all tracking numbers:", error);
       return [];
@@ -895,7 +894,7 @@ export class MemStorage implements IStorage {
     try {
       return await db.select().from(trackingNumbers)
         .where(eq(trackingNumbers.isActive, true))
-        .orderBy(asc(trackingNumbers.displayOrder), desc(trackingNumbers.createdAt));
+        .orderBy(desc(trackingNumbers.createdAt));
     } catch (error) {
       console.error("Error fetching active tracking numbers:", error);
       return [];
@@ -914,57 +913,24 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async getTrackingNumberBySource(source: string | null, campaign: string | null, medium: string | null): Promise<TrackingNumber | undefined> {
+  async getTrackingNumberByTag(tag: string): Promise<TrackingNumber | undefined> {
     try {
-      // Get all active numbers
-      const numbers = await this.getActiveTrackingNumbers();
+      // Find active tracking number with matching tag
+      const results = await db.select().from(trackingNumbers)
+        .where(and(
+          eq(trackingNumbers.tag, tag),
+          eq(trackingNumbers.isActive, true)
+        ))
+        .limit(1);
       
-      // Score-based matching with priority levels:
-      // Priority 4 (highest): Exact match on source + campaign + medium
-      // Priority 3: Match on source + campaign (tracking number has no medium)
-      // Priority 2: Match on source + medium (tracking number has no campaign)
-      // Priority 1: Match on source only (tracking number has no campaign or medium)
-      // Priority 0: No match (will fall back to default)
-      
-      let bestMatch: TrackingNumber | undefined = undefined;
-      let bestScore = 0;
-      
-      for (const num of numbers) {
-        let score = 0;
-        
-        // Source must match for any score > 0
-        if (num.source !== source) {
-          continue;
-        }
-        
-        // Check for exact match (all three match, including nulls)
-        if (num.source === source && num.campaign === campaign && num.medium === medium) {
-          score = 4;
-        }
-        // Check for source + campaign match (tracking number has no medium specified)
-        else if (num.campaign === campaign && !num.medium && campaign !== null) {
-          score = 3;
-        }
-        // Check for source + medium match (tracking number has no campaign specified)
-        else if (num.medium === medium && !num.campaign && medium !== null) {
-          score = 2;
-        }
-        // Check for source only match (tracking number has no campaign or medium)
-        else if (!num.campaign && !num.medium) {
-          score = 1;
-        }
-        
-        // Update best match if this score is higher, or same score but better displayOrder
-        if (score > bestScore || (score === bestScore && score > 0 && (!bestMatch || num.displayOrder < (bestMatch.displayOrder || 0)))) {
-          bestScore = score;
-          bestMatch = num;
-        }
+      if (results[0]) {
+        return results[0];
       }
       
-      // Return best match or fall back to default
-      return bestMatch || this.getDefaultTrackingNumber();
+      // Fall back to default
+      return this.getDefaultTrackingNumber();
     } catch (error) {
-      console.error("Error finding tracking number by source:", error);
+      console.error("Error finding tracking number by tag:", error);
       return this.getDefaultTrackingNumber();
     }
   }
@@ -1015,19 +981,6 @@ export class MemStorage implements IStorage {
   async deleteTrackingNumber(id: number): Promise<boolean> {
     await db.delete(trackingNumbers).where(eq(trackingNumbers.id, id));
     return true;
-  }
-
-  async incrementTrackingNumberImpressions(id: number): Promise<void> {
-    try {
-      await db.update(trackingNumbers)
-        .set({ 
-          impressions: sql`${trackingNumbers.impressions} + 1`,
-          updatedAt: new Date()
-        })
-        .where(eq(trackingNumbers.id, id));
-    } catch (error) {
-      console.error("Error incrementing impressions:", error);
-    }
   }
 
   // Admin User methods (stored in PostgreSQL)

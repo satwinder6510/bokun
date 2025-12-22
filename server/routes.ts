@@ -4000,21 +4000,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== TRACKING NUMBERS (DNI) =====
   
-  // Get tracking number for visitor (public) - based on UTM params
+  // Get tracking number for visitor (public) - based on tag in URL
+  // Example: ?tzl in URL → tag=tzl
   app.get("/api/tracking-number", async (req, res) => {
     try {
-      const { source, campaign, medium } = req.query;
+      const { tag } = req.query;
       
-      // Find matching number or default
-      const number = await storage.getTrackingNumberBySource(
-        source as string || null,
-        campaign as string || null,
-        medium as string || null
-      );
+      let number;
+      if (tag) {
+        // Find matching number by tag
+        number = await storage.getTrackingNumberByTag(tag as string);
+      } else {
+        // No tag, get default number
+        number = await storage.getDefaultTrackingNumber();
+      }
       
       if (number) {
-        // Increment impressions asynchronously
-        storage.incrementTrackingNumberImpressions(number.id);
         res.json({ 
           phoneNumber: number.phoneNumber,
           id: number.id 

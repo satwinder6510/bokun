@@ -170,7 +170,8 @@ export function FlightPricingCalendar({ bokunProductId, productTitle }: FlightPr
         selected_date: isoDate,
         departure_airport: priceOptions[0].departureAirport,
         departure_airport_code: priceOptions[0].departureAirport,
-        price: lowestPrice
+        price: lowestPrice,
+        product_title: productTitle
       });
       setSelectedDate(priceOptions[0].date);
       setSelectedIsoDate(isoDate);

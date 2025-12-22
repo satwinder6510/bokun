@@ -66,6 +66,7 @@ interface DateSelectionProperties {
   departure_airport?: string;
   departure_airport_code?: string;
   price?: number;
+  product_title?: string;
 }
 
 interface FormSubmissionProperties {

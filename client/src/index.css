@@ -59,9 +59,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Prevent horizontal scroll/wobble on mobile */
+/* Prevent horizontal scroll/wobble on mobile - use clip to preserve sticky positioning */
 html, body {
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* LIGHT MODE */

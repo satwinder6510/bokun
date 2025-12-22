@@ -139,3 +139,32 @@ Supports `local` storage (legacy) and `object_storage` (Replit Object Storage at
 -   **class-variance-authority:** Type-safe component variants.
 -   **nanoid:** Unique ID generation.
 -   **date-fns:** Date formatting and manipulation.
+
+### PostHog Analytics
+
+Comprehensive user activity tracking is implemented using PostHog (EU data residency).
+
+**Configuration (`client/index.html`):**
+-   EU data residency (`eu.i.posthog.com`)
+-   `capture_pageview: false` (using custom route-based hook)
+-   Session recording enabled with input masking
+-   Autocapture enabled for CSS selectors
+
+**Utility (`client/src/lib/posthog.ts`):**
+Centralized, typed event tracking functions:
+-   `capturePageView(pageType, properties)` - Page view with route context
+-   `capturePackageViewed(properties)` - Flight package detail views
+-   `captureTourViewed(properties)` - Bokun tour detail views
+-   `captureCtaClicked(ctaType, pageType)` - CTA button clicks
+-   `captureNewsletterSignup(success, email)` - Newsletter subscriptions
+-   `captureContactFormSubmitted(success, properties)` - Contact form submissions
+-   `captureEnquirySubmitted(success, properties)` - Package enquiry forms
+
+**Events Tracked:**
+-   `$pageview` - Automatic route tracking via `usePostHogPageView` hook
+-   `package_viewed` - Package detail page with ID, title, country, price
+-   `tour_viewed` - Tour detail page with ID, title, duration, price
+-   `cta_clicked` - Call/chat/enquire button clicks
+-   `newsletter_signup` - Success/failure with email domain
+-   `contact_form_submitted` - Contact page submissions
+-   `enquiry_submitted` - Package enquiry form submissions

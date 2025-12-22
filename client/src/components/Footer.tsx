@@ -47,6 +47,7 @@ export function Footer() {
         });
       }
     } catch (error) {
+      captureNewsletterSignup(false, email);
       toast({
         title: "Subscription failed",
         description: "Please try again later.",

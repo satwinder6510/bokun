@@ -315,13 +315,13 @@ export default function Homepage() {
     <div className="min-h-screen bg-stone-50">
       <Header />
 
-      {/* Hero Section - adapts to image size */}
-      <section className="relative w-full min-h-[50vh] md:min-h-[60vh]">
+      {/* Hero Section - responsive height */}
+      <section className="relative w-full h-[50vh] md:h-[60vh] lg:h-auto lg:min-h-[60vh] overflow-hidden">
         {/* Hero Background Image */}
         <img
           src={heroBackgroundImage}
           alt="Discover amazing destinations"
-          className="w-full h-auto block"
+          className="w-full h-full object-cover lg:h-auto lg:object-contain lg:min-h-[60vh]"
           width={1920}
           height={600}
           loading="eager"

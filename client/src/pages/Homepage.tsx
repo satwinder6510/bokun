@@ -391,7 +391,7 @@ export default function Homepage() {
               <Plane className="w-4 h-4" />
               FLIGHTS INCLUDED
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4" data-testid="text-packages-title">
+            <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-4" data-testid="text-packages-title">
               Flight Inclusive Packages
             </h2>
             <p className="text-slate-600 text-lg max-w-2xl mx-auto">
@@ -549,7 +549,7 @@ export default function Homepage() {
             <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
               WHAT OUR CUSTOMERS SAY
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-4">
               Trusted by Thousands
             </h2>
           </div>
@@ -582,7 +582,7 @@ export default function Homepage() {
             <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
               700+ EXPERIENCES
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4" data-testid="text-tours-title">
+            <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-4" data-testid="text-tours-title">
               Explore Our Land Tours
             </h2>
             <p className="text-slate-600 text-lg max-w-2xl mx-auto">
@@ -726,7 +726,7 @@ export default function Homepage() {
               <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
                 GET INSPIRED
               </p>
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-4">
                 Popular Destinations
               </h2>
               <p className="text-slate-600 text-lg">
@@ -776,7 +776,7 @@ export default function Homepage() {
             <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
               YOUR PEACE OF MIND
             </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-4">
               Why Book With Us
             </h2>
           </div>

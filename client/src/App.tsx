@@ -65,6 +65,7 @@ import CollectionDetail from "@/pages/CollectionDetail";
 import Destinations from "@/pages/Destinations";
 import DestinationDetail from "@/pages/DestinationDetail";
 import SpecialOffers from "@/pages/SpecialOffers";
+import HeroConcepts from "@/pages/HeroConcepts";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -91,6 +92,7 @@ function Router() {
       <Route path="/Holidays/:country" component={DestinationDetail} />
       <Route path="/Holidays/:country/:slug" component={PackageDetail} />
       <Route path="/design-preview" component={DesignPreview} />
+      <Route path="/hero-concepts" component={HeroConcepts} />
       <Route path="/preview/packages" component={PreviewPackages} />
       <Route path="/preview/packages/:id" component={PreviewPackageDetail} />
       <Route path="/preview/tours" component={PreviewTours} />

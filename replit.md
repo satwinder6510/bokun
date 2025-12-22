@@ -159,6 +159,13 @@ Centralized, typed event tracking functions:
 -   `captureNewsletterSignup(success, email)` - Newsletter subscriptions
 -   `captureContactFormSubmitted(success, properties)` - Contact form submissions
 -   `captureEnquirySubmitted(success, properties)` - Package enquiry forms
+-   `captureDestinationViewed(properties)` - Destination clicks on homepage
+-   `captureDateSelected(tourId, properties)` - Flight pricing calendar date selection
+-   `captureScrollDepth(depth, pageType, properties)` - Scroll depth milestones (25%, 50%, 75%, 100%)
+
+**Hooks (`client/src/hooks/`):**
+-   `usePostHogPageView` - Automatic page view tracking on route changes
+-   `useScrollDepth` - Reusable scroll depth tracking with configurable thresholds, using refs to prevent duplicate events
 
 **Events Tracked:**
 -   `$pageview` - Automatic route tracking via `usePostHogPageView` hook
@@ -168,3 +175,6 @@ Centralized, typed event tracking functions:
 -   `newsletter_signup` - Success/failure with email domain
 -   `contact_form_submitted` - Contact page submissions
 -   `enquiry_submitted` - Package enquiry form submissions
+-   `destination_viewed` - Homepage destination clicks with name and package count
+-   `date_selected` - Flight pricing calendar date selections with airport and price
+-   `scroll_depth` - User scroll milestones (25%, 50%, 75%, 100%) on package and tour detail pages

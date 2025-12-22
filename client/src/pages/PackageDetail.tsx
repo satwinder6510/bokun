@@ -633,8 +633,8 @@ export default function PackageDetail() {
               </div>
             </div>
             
-            {/* Desktop Price Badge - Bottom Right */}
-            <div className="hidden md:block absolute bottom-6 right-6">
+            {/* Desktop Price Badge - Top Right */}
+            <div className="hidden md:block absolute top-6 right-6">
               <div className="bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg">
                 <p className="text-xs text-muted-foreground">From</p>
                 <p className="text-2xl font-bold text-secondary" data-testid="hero-price-desktop">

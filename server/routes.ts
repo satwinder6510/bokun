@@ -154,6 +154,133 @@ const UK_AIRPORTS_MAP: Record<string, string> = {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // ========================================
+  // LEGACY URL REDIRECTS (Old sitemap compatibility)
+  // ========================================
+  
+  // Middleware to handle legacy URLs from old website
+  app.use((req, res, next) => {
+    const originalUrl = req.path;
+    
+    // Skip API routes and static assets
+    if (originalUrl.startsWith('/api/') || 
+        originalUrl.startsWith('/objects/') || 
+        originalUrl.startsWith('/assets/') ||
+        originalUrl.startsWith('/uploads/') ||
+        originalUrl.includes('.')) {
+      return next();
+    }
+    
+    let redirectUrl: string | null = null;
+    
+    // 1. Handle /flights/Region/Country -> redirect to homepage (flights pages don't exist in new site)
+    if (originalUrl.match(/^\/flights\//i)) {
+      redirectUrl = '/';
+    }
+    
+    // 2. Handle static page redirects
+    else if (originalUrl === '/AboutUs' || originalUrl === '/aboutus') {
+      redirectUrl = '/';
+    }
+    else if (originalUrl === '/Home/Contact_Us' || originalUrl === '/home/contact_us') {
+      redirectUrl = '/contact';
+    }
+    else if (originalUrl === '/TermNcondition' || originalUrl === '/termncondition') {
+      redirectUrl = '/terms';
+    }
+    else if (originalUrl === '/PrivacyPolicy' || originalUrl === '/privacypolicy') {
+      redirectUrl = '/terms';
+    }
+    
+    // 3. Handle /Holidays/Region/Country/ID pattern (e.g., /Holidays/Europe/Italy/11)
+    // Redirect to /Holidays/country (lowercase, without region and ID)
+    else if (originalUrl.match(/^\/Holidays\/[^\/]+\/([^\/]+)\/\d+$/i)) {
+      const match = originalUrl.match(/^\/Holidays\/[^\/]+\/([^\/]+)\/\d+$/i);
+      if (match) {
+        const country = match[1].toLowerCase().replace(/-$/, ''); // Remove trailing dash
+        redirectUrl = `/Holidays/${country}`;
+      }
+    }
+    
+    // 4. Handle /Holidays/Region pattern (e.g., /Holidays/Europe, /Holidays/Asia)
+    // These are region landing pages - redirect to destinations listing
+    else if (originalUrl.match(/^\/Holidays\/(Europe|Americas|Africa|Asia|Middle-East|Indian-Ocean)$/i)) {
+      redirectUrl = '/Holidays';
+    }
+    
+    // 5. Handle /Holidays/Country/package-slug pattern with special characters
+    // Clean up the slug and redirect to proper format
+    else if (originalUrl.match(/^\/Holidays\/[^\/]+\/[^\/]+$/i)) {
+      const match = originalUrl.match(/^\/Holidays\/([^\/]+)\/(.+)$/i);
+      if (match) {
+        const country = match[1].toLowerCase()
+          .replace(/-$/, '') // Remove trailing dash
+          .replace(/[^a-z0-9-]/g, '-') // Replace special chars
+          .replace(/-+/g, '-'); // Collapse multiple dashes
+        
+        // Decode URI and clean up slug
+        let slug = decodeURIComponent(match[2])
+          .replace(/[\u2018\u2019\u201C\u201D]/g, '') // Smart quotes
+          .replace(/&amp;/g, 'and')
+          .replace(/&/g, 'and')
+          .replace(/:/g, '')
+          .replace(/'/g, '')
+          .replace(/,/g, '')
+          .toLowerCase() // Lowercase the slug
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+        
+        // Only redirect if the URL actually changed
+        const newUrl = `/Holidays/${country}/${slug}`;
+        if (newUrl !== originalUrl) {
+          redirectUrl = newUrl;
+        }
+      }
+    }
+    
+    // 6. Handle /Holidays/collection-name pattern (collections with special chars)
+    // This handles both destination countries (like /Holidays/Italy) and collections (like /Holidays/Beach)
+    else if (originalUrl.match(/^\/Holidays\/[^\/]+$/i)) {
+      const match = originalUrl.match(/^\/Holidays\/(.+)$/i);
+      if (match) {
+        const segment = decodeURIComponent(match[1]);
+        // Clean up the segment
+        const cleanSegment = segment
+          .replace(/[\u2018\u2019\u201C\u201D]/g, '') // Smart quotes
+          .replace(/&amp;/g, 'and')
+          .replace(/&/g, 'and')
+          .replace(/:/g, '')
+          .replace(/'/g, '')
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+        
+        const newUrl = `/Holidays/${cleanSegment}`;
+        if (newUrl !== originalUrl) {
+          redirectUrl = newUrl;
+        }
+      }
+    }
+    
+    // 7. Handle root-level special pages (e.g., /Greek-Island-Hopping)
+    else if (originalUrl.match(/^\/[A-Z][^\/]*$/)) {
+      const cleanPath = originalUrl.toLowerCase();
+      if (cleanPath !== originalUrl) {
+        redirectUrl = cleanPath;
+      }
+    }
+    
+    // Perform 301 redirect if we found a new URL
+    if (redirectUrl) {
+      console.log(`[Legacy Redirect] ${originalUrl} -> ${redirectUrl}`);
+      return res.redirect(301, redirectUrl);
+    }
+    
+    next();
+  });
+
+  // ========================================
   // OBJECT STORAGE ROUTES
   // ========================================
   

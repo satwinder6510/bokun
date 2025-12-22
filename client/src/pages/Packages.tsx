@@ -316,7 +316,8 @@ export default function Packages() {
                 {collections.map((collection) => (
                   <Link key={collection.tag} href={`/holidays/${collection.tag.toLowerCase().replace(/\s+/g, '-')}`}>
                     <div 
-                      className="relative flex-shrink-0 w-40 md:w-48 rounded-2xl overflow-hidden aspect-[3/4] group cursor-pointer shadow-md hover:shadow-xl transition-shadow"
+                      className="relative flex-shrink-0 rounded-2xl overflow-hidden group cursor-pointer shadow-md hover:shadow-xl transition-shadow"
+                      style={{ width: '198px', height: '320px' }}
                       data-testid={`card-collection-${collection.tag}`}
                     >
                       <img 

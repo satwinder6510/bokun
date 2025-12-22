@@ -16,6 +16,7 @@ import { setMetaTags, addJsonLD, generateBreadcrumbSchema, generateTourSchema } 
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { getHeroImageUrl, getThumbImageUrl } from "@/lib/imageProxy";
 import { captureTourViewed } from "@/lib/posthog";
+import { useScrollDepth } from "@/hooks/useScrollDepth";
 import type { BokunProductDetails } from "@shared/schema";
 import useEmblaCarousel from "embla-carousel-react";
 
@@ -54,6 +55,12 @@ export default function TourDetail() {
   });
 
   const hasFlightPackages = flightPricingData?.enabled && flightPricingData?.prices?.length > 0;
+
+  // Track scroll depth on tour detail page
+  useScrollDepth({
+    pageType: 'tour_detail',
+    properties: product ? { tour_id: product.id, tour_title: product.title } : undefined
+  });
 
   const imagePlaceholder = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&q=80";
   const photos = product?.photos || [];

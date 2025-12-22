@@ -29,6 +29,7 @@ import {
   captureTabChanged,
   captureGalleryInteraction
 } from "@/lib/posthog";
+import { useScrollDepth } from "@/hooks/useScrollDepth";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import atolLogo from "@assets/atol-protected-logo-png_seeklogo-13189_1765460348402.png";
@@ -358,6 +359,12 @@ export default function PackageDetail() {
     })
     .filter(airport => airport.hasValidPrices) // Exclude airports with no valid prices
     .sort((a, b) => a.minPrice - b.minPrice); // Sort by cheapest price first
+
+  // Track scroll depth on package detail page
+  useScrollDepth({
+    pageType: 'package_detail',
+    properties: pkg ? { package_id: pkg.id, package_title: pkg.title } : undefined
+  });
   
   // Debug: Log pricing and airport state
   useEffect(() => {

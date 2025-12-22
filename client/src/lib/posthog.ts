@@ -260,6 +260,18 @@ export function captureExternalLinkClicked(url: string, linkType: 'social' | 'pa
   });
 }
 
+export function captureScrollDepth(
+  depth: number,
+  pageType: PageType,
+  properties?: Record<string, unknown>
+): void {
+  captureEvent('scroll_depth', {
+    depth_percent: depth,
+    page_type: pageType,
+    ...properties,
+  });
+}
+
 export function identifyUser(userId: string, properties?: Record<string, unknown>): void {
   const posthog = getPostHog();
   if (posthog) {

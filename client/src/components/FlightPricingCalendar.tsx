@@ -23,6 +23,7 @@ import {
   Loader2, Clock, MapPin, Info 
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isToday, getDay, isBefore, startOfDay } from "date-fns";
+import { captureDateSelected, captureCalendarOpened } from "@/lib/posthog";
 
 type CombinedPrice = {
   date: string;
@@ -164,6 +165,13 @@ export function FlightPricingCalendar({ bokunProductId, productTitle }: FlightPr
     const isoDate = format(date, "yyyy-MM-dd");
     const priceOptions = pricesByDate.get(isoDate);
     if (priceOptions && priceOptions.length > 0) {
+      const lowestPrice = priceOptions.reduce((min, p) => p.finalPrice < min ? p.finalPrice : min, priceOptions[0].finalPrice);
+      captureDateSelected(parseInt(bokunProductId), {
+        selected_date: isoDate,
+        departure_airport: priceOptions[0].departureAirport,
+        departure_airport_code: priceOptions[0].departureAirport,
+        price: lowestPrice
+      });
       setSelectedDate(priceOptions[0].date);
       setSelectedIsoDate(isoDate);
       setDetailsDialogOpen(true);

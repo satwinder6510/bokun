@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { captureDestinationViewed, captureSearch, captureFilterApplied } from "@/lib/posthog";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } from "@shared/schema";
@@ -796,6 +797,7 @@ export default function Homepage() {
                 <button
                   key={dest.name}
                   onClick={() => {
+                    captureDestinationViewed(dest.name, dest.count);
                     setSelectedCountry(dest.name);
                     document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
                   }}

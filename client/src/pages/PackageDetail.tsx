@@ -738,6 +738,105 @@ export default function PackageDetail() {
         </div>
       </section>
 
+      {/* Mobile Availability Calendar - Shown only on mobile */}
+      {pricing.length > 0 && (
+        <section className="lg:hidden pb-6" id="pricing-mobile">
+          <div className="container mx-auto px-4">
+            <Card className="border-2 border-secondary/30">
+              <CardHeader className="bg-secondary/5 pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-sm text-muted-foreground">From</span>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price)}</p>
+                    <span className="text-xs text-muted-foreground">per person</span>
+                  </div>
+                  <Badge className="bg-secondary text-white">
+                    <Plane className="w-4 h-4 mr-1" />
+                    Flights Included
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-5 h-5 text-secondary" />
+                  <p className="font-medium">Check Availability</p>
+                </div>
+                
+                {airports.length > 0 && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground mb-1 block">Departing from</Label>
+                    <select
+                      value={selectedAirport}
+                      onChange={(e) => {
+                        setSelectedAirport(e.target.value);
+                        setSelectedDate(undefined);
+                      }}
+                      className="w-full p-2 border rounded-md bg-white text-foreground text-sm"
+                      data-testid="select-airport-mobile"
+                    >
+                      {airports.length > 1 && <option value="">Select Airport</option>}
+                      {airports.map(airport => (
+                        <option key={airport.code} value={airport.code}>
+                          {airport.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {selectedAirport && (
+                  <div className="space-y-3">
+                    <PriceCalendarWidget
+                      pricingData={sortedPricing}
+                      selectedDate={selectedDate}
+                      onDateSelect={setSelectedDate}
+                      formatPrice={formatPrice}
+                    />
+                    
+                    {selectedDate && selectedPricing && (
+                      <div className="p-3 bg-secondary/10 rounded-lg border border-secondary/20">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">
+                              {selectedDate.toLocaleDateString('en-GB', { 
+                                weekday: 'short',
+                                day: 'numeric', 
+                                month: 'short'
+                              })}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              From {selectedPricing.departureAirportName}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-secondary">
+                              {formatPrice(selectedPricing.price)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">per person</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="w-full bg-secondary hover:bg-secondary/90 text-white"
+                      data-testid="button-enquire-mobile"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Enquire Now
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      )}
+
       {/* Main Content */}
       <section className="py-8 md:py-12">
         <div className="container mx-auto px-4 md:px-8">

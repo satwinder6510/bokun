@@ -574,6 +574,19 @@ export default function Homepage() {
               </Card>
             ))}
           </div>
+
+          <p className="text-center text-slate-500 mt-8">
+            See all our reviews on{" "}
+            <a 
+              href="https://www.trustpilot.com" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-secondary hover:underline"
+              data-testid="link-trustpilot"
+            >
+              TrustPilot
+            </a>
+          </p>
         </div>
       </section>
 

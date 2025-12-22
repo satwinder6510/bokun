@@ -833,6 +833,25 @@ export default function PackageDetail() {
                 </Dialog>
               </CardContent>
             </Card>
+
+            {/* Mobile What's Included */}
+            {whatsIncluded.length > 0 && (
+              <Card className="mt-4">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">What's Included</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <ul className="space-y-2">
+                    {whatsIncluded.map((item, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm" data-testid={`included-mobile-${index}`}>
+                        <Check className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </section>
       )}

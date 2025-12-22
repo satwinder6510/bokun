@@ -59,6 +59,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent horizontal scroll/wobble on mobile */
+html, body {
+  overflow-x: hidden;
+}
+
 /* LIGHT MODE */
 :root {
   --button-outline: rgba(0,0,0, .10);

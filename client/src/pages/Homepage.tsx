@@ -262,30 +262,9 @@ export default function Homepage() {
     .filter(p => p.keyPhoto?.originalUrl)
     .slice(0, 8);
 
-  // Get hero background image - prioritize admin-configured image, then package, then tour, then fallback
-  const getHeroBackgroundImage = (): string => {
-    // First check if admin has configured a hero image
-    if (configuredHeroImage) {
-      return configuredHeroImage;
-    }
-    
-    // Then try featured package with image
-    const packageWithImage = featuredPackages.find(pkg => pkg.featuredImage);
-    if (packageWithImage?.featuredImage) {
-      return getHeroImageUrl(packageWithImage.featuredImage) || fallbackHeroImages[0];
-    }
-    
-    // Then try tour with image
-    const tourWithImage = products.find(p => p.keyPhoto?.originalUrl);
-    if (tourWithImage?.keyPhoto?.originalUrl) {
-      return getHeroImageUrl(tourWithImage.keyPhoto.originalUrl) || fallbackHeroImages[0];
-    }
-    
-    // Fallback
-    return fallbackHeroImages[0];
-  };
-
-  const heroBackgroundImage = getHeroBackgroundImage();
+  // Get hero background image - admin-configured image (from media library) takes priority
+  // Media library images are served directly with proper caching, no proxy needed
+  const heroBackgroundImage = configuredHeroImage || fallbackHeroImages[0];
 
   // Preload hero image for faster LCP
   useEffect(() => {

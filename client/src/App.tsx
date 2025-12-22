@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
+import { usePostHogPageView } from "@/hooks/usePostHogPageView";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -17,6 +18,12 @@ function ScrollToTop() {
     window.scrollTo(0, 0);
   }, [location]);
   
+  return null;
+}
+
+// PostHog page view tracking
+function PostHogPageTracker() {
+  usePostHogPageView();
   return null;
 }
 import Homepage from "@/pages/Homepage";
@@ -172,6 +179,7 @@ function App() {
           <CartProvider>
             <TooltipProvider>
               <ScrollToTop />
+              <PostHogPageTracker />
               <Toaster />
               <Router />
             </TooltipProvider>

@@ -59,7 +59,27 @@
           posthog.init('phc_CncpMTolnthosh7c98z3b7iqSHbhB1vokNzW2WgrC2R', {
               api_host: 'https://eu.i.posthog.com',
               defaults: '2025-11-30',
-              person_profiles: 'identified_only'
+              person_profiles: 'identified_only',
+              capture_pageview: false,
+              capture_pageleave: true,
+              disable_session_recording: false,
+              session_recording: {
+                maskAllInputs: true,
+                maskTextSelector: '[data-mask]',
+              },
+              autocapture: {
+                dom_event_allowlist: ['click', 'submit'],
+                element_allowlist: ['button', 'a', 'input', 'select', 'textarea', 'form'],
+                css_selector_allowlist: ['[data-testid]'],
+              },
+              property_denylist: ['$ip'],
+              loaded: function(posthog) {
+                posthog.register({
+                  'site_name': 'Flights and Packages',
+                  'site_domain': 'tours.flightsandpackages.com',
+                  'platform': 'web'
+                });
+              }
           });
           
           // Tidio Chat Widget - only on tour and package detail pages

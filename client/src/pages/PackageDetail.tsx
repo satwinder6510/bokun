@@ -904,9 +904,9 @@ export default function PackageDetail() {
                     </Card>
                   )}
 
-                  {/* What's Included */}
+                  {/* What's Included - Hidden on mobile (shown in mobile section above) */}
                   {whatsIncluded.length > 0 && (
-                    <Card>
+                    <Card className="hidden lg:block">
                       <CardHeader>
                         <CardTitle>What's Included</CardTitle>
                       </CardHeader>
@@ -1064,8 +1064,8 @@ export default function PackageDetail() {
               </Tabs>
             </div>
 
-            {/* Right Column - Booking Sidebar */}
-            <div className="lg:col-span-1" id="pricing">
+            {/* Right Column - Booking Sidebar - Hidden on mobile (shown in mobile section above) */}
+            <div className="hidden lg:block lg:col-span-1" id="pricing">
               <div className="sticky top-24">
                 <Card className="border-2 border-secondary/30">
                   <CardHeader className="bg-secondary/5">

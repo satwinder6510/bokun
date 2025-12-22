@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { 
-  ArrowLeft, Plus, Trash2, Edit2, Phone, Save, X, Search, Loader2, Eye, BarChart3
+  ArrowLeft, Plus, Trash2, Edit2, Phone, Save, X, Loader2, ExternalLink
 } from "lucide-react";
 import {
   Dialog,
@@ -45,28 +45,21 @@ import type { TrackingNumber, InsertTrackingNumber } from "@shared/schema";
 type TrackingNumberFormData = {
   phoneNumber: string;
   label: string;
-  source: string;
-  campaign: string;
-  medium: string;
+  tag: string;
   isDefault: boolean;
   isActive: boolean;
-  displayOrder: number;
 };
 
 const emptyForm: TrackingNumberFormData = {
   phoneNumber: "",
   label: "",
-  source: "",
-  campaign: "",
-  medium: "",
+  tag: "",
   isDefault: false,
   isActive: true,
-  displayOrder: 0,
 };
 
 export default function AdminTrackingNumbers() {
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingNumber, setEditingNumber] = useState<TrackingNumber | null>(null);
   const [formData, setFormData] = useState<TrackingNumberFormData>(emptyForm);
@@ -138,13 +131,10 @@ export default function AdminTrackingNumbers() {
     setEditingNumber(number);
     setFormData({
       phoneNumber: number.phoneNumber,
-      label: number.label,
-      source: number.source || "",
-      campaign: number.campaign || "",
-      medium: number.medium || "",
+      label: number.label || "",
+      tag: number.tag || "",
       isDefault: number.isDefault,
       isActive: number.isActive,
-      displayOrder: number.displayOrder || 0,
     });
     setIsDialogOpen(true);
   };
@@ -152,13 +142,10 @@ export default function AdminTrackingNumbers() {
   const handleSubmit = () => {
     const data: InsertTrackingNumber = {
       phoneNumber: formData.phoneNumber,
-      label: formData.label,
-      source: formData.source || null,
-      campaign: formData.campaign || null,
-      medium: formData.medium || null,
+      label: formData.label || null,
+      tag: formData.tag || null,
       isDefault: formData.isDefault,
       isActive: formData.isActive,
-      displayOrder: formData.displayOrder,
     };
 
     if (editingNumber) {
@@ -168,18 +155,11 @@ export default function AdminTrackingNumbers() {
     }
   };
 
-  const filteredNumbers = trackingNumbers.filter(num => 
-    num.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    num.phoneNumber.includes(searchQuery) ||
-    (num.source?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
-    (num.campaign?.toLowerCase() || "").includes(searchQuery.toLowerCase())
-  );
-
-  const totalImpressions = trackingNumbers.reduce((sum, num) => sum + (num.impressions || 0), 0);
+  const defaultNumber = trackingNumbers.find(n => n.isDefault);
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="flex items-center gap-4 mb-8">
           <Link href="/admin">
             <Button variant="ghost" size="icon" data-testid="button-back">
@@ -188,11 +168,11 @@ export default function AdminTrackingNumbers() {
           </Link>
           <div>
             <h1 className="text-3xl font-bold" data-testid="text-page-title">Tracking Numbers</h1>
-            <p className="text-muted-foreground">Manage dynamic number insertion for call tracking</p>
+            <p className="text-muted-foreground">Show different phone numbers based on URL tags</p>
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3 mb-8">
+        <div className="grid gap-4 md:grid-cols-2 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Numbers</CardTitle>
@@ -207,24 +187,14 @@ export default function AdminTrackingNumbers() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Impressions</CardTitle>
-              <Eye className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-impressions">{totalImpressions.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">Times numbers were displayed</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Default Number</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <Phone className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-lg font-bold truncate" data-testid="text-default-number">
-                {trackingNumbers.find(n => n.isDefault)?.phoneNumber || "Not set"}
+                {defaultNumber?.phoneNumber || "Not set"}
               </div>
-              <p className="text-xs text-muted-foreground">Shown when no source matches</p>
+              <p className="text-xs text-muted-foreground">Shown when no tag matches</p>
             </CardContent>
           </Card>
         </div>
@@ -235,7 +205,7 @@ export default function AdminTrackingNumbers() {
               <div>
                 <CardTitle>All Tracking Numbers</CardTitle>
                 <CardDescription>
-                  Configure phone numbers for different marketing sources
+                  Add tags and phone numbers for different campaigns
                 </CardDescription>
               </div>
               <Button onClick={openCreateDialog} data-testid="button-add-number">
@@ -245,36 +215,21 @@ export default function AdminTrackingNumbers() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by label, number, or source..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search"
-                />
-              </div>
-            </div>
-
             {isLoading ? (
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
-            ) : filteredNumbers.length === 0 ? (
+            ) : trackingNumbers.length === 0 ? (
               <div className="text-center py-12">
                 <Phone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No tracking numbers found</h3>
+                <h3 className="text-lg font-semibold mb-2">No tracking numbers yet</h3>
                 <p className="text-muted-foreground mb-4">
-                  {searchQuery ? "Try a different search term" : "Add your first tracking number to get started"}
+                  Add your first tracking number to get started
                 </p>
-                {!searchQuery && (
-                  <Button onClick={openCreateDialog}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Number
-                  </Button>
-                )}
+                <Button onClick={openCreateDialog}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Number
+                </Button>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -282,16 +237,14 @@ export default function AdminTrackingNumbers() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Phone Number</TableHead>
+                      <TableHead>Tag</TableHead>
                       <TableHead>Label</TableHead>
-                      <TableHead>Source</TableHead>
-                      <TableHead>Campaign</TableHead>
-                      <TableHead className="text-center">Impressions</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
+                      <TableHead className="text-center">Active</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredNumbers.map((number) => (
+                    {trackingNumbers.map((number) => (
                       <TableRow key={number.id} data-testid={`row-tracking-number-${number.id}`}>
                         <TableCell className="font-mono font-medium">
                           {number.phoneNumber}
@@ -299,23 +252,25 @@ export default function AdminTrackingNumbers() {
                             <Badge variant="secondary" className="ml-2">Default</Badge>
                           )}
                         </TableCell>
-                        <TableCell>{number.label}</TableCell>
                         <TableCell>
-                          {number.source ? (
-                            <Badge variant="outline">{number.source}</Badge>
+                          {number.tag ? (
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline" className="font-mono">?{number.tag}</Badge>
+                              <a 
+                                href={`/?${number.tag}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            </div>
                           ) : (
-                            <span className="text-muted-foreground">Any</span>
+                            <span className="text-muted-foreground">—</span>
                           )}
                         </TableCell>
                         <TableCell>
-                          {number.campaign ? (
-                            <Badge variant="outline">{number.campaign}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">Any</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {(number.impressions || 0).toLocaleString()}
+                          {number.label || <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell className="text-center">
                           <Switch
@@ -351,7 +306,7 @@ export default function AdminTrackingNumbers() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Tracking Number</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete "{number.label}"? This action cannot be undone.
+                                    Are you sure you want to delete this tracking number? This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -382,30 +337,19 @@ export default function AdminTrackingNumbers() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>
-              <strong>Dynamic Number Insertion (DNI)</strong> displays different phone numbers to visitors 
-              based on how they arrived at your site. This allows you to track which marketing channels 
-              drive phone calls.
+              Show different phone numbers based on a simple tag in the URL. 
+              When visitors arrive via a tagged link, they'll see the matching phone number throughout the site.
             </p>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">UTM Parameters</h4>
-                <p>Numbers are matched based on URL parameters:</p>
-                <ul className="list-disc list-inside mt-2 space-y-1">
-                  <li><code className="bg-muted px-1 rounded">utm_source</code> - Traffic source (google, facebook)</li>
-                  <li><code className="bg-muted px-1 rounded">utm_campaign</code> - Campaign name</li>
-                  <li><code className="bg-muted px-1 rounded">utm_medium</code> - Marketing medium (cpc, email)</li>
-                </ul>
+            <div className="space-y-3">
+              <h4 className="font-semibold text-foreground">Example:</h4>
+              <div className="bg-muted rounded-lg p-4 space-y-2">
+                <p>1. Create a tracking number with tag <code className="bg-background px-1 rounded">tzl</code></p>
+                <p>2. Share the URL: <code className="bg-background px-1 rounded">tours.flightsandpackages.com/?tzl</code></p>
+                <p>3. Visitors from that link see your campaign phone number</p>
               </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-2">Matching Priority</h4>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Exact match (source + campaign + medium)</li>
-                  <li>Source + campaign match</li>
-                  <li>Source + medium match</li>
-                  <li>Source only match</li>
-                  <li>Default number (fallback)</li>
-                </ol>
-              </div>
+              <p className="text-xs">
+                The tag is remembered during the visitor's session, so they'll see the same number as they browse the site.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -420,7 +364,7 @@ export default function AdminTrackingNumbers() {
             <DialogDescription>
               {editingNumber 
                 ? "Update the tracking number details" 
-                : "Add a new phone number for call tracking"}
+                : "Add a phone number with an optional tag for tracking"}
             </DialogDescription>
           </DialogHeader>
           
@@ -437,59 +381,36 @@ export default function AdminTrackingNumbers() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="label">Label *</Label>
+              <Label htmlFor="tag">Tag</Label>
+              <Input
+                id="tag"
+                value={formData.tag}
+                onChange={(e) => setFormData({ ...formData, tag: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') })}
+                placeholder="e.g., tzl, fb, gads"
+                className="font-mono"
+                data-testid="input-tag"
+              />
+              <p className="text-xs text-muted-foreground">
+                URL will be: tours.flightsandpackages.com/?{formData.tag || "tag"}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="label">Label (optional)</Label>
               <Input
                 id="label"
                 value={formData.label}
                 onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                placeholder="e.g., Google Ads - Brand Campaign"
+                placeholder="e.g., TikTok Campaign"
                 data-testid="input-label"
               />
-              <p className="text-xs text-muted-foreground">A descriptive name for this number</p>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="source">Source</Label>
-                <Input
-                  id="source"
-                  value={formData.source}
-                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  placeholder="e.g., google"
-                  data-testid="input-source"
-                />
-                <p className="text-xs text-muted-foreground">utm_source value</p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="campaign">Campaign</Label>
-                <Input
-                  id="campaign"
-                  value={formData.campaign}
-                  onChange={(e) => setFormData({ ...formData, campaign: e.target.value })}
-                  placeholder="e.g., summer_sale"
-                  data-testid="input-campaign"
-                />
-                <p className="text-xs text-muted-foreground">utm_campaign value</p>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="medium">Medium</Label>
-              <Input
-                id="medium"
-                value={formData.medium}
-                onChange={(e) => setFormData({ ...formData, medium: e.target.value })}
-                placeholder="e.g., cpc, email, social"
-                data-testid="input-medium"
-              />
-              <p className="text-xs text-muted-foreground">utm_medium value (optional)</p>
+              <p className="text-xs text-muted-foreground">For your reference only</p>
             </div>
             
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="isDefault">Default Number</Label>
-                <p className="text-xs text-muted-foreground">Show when no source matches</p>
+                <p className="text-xs text-muted-foreground">Show when no tag matches</p>
               </div>
               <Switch
                 id="isDefault"
@@ -502,7 +423,7 @@ export default function AdminTrackingNumbers() {
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label htmlFor="isActive">Active</Label>
-                <p className="text-xs text-muted-foreground">Include in number matching</p>
+                <p className="text-xs text-muted-foreground">Enable this tracking number</p>
               </div>
               <Switch
                 id="isActive"
@@ -522,7 +443,7 @@ export default function AdminTrackingNumbers() {
             </DialogClose>
             <Button 
               onClick={handleSubmit}
-              disabled={!formData.phoneNumber || !formData.label || createMutation.isPending || updateMutation.isPending}
+              disabled={!formData.phoneNumber || createMutation.isPending || updateMutation.isPending}
               data-testid="button-save"
             >
               {(createMutation.isPending || updateMutation.isPending) ? (

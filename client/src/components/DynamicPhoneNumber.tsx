@@ -10,65 +10,59 @@ interface DynamicPhoneNumberProps {
 
 const DEFAULT_PHONE = "0208 183 0518";
 
-function getUtmParams(): { source: string | null; campaign: string | null; medium: string | null } {
+function getTrackingTag(): string | null {
   if (typeof window === "undefined") {
-    return { source: null, campaign: null, medium: null };
+    return null;
   }
   
+  // Check for tag in URL - looks for any query param that has no value (e.g., ?tzl)
+  // or a tag param with value (e.g., ?tag=tzl)
   const params = new URLSearchParams(window.location.search);
   
-  let source = params.get("utm_source");
-  let campaign = params.get("utm_campaign");
-  let medium = params.get("utm_medium");
+  // First check for explicit tag param
+  let tag = params.get("tag");
   
-  const stored = sessionStorage.getItem("utm_params");
-  if (stored) {
-    try {
-      const storedParams = JSON.parse(stored);
-      source = source || storedParams.source;
-      campaign = campaign || storedParams.campaign;
-      medium = medium || storedParams.medium;
-    } catch (e) {
+  // If no explicit tag, look for any param with empty value (e.g., ?tzl)
+  if (!tag) {
+    const entries = Array.from(params.entries());
+    for (let i = 0; i < entries.length; i++) {
+      const [key, value] = entries[i];
+      if (value === "" || value === key) {
+        tag = key;
+        break;
+      }
     }
   }
   
-  if (source || campaign || medium) {
-    sessionStorage.setItem("utm_params", JSON.stringify({ source, campaign, medium }));
+  // Check session storage for previously stored tag
+  const storedTag = sessionStorage.getItem("tracking_tag");
+  
+  // Use current URL tag if present, otherwise use stored tag
+  const finalTag = tag || storedTag;
+  
+  // Store the tag in session storage so it persists during browsing
+  if (tag) {
+    sessionStorage.setItem("tracking_tag", tag);
   }
   
-  return { source, campaign, medium };
+  return finalTag;
 }
 
-function useInitializedUtmParams() {
+function useTrackingTag() {
   const [initialized, setInitialized] = useState(false);
-  const [utmParams, setUtmParams] = useState<{ source: string | null; campaign: string | null; medium: string | null }>({
-    source: null, campaign: null, medium: null
-  });
+  const [tag, setTag] = useState<string | null>(null);
   
   useEffect(() => {
-    const params = getUtmParams();
-    setUtmParams(params);
+    const foundTag = getTrackingTag();
+    setTag(foundTag);
     setInitialized(true);
   }, []);
   
-  return { utmParams, initialized };
+  return { tag, initialized };
 }
 
-function buildQueryKey(utmParams: { source: string | null; campaign: string | null; medium: string | null }): string {
-  const parts = ["/api/tracking-number"];
-  if (utmParams.source) parts.push(`s=${utmParams.source}`);
-  if (utmParams.campaign) parts.push(`c=${utmParams.campaign}`);
-  if (utmParams.medium) parts.push(`m=${utmParams.medium}`);
-  return parts.join(":");
-}
-
-async function fetchTrackingNumber(utmParams: { source: string | null; campaign: string | null; medium: string | null }): Promise<{ phoneNumber: string; id: number | null }> {
-  const params = new URLSearchParams();
-  if (utmParams.source) params.set("source", utmParams.source);
-  if (utmParams.campaign) params.set("campaign", utmParams.campaign);
-  if (utmParams.medium) params.set("medium", utmParams.medium);
-  
-  const url = `/api/tracking-number${params.toString() ? `?${params.toString()}` : ""}`;
+async function fetchTrackingNumber(tag: string | null): Promise<{ phoneNumber: string; id: number | null }> {
+  const url = tag ? `/api/tracking-number?tag=${encodeURIComponent(tag)}` : "/api/tracking-number";
   const response = await fetch(url);
   if (!response.ok) {
     return { phoneNumber: DEFAULT_PHONE, id: null };
@@ -77,13 +71,13 @@ async function fetchTrackingNumber(utmParams: { source: string | null; campaign:
 }
 
 export function DynamicPhoneNumber({ className = "", showIcon = true, iconClassName = "w-4 h-4" }: DynamicPhoneNumberProps) {
-  const { utmParams, initialized } = useInitializedUtmParams();
+  const { tag, initialized } = useTrackingTag();
   
-  const queryKey = useMemo(() => buildQueryKey(utmParams), [utmParams.source, utmParams.campaign, utmParams.medium]);
+  const queryKey = useMemo(() => tag ? `/api/tracking-number:${tag}` : "/api/tracking-number", [tag]);
 
   const { data, isFetching } = useQuery<{ phoneNumber: string; id: number | null }>({
     queryKey: [queryKey],
-    queryFn: () => fetchTrackingNumber(utmParams),
+    queryFn: () => fetchTrackingNumber(tag),
     enabled: initialized,
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 24,
@@ -104,13 +98,13 @@ export function DynamicPhoneNumber({ className = "", showIcon = true, iconClassN
 }
 
 export function useDynamicPhoneNumber(): string {
-  const { utmParams, initialized } = useInitializedUtmParams();
+  const { tag, initialized } = useTrackingTag();
   
-  const queryKey = useMemo(() => buildQueryKey(utmParams), [utmParams.source, utmParams.campaign, utmParams.medium]);
+  const queryKey = useMemo(() => tag ? `/api/tracking-number:${tag}` : "/api/tracking-number", [tag]);
 
   const { data, isFetching } = useQuery<{ phoneNumber: string; id: number | null }>({
     queryKey: [queryKey],
-    queryFn: () => fetchTrackingNumber(utmParams),
+    queryFn: () => fetchTrackingNumber(tag),
     enabled: initialized,
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 24,

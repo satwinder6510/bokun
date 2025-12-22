@@ -1,0 +1,311 @@
+robots.txt is not valid 102 errors found
+If your robots.txt file is malformed, crawlers may not be able to understand how you want your website to be crawled or indexed. Learn more about robots.txt.
+Line #
+Content
+Error
+1
+<!DOCTYPE html>
+Syntax not understood
+2
+<html lang="en">
+Syntax not understood
+3
+<head>
+Syntax not understood
+4
+<meta charset="UTF-8" />
+Syntax not understood
+5
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+Syntax not understood
+6
+<title>Flights and Packages - Book 700+ Tours Worldwide</title>
+Syntax not understood
+7
+<meta name="description" content="Discover and book 700+ unique tours worldwide with Flights and Packages. Explore destinations, compare prices, check availability, and find your perfect adventure." />
+Syntax not understood
+8
+<meta name="keywords" content="tours, travel booking, vacation packages, adventure travel, holiday deals, tours worldwide" />
+Syntax not understood
+9
+<meta name="author" content="Flights and Packages" />
+Syntax not understood
+10
+<link rel="canonical" href="https://tours.flightsandpackages.com/" />
+Unknown directive
+11
+<link rel="icon" type="image/png" href="/favicon.png" />
+Syntax not understood
+12
+<!-- Preconnect to external origins for faster loading -->
+Syntax not understood
+13
+<link rel="preconnect" href="https://fonts.googleapis.com">
+Unknown directive
+14
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+Unknown directive
+15
+<link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+Unknown directive
+16
+<link rel="preconnect" href="https://bokun.s3.amazonaws.com" crossorigin>
+Unknown directive
+17
+<!-- Preload fallback hero image for fast LCP -->
+Syntax not understood
+18
+<link rel="preload" href="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1280&q=70&auto=format" as="image" fetchpriority="high">
+Unknown directive
+19
+<!-- Preload critical fonts -->
+Syntax not understood
+20
+<link rel="preload" href="/fonts/BentonSans_Regular_1764707919108.otf" as="font" type="font/otf" crossorigin>
+Syntax not understood
+21
+<link rel="preload" href="/fonts/BentonSans_Bold_1764707919106.otf" as="font" type="font/otf" crossorigin>
+Syntax not understood
+22
+<!-- Load Google Fonts asynchronously to prevent render blocking -->
+Syntax not understood
+23
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+Unknown directive
+24
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+Unknown directive
+25
+<!-- Critical CSS - inlined for faster first paint -->
+Syntax not understood
+26
+<style>
+Syntax not understood
+27
+@font-face{font-family:'Benton Sans';src:url('/fonts/BentonSans_Regular_1764707919108.otf') format('opentype');font-weight:450;font-style:normal;font-display:swap}
+Unknown directive
+28
+@font-face{font-family:'Benton Sans';src:url('/fonts/BentonSans_Bold_1764707919106.otf') format('opentype');font-weight:700;font-style:normal;font-display:swap}
+Unknown directive
+29
+:root{--background:0 0% 100%;--foreground:222 15% 15%;--primary:33 100% 53%;--font-sans:'Benton Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+Unknown directive
+30
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+Unknown directive
+31
+html{-webkit-text-size-adjust:100%;font-feature-settings:normal}
+Unknown directive
+32
+body{font-family:var(--font-sans);background:hsl(var(--background));color:hsl(var(--foreground));line-height:1.5;min-height:100vh}
+Unknown directive
+34
+img,video{max-width:100%;height:auto;display:block}
+Unknown directive
+35
+/* Above-the-fold hero section critical styles */
+Syntax not understood
+36
+.hero-section{position:relative;min-height:50vh;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center}
+Unknown directive
+37
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.4),rgba(0,0,0,0.6))}
+Unknown directive
+38
+header{position:sticky;top:0;z-index:50;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+Unknown directive
+39
+</style>
+Syntax not understood
+40
+<!-- Open Graph Tags -->
+Syntax not understood
+41
+<meta property="og:type" content="website" />
+Unknown directive
+42
+<meta property="og:title" content="Flights and Packages - Book 700+ Tours Worldwide" />
+Unknown directive
+43
+<meta property="og:description" content="Discover and book 700+ unique tours worldwide. Explore destinations, compare prices, and check availability with Flights and Packages." />
+Unknown directive
+44
+<meta property="og:site_name" content="Flights and Packages" />
+Unknown directive
+45
+<meta property="og:url" content="https://tours.flightsandpackages.com/" />
+Unknown directive
+46
+<meta property="og:image" content="https://tours.flightsandpackages.com/og-image.jpg" />
+Unknown directive
+47
+<!-- Twitter Card Tags -->
+Syntax not understood
+48
+<meta name="twitter:card" content="summary_large_image" />
+Unknown directive
+49
+<meta name="twitter:title" content="Flights and Packages - Book 700+ Tours Worldwide" />
+Unknown directive
+50
+<meta name="twitter:description" content="Discover and book 700+ unique tours worldwide. Explore destinations, compare prices, and check availability." />
+Unknown directive
+51
+<meta name="twitter:image" content="https://tours.flightsandpackages.com/og-image.jpg" />
+Unknown directive
+52
+<script type="module" crossorigin src="/assets/index-BfHbijpu.js"></script>
+Syntax not understood
+53
+<link rel="stylesheet" crossorigin href="/assets/index-DJuamDnr.css">
+Syntax not understood
+54
+</head>
+Syntax not understood
+55
+<body>
+Syntax not understood
+56
+<div id="root"></div>
+Syntax not understood
+57
+<!-- Defer analytics and chat scripts until after page is interactive -->
+Syntax not understood
+58
+<script>
+Syntax not understood
+59
+window.addEventListener('load', function() {
+Syntax not understood
+60
+// Delay non-critical scripts to improve LCP
+Syntax not understood
+61
+setTimeout(function() {
+Syntax not understood
+62
+// PostHog Analytics
+Syntax not understood
+63
+!function(t,e){var o,n,p,r;e.__SV||(window.posthog && window.posthog.__loaded)||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init bs ws ge fs ps ri rp cf capture createPersonProfile register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty setSessionProperty toString opt_out_capturing opt_in_capturing has_opted_out_capturing has_opted_in_capturing clear_opt_in_out_capturing debug getPageViewId captureTrackedElements captureTraceSpan".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+Unknown directive
+64
+posthog.init('phc_CncpMTolnthosh7c98z3b7iqSHbhB1vokNzW2WgrC2R', {
+Syntax not understood
+65
+api_host: 'https://eu.i.posthog.com',
+Unknown directive
+66
+defaults: '2025-11-30',
+Unknown directive
+67
+person_profiles: 'always',
+Unknown directive
+68
+capture_pageview: false,
+Unknown directive
+69
+capture_pageleave: true,
+Unknown directive
+70
+disable_session_recording: false,
+Unknown directive
+71
+session_recording: {
+Unknown directive
+72
+maskAllInputs: true,
+Unknown directive
+73
+maskTextSelector: '[data-mask]',
+Unknown directive
+74
+},
+Syntax not understood
+75
+autocapture: {
+Unknown directive
+76
+dom_event_allowlist: ['click', 'submit'],
+Unknown directive
+77
+element_allowlist: ['button', 'a', 'input', 'select', 'textarea', 'form'],
+Unknown directive
+78
+css_selector_allowlist: ['[data-testid]'],
+Unknown directive
+79
+},
+Syntax not understood
+80
+property_denylist: ['$ip'],
+Unknown directive
+81
+loaded: function(posthog) {
+Unknown directive
+82
+posthog.register({
+Syntax not understood
+83
+'site_name': 'Flights and Packages',
+Unknown directive
+84
+'site_domain': 'tours.flightsandpackages.com',
+Unknown directive
+85
+'platform': 'web'
+Unknown directive
+86
+});
+Syntax not understood
+87
+}
+Syntax not understood
+88
+});
+Syntax not understood
+90
+// Tidio Chat Widget - only on tour and package detail pages
+Syntax not understood
+91
+var path = window.location.pathname;
+Syntax not understood
+92
+var isTourDetail = /^\/tour\/\d+/.test(path);
+Syntax not understood
+93
+var isPackageDetail = /^\/packages\/[^\/]+$/.test(path) || /^\/Holidays\/[^\/]+\/[^\/]+$/.test(path);
+Syntax not understood
+94
+if (isTourDetail || isPackageDetail) {
+Syntax not understood
+95
+var tidioScript = document.createElement('script');
+Syntax not understood
+96
+tidioScript.src = '//code.tidio.co/umkdiuqjxuccie7jbxsnr0f6pj3lkfcs.js';
+Syntax not understood
+97
+tidioScript.async = true;
+Syntax not understood
+98
+document.body.appendChild(tidioScript);
+Syntax not understood
+99
+}
+Syntax not understood
+100
+}, 2000);
+Syntax not understood
+101
+});
+Syntax not understood
+102
+</script>
+Syntax not understood
+103
+</body>
+Syntax not understood
+104
+</html>
+Syntax not understood

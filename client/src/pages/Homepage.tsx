@@ -265,7 +265,7 @@ export default function Homepage() {
       link.rel = 'preload';
       link.as = 'image';
       link.href = heroBackgroundImage;
-      link.fetchPriority = 'high';
+      (link as any).fetchPriority = 'high';
       document.head.appendChild(link);
       return () => {
         document.head.removeChild(link);
@@ -326,7 +326,8 @@ export default function Homepage() {
           height={600}
           loading="eager"
           decoding="async"
-          fetchPriority="high"
+          // @ts-ignore - fetchpriority is valid HTML but not in React types yet
+          fetchpriority="high"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             if (target.src !== fallbackHeroImages[0]) {

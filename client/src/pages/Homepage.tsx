@@ -89,9 +89,8 @@ export default function Homepage() {
 
   // Fetch homepage settings
   interface HomepageSettings {
-    carouselSlides: number;
     packagesCount: number;
-    carouselInterval: number;
+    heroImage: string | null;
   }
   
   const { data: homepageSettings } = useQuery<HomepageSettings>({
@@ -99,6 +98,7 @@ export default function Homepage() {
   });
   
   const packagesDisplayCount = homepageSettings?.packagesCount || 4;
+  const configuredHeroImage = homepageSettings?.heroImage || null;
 
   // Fetch flight packages with loading/error handling
   const { 
@@ -233,9 +233,14 @@ export default function Homepage() {
     .filter(p => p.keyPhoto?.originalUrl)
     .slice(0, 8);
 
-  // Get hero background image - prioritize featured package, then tour, then fallback
+  // Get hero background image - prioritize admin-configured image, then package, then tour, then fallback
   const getHeroBackgroundImage = (): string => {
-    // First try featured package with image
+    // First check if admin has configured a hero image
+    if (configuredHeroImage) {
+      return configuredHeroImage;
+    }
+    
+    // Then try featured package with image
     const packageWithImage = featuredPackages.find(pkg => pkg.featuredImage);
     if (packageWithImage?.featuredImage) {
       return getHeroImageUrl(packageWithImage.featuredImage) || fallbackHeroImages[0];

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -7,17 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Settings, Save, Loader2, RefreshCw, DollarSign, Home, Image, Package } from "lucide-react";
+import { ArrowLeft, Settings, Save, Loader2, RefreshCw, DollarSign, Home, Image, Package, Upload, X } from "lucide-react";
 import type { SiteSetting } from "@shared/schema";
 
 export default function AdminSettings() {
   const { toast } = useToast();
   const [exchangeRate, setExchangeRate] = useState("0.79");
-  const [carouselSlides, setCarouselSlides] = useState("3");
-  const [packagesCount, setPackagesCount] = useState("3");
-  const [carouselInterval, setCarouselInterval] = useState("6");
+  const [packagesCount, setPackagesCount] = useState("4");
+  const [heroImage, setHeroImage] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   const [hasHomepageChanges, setHasHomepageChanges] = useState(false);
+  const [isUploadingHero, setIsUploadingHero] = useState(false);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: settings = [], isLoading, refetch } = useQuery<SiteSetting[]>({
     queryKey: ["/api/admin/settings"],
@@ -30,19 +31,14 @@ export default function AdminSettings() {
       setHasChanges(false);
     }
     
-    const slidesSetting = settings.find(s => s.key === "homepage_carousel_slides");
-    if (slidesSetting) {
-      setCarouselSlides(slidesSetting.value);
-    }
-    
     const packagesSetting = settings.find(s => s.key === "homepage_packages_count");
     if (packagesSetting) {
       setPackagesCount(packagesSetting.value);
     }
     
-    const intervalSetting = settings.find(s => s.key === "homepage_carousel_interval");
-    if (intervalSetting) {
-      setCarouselInterval(intervalSetting.value);
+    const heroImageSetting = settings.find(s => s.key === "homepage_hero_image");
+    if (heroImageSetting) {
+      setHeroImage(heroImageSetting.value);
     }
     
     setHasHomepageChanges(false);
@@ -78,21 +74,18 @@ export default function AdminSettings() {
 
   const updateHomepageSettingsMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("PUT", "/api/admin/settings/homepage_carousel_slides", {
-        value: carouselSlides,
-        label: "Homepage Carousel Slides",
-        description: "Number of slides to show in the homepage carousel"
-      });
       await apiRequest("PUT", "/api/admin/settings/homepage_packages_count", {
         value: packagesCount,
         label: "Homepage Packages Count",
         description: "Number of flight packages to display on homepage"
       });
-      await apiRequest("PUT", "/api/admin/settings/homepage_carousel_interval", {
-        value: carouselInterval,
-        label: "Homepage Carousel Interval",
-        description: "Auto-rotation interval in seconds"
-      });
+      if (heroImage !== null) {
+        await apiRequest("PUT", "/api/admin/settings/homepage_hero_image", {
+          value: heroImage,
+          label: "Homepage Hero Image",
+          description: "Background image for the homepage hero section"
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
@@ -105,20 +98,63 @@ export default function AdminSettings() {
     },
   });
 
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingHero(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const data = await response.json();
+      setHeroImage(data.url);
+      setHasHomepageChanges(true);
+      toast({ title: "Hero image uploaded successfully" });
+    } catch (error) {
+      toast({ title: "Failed to upload image", variant: "destructive" });
+    } finally {
+      setIsUploadingHero(false);
+      if (heroFileInputRef.current) {
+        heroFileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveHeroImage = async () => {
+    setHeroImage(null);
+    // Save empty value to remove the hero image
+    try {
+      await apiRequest("PUT", "/api/admin/settings/homepage_hero_image", {
+        value: "",
+        label: "Homepage Hero Image",
+        description: "Background image for the homepage hero section"
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/settings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/homepage-settings"] });
+      toast({ title: "Hero image removed" });
+    } catch (error) {
+      toast({ title: "Failed to remove hero image", variant: "destructive" });
+    }
+  };
+
   const handleRateChange = (value: string) => {
     setExchangeRate(value);
     const rateSetting = settings.find(s => s.key === "usd_to_gbp_rate");
     setHasChanges(value !== (rateSetting?.value || "0.79"));
   };
 
-  const handleHomepageChange = (setter: (val: string) => void, key: string) => (value: string) => {
+  const handleHomepageChange = (setter: (val: string) => void) => (value: string) => {
     setter(value);
-    const setting = settings.find(s => s.key === key);
-    const defaultValues: Record<string, string> = {
-      homepage_carousel_slides: "3",
-      homepage_packages_count: "3",
-      homepage_carousel_interval: "6"
-    };
     setHasHomepageChanges(true);
   };
 
@@ -136,20 +172,10 @@ export default function AdminSettings() {
   };
 
   const handleSaveHomepage = () => {
-    const slides = parseInt(carouselSlides);
     const packages = parseInt(packagesCount);
-    const interval = parseInt(carouselInterval);
     
-    if (isNaN(slides) || slides < 1 || slides > 10) {
-      toast({ title: "Invalid carousel slides", description: "Please enter a number between 1 and 10", variant: "destructive" });
-      return;
-    }
     if (isNaN(packages) || packages < 1 || packages > 24) {
       toast({ title: "Invalid packages count", description: "Please enter a number between 1 and 24", variant: "destructive" });
-      return;
-    }
-    if (isNaN(interval) || interval < 3 || interval > 30) {
-      toast({ title: "Invalid carousel interval", description: "Please enter a number between 3 and 30 seconds", variant: "destructive" });
       return;
     }
     
@@ -199,27 +225,61 @@ export default function AdminSettings() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-6">
-                {/* Carousel Slides */}
-                <div className="space-y-2">
-                  <Label htmlFor="carousel-slides" className="flex items-center gap-2">
+                {/* Hero Image */}
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2">
                     <Image className="h-4 w-4 text-muted-foreground" />
-                    Hero Carousel Slides
+                    Hero Background Image
                   </Label>
-                  <div className="flex items-center gap-3">
-                    <Input
-                      id="carousel-slides"
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={carouselSlides}
-                      onChange={(e) => handleHomepageChange(setCarouselSlides, "homepage_carousel_slides")(e.target.value)}
-                      className="w-24"
-                      data-testid="input-carousel-slides"
-                    />
-                    <span className="text-sm text-muted-foreground">slides (1-10)</span>
-                  </div>
+                  
+                  {heroImage ? (
+                    <div className="relative rounded-lg overflow-hidden border">
+                      <img 
+                        src={heroImage} 
+                        alt="Hero background" 
+                        className="w-full h-40 object-cover"
+                      />
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={handleRemoveHeroImage}
+                        data-testid="button-remove-hero-image"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div 
+                      className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => heroFileInputRef.current?.click()}
+                    >
+                      {isUploadingHero ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Uploading...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <Upload className="h-8 w-8 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Click to upload hero image</span>
+                          <span className="text-xs text-muted-foreground">Recommended: 1920x1080px or larger</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <input
+                    ref={heroFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleHeroImageUpload}
+                    data-testid="input-hero-image"
+                  />
+                  
                   <p className="text-xs text-muted-foreground">
-                    Number of slides in the hero carousel. Uses your flight packages first, then fills with Bokun tours.
+                    This image appears as the hero banner background on your homepage. If not set, it will use an image from your packages.
                   </p>
                 </div>
 
@@ -236,7 +296,7 @@ export default function AdminSettings() {
                       min="1"
                       max="24"
                       value={packagesCount}
-                      onChange={(e) => handleHomepageChange(setPackagesCount, "homepage_packages_count")(e.target.value)}
+                      onChange={(e) => handleHomepageChange(setPackagesCount)(e.target.value)}
                       className="w-24"
                       data-testid="input-packages-count"
                     />
@@ -244,27 +304,6 @@ export default function AdminSettings() {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Number of flight packages shown in the "Flight Packages" section on homepage.
-                  </p>
-                </div>
-
-                {/* Carousel Interval */}
-                <div className="space-y-2">
-                  <Label htmlFor="carousel-interval">Carousel Auto-Rotation</Label>
-                  <div className="flex items-center gap-3">
-                    <Input
-                      id="carousel-interval"
-                      type="number"
-                      min="3"
-                      max="30"
-                      value={carouselInterval}
-                      onChange={(e) => handleHomepageChange(setCarouselInterval, "homepage_carousel_interval")(e.target.value)}
-                      className="w-24"
-                      data-testid="input-carousel-interval"
-                    />
-                    <span className="text-sm text-muted-foreground">seconds (3-30)</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    How often the carousel automatically advances to the next slide.
                   </p>
                 </div>
               </div>

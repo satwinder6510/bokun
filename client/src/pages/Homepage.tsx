@@ -631,17 +631,19 @@ export default function Homepage() {
 
           {/* Slide indicators */}
           {totalSlides > 1 && (
-            <div className="flex justify-center gap-2 mt-6">
+            <div className="flex justify-center gap-1 mt-6">
               {Array.from({ length: totalSlides }).map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setTestimonialSlide(index)}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    index === testimonialSlide ? 'bg-secondary' : 'bg-slate-300'
-                  }`}
+                  className="p-3 group"
                   data-testid={`button-testimonial-dot-${index}`}
                   aria-label={`Go to slide ${index + 1}`}
-                />
+                >
+                  <span className={`block w-3 h-3 rounded-full transition-colors ${
+                    index === testimonialSlide ? 'bg-secondary' : 'bg-slate-300 group-hover:bg-slate-400'
+                  }`} />
+                </button>
               ))}
             </div>
           )}

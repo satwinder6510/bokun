@@ -54,26 +54,26 @@ export function Header() {
               </div>
             </div>
             
-            <nav className="hidden lg:flex items-center gap-8">
-              <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-home">
+            <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
+              <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-home">
                 Home
               </Link>
-              <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-packages">
+              <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-packages">
                 Flight Packages
               </Link>
-              <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-tours">
+              <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-tours">
                 Land Tours
               </Link>
-              <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-collections">
+              <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-collections">
                 Collections
               </Link>
-              <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-destinations">
+              <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-destinations">
                 Destinations
               </Link>
-              <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-blog">
+              <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-blog">
                 Blog
               </Link>
-              <Link href="/contact" className="text-slate-700 hover:text-slate-900 font-medium transition-colors" data-testid="link-contact">
+              <Link href="/contact" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-contact">
                 Contact
               </Link>
             </nav>

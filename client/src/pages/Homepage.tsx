@@ -300,26 +300,24 @@ export default function Homepage() {
     <div className="min-h-screen bg-stone-50">
       <Header />
 
-      {/* Compact Hero Section */}
-      <section className="relative h-[50vh] md:h-[60vh] w-full overflow-hidden bg-slate-900">
-        {/* Static Hero Background */}
-        <div className="absolute inset-0">
-          <img
-            src={heroBackgroundImage}
-            alt="Discover amazing destinations"
-            className="w-full h-full object-cover object-center"
-            loading="eager"
-            decoding="sync"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              if (target.src !== fallbackHeroImages[0]) {
-                target.src = fallbackHeroImages[0];
-              }
-            }}
-          />
-          {/* Dark gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
-        </div>
+      {/* Hero Section - adapts to image size */}
+      <section className="relative w-full min-h-[50vh] md:min-h-[60vh]">
+        {/* Hero Background Image */}
+        <img
+          src={heroBackgroundImage}
+          alt="Discover amazing destinations"
+          className="w-full h-auto block"
+          loading="eager"
+          decoding="sync"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            if (target.src !== fallbackHeroImages[0]) {
+              target.src = fallbackHeroImages[0];
+            }
+          }}
+        />
+        {/* Dark gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
         
         {/* Centered Content */}
         <div className="absolute inset-0 flex items-center justify-center">

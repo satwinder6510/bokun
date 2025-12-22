@@ -554,25 +554,37 @@ export default function Homepage() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="p-6 bg-white border-stone-200" data-testid={`card-testimonial-${index}`}>
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <span key={i} className="text-yellow-500">★</span>
-                  ))}
-                </div>
-                <p className="text-slate-600 mb-4 italic">
-                  "{testimonial.reviewText}"
-                </p>
-                <div>
-                  <p className="font-semibold text-slate-800">{testimonial.customerName}</p>
-                  {testimonial.location && (
-                    <p className="text-sm text-slate-500">Country Visited: {testimonial.location}</p>
-                  )}
-                </div>
-              </Card>
-            ))}
+          <div className="overflow-hidden">
+            <div 
+              className="flex gap-6 animate-scroll-slow hover:pause-animation"
+              style={{
+                width: 'fit-content',
+              }}
+            >
+              {/* Duplicate testimonials for seamless loop */}
+              {[...testimonials, ...testimonials].map((testimonial, index) => (
+                <Card 
+                  key={index} 
+                  className="p-6 bg-white border-stone-200 flex-shrink-0 w-[350px]" 
+                  data-testid={`card-testimonial-${index % testimonials.length}`}
+                >
+                  <div className="flex gap-1 mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <span key={i} className="text-yellow-500">★</span>
+                    ))}
+                  </div>
+                  <p className="text-slate-600 mb-4 italic">
+                    "{testimonial.reviewText}"
+                  </p>
+                  <div>
+                    <p className="font-semibold text-slate-800">{testimonial.customerName}</p>
+                    {testimonial.location && (
+                      <p className="text-sm text-slate-500">Country Visited: {testimonial.location}</p>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
           </div>
 
           <p className="text-center text-slate-500 mt-8">

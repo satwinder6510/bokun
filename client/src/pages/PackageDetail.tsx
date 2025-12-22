@@ -632,6 +632,29 @@ export default function PackageDetail() {
                 </div>
               </div>
             </div>
+            
+            {/* Desktop Price Badge - Bottom Right */}
+            <div className="hidden md:block absolute bottom-6 right-6">
+              <div className="bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg">
+                <p className="text-xs text-muted-foreground">From</p>
+                <p className="text-2xl font-bold text-secondary" data-testid="hero-price-desktop">
+                  {formatPrice(pkg.price)}
+                </p>
+                <p className="text-xs text-muted-foreground">per person</p>
+              </div>
+            </div>
+            
+            {/* Mobile See Prices Button - Bottom Right */}
+            <a 
+              href="#pricing"
+              className="md:hidden absolute bottom-4 right-4"
+              data-testid="button-see-prices-mobile"
+            >
+              <Button className="bg-secondary hover:bg-secondary/90 text-white shadow-lg gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                See Prices
+              </Button>
+            </a>
           </div>
           
           {/* Gallery Carousel */}
@@ -935,7 +958,7 @@ export default function PackageDetail() {
             </div>
 
             {/* Right Column - Booking Sidebar */}
-            <div className="lg:col-span-1">
+            <div className="lg:col-span-1" id="pricing">
               <div className="sticky top-24">
                 <Card className="border-2 border-secondary/30">
                   <CardHeader className="bg-secondary/5">

@@ -301,13 +301,13 @@ export default function Homepage() {
       <Header />
 
       {/* Compact Hero Section */}
-      <section className="relative h-[50vh] md:h-[60vh] w-full overflow-hidden">
+      <section className="relative h-[50vh] md:h-[60vh] w-full overflow-hidden bg-slate-900">
         {/* Static Hero Background */}
         <div className="absolute inset-0">
           <img
             src={heroBackgroundImage}
             alt="Discover amazing destinations"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
             loading="eager"
             decoding="sync"
             onError={(e) => {

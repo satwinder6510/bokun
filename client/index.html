@@ -32,6 +32,10 @@
       body{font-family:var(--font-sans);background:hsl(var(--background));color:hsl(var(--foreground));line-height:1.5;min-height:100vh}
       #root{min-height:100vh;display:flex;flex-direction:column}
       img,video{max-width:100%;height:auto;display:block}
+      /* Above-the-fold hero section critical styles */
+      .hero-section{position:relative;min-height:50vh;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center}
+      .hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.4),rgba(0,0,0,0.6))}
+      header{position:sticky;top:0;z-index:50;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
     </style>
     <!-- Open Graph Tags -->
     <meta property="og:type" content="website" />

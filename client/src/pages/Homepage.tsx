@@ -86,6 +86,7 @@ export default function Homepage() {
   const [isLoading, setIsLoading] = useState(true);
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [testimonialSlide, setTestimonialSlide] = useState(0);
 
   // Fetch homepage settings
   interface HomepageSettings {
@@ -272,6 +273,15 @@ export default function Homepage() {
       };
     }
   }, [heroBackgroundImage]);
+
+  // Auto-advance testimonial carousel every 5 seconds
+  const totalSlides = Math.ceil(testimonials.length / 3);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTestimonialSlide((prev) => (prev + 1) % totalSlides);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [totalSlides]);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -556,36 +566,60 @@ export default function Homepage() {
 
           <div className="overflow-hidden">
             <div 
-              className="flex gap-6 animate-scroll-slow hover:pause-animation"
+              className="flex transition-transform duration-700 ease-in-out"
               style={{
-                width: 'fit-content',
+                transform: `translateX(-${testimonialSlide * 100}%)`,
               }}
             >
-              {/* Duplicate testimonials for seamless loop */}
-              {[...testimonials, ...testimonials].map((testimonial, index) => (
-                <Card 
-                  key={index} 
-                  className="p-6 bg-white border-stone-200 flex-shrink-0 w-[350px]" 
-                  data-testid={`card-testimonial-${index % testimonials.length}`}
+              {/* Group testimonials in sets of 3 */}
+              {Array.from({ length: totalSlides }).map((_, slideIndex) => (
+                <div 
+                  key={slideIndex} 
+                  className="flex-shrink-0 w-full grid grid-cols-1 md:grid-cols-3 gap-6"
                 >
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <span key={i} className="text-yellow-500">★</span>
-                    ))}
-                  </div>
-                  <p className="text-slate-600 mb-4 italic">
-                    "{testimonial.reviewText}"
-                  </p>
-                  <div>
-                    <p className="font-semibold text-slate-800">{testimonial.customerName}</p>
-                    {testimonial.location && (
-                      <p className="text-sm text-slate-500">Country Visited: {testimonial.location}</p>
-                    )}
-                  </div>
-                </Card>
+                  {testimonials.slice(slideIndex * 3, slideIndex * 3 + 3).map((testimonial, index) => (
+                    <Card 
+                      key={index} 
+                      className="p-6 bg-white border-stone-200" 
+                      data-testid={`card-testimonial-${slideIndex * 3 + index}`}
+                    >
+                      <div className="flex gap-1 mb-4">
+                        {[...Array(testimonial.rating)].map((_, i) => (
+                          <span key={i} className="text-yellow-500">★</span>
+                        ))}
+                      </div>
+                      <p className="text-slate-600 mb-4 italic">
+                        "{testimonial.reviewText}"
+                      </p>
+                      <div>
+                        <p className="font-semibold text-slate-800">{testimonial.customerName}</p>
+                        {testimonial.location && (
+                          <p className="text-sm text-slate-500">Country Visited: {testimonial.location}</p>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               ))}
             </div>
           </div>
+
+          {/* Slide indicators */}
+          {totalSlides > 1 && (
+            <div className="flex justify-center gap-2 mt-6">
+              {Array.from({ length: totalSlides }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setTestimonialSlide(index)}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === testimonialSlide ? 'bg-secondary' : 'bg-slate-300'
+                  }`}
+                  data-testid={`button-testimonial-dot-${index}`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
 
           <p className="text-center text-slate-500 mt-8">
             See all our reviews on{" "}

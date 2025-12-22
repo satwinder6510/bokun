@@ -400,20 +400,3 @@
   }
 }
 
-/* Slow horizontal scroll animation for testimonials */
-@keyframes scroll-slow {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-.animate-scroll-slow {
-  animation: scroll-slow 40s linear infinite;
-}
-
-.animate-scroll-slow:hover {
-  animation-play-state: paused;
-}

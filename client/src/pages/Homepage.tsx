@@ -274,12 +274,12 @@ export default function Homepage() {
     }
   }, [heroBackgroundImage]);
 
-  // Auto-advance testimonial carousel every 5 seconds
+  // Auto-advance testimonial carousel every 8 seconds
   const totalSlides = Math.ceil(testimonials.length / 3);
   useEffect(() => {
     const interval = setInterval(() => {
       setTestimonialSlide((prev) => (prev + 1) % totalSlides);
-    }, 5000);
+    }, 8000);
     return () => clearInterval(interval);
   }, [totalSlides]);
 

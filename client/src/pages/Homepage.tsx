@@ -258,6 +258,21 @@ export default function Homepage() {
 
   const heroBackgroundImage = getHeroBackgroundImage();
 
+  // Preload hero image for faster LCP
+  useEffect(() => {
+    if (heroBackgroundImage) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = heroBackgroundImage;
+      link.fetchPriority = 'high';
+      document.head.appendChild(link);
+      return () => {
+        document.head.removeChild(link);
+      };
+    }
+  }, [heroBackgroundImage]);
+
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -307,8 +322,11 @@ export default function Homepage() {
           src={heroBackgroundImage}
           alt="Discover amazing destinations"
           className="w-full h-auto block"
+          width={1920}
+          height={600}
           loading="eager"
-          decoding="sync"
+          decoding="async"
+          fetchPriority="high"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             if (target.src !== fallbackHeroImages[0]) {

@@ -860,9 +860,196 @@ export default function PackageDetail() {
       <section className="py-8 md:py-12">
         <div className="container mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column - Tabs */}
+            {/* Left Column - Content */}
             <div className="lg:col-span-2">
-              <Tabs defaultValue="overview" className="w-full">
+              {/* Mobile: Continuous scrolling content */}
+              <div className="lg:hidden space-y-6">
+                {/* Overview Section */}
+                <div id="overview-mobile">
+                  <h2 className="text-xl font-bold mb-4">About This Package</h2>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div 
+                        className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                        dangerouslySetInnerHTML={{ __html: pkg.description }}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Highlights */}
+                {highlights.length > 0 && (
+                  <div>
+                    <h2 className="text-xl font-bold mb-4">Tour Highlights</h2>
+                    <Card>
+                      <CardContent className="pt-6">
+                        <ul className="space-y-2">
+                          {highlights.map((highlight, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                              <span>{highlight}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Itinerary Section */}
+                <div id="itinerary-mobile">
+                  <h2 className="text-xl font-bold mb-4">Itinerary</h2>
+                  {itinerary.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">Detailed itinerary coming soon</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {itinerary.map((day, index) => (
+                        <Card key={index}>
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center gap-4">
+                              <Badge variant="outline" className="text-lg px-4 py-1">
+                                Day {day.day}
+                              </Badge>
+                              <CardTitle className="text-lg">{day.title}</CardTitle>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div 
+                              className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
+                              dangerouslySetInnerHTML={{ __html: day.description }}
+                            />
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Hotels Section */}
+                <div id="hotels-mobile">
+                  <h2 className="text-xl font-bold mb-4">Hotels</h2>
+                  {accommodations.length === 0 ? (
+                    <Card>
+                      <CardContent className="py-12 text-center">
+                        <MapPin className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                        <p className="text-muted-foreground">Accommodation details coming soon</p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {accommodations.map((hotel, index) => (
+                        <Card key={index}>
+                          <CardHeader>
+                            <CardTitle>{hotel.name}</CardTitle>
+                            {hotel.location && (
+                              <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                <MapPin className="w-4 h-4" />
+                                <span>{hotel.location}</span>
+                              </div>
+                            )}
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div 
+                              className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
+                              dangerouslySetInnerHTML={{ __html: hotel.description || '' }}
+                            />
+                            {hotel.images && hotel.images.length > 0 && (
+                              <div className="grid grid-cols-2 gap-2">
+                                {hotel.images.map((img, imgIndex) => (
+                                  <img 
+                                    key={imgIndex}
+                                    src={img}
+                                    alt={`${hotel.name} ${imgIndex + 1}`}
+                                    className="w-full h-24 object-cover rounded-md"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Section */}
+                <div id="info-mobile">
+                  <h2 className="text-xl font-bold mb-4">Additional Information</h2>
+                  <div className="space-y-4">
+                    {pkg.excluded && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Exclusions</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert"
+                            dangerouslySetInnerHTML={{ __html: pkg.excluded }}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {pkg.requirements && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>What Do I Need to Bring?</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert"
+                            dangerouslySetInnerHTML={{ __html: pkg.requirements }}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {pkg.attention && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Please Note</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert"
+                            dangerouslySetInnerHTML={{ __html: pkg.attention }}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Other Information</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {pkg.otherInfo ? (
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                            dangerouslySetInnerHTML={{ __html: pkg.otherInfo }}
+                          />
+                        ) : (
+                          <p className="text-muted-foreground">
+                            Please contact us for terms and conditions, visa requirements, and other details.
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+
+              {/* Desktop: Tabbed content */}
+              <Tabs defaultValue="overview" className="w-full hidden lg:block">
                 <TabsList className="grid w-full grid-cols-4 mb-6">
                   <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
                   <TabsTrigger value="itinerary" data-testid="tab-itinerary">Itinerary</TabsTrigger>

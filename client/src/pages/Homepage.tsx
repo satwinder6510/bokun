@@ -6,7 +6,7 @@ import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { getProxiedImageUrl, getHeroImageUrl, getCardImageUrl } from "@/lib/imageProxy";
-import { Search, X, ChevronLeft, ChevronRight, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
+import { Search, X, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,7 +84,6 @@ export default function Homepage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
 
@@ -99,9 +98,7 @@ export default function Homepage() {
     queryKey: ['/api/homepage-settings'],
   });
   
-  const carouselSlideCount = homepageSettings?.carouselSlides || 3;
-  const packagesDisplayCount = homepageSettings?.packagesCount || 3;
-  const carouselIntervalMs = (homepageSettings?.carouselInterval || 6) * 1000;
+  const packagesDisplayCount = homepageSettings?.packagesCount || 4;
 
   // Fetch flight packages with loading/error handling
   const { 
@@ -236,78 +233,25 @@ export default function Homepage() {
     .filter(p => p.keyPhoto?.originalUrl)
     .slice(0, 8);
 
-  // Build dynamic hero slides from real products
-  type HeroSlide = {
-    image: string;
-    title: string;
-    subtitle: string;
-    price?: number;
-    link: string;
-    type: 'tour' | 'package';
+  // Get hero background image - prioritize featured package, then tour, then fallback
+  const getHeroBackgroundImage = (): string => {
+    // First try featured package with image
+    const packageWithImage = featuredPackages.find(pkg => pkg.featuredImage);
+    if (packageWithImage?.featuredImage) {
+      return getHeroImageUrl(packageWithImage.featuredImage) || fallbackHeroImages[0];
+    }
+    
+    // Then try tour with image
+    const tourWithImage = products.find(p => p.keyPhoto?.originalUrl);
+    if (tourWithImage?.keyPhoto?.originalUrl) {
+      return getHeroImageUrl(tourWithImage.keyPhoto.originalUrl) || fallbackHeroImages[0];
+    }
+    
+    // Fallback
+    return fallbackHeroImages[0];
   };
 
-  const heroSlides: HeroSlide[] = [];
-  
-  // Add featured packages to hero carousel (based on admin settings)
-  // Show packages first, then fill with tours up to carouselSlideCount
-  const packagesForCarousel = featuredPackages.slice(0, Math.min(carouselSlideCount, featuredPackages.length));
-  packagesForCarousel.forEach(pkg => {
-    heroSlides.push({
-      image: getHeroImageUrl(pkg.featuredImage) || fallbackHeroImages[0],
-      title: pkg.title,
-      subtitle: pkg.category,
-      price: pkg.price,
-      link: `/packages/${pkg.slug}`,
-      type: 'package'
-    });
-  });
-
-  // Add featured tours to hero (fill up to carouselSlideCount total)
-  // Use getHeroImageUrl to optimize Bokun S3 images (resized to 1600px, WebP)
-  const toursWithImages = products.filter(p => p.keyPhoto?.originalUrl);
-  const remainingSlots = carouselSlideCount - heroSlides.length;
-  toursWithImages.slice(0, remainingSlots).forEach(tour => {
-    heroSlides.push({
-      image: getHeroImageUrl(tour.keyPhoto?.originalUrl) || fallbackHeroImages[1],
-      title: tour.title,
-      subtitle: tour.locationCode?.name || 'Explore Now',
-      price: tour.price,
-      link: `/tour/${tour.id}`,
-      type: 'tour'
-    });
-  });
-
-  // Fallback if no products loaded yet
-  if (heroSlides.length === 0) {
-    fallbackHeroImages.forEach((img, i) => {
-      heroSlides.push({
-        image: img,
-        title: i === 0 ? 'Discover Paradise' : i === 1 ? 'Adventure Awaits' : 'Journey Beyond',
-        subtitle: 'Explore breathtaking destinations worldwide',
-        link: '#tours',
-        type: 'tour'
-      });
-    });
-  }
-
-  // Auto-advance hero carousel based on admin settings
-  useEffect(() => {
-    if (heroSlides.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, carouselIntervalMs);
-    return () => clearInterval(interval);
-  }, [heroSlides.length, carouselIntervalMs]);
-
-  const nextSlide = () => {
-    if (heroSlides.length <= 1) return;
-    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-  };
-
-  const prevSlide = () => {
-    if (heroSlides.length <= 1) return;
-    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
-  };
+  const heroBackgroundImage = getHeroBackgroundImage();
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -351,125 +295,68 @@ export default function Homepage() {
     <div className="min-h-screen bg-stone-50">
       <Header />
 
-      {/* Hero Section with Dual CTAs */}
-      <section className="relative h-screen w-full overflow-hidden">
-        {/* Carousel Slides */}
-        {heroSlides.map((slide, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentSlide ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <img
-              src={slide.image}
-              alt={slide.title}
-              className="w-full h-full object-cover"
-              loading={index === 0 ? "eager" : "lazy"}
-              decoding={index === 0 ? "sync" : "async"}
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                if (target.src !== fallbackHeroImages[0]) {
-                  target.src = fallbackHeroImages[0];
-                }
-              }}
-            />
-            {/* Dark gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-          </div>
-        ))}
+      {/* Compact Hero Section */}
+      <section className="relative h-[50vh] md:h-[60vh] w-full overflow-hidden">
+        {/* Static Hero Background */}
+        <div className="absolute inset-0">
+          <img
+            src={heroBackgroundImage}
+            alt="Discover amazing destinations"
+            className="w-full h-full object-cover"
+            loading="eager"
+            decoding="sync"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              if (target.src !== fallbackHeroImages[0]) {
+                target.src = fallbackHeroImages[0];
+              }
+            }}
+          />
+          {/* Dark gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30" />
+        </div>
         
         {/* Centered Content */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white max-w-4xl px-4 md:px-6">
-            <p className="text-xs md:text-base font-bold tracking-[0.3em] mb-3 md:mb-6 uppercase text-white/90">
-              {heroSlides[currentSlide]?.type === 'package' ? 'FLIGHT INCLUSIVE PACKAGE' : 'YOUR JOURNEY BEGINS HERE'}
+            <p className="text-xs md:text-sm font-bold tracking-[0.3em] mb-3 md:mb-4 uppercase text-white/90">
+              FLIGHT INCLUSIVE PACKAGES & LAND TOURS
             </p>
-            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-4 md:mb-6 leading-tight" data-testid="text-hero-title">
-              {heroSlides[currentSlide]?.title || 'Discover Paradise'}
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 leading-tight" data-testid="text-hero-title">
+              Your Perfect Holiday Awaits
             </h1>
-            <p className="text-lg md:text-2xl font-medium mb-4 md:mb-6 text-white/90">
-              {heroSlides[currentSlide]?.subtitle || 'Explore breathtaking destinations worldwide'}
+            <p className="text-base md:text-xl font-medium mb-6 md:mb-8 text-white/90 max-w-2xl mx-auto">
+              Discover 700+ handpicked tours and complete holiday packages with flights from UK airports
             </p>
             
-            {/* Price display if available */}
-            {heroSlides[currentSlide]?.price && (
-              <div className="mb-6 md:mb-8">
-                <span className="text-sm md:text-lg text-white/80">from </span>
-                <span className="text-3xl md:text-5xl font-bold">
-                  {heroSlides[currentSlide]?.type === 'package' ? '£' : selectedCurrency.symbol}
-                  {heroSlides[currentSlide]?.price?.toFixed(0)}
-                </span>
-                <span className="text-sm md:text-lg text-white/80 ml-1">/pp</span>
-              </div>
-            )}
-            
-            {/* Dynamic CTA based on slide type */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a href={heroSlides[currentSlide]?.link || '#tours'}>
+            {/* Dual CTAs */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a href="/packages">
                 <Button 
                   size="lg" 
-                  className="text-base md:text-lg px-8 md:px-12 py-6 md:py-7 bg-white hover:bg-stone-100 text-slate-900 font-semibold border-white ring-offset-white focus-visible:ring-slate-400"
-                  data-testid="button-hero-view"
+                  className="text-base px-8 py-6 bg-white hover:bg-stone-100 text-slate-900 font-semibold border-white ring-offset-white focus-visible:ring-slate-400"
+                  data-testid="button-hero-packages"
                 >
-                  {heroSlides[currentSlide]?.type === 'package' ? 'View Package' : 'View Tour'}
+                  <Plane className="w-4 h-4 mr-2" />
+                  Flight Packages
                 </Button>
               </a>
-              <a href={heroSlides[currentSlide]?.type === 'package' ? '#tours' : '/packages'}>
+              <a href="#tours">
                 <Button 
                   size="lg" 
                   variant="outline"
-                  className="text-base md:text-lg px-8 md:px-12 py-6 md:py-7 border-2 border-white text-white hover:bg-white hover:text-slate-900 font-semibold"
-                  data-testid="button-hero-alternate"
+                  className="text-base px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-slate-900 font-semibold"
+                  data-testid="button-hero-tours"
                 >
-                  {heroSlides[currentSlide]?.type === 'package' ? 'Browse Land Tours' : 'Flight Packages'}
+                  Browse Land Tours
                 </Button>
               </a>
             </div>
           </div>
         </div>
 
-        {/* Navigation Arrows */}
-        {heroSlides.length > 1 && (
-          <>
-            <button
-              onClick={prevSlide}
-              className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-3 rounded-full transition-colors z-10"
-              aria-label="Previous slide"
-              data-testid="button-hero-prev"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <button
-              onClick={nextSlide}
-              className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-3 rounded-full transition-colors z-10"
-              aria-label="Next slide"
-              data-testid="button-hero-next"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-          </>
-        )}
-
-        {/* Carousel Indicators */}
-        {heroSlides.length > 1 && (
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            {heroSlides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentSlide ? 'bg-white w-8' : 'bg-white/50'
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-                data-testid={`button-hero-dot-${index}`}
-              />
-            ))}
-          </div>
-        )}
-
         {/* Scroll indicator */}
-        <div className="hidden lg:flex absolute bottom-16 left-1/2 -translate-x-1/2 text-white text-center animate-bounce flex-col items-center">
+        <div className="hidden lg:flex absolute bottom-6 left-1/2 -translate-x-1/2 text-white text-center animate-bounce flex-col items-center">
           <ChevronDown className="w-6 h-6" />
         </div>
       </section>

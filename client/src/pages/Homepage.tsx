@@ -125,29 +125,57 @@ export default function Homepage() {
   // Use database reviews if available, otherwise fallback to defaults
   const testimonials = reviews.length > 0 ? reviews : fallbackTestimonials;
 
-  const fetchProductsMutation = useMutation<BokunProductSearchResponse, Error, void>({
-    mutationFn: async () => {
-      // Always fetch USD prices from Bokun - conversion to GBP happens on frontend
+  // Fetch initial batch of products for quick display (12 items)
+  const { 
+    data: initialProductsData,
+    isLoading: initialLoading,
+  } = useQuery<BokunProductSearchResponse>({
+    queryKey: ['/api/bokun/products-initial'],
+    queryFn: async () => {
+      const response = await apiRequest("POST", "/api/bokun/products", {
+        page: 1,
+        pageSize: 12,
+      });
+      return response as BokunProductSearchResponse;
+    },
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+  });
+
+  // Fetch full product list in background after initial render
+  const { 
+    data: fullProductsData,
+  } = useQuery<BokunProductSearchResponse>({
+    queryKey: ['/api/bokun/products-full'],
+    queryFn: async () => {
       const response = await apiRequest("POST", "/api/bokun/products", {
         page: 1,
         pageSize: 1000,
       });
       return response as BokunProductSearchResponse;
     },
-    onSuccess: (data) => {
-      setProducts(data.items || []);
-      setIsLoading(false);
-    },
-    onError: () => {
-      setIsLoading(false);
-    },
+    staleTime: 1000 * 60 * 30,
+    gcTime: 1000 * 60 * 60,
+    enabled: !!initialProductsData, // Only fetch after initial data loads
   });
 
-  // Fetch products on initial load
+  // Use full data if available, otherwise initial data
   useEffect(() => {
-    setIsLoading(true);
-    fetchProductsMutation.mutate();
-  }, []);
+    if (fullProductsData?.items) {
+      setProducts(fullProductsData.items);
+      setIsLoading(false);
+    } else if (initialProductsData?.items) {
+      setProducts(initialProductsData.items);
+      setIsLoading(false);
+    }
+  }, [initialProductsData, fullProductsData]);
+
+  // Handle loading state
+  useEffect(() => {
+    if (!initialLoading && !initialProductsData) {
+      setIsLoading(false);
+    }
+  }, [initialLoading, initialProductsData]);
 
   useEffect(() => {
     const title = "Flights and Packages - Book 700+ Tours Worldwide";

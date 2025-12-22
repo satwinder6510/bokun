@@ -6065,7 +6065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload image
-  app.post("/api/admin/media/upload", verifyAdminSession, upload.single('image'), async (req, res) => {
+  app.post("/api/admin/media/upload", verifyAdminSession, memoryUpload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });

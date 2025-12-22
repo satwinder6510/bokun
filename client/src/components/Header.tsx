@@ -42,7 +42,8 @@ export function Header() {
 
       {/* Header */}
       <header className="bg-white border-b border-stone-200">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-3 xl:py-2">
+          {/* Row 1: Logo, Trust Badges, Phone Button */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <Link href="/">
@@ -53,30 +54,6 @@ export function Header() {
                 <img src={atolLogo} alt="ATOL Protected" className="h-10 rounded-full" />
               </div>
             </div>
-            
-            <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
-              <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-home">
-                Home
-              </Link>
-              <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-packages">
-                Flight Packages
-              </Link>
-              <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-tours">
-                Land Tours
-              </Link>
-              <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-collections">
-                Collections
-              </Link>
-              <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-destinations">
-                Destinations
-              </Link>
-              <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-blog">
-                Blog
-              </Link>
-              <Link href="/contact" className="text-slate-700 hover:text-slate-900 font-medium transition-colors text-sm xl:text-base whitespace-nowrap" data-testid="link-contact">
-                Contact
-              </Link>
-            </nav>
 
             <div className="flex items-center gap-2 sm:gap-3">
               {/* Mobile phone icon only */}
@@ -101,7 +78,7 @@ export function Header() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="lg:hidden shrink-0"
+                className="xl:hidden shrink-0"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 data-testid="button-mobile-menu"
               >
@@ -110,9 +87,34 @@ export function Header() {
             </div>
           </div>
 
+          {/* Row 2: Desktop Navigation - Full Width */}
+          <nav className="hidden xl:flex items-center justify-center gap-8 pt-3 border-t border-stone-100 mt-3">
+            <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-home">
+              Home
+            </Link>
+            <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-packages">
+              Flight Packages
+            </Link>
+            <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-tours">
+              Land Tours
+            </Link>
+            <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-collections">
+              Collections
+            </Link>
+            <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-destinations">
+              Destinations
+            </Link>
+            <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-blog">
+              Blog
+            </Link>
+            <Link href="/contact" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-contact">
+              Contact
+            </Link>
+          </nav>
+
           {/* Mobile Menu */}
           {mobileMenuOpen && (
-            <nav className="lg:hidden pt-4 pb-2 border-t mt-4">
+            <nav className="xl:hidden pt-4 pb-2 border-t mt-4">
               <div className="flex flex-col gap-3">
                 <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-home">
                   Home

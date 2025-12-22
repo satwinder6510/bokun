@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { captureDestinationViewed, captureSearch, captureFilterApplied } from "@/lib/posthog";
+import { captureDestinationViewed, captureSearch, captureFilterApplied, captureNewsletterSignup } from "@/lib/posthog";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } from "@shared/schema";
@@ -283,6 +283,21 @@ export default function Homepage() {
     return () => clearInterval(interval);
   }, [totalSlides]);
 
+  // Track search queries with debounce
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 3) return;
+    
+    const timer = setTimeout(() => {
+      captureSearch({
+        search_query: searchQuery,
+        search_type: 'tours',
+        results_count: filteredProducts.length,
+      });
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery, filteredProducts.length]);
+
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
@@ -298,12 +313,14 @@ export default function Homepage() {
       const data = await response.json();
       
       if (response.ok) {
+        captureNewsletterSignup(true, email);
         toast({
           title: "Successfully subscribed!",
           description: "You'll receive our latest travel deals and offers.",
         });
         setEmail("");
       } else {
+        captureNewsletterSignup(false, email);
         toast({
           title: "Subscription failed",
           description: data.error || "Please try again or contact us directly.",
@@ -311,6 +328,7 @@ export default function Homepage() {
         });
       }
     } catch {
+      captureNewsletterSignup(false, email);
       toast({
         title: "Subscription failed",
         description: "Please try again or contact us directly.",
@@ -695,7 +713,10 @@ export default function Homepage() {
                 {categories.slice(0, 10).map((category) => (
                   <button
                     key={category}
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      captureFilterApplied('destination', category, 'tours_list');
+                    }}
                     className={`px-5 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap transition-all border ${
                       selectedCategory === category
                         ? 'bg-slate-800 text-white border-slate-800'

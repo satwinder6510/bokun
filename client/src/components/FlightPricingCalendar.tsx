@@ -23,7 +23,7 @@ import {
   Loader2, Clock, MapPin, Info 
 } from "lucide-react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isToday, getDay, isBefore, startOfDay } from "date-fns";
-import { captureDateSelected, captureCalendarOpened } from "@/lib/posthog";
+import { captureDateSelected } from "@/lib/posthog";
 
 type CombinedPrice = {
   date: string;

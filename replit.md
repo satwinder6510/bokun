@@ -12,7 +12,13 @@ Preferred communication style: Simple, everyday language.
 
 ### UI/UX Decisions
 
-The design is clean and minimal, featuring a visual redesign with a red/orange accent color (#E74C3C). Key UI elements include a fullscreen hero carousel, redesigned tour cards, and horizontal scrolling category pills. The header is transparent with a backdrop blur, offering navigation (Home, Destinations dropdown, FAQ, Blog, Contact). The footer displays destinations, company info, quick links, and contact details. A contact form integrates with Privyr CRM.
+The design is clean and minimal, featuring a visual redesign with a red/orange accent color (#E74C3C). Key UI elements include a compact static hero banner (50-60vh height) with admin-configurable background image, redesigned tour cards, and horizontal scrolling category pills. The header is transparent with a backdrop blur, offering navigation (Home, Destinations dropdown, FAQ, Blog, Contact). The footer displays destinations, company info, quick links, and contact details. A contact form integrates with Privyr CRM.
+
+**Hero Image Control:** Administrators can upload a custom hero image via `/admin/settings`. The fallback chain is:
+1. Admin-configured hero image (first priority)
+2. Featured package image (second)
+3. Tour image (third)
+4. Static fallback image (last)
 
 ### SEO Implementation
 

@@ -4,12 +4,11 @@ import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, Image, MapPin, Tag, Save, Loader2, Trash2, Plus, X } from "lucide-react";
+import { ArrowLeft, Image, MapPin, Tag, Loader2, Plus, X } from "lucide-react";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
+import { MediaPicker } from "@/components/MediaPicker";
 import type { ContentImage, FlightPackage } from "@shared/schema";
 
 type HomepageData = {
@@ -21,8 +20,6 @@ type HomepageData = {
 
 export default function AdminContentImages() {
   const { toast } = useToast();
-  const [editingItem, setEditingItem] = useState<{ type: string; name: string; imageUrl: string } | null>(null);
-  const [newImageUrl, setNewImageUrl] = useState("");
 
   const { data: contentImages = [], isLoading: imagesLoading } = useQuery<ContentImage[]>({
     queryKey: ["/api/admin/content-images"],
@@ -38,8 +35,6 @@ export default function AdminContentImages() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/content-images"] });
       queryClient.invalidateQueries({ queryKey: ["/api/packages/homepage"] });
-      setEditingItem(null);
-      setNewImageUrl("");
       toast({ title: "Image saved successfully" });
     },
     onError: (error: Error) => {
@@ -63,13 +58,8 @@ export default function AdminContentImages() {
     return contentImages.find(img => img.type === type && img.name === name);
   };
 
-  const handleSaveImage = () => {
-    if (!editingItem || !newImageUrl) return;
-    upsertMutation.mutate({
-      type: editingItem.type,
-      name: editingItem.name,
-      imageUrl: newImageUrl,
-    });
+  const handleImageSelect = (type: string, name: string, imageUrl: string) => {
+    upsertMutation.mutate({ type, name, imageUrl });
   };
 
   const destinations = homepageData?.destinations || [];
@@ -158,60 +148,20 @@ export default function AdminContentImages() {
                             <h3 className="font-semibold">{dest.name}</h3>
                             <p className="text-sm text-muted-foreground">{dest.count} packages</p>
                             <div className="flex gap-2 mt-3">
-                              <Dialog>
-                                <DialogTrigger asChild>
+                              <MediaPicker
+                                onSelect={(imageUrl) => handleImageSelect("destination", dest.name, imageUrl)}
+                                destination={dest.name}
+                                trigger={
                                   <Button 
                                     size="sm" 
                                     variant="outline"
-                                    onClick={() => {
-                                      setEditingItem({ type: "destination", name: dest.name, imageUrl: customImage?.imageUrl || "" });
-                                      setNewImageUrl(customImage?.imageUrl || "");
-                                    }}
                                     data-testid={`button-edit-${dest.name}`}
                                   >
                                     <Plus className="w-4 h-4 mr-1" />
                                     {customImage ? "Change" : "Set Image"}
                                   </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Set Image for {dest.name}</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <label className="text-sm font-medium">Image URL</label>
-                                      <Input
-                                        value={newImageUrl}
-                                        onChange={(e) => setNewImageUrl(e.target.value)}
-                                        placeholder="https://..."
-                                        data-testid="input-image-url"
-                                      />
-                                    </div>
-                                    {newImageUrl && (
-                                      <div className="relative h-40 bg-muted rounded-lg overflow-hidden">
-                                        <img 
-                                          src={getProxiedImageUrl(newImageUrl)}
-                                          alt="Preview"
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                    )}
-                                    <Button 
-                                      onClick={handleSaveImage}
-                                      disabled={!newImageUrl || upsertMutation.isPending}
-                                      className="w-full"
-                                      data-testid="button-save-image"
-                                    >
-                                      {upsertMutation.isPending ? (
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      ) : (
-                                        <Save className="w-4 h-4 mr-2" />
-                                      )}
-                                      Save Image
-                                    </Button>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                                }
+                              />
                               {customImage && (
                                 <Button 
                                   size="sm" 
@@ -277,60 +227,19 @@ export default function AdminContentImages() {
                             <h3 className="font-semibold">{collection.tag}</h3>
                             <p className="text-sm text-muted-foreground">{collection.count} packages</p>
                             <div className="flex gap-2 mt-3">
-                              <Dialog>
-                                <DialogTrigger asChild>
+                              <MediaPicker
+                                onSelect={(imageUrl) => handleImageSelect("collection", collection.tag, imageUrl)}
+                                trigger={
                                   <Button 
                                     size="sm" 
                                     variant="outline"
-                                    onClick={() => {
-                                      setEditingItem({ type: "collection", name: collection.tag, imageUrl: customImage?.imageUrl || "" });
-                                      setNewImageUrl(customImage?.imageUrl || "");
-                                    }}
                                     data-testid={`button-edit-${collection.tag}`}
                                   >
                                     <Plus className="w-4 h-4 mr-1" />
                                     {customImage ? "Change" : "Set Image"}
                                   </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Set Image for {collection.tag}</DialogTitle>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <label className="text-sm font-medium">Image URL</label>
-                                      <Input
-                                        value={newImageUrl}
-                                        onChange={(e) => setNewImageUrl(e.target.value)}
-                                        placeholder="https://..."
-                                        data-testid="input-collection-image-url"
-                                      />
-                                    </div>
-                                    {newImageUrl && (
-                                      <div className="relative h-40 bg-muted rounded-lg overflow-hidden">
-                                        <img 
-                                          src={getProxiedImageUrl(newImageUrl)}
-                                          alt="Preview"
-                                          className="w-full h-full object-cover"
-                                        />
-                                      </div>
-                                    )}
-                                    <Button 
-                                      onClick={handleSaveImage}
-                                      disabled={!newImageUrl || upsertMutation.isPending}
-                                      className="w-full"
-                                      data-testid="button-save-collection-image"
-                                    >
-                                      {upsertMutation.isPending ? (
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      ) : (
-                                        <Save className="w-4 h-4 mr-2" />
-                                      )}
-                                      Save Image
-                                    </Button>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                                }
+                              />
                               {customImage && (
                                 <Button 
                                   size="sm" 

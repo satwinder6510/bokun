@@ -578,7 +578,7 @@ export default function Homepage() {
           <p className="text-center text-slate-500 mt-8">
             See all our reviews on{" "}
             <a 
-              href="https://www.trustpilot.com" 
+              href="https://www.trustpilot.com/review/flightsandpackages.com" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-secondary hover:underline"

@@ -21,6 +21,7 @@ import { getProxiedImageUrl, getHeroImageUrl, getGalleryImageUrl } from "@/lib/i
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
+import atolLogo from "@assets/atol-protected-logo-png_seeklogo-13189_1765460348402.png";
 import {
   Dialog,
   DialogContent,
@@ -1265,8 +1266,13 @@ export default function PackageDetail() {
                       alt="Travel Trust Association" 
                       className="h-12"
                     />
+                    <img 
+                      src={atolLogo} 
+                      alt="ATOL Protected" 
+                      className="h-14"
+                    />
                     <div className="text-sm">
-                      <p className="font-medium">Protected by TTA</p>
+                      <p className="font-medium">Fully Protected</p>
                       <p className="text-muted-foreground">Your money is secure</p>
                     </div>
                   </CardContent>

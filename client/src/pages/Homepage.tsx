@@ -550,7 +550,7 @@ export default function Homepage() {
               WHAT OUR CUSTOMERS SAY
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-4">
-              Trusted by Thousands
+              Trusted!
             </h2>
           </div>
 

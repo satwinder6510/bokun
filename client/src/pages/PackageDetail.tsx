@@ -823,7 +823,7 @@ export default function PackageDetail() {
                 <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                   <DialogTrigger asChild>
                     <Button 
-                      className="w-full bg-secondary hover:bg-secondary/90 text-white"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       data-testid="button-enquire-mobile"
                     >
                       <MessageCircle className="w-4 h-4 mr-2" />
@@ -1453,8 +1453,7 @@ export default function PackageDetail() {
                     <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                       <DialogTrigger asChild>
                         <Button 
-                          variant="outline" 
-                          className="w-full" 
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" 
                           size="lg" 
                           data-testid="button-enquire"
                           onClick={() => {

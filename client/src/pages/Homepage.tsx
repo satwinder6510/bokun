@@ -567,7 +567,9 @@ export default function Homepage() {
                 </p>
                 <div>
                   <p className="font-semibold text-slate-800">{testimonial.customerName}</p>
-                  <p className="text-sm text-slate-500">{testimonial.location || ""}</p>
+                  {testimonial.location && (
+                    <p className="text-sm text-slate-500">Country Visited: {testimonial.location}</p>
+                  )}
                 </div>
               </Card>
             ))}

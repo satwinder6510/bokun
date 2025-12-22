@@ -644,17 +644,6 @@ export default function PackageDetail() {
               </div>
             </div>
             
-            {/* Mobile See Prices Button - Bottom Right */}
-            <a 
-              href="#pricing"
-              className="md:hidden absolute bottom-4 right-4"
-              data-testid="button-see-prices-mobile"
-            >
-              <Button className="bg-secondary hover:bg-secondary/90 text-white shadow-lg gap-2">
-                <CalendarIcon className="w-4 h-4" />
-                See Prices
-              </Button>
-            </a>
           </div>
           
           {/* Gallery Carousel */}

@@ -317,7 +317,7 @@ export default function Packages() {
                   <Link key={collection.tag} href={`/holidays/${collection.tag.toLowerCase().replace(/\s+/g, '-')}`}>
                     <div 
                       className="relative flex-shrink-0 rounded-2xl overflow-hidden group cursor-pointer shadow-md hover:shadow-xl transition-shadow"
-                      style={{ width: '198px', height: '320px' }}
+                      style={{ width: '396px', height: '640px' }}
                       data-testid={`card-collection-${collection.tag}`}
                     >
                       <img 

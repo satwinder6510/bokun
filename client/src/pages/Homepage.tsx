@@ -523,6 +523,39 @@ export default function Homepage() {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="py-16 md:py-24 bg-stone-50">
+        <div className="container mx-auto px-6 md:px-8">
+          <div className="text-center mb-12">
+            <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
+              WHAT OUR CUSTOMERS SAY
+            </p>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
+              Trusted by Thousands
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, index) => (
+              <Card key={index} className="p-6 bg-white border-stone-200" data-testid={`card-testimonial-${index}`}>
+                <div className="flex gap-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <span key={i} className="text-yellow-500">★</span>
+                  ))}
+                </div>
+                <p className="text-slate-600 mb-4 italic">
+                  "{testimonial.reviewText}"
+                </p>
+                <div>
+                  <p className="font-semibold text-slate-800">{testimonial.customerName}</p>
+                  <p className="text-sm text-slate-500">{testimonial.location || ""}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Featured Land Tours Section */}
       <section id="tours" className="py-16 md:py-24 bg-stone-50">
         <div className="container mx-auto px-6 md:px-8">
@@ -738,39 +771,6 @@ export default function Homepage() {
                 <h3 className="text-xl font-bold text-slate-800 mb-2">{feature.title}</h3>
                 <p className="text-slate-600">{feature.description}</p>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-16 md:py-24 bg-white border-y border-stone-200">
-        <div className="container mx-auto px-6 md:px-8">
-          <div className="text-center mb-12">
-            <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
-              WHAT OUR CUSTOMERS SAY
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mb-4">
-              Trusted by Thousands
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, index) => (
-              <Card key={index} className="p-6 bg-white border-stone-200" data-testid={`card-testimonial-${index}`}>
-                <div className="flex gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <span key={i} className="text-yellow-500">★</span>
-                  ))}
-                </div>
-                <p className="text-slate-600 mb-4 italic">
-                  "{testimonial.reviewText}"
-                </p>
-                <div>
-                  <p className="font-semibold text-slate-800">{testimonial.customerName}</p>
-                  <p className="text-sm text-slate-500">{testimonial.location || ""}</p>
-                </div>
-              </Card>
             ))}
           </div>
         </div>

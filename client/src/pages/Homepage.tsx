@@ -442,14 +442,21 @@ export default function Homepage() {
             {/* Quick destination links */}
             <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-stone-100">
               <span className="text-sm text-muted-foreground mr-2">Popular:</span>
-              {['India', 'Maldives', 'Dubai', 'Thailand', 'Bali'].map((dest) => (
+              {[
+                { name: 'Italy', href: '/Holidays/Italy', type: 'destination' as const },
+                { name: 'Greece', href: '/Holidays/Greece', type: 'destination' as const },
+                { name: 'River Cruises', href: '/holidays/river-cruise', type: 'collection' as const },
+                { name: 'India', href: '/Holidays/India', type: 'destination' as const },
+                { name: 'Thailand', href: '/Holidays/Thailand', type: 'destination' as const },
+              ].map((item) => (
                 <a 
-                  key={dest}
-                  href={`/Holidays/${dest.toLowerCase()}`}
+                  key={item.name}
+                  href={item.href}
                   className="text-sm text-slate-600 hover:text-primary hover:underline transition-colors"
-                  onClick={() => captureDestinationViewed(dest)}
+                  onClick={() => captureDestinationViewed(item.name)}
+                  data-testid={`link-quick-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
                 >
-                  {dest}
+                  {item.name}
                 </a>
               ))}
             </div>

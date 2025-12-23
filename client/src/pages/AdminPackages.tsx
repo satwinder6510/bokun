@@ -99,7 +99,7 @@ type VideoItem = {
 // Common destination countries for quick selection
 const COMMON_COUNTRIES = [
   "India", "Maldives", "Dubai", "Sri Lanka", "Thailand", "Vietnam", 
-  "Cambodia", "Bali", "Japan", "Singapore", "Malaysia", "Indonesia",
+  "Cambodia", "Bali", "Japan", "China", "Nepal", "Singapore", "Malaysia", "Indonesia",
   "Egypt", "Morocco", "Kenya", "Tanzania", "South Africa", "Mauritius",
   "Jordan", "Oman", "Saudi Arabia", "Turkey", "Greece", "Italy", "Spain",
   "Portugal", "France", "Croatia", "Iceland", "Norway", "USA", "Canada",

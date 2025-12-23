@@ -6,7 +6,7 @@ import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import bcrypt from "bcrypt";
 import sharp from "sharp";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions, newsletterSubscribers } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertTourEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions, newsletterSubscribers } from "@shared/schema";
 import { calculateCombinedPrices, getFlightsForDateWithPrices, UK_AIRPORTS, getDefaultDepartAirports, searchFlights } from "./flightApi";
 import { db } from "./db";
 import { eq, lt, desc } from "drizzle-orm";
@@ -3942,6 +3942,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating enquiry:", error);
       res.status(500).json({ error: "Failed to update enquiry" });
+    }
+  });
+
+  // ===== TOUR ENQUIRY ROUTES =====
+  
+  // Submit tour enquiry (for Bokun land tours)
+  app.post("/api/tours/:productId/enquiry", async (req, res) => {
+    try {
+      const { productId } = req.params;
+      
+      const parseResult = insertTourEnquirySchema.safeParse({
+        ...req.body,
+        productId,
+      });
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: parseResult.error.errors 
+        });
+      }
+      
+      // Create enquiry record
+      const enquiry = await storage.createTourEnquiry(parseResult.data);
+      
+      // Also send to Privyr webhook if configured
+      if (process.env.PRIVYR_WEBHOOK_URL) {
+        try {
+          // Build the tour URL
+          const baseUrl = `${req.protocol}://${req.get('host')}`;
+          const tourUrl = `${baseUrl}/tour/${productId}`;
+          
+          // Format price for display
+          const formatPrice = (price: number | null | undefined): string => {
+            if (!price) return "Not specified";
+            return new Intl.NumberFormat('en-GB', {
+              style: 'currency',
+              currency: 'GBP',
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0,
+            }).format(price);
+          };
+
+          // Format departure date if provided
+          const formatDate = (dateStr: string | null | undefined): string => {
+            if (!dateStr) return "Not specified";
+            try {
+              const date = new Date(dateStr);
+              return date.toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+              });
+            } catch {
+              return dateStr;
+            }
+          };
+
+          // Prepare payload for Privyr webhook
+          const privyrPayload = {
+            name: `${req.body.firstName} ${req.body.lastName}`,
+            email: req.body.email,
+            phone: req.body.phone,
+            display_name: req.body.firstName,
+            other_fields: {
+              "First Name": req.body.firstName,
+              "Last Name": req.body.lastName,
+              "Tour Name": req.body.productTitle,
+              "Tour URL": tourUrl,
+              "Departure Date": formatDate(req.body.departureDate),
+              "Room/Category": req.body.rateTitle || "Not specified",
+              "Estimated Price": formatPrice(req.body.estimatedPrice),
+              "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
+              "Additional Requirements": req.body.message || "None",
+              "Source": "Tour Enquiry Form",
+              "Submitted At": new Date().toISOString(),
+            },
+          };
+          
+          await fetch(process.env.PRIVYR_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(privyrPayload),
+          });
+          console.log("Tour enquiry sent to Privyr successfully");
+        } catch (webhookError) {
+          console.error("Failed to send tour enquiry to Privyr:", webhookError);
+        }
+      }
+      
+      res.status(201).json({ success: true, enquiry });
+    } catch (error: any) {
+      console.error("Error submitting tour enquiry:", error);
+      res.status(500).json({ error: "Failed to submit tour enquiry" });
+    }
+  });
+
+  // Get all tour enquiries (admin)
+  app.get("/api/admin/tour-enquiries", async (req, res) => {
+    try {
+      const enquiries = await storage.getAllTourEnquiries();
+      res.json(enquiries);
+    } catch (error: any) {
+      console.error("Error fetching tour enquiries:", error);
+      res.status(500).json({ error: "Failed to fetch tour enquiries" });
+    }
+  });
+
+  // Update tour enquiry status (admin)
+  app.patch("/api/admin/tour-enquiries/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      const enquiry = await storage.updateTourEnquiryStatus(parseInt(id), status);
+      res.json(enquiry);
+    } catch (error: any) {
+      console.error("Error updating tour enquiry:", error);
+      res.status(500).json({ error: "Failed to update tour enquiry" });
     }
   });
 

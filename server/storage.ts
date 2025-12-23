@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, flightPackages, packageEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, flightPackages, packageEnquiries, tourEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql, and } from "drizzle-orm";
@@ -65,6 +65,11 @@ export interface IStorage {
   createPackageEnquiry(enquiry: InsertPackageEnquiry): Promise<PackageEnquiry>;
   getAllPackageEnquiries(): Promise<PackageEnquiry[]>;
   updatePackageEnquiryStatus(id: number, status: string): Promise<PackageEnquiry | undefined>;
+  
+  // Tour enquiry methods
+  createTourEnquiry(enquiry: InsertTourEnquiry): Promise<TourEnquiry>;
+  getAllTourEnquiries(): Promise<TourEnquiry[]>;
+  updateTourEnquiryStatus(id: number, status: string): Promise<TourEnquiry | undefined>;
   
   // Package pricing methods
   getPackagePricing(packageId: number): Promise<PackagePricing[]>;
@@ -786,6 +791,33 @@ export class MemStorage implements IStorage {
     const [updated] = await db.update(packageEnquiries)
       .set({ status })
       .where(eq(packageEnquiries.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Tour enquiry methods
+  async createTourEnquiry(enquiry: InsertTourEnquiry): Promise<TourEnquiry> {
+    const [created] = await db.insert(tourEnquiries).values({
+      ...enquiry,
+      createdAt: new Date(),
+    }).returning();
+    return created;
+  }
+
+  async getAllTourEnquiries(): Promise<TourEnquiry[]> {
+    try {
+      return await db.select().from(tourEnquiries)
+        .orderBy(desc(tourEnquiries.createdAt));
+    } catch (error) {
+      console.error("Error fetching tour enquiries:", error);
+      return [];
+    }
+  }
+
+  async updateTourEnquiryStatus(id: number, status: string): Promise<TourEnquiry | undefined> {
+    const [updated] = await db.update(tourEnquiries)
+      .set({ status })
+      .where(eq(tourEnquiries.id, id))
       .returning();
     return updated;
   }

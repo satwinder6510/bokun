@@ -3,15 +3,24 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Users, Loader2, ShoppingCart, CreditCard, ChevronDown, Check, Minus, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, Users, Loader2, Mail, ChevronDown, Check, Minus, Plus } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/use-toast";
-import { useCart } from "@/contexts/CartContext";
 import { apiRequest } from "@/lib/queryClient";
 import { useExchangeRate } from "@/hooks/useExchangeRate";
 import { format, addMonths } from "date-fns";
-import { useLocation } from "wouter";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   Drawer,
   DrawerContent,
@@ -93,20 +102,34 @@ interface AvailabilityData {
   }>;
 }
 
+interface EnquiryFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  message: string;
+}
+
 export function AvailabilityChecker({ productId, productTitle, rates, bookableExtras, startingPrice }: AvailabilityCheckerProps) {
   const { toast } = useToast();
   const { formatBokunPrice } = useExchangeRate();
-  const { addToCart } = useCart();
-  const [, setLocation] = useLocation();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [enquiryOpen, setEnquiryOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [departureDate, setDepartureDate] = useState<Date>();
   const [selectedRate, setSelectedRate] = useState<string>("");
   const [numberOfPeople, setNumberOfPeople] = useState<number>(2);
   const [availabilities, setAvailabilities] = useState<AvailabilityData[]>([]);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [dateRange, setDateRange] = useState<{ fromMonth?: Date; toMonth?: Date }>({});
-  const [addingToCart, setAddingToCart] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [formData, setFormData] = useState<EnquiryFormData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -132,7 +155,6 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
       const formattedStart = format(today, "yyyy-MM-dd");
       const formattedEnd = format(sixMonthsLater, "yyyy-MM-dd");
       
-      // Always fetch USD prices from Bokun - conversion to GBP happens on frontend
       const response = await apiRequest(
         "GET",
         `/api/bokun/availability/${productId}?start=${formattedStart}&end=${formattedEnd}`
@@ -181,7 +203,6 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
   const checkAvailabilityMutation = useMutation({
     mutationFn: async (date: Date) => {
       const formattedDate = format(date, "yyyy-MM-dd");
-      // Always fetch USD prices from Bokun - conversion to GBP happens on frontend
       const response = await apiRequest(
         "GET",
         `/api/bokun/availability/${productId}?start=${formattedDate}&end=${formattedDate}`
@@ -219,61 +240,45 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
     );
   }, [availableDates]);
 
-  const handleAddToCart = async (rateId: number, rateTitle: string, totalPrice: number, priceCurrency: string): Promise<boolean> => {
-    if (!departureDate) {
-      toast({ title: "Please select a date", variant: "destructive" });
-      return false;
-    }
+  const handleSubmitEnquiry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-    if (rates && rates.length > 0 && !selectedRate) {
-      toast({ title: "Please select a room option", variant: "destructive" });
-      return false;
-    }
-
-    if (priceCurrency !== 'GBP') {
-      toast({
-        title: "Currency mismatch",
-        description: "Please refresh the page and try again.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    const key = `${rateId}-${departureDate.getTime()}`;
-    setAddingToCart(key);
     try {
-      await addToCart({
-        productId,
+      const pricing = getPricingForSelectedRate();
+      
+      await apiRequest("POST", `/api/tours/${productId}/enquiry`, {
         productTitle,
-        productPrice: totalPrice,
-        currency: 'GBP',
-        date: format(departureDate, "yyyy-MM-dd"),
-        rateId,
-        rateTitle,
-        quantity: numberOfPeople,
+        ...formData,
+        departureDate: departureDate ? format(departureDate, "yyyy-MM-dd") : null,
+        rateTitle: pricing?.rateTitle || null,
+        numberOfTravelers: numberOfPeople,
+        estimatedPrice: pricing?.totalPrice || null,
+        currency: "GBP",
       });
+
       toast({
-        title: "Added to cart",
-        description: `${productTitle} on ${format(departureDate, "MMM d, yyyy")}`,
+        title: "Enquiry Submitted",
+        description: "Thank you! Our team will contact you within 24 hours.",
       });
+
+      setEnquiryOpen(false);
       setIsDrawerOpen(false);
-      return true;
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        message: "",
+      });
     } catch (error) {
       toast({
-        title: "Failed to add to cart",
-        description: error instanceof Error ? error.message : "Please try again",
+        title: "Error",
+        description: "Failed to submit enquiry. Please try again.",
         variant: "destructive",
       });
-      return false;
     } finally {
-      setAddingToCart(null);
-    }
-  };
-
-  const handleBuyNow = async (rateId: number, rateTitle: string, totalPrice: number, priceCurrency: string) => {
-    const success = await handleAddToCart(rateId, rateTitle, totalPrice, priceCurrency);
-    if (success) {
-      setLocation("/checkout");
+      setIsSubmitting(false);
     }
   };
 
@@ -309,7 +314,6 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
 
     if (!rate || !price || price.amount === undefined) return null;
 
-    // Convert USD to GBP and apply 10% markup to Bokun net prices
     const markedUpPricePerPerson = formatBokunPrice(price.amount);
     const totalPrice = rate.pricedPerPerson 
       ? markedUpPricePerPerson * numberOfPeople
@@ -325,6 +329,89 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
   };
 
   const pricing = getPricingForSelectedRate();
+
+  const EnquiryFormContent = () => (
+    <form onSubmit={handleSubmitEnquiry} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="firstName">First Name *</Label>
+          <Input 
+            id="firstName"
+            value={formData.firstName}
+            onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+            required
+            data-testid="input-enquiry-first-name"
+          />
+        </div>
+        <div>
+          <Label htmlFor="lastName">Last Name *</Label>
+          <Input 
+            id="lastName"
+            value={formData.lastName}
+            onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+            required
+            data-testid="input-enquiry-last-name"
+          />
+        </div>
+      </div>
+      <div>
+        <Label htmlFor="email">Email *</Label>
+        <Input 
+          id="email"
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({...formData, email: e.target.value})}
+          required
+          data-testid="input-enquiry-email"
+        />
+      </div>
+      <div>
+        <Label htmlFor="phone">Phone *</Label>
+        <Input 
+          id="phone"
+          type="tel"
+          value={formData.phone}
+          onChange={(e) => setFormData({...formData, phone: e.target.value})}
+          required
+          data-testid="input-enquiry-phone"
+        />
+      </div>
+      <div>
+        <Label htmlFor="message">Additional Requirements</Label>
+        <Textarea 
+          id="message"
+          value={formData.message}
+          onChange={(e) => setFormData({...formData, message: e.target.value})}
+          placeholder="Any special requests or questions..."
+          data-testid="input-enquiry-message"
+        />
+      </div>
+      
+      {/* Show selected tour details */}
+      <div className="bg-muted/50 rounded-lg p-3 space-y-1 text-sm">
+        <p className="font-medium">{productTitle}</p>
+        {departureDate && (
+          <p className="text-muted-foreground">Date: {format(departureDate, "EEEE, MMMM d, yyyy")}</p>
+        )}
+        {pricing?.rateTitle && (
+          <p className="text-muted-foreground">Option: {pricing.rateTitle}</p>
+        )}
+        <p className="text-muted-foreground">Travelers: {numberOfPeople}</p>
+        {pricing && (
+          <p className="font-semibold text-primary">Estimated: £{pricing.totalPrice.toFixed(2)}</p>
+        )}
+      </div>
+      
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={isSubmitting}
+        data-testid="button-submit-tour-enquiry"
+      >
+        {isSubmitting ? "Submitting..." : "Submit Enquiry"}
+      </Button>
+    </form>
+  );
 
   const CalendarContent = () => (
     <Calendar
@@ -459,9 +546,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
       );
     }
 
-    const canBook = departureDate && (!rates || rates.length === 0 || selectedRate);
-    const key = `${pricing.rateId}-${departureDate.getTime()}`;
-    const isAdding = addingToCart === key;
+    const canEnquire = departureDate && (!rates || rates.length === 0 || selectedRate);
 
     return (
       <div className="space-y-4">
@@ -489,7 +574,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
                     £{pricing.pricePerPerson.toFixed(2)} × {numberOfPeople} {numberOfPeople === 1 ? 'person' : 'people'}
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground">Total price</p>
+                <p className="text-xs text-muted-foreground">Estimated price</p>
               </div>
               <p className="text-3xl font-bold text-primary" data-testid="text-total-price">
                 £{pricing.totalPrice.toFixed(2)}
@@ -498,27 +583,31 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="outline"
-            onClick={() => handleAddToCart(pricing.rateId, pricing.rateTitle, pricing.totalPrice, 'GBP')}
-            disabled={!canBook || isAdding}
-            className="h-12"
-            data-testid="button-add-to-cart"
-          >
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            {isAdding ? "Adding..." : "Add to Cart"}
-          </Button>
-          <Button
-            onClick={() => handleBuyNow(pricing.rateId, pricing.rateTitle, pricing.totalPrice, 'GBP')}
-            disabled={!canBook || isAdding}
-            className="h-12"
-            data-testid="button-buy-now"
-          >
-            <CreditCard className="w-4 h-4 mr-2" />
-            Book Now
-          </Button>
-        </div>
+        <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
+          <DialogTrigger asChild>
+            <Button
+              className="w-full h-12"
+              disabled={!canEnquire}
+              data-testid="button-enquire-now"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Enquire Now
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Request Quote</DialogTitle>
+              <DialogDescription>
+                Complete the form below and our team will contact you within 24 hours.
+              </DialogDescription>
+            </DialogHeader>
+            <EnquiryFormContent />
+          </DialogContent>
+        </Dialog>
+        
+        <p className="text-xs text-center text-muted-foreground">
+          No payment required • Get a personalised quote
+        </p>
       </div>
     );
   };
@@ -590,7 +679,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
         
         <DrawerContent className="max-h-[90vh]">
           <DrawerHeader>
-            <DrawerTitle>Book This Tour</DrawerTitle>
+            <DrawerTitle>Check Availability</DrawerTitle>
             <DrawerDescription>{productTitle}</DrawerDescription>
           </DrawerHeader>
           
@@ -601,7 +690,7 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
           
           <DrawerFooter className="border-t">
             <p className="text-xs text-center text-muted-foreground">
-              Secure booking • Instant confirmation
+              No payment required • Get a personalised quote
             </p>
           </DrawerFooter>
         </DrawerContent>

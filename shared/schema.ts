@@ -487,6 +487,46 @@ export const insertPackageEnquirySchema = createInsertSchema(packageEnquiries).o
 export type PackageEnquiry = typeof packageEnquiries.$inferSelect;
 export type InsertPackageEnquiry = z.infer<typeof insertPackageEnquirySchema>;
 
+// Tour Enquiries schema (for Bokun land tours)
+export const tourEnquiries = pgTable("tour_enquiries", {
+  id: serial("id").primaryKey(),
+  productId: text("product_id").notNull(), // Bokun product ID
+  productTitle: text("product_title").notNull(),
+  
+  // Customer info
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  
+  // Tour selection details
+  departureDate: text("departure_date"), // ISO date string
+  rateTitle: text("rate_title"), // Room/category selected
+  numberOfTravelers: integer("number_of_travelers"),
+  estimatedPrice: real("estimated_price"), // Total price at time of enquiry
+  currency: text("currency").default("GBP"),
+  message: text("message"),
+  
+  // Status
+  status: text("status").notNull().default("new"), // new, contacted, converted, closed
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTourEnquirySchema = createInsertSchema(tourEnquiries).omit({ 
+  id: true, 
+  createdAt: true,
+  status: true
+}).extend({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(7, "Phone number is required"),
+});
+
+export type TourEnquiry = typeof tourEnquiries.$inferSelect;
+export type InsertTourEnquiry = z.infer<typeof insertTourEnquirySchema>;
+
 // Package Pricing Calendar schema
 export const packagePricing = pgTable("package_pricing", {
   id: serial("id").primaryKey(),

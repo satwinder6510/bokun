@@ -138,6 +138,16 @@ export function captureSearch(properties: SearchProperties): void {
   captureEvent('search_performed', { ...properties });
 }
 
+export function captureSearchResultClicked(properties: {
+  search_query: string;
+  result_type: 'package' | 'tour';
+  result_id: number | string;
+  result_title: string;
+  result_position: number;
+}): void {
+  captureEvent('search_result_clicked', { ...properties });
+}
+
 export function captureDateSelected(packageId: number | undefined, properties: DateSelectionProperties): void {
   captureEvent('date_selected', {
     package_id: packageId,

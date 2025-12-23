@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { captureSearch, captureSearchResultClicked } from "@/lib/posthog";
 
 interface SearchResult {
   id: number | string;
@@ -63,7 +64,16 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
   const results = data?.results || [];
   const suggestions = data?.suggestions || [];
 
-  const handleNavigate = useCallback((result: SearchResult) => {
+  const handleNavigate = useCallback((result: SearchResult, index: number) => {
+    // Track the click in PostHog
+    captureSearchResultClicked({
+      search_query: query,
+      result_type: result.type,
+      result_id: result.id,
+      result_title: result.title,
+      result_position: index + 1,
+    });
+    
     if (result.type === "package") {
       navigate(`/Holidays/${result.category}/${result.slug}`);
     } else {
@@ -72,7 +82,7 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
     setQuery("");
     setIsOpen(false);
     onClose?.();
-  }, [navigate, onClose]);
+  }, [navigate, onClose, query]);
 
   const handleSuggestionClick = useCallback((suggestion: string) => {
     setQuery(suggestion);
@@ -94,7 +104,7 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
       case "Enter":
         e.preventDefault();
         if (selectedIndex >= 0 && results[selectedIndex]) {
-          handleNavigate(results[selectedIndex]);
+          handleNavigate(results[selectedIndex], selectedIndex);
         }
         break;
       case "Escape":
@@ -135,6 +145,17 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
       inputRef.current.focus();
     }
   }, [autoFocus]);
+
+  // Track search in PostHog when results come back
+  useEffect(() => {
+    if (debouncedQuery.length >= 2 && data) {
+      captureSearch({
+        search_query: debouncedQuery,
+        search_type: 'global',
+        results_count: data.total || 0,
+      });
+    }
+  }, [debouncedQuery, data]);
 
   const formatPrice = (price: number | undefined) => {
     if (!price) return null;
@@ -232,7 +253,7 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
                         ? "bg-accent"
                         : "hover-elevate"
                     )}
-                    onClick={() => handleNavigate(result)}
+                    onClick={() => handleNavigate(result, index)}
                     onMouseEnter={() => setSelectedIndex(index)}
                     data-testid={`search-result-${result.type}-${result.id}`}
                   >

@@ -96,10 +96,21 @@ type VideoItem = {
   videoId: string;
 };
 
+// Common destination countries for quick selection
+const COMMON_COUNTRIES = [
+  "India", "Maldives", "Dubai", "Sri Lanka", "Thailand", "Vietnam", 
+  "Cambodia", "Bali", "Japan", "Singapore", "Malaysia", "Indonesia",
+  "Egypt", "Morocco", "Kenya", "Tanzania", "South Africa", "Mauritius",
+  "Jordan", "Oman", "Saudi Arabia", "Turkey", "Greece", "Italy", "Spain",
+  "Portugal", "France", "Croatia", "Iceland", "Norway", "USA", "Canada",
+  "Mexico", "Peru", "Brazil", "Argentina", "Australia", "New Zealand", "Fiji"
+];
+
 type PackageFormData = {
   title: string;
   slug: string;
   category: string;
+  countries: string[];
   tags: string[];
   price: number;
   singlePrice: number | null;
@@ -150,6 +161,7 @@ const emptyPackage: PackageFormData = {
   title: "",
   slug: "",
   category: "",
+  countries: [],
   tags: [],
   price: 0,
   singlePrice: null,
@@ -611,6 +623,7 @@ export default function AdminPackages() {
       title: pkg.title,
       slug: pkg.slug,
       category: pkg.category,
+      countries: (pkg.countries || []) as string[],
       tags: (pkg.tags || []) as string[],
       price: pkg.price,
       singlePrice: pkg.singlePrice || null,
@@ -1677,7 +1690,7 @@ export default function AdminPackages() {
 
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="category">Category/Destination *</Label>
+                        <Label htmlFor="category">Primary Destination *</Label>
                         <Input
                           id="category"
                           value={formData.category}
@@ -1686,10 +1699,62 @@ export default function AdminPackages() {
                           required
                           data-testid="input-category"
                         />
+                        <p className="text-xs text-muted-foreground mt-1">Used for URL routing</p>
                       </div>
                       
-                      {/* Tags Section */}
+                      {/* Countries Section - for multi-country packages */}
                       <div className="col-span-2">
+                        <Label>All Countries Covered</Label>
+                        <p className="text-xs text-muted-foreground mb-2">Select all countries this package visits</p>
+                        <div className="space-y-3">
+                          {/* Selected countries */}
+                          {formData.countries.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {formData.countries.map((country, index) => (
+                                <Badge key={index} variant="default" className="flex items-center gap-1">
+                                  {country}
+                                  <button
+                                    type="button"
+                                    onClick={() => setFormData({
+                                      ...formData,
+                                      countries: formData.countries.filter((_, i) => i !== index)
+                                    })}
+                                    className="ml-1 hover:text-destructive"
+                                    data-testid={`button-remove-country-${index}`}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Quick country buttons */}
+                          <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                            {COMMON_COUNTRIES.filter(c => !formData.countries.includes(c)).map((country) => (
+                              <Button
+                                key={country}
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setFormData({
+                                  ...formData,
+                                  countries: [...formData.countries, country]
+                                })}
+                                className="h-6 text-xs px-2"
+                                data-testid={`button-add-country-${country.toLowerCase().replace(/\s+/g, '-')}`}
+                              >
+                                + {country}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      {/* Tags Section */}
+                      <div>
                         <Label>Tags</Label>
                         <div className="mt-2 space-y-3">
                           {/* Current tags */}

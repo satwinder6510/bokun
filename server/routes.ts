@@ -2276,19 +2276,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Build destinations from published packages
+      // Build destinations from published packages (includes countries array for multi-country packages)
       const destinationMap = new Map<string, { name: string; count: number; image: string | null }>();
       allPackages.forEach(pkg => {
-        const existing = destinationMap.get(pkg.category);
-        if (existing) {
-          existing.count++;
-        } else {
-          destinationMap.set(pkg.category, {
-            name: pkg.category,
-            count: 1,
-            image: destinationImages.get(pkg.category) || pkg.featuredImage
-          });
+        // Get all countries this package covers (primary category + countries array)
+        const allCountries = new Set<string>([pkg.category]);
+        if (pkg.countries && Array.isArray(pkg.countries)) {
+          pkg.countries.forEach(c => allCountries.add(c));
         }
+        
+        // Add/update count for each country
+        allCountries.forEach(country => {
+          const existing = destinationMap.get(country);
+          if (existing) {
+            existing.count++;
+          } else {
+            destinationMap.set(country, {
+              name: country,
+              count: 1,
+              image: destinationImages.get(country) || pkg.featuredImage
+            });
+          }
+        });
       });
       const destinations = Array.from(destinationMap.values())
         .sort((a, b) => b.count - a.count);
@@ -2378,12 +2387,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const packageImages = new Map<string, string>();
       
       allPackages.forEach(pkg => {
-        const count = packagesByCategory.get(pkg.category) || 0;
-        packagesByCategory.set(pkg.category, count + 1);
-        // Store first image found for each category
-        if (!packageImages.has(pkg.category) && pkg.featuredImage) {
-          packageImages.set(pkg.category, pkg.featuredImage);
+        // Get all countries this package covers (primary category + countries array)
+        const allCountries = new Set<string>([pkg.category]);
+        if (pkg.countries && Array.isArray(pkg.countries)) {
+          pkg.countries.forEach(c => allCountries.add(c));
         }
+        
+        // Count package for each country it covers
+        allCountries.forEach(country => {
+          const count = packagesByCategory.get(country) || 0;
+          packagesByCategory.set(country, count + 1);
+          // Store first image found for each category
+          if (!packageImages.has(country) && pkg.featuredImage) {
+            packageImages.set(country, pkg.featuredImage);
+          }
+        });
       });
       
       // Get cached Bokun products and extract countries
@@ -2433,11 +2451,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert slug to destination name (e.g., "united-arab-emirates" -> "United Arab Emirates")
       const destinationName = slug.split('-').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       
-      // Get published flight packages matching category
+      // Get published flight packages matching category or countries array
       const allPackages = await storage.getPublishedFlightPackages();
-      const matchingPackages = allPackages.filter(pkg => 
-        pkg.category.toLowerCase() === destinationName.toLowerCase()
-      );
+      const matchingPackages = allPackages.filter(pkg => {
+        // Check primary category
+        if (pkg.category.toLowerCase() === destinationName.toLowerCase()) {
+          return true;
+        }
+        // Check countries array for multi-country packages
+        if (pkg.countries && Array.isArray(pkg.countries)) {
+          return pkg.countries.some(c => c.toLowerCase() === destinationName.toLowerCase());
+        }
+        return false;
+      });
       
       // Get cached Bokun products matching country
       const cachedProducts = await storage.getCachedProducts("USD");
@@ -5152,6 +5178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title,
             slug,
             category,
+            countries: [] as string[],
             destination: category,
             duration: `${itinerary.length || 7} Days`,
             price,

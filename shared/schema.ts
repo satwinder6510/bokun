@@ -356,7 +356,8 @@ export const flightPackages = pgTable("flight_packages", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   slug: text("slug").notNull().unique(),
-  category: text("category").notNull(), // e.g., "India", "Maldives", "Dubai"
+  category: text("category").notNull(), // e.g., "India", "Maldives", "Dubai" - primary country for URL
+  countries: jsonb("countries").$type<string[]>().notNull().default([]), // All countries this package covers
   tags: jsonb("tags").$type<string[]>().notNull().default([]), // e.g., "Beach", "City Break", "Honeymoon", "Family"
   
   // Bokun integration - link to a Bokun land tour for content import
@@ -435,6 +436,7 @@ export const insertFlightPackageSchema = createInsertSchema(flightPackages).omit
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase letters, numbers, and hyphens only"),
   title: z.string().min(1, "Title is required").max(300, "Title too long"),
   category: z.string().min(1, "Category is required"),
+  countries: z.array(z.string()).default([]),
   price: z.number().min(0, "Price cannot be negative"),
   singlePrice: z.number().min(0, "Single price cannot be negative").optional().nullable(),
   pricingDisplay: z.enum(["both", "twin", "single"]).default("both"),

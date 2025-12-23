@@ -33,9 +33,10 @@ interface GlobalSearchProps {
   placeholder?: string;
   onClose?: () => void;
   autoFocus?: boolean;
+  variant?: "default" | "hero";
 }
 
-export function GlobalSearch({ className, placeholder = "Search destinations, tours...", onClose, autoFocus = false }: GlobalSearchProps) {
+export function GlobalSearch({ className, placeholder = "Search destinations, tours...", onClose, autoFocus = false, variant = "default" }: GlobalSearchProps) {
   const [, navigate] = useLocation();
   const [query, setQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -145,10 +146,15 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
     }).format(price);
   };
 
+  const isHero = variant === "hero";
+
   return (
     <div className={cn("relative", className)}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Search className={cn(
+          "absolute top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none",
+          isHero ? "left-4 h-5 w-5" : "left-3 h-4 w-4"
+        )} />
         <Input
           ref={inputRef}
           type="search"
@@ -157,14 +163,21 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => query.length >= 2 && setIsOpen(true)}
-          className="pl-10 pr-10 h-10"
+          className={cn(
+            isHero 
+              ? "pl-12 pr-12 h-12 md:h-14 text-base md:text-lg bg-stone-50 border-stone-200" 
+              : "pl-10 pr-10 h-10"
+          )}
           data-testid="input-global-search"
         />
         {query && (
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2",
+              isHero ? "right-2 h-10 w-10" : "right-1 h-8 w-8"
+            )}
             onClick={() => {
               setQuery("");
               setIsOpen(false);
@@ -172,7 +185,7 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
             }}
             data-testid="button-clear-search"
           >
-            <X className="h-4 w-4" />
+            <X className={isHero ? "h-5 w-5" : "h-4 w-4"} />
           </Button>
         )}
       </div>

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { captureDestinationViewed, captureSearch, captureFilterApplied, captureNewsletterSignup } from "@/lib/posthog";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
@@ -80,7 +81,7 @@ export default function Homepage() {
   const { toast } = useToast();
   const phoneNumber = useDynamicPhoneNumber();
   const [products, setProducts] = useState<BokunProduct[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [tourSearchQuery, setTourSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -243,10 +244,10 @@ export default function Homepage() {
     }));
 
   const filteredProducts = products.filter(product => {
-    const matchesSearch = !searchQuery || 
-      product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.excerpt || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (product.locationCode?.name || "").toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = !tourSearchQuery || 
+      product.title.toLowerCase().includes(tourSearchQuery.toLowerCase()) ||
+      (product.excerpt || "").toLowerCase().includes(tourSearchQuery.toLowerCase()) ||
+      (product.locationCode?.name || "").toLowerCase().includes(tourSearchQuery.toLowerCase());
     
     const matchesCategory = !selectedCategory || 
       (product.activityCategories || []).includes(selectedCategory);
@@ -292,18 +293,18 @@ export default function Homepage() {
 
   // Track search queries with debounce
   useEffect(() => {
-    if (!searchQuery || searchQuery.length < 3) return;
+    if (!tourSearchQuery || tourSearchQuery.length < 3) return;
     
     const timer = setTimeout(() => {
       captureSearch({
-        search_query: searchQuery,
+        search_query: tourSearchQuery,
         search_type: 'tours',
         results_count: filteredProducts.length,
       });
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [searchQuery, filteredProducts.length]);
+  }, [tourSearchQuery, filteredProducts.length]);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -423,23 +424,12 @@ export default function Homepage() {
         <div className="container mx-auto px-4 md:px-8">
           <div className="bg-white rounded-xl shadow-xl border border-stone-200 p-4 md:p-6 max-w-4xl mx-auto">
             <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-                <Input 
+              <div className="flex-1">
+                <GlobalSearch 
                   placeholder="Search destinations, tours, packages..." 
-                  className="pl-12 h-12 md:h-14 text-base md:text-lg bg-stone-50 border-stone-200"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  data-testid="input-hero-search"
+                  className="h-12 md:h-14 text-base md:text-lg"
+                  variant="hero"
                 />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
               </div>
               <a href="/packages" className="shrink-0">
                 <Button size="lg" className="w-full md:w-auto h-12 md:h-14 px-8 text-base font-semibold" data-testid="button-search-packages">
@@ -734,17 +724,17 @@ export default function Homepage() {
               <Input
                 type="text"
                 placeholder="Search destinations, tours, or experiences..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={tourSearchQuery}
+                onChange={(e) => setTourSearchQuery(e.target.value)}
                 className="pl-12 pr-12 h-14 text-base"
                 data-testid="input-search"
               />
-              {searchQuery && (
+              {tourSearchQuery && (
                 <Button
                   size="icon"
                   variant="ghost"
                   className="absolute right-2 top-1/2 -translate-y-1/2"
-                  onClick={() => setSearchQuery("")}
+                  onClick={() => setTourSearchQuery("")}
                   data-testid="button-clear-search"
                 >
                   <X className="w-5 h-5" />
@@ -790,7 +780,7 @@ export default function Homepage() {
           )}
 
           {/* Results count */}
-          {(searchQuery || selectedCategory || selectedCountry) && (
+          {(tourSearchQuery || selectedCategory || selectedCountry) && (
             <p className="text-center text-slate-600 mb-8" data-testid="text-results-count">
               {filteredProducts.length} {filteredProducts.length === 1 ? 'tour' : 'tours'} found
               {selectedCountry && ` in ${selectedCountry}`}
@@ -804,7 +794,7 @@ export default function Homepage() {
                 <div key={i} className="aspect-[3/4] bg-slate-100 rounded-xl animate-pulse" />
               ))}
             </div>
-          ) : (searchQuery || selectedCategory || selectedCountry) ? (
+          ) : (tourSearchQuery || selectedCategory || selectedCountry) ? (
             // Show filtered results
             filteredProducts.length === 0 ? (
               <div className="text-center py-20">
@@ -818,7 +808,7 @@ export default function Homepage() {
                   variant="outline"
                   className="border-slate-300 text-slate-700 hover:bg-white"
                   onClick={() => {
-                    setSearchQuery("");
+                    setTourSearchQuery("");
                     setSelectedCategory(null);
                     setSelectedCountry(null);
                   }}

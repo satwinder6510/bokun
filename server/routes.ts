@@ -2218,6 +2218,213 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ============= UNIFIED SEARCH ROUTE =============
+  
+  // Search across packages and tours
+  app.get("/api/search", async (req, res) => {
+    try {
+      const { q, type, maxResults = "20" } = req.query;
+      const query = (q as string || "").trim();
+      
+      if (!query || query.length < 2) {
+        return res.json({ results: [], suggestions: [] });
+      }
+      
+      const limit = Math.min(parseInt(maxResults as string) || 20, 50);
+      const searchType = type as string | undefined;
+      
+      // Fetch packages and tours in parallel
+      const [packages, toursResponse] = await Promise.all([
+        searchType === 'tours' ? Promise.resolve([]) : storage.getPublishedFlightPackages(),
+        searchType === 'packages' ? Promise.resolve([]) : searchBokunProducts(1, 100),
+      ]);
+      
+      const tours = Array.isArray(toursResponse) ? toursResponse : (toursResponse?.items || []);
+      
+      // Convert to searchable format
+      const searchableItems: Array<{
+        id: number | string;
+        type: 'package' | 'tour';
+        title: string;
+        description?: string;
+        excerpt?: string;
+        category?: string;
+        countries?: string[];
+        tags?: string[];
+        price?: number;
+        duration?: string;
+        image?: string;
+        slug?: string;
+      }> = [];
+      
+      // Add packages
+      for (const pkg of packages) {
+        searchableItems.push({
+          id: pkg.id,
+          type: 'package',
+          title: pkg.title,
+          description: pkg.description,
+          excerpt: pkg.excerpt || undefined,
+          category: pkg.category,
+          countries: pkg.countries || [],
+          tags: pkg.tags || [],
+          price: pkg.price,
+          duration: pkg.duration || undefined,
+          image: pkg.featuredImage || undefined,
+          slug: pkg.slug,
+        });
+      }
+      
+      // Add tours
+      for (const tour of tours) {
+        searchableItems.push({
+          id: tour.id,
+          type: 'tour',
+          title: tour.title,
+          description: tour.excerpt || tour.summary || undefined,
+          category: tour.location?.country || undefined,
+          countries: tour.location?.country ? [tour.location.country] : [],
+          tags: tour.tags || [],
+          price: tour.nextDefaultPrice?.amount,
+          duration: tour.durationText || undefined,
+          image: tour.keyPhoto?.src || undefined,
+        });
+      }
+      
+      // Perform search with fuzzy matching and relevance scoring
+      const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+      
+      const scoredResults = searchableItems.map(item => {
+        let score = 0;
+        const matchedFields: string[] = [];
+        
+        for (const term of queryTerms) {
+          // Title match (highest weight)
+          if (item.title?.toLowerCase().includes(term)) {
+            score += item.title.toLowerCase().startsWith(term) ? 6 : 5;
+            if (!matchedFields.includes('title')) matchedFields.push('title');
+          }
+          
+          // Category/country match
+          if (item.category?.toLowerCase().includes(term)) {
+            score += 3;
+            if (!matchedFields.includes('category')) matchedFields.push('category');
+          }
+          
+          // Countries array match
+          if (item.countries?.some(c => c.toLowerCase().includes(term))) {
+            score += 3;
+            if (!matchedFields.includes('countries')) matchedFields.push('countries');
+          }
+          
+          // Tags match
+          if (item.tags?.some(t => t.toLowerCase().includes(term))) {
+            score += 2.5;
+            if (!matchedFields.includes('tags')) matchedFields.push('tags');
+          }
+          
+          // Excerpt match
+          if (item.excerpt?.toLowerCase().includes(term)) {
+            score += 1.5;
+            if (!matchedFields.includes('excerpt')) matchedFields.push('excerpt');
+          }
+          
+          // Description match
+          if (item.description?.toLowerCase().includes(term)) {
+            score += 1;
+            if (!matchedFields.includes('description')) matchedFields.push('description');
+          }
+          
+          // Fuzzy matching for typos (Levenshtein-like)
+          if (score === 0 && term.length >= 4) {
+            const titleWords = item.title?.toLowerCase().split(/\s+/) || [];
+            for (const word of titleWords) {
+              if (word.length >= 3) {
+                const similarity = calculateSimilarity(word, term);
+                if (similarity > 0.7) {
+                  score += similarity * 3;
+                  if (!matchedFields.includes('title')) matchedFields.push('title');
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        // Normalize by number of terms
+        if (queryTerms.length > 1) {
+          score = score / queryTerms.length;
+        }
+        
+        return { ...item, score, matchedFields };
+      });
+      
+      // Filter and sort by score
+      const results = scoredResults
+        .filter(r => r.score > 0.1)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+      
+      // Generate suggestions
+      const suggestions = new Set<string>();
+      for (const item of searchableItems) {
+        if (suggestions.size >= 5) break;
+        if (item.title?.toLowerCase().includes(query.toLowerCase())) {
+          suggestions.add(item.title);
+        }
+        if (item.category?.toLowerCase().includes(query.toLowerCase())) {
+          suggestions.add(item.category);
+        }
+        item.countries?.forEach(c => {
+          if (c.toLowerCase().includes(query.toLowerCase()) && suggestions.size < 5) {
+            suggestions.add(c);
+          }
+        });
+      }
+      
+      res.json({
+        results,
+        suggestions: Array.from(suggestions),
+        total: results.length,
+      });
+    } catch (error: any) {
+      console.error("Search error:", error);
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+  
+  // Helper function for fuzzy matching
+  function calculateSimilarity(a: string, b: string): number {
+    if (a === b) return 1;
+    if (a.length === 0 || b.length === 0) return 0;
+    
+    const matrix: number[][] = [];
+    for (let i = 0; i <= b.length; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= a.length; j++) {
+      matrix[0][j] = j;
+    }
+    
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1,
+            matrix[i][j - 1] + 1,
+            matrix[i - 1][j] + 1
+          );
+        }
+      }
+    }
+    
+    const distance = matrix[b.length][a.length];
+    const maxLength = Math.max(a.length, b.length);
+    return 1 - (distance / maxLength);
+  }
+
   // ============= FLIGHT INCLUSIVE PACKAGES ROUTES =============
 
   // Get all published packages (public)

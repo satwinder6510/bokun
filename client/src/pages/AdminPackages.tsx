@@ -151,7 +151,8 @@ type BokunTourResult = {
 
 // Common tag options for quick selection
 const COMMON_TAGS = [
-  "Beach", "City Break", "Family", "Adventure", "Luxury", 
+  "City Breaks", "Twin-Centre", "All-inclusive", "Gems",
+  "Beach", "Family", "Adventure", "Luxury", 
   "Budget", "Cultural", "Safari", "Cruise", "River Cruise",
   "Golden Triangle", "Multi-Centre", "Wellness", "Religious", "Wildlife", "Island",
   "Solo Travellers"

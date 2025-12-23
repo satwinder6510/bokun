@@ -2505,8 +2505,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/collections", async (req, res) => {
     try {
       const tagDefinitions = [
+        { tag: "City Breaks", slug: "city-breaks", title: "City Breaks", description: "Explore vibrant cities and urban adventures" },
+        { tag: "Twin-Centre", slug: "twin-centre", title: "Twin-Centre Holidays", description: "Experience two amazing destinations in one trip" },
+        { tag: "All-inclusive", slug: "all-inclusive", title: "All-Inclusive Holidays", description: "Everything included for a stress-free getaway" },
+        { tag: "Gems", slug: "gems", title: "Hidden Gems", description: "Discover our handpicked exceptional experiences" },
         { tag: "Beach", slug: "beach", title: "Beach Holidays", description: "Sun, sand and sea - perfect beach getaways" },
-        { tag: "City Break", slug: "city-break", title: "City Breaks", description: "Explore vibrant cities and urban adventures" },
         { tag: "Family", slug: "family", title: "Family Holidays", description: "Create lasting memories with the whole family" },
         { tag: "Adventure", slug: "adventure", title: "Adventure Tours", description: "Thrilling experiences for the adventurous spirit" },
         { tag: "Luxury", slug: "luxury", title: "Luxury Escapes", description: "Premium experiences and five-star service" },
@@ -2574,8 +2577,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Map tag slug to display name (e.g., "river-cruise" -> "River Cruise")
       const tagDisplayNames: Record<string, string> = {
+        "city-breaks": "City Breaks",
+        "twin-centre": "Twin-Centre",
+        "all-inclusive": "All-inclusive",
+        "gems": "Gems",
         "beach": "Beach",
-        "city-break": "City Break",
         "family": "Family",
         "adventure": "Adventure",
         "luxury": "Luxury",

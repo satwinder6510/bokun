@@ -64,16 +64,10 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
-              {/* Desktop search bar */}
-              <div className="hidden lg:block w-64 xl:w-80">
-                <GlobalSearch placeholder="Search destinations, tours..." />
-              </div>
-              
-              {/* Mobile/tablet search button */}
+              {/* Search button - opens dialog on all screens */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden"
                 onClick={() => setSearchOpen(true)}
                 aria-label="Search"
                 data-testid="button-open-search"

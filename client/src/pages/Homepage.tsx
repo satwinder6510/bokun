@@ -418,6 +418,55 @@ export default function Homepage() {
         </div>
       </section>
 
+      {/* Floating Search Bar - positioned after hero */}
+      <section className="relative z-20 -mt-8 md:-mt-10 mb-8">
+        <div className="container mx-auto px-4 md:px-8">
+          <div className="bg-white rounded-xl shadow-xl border border-stone-200 p-4 md:p-6 max-w-4xl mx-auto">
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch">
+              <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+                <Input 
+                  placeholder="Search destinations, tours, packages..." 
+                  className="pl-12 h-12 md:h-14 text-base md:text-lg bg-stone-50 border-stone-200"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  data-testid="input-hero-search"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <a href="/packages" className="shrink-0">
+                <Button size="lg" className="w-full md:w-auto h-12 md:h-14 px-8 text-base font-semibold" data-testid="button-search-packages">
+                  <Plane className="w-4 h-4 mr-2" />
+                  View All Packages
+                </Button>
+              </a>
+            </div>
+            
+            {/* Quick destination links */}
+            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-stone-100">
+              <span className="text-sm text-muted-foreground mr-2">Popular:</span>
+              {['India', 'Maldives', 'Dubai', 'Thailand', 'Bali'].map((dest) => (
+                <a 
+                  key={dest}
+                  href={`/Holidays/${dest.toLowerCase()}`}
+                  className="text-sm text-slate-600 hover:text-primary hover:underline transition-colors"
+                  onClick={() => captureDestinationViewed(dest)}
+                >
+                  {dest}
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Featured Flight Packages Section */}
       <section className="py-16 md:py-24 bg-white border-y border-stone-200">
         <div className="container mx-auto px-6 md:px-8">

@@ -1,14 +1,22 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Menu, Phone, Shield, Headphones, X, CheckCircle2 } from "lucide-react";
+import { Menu, Phone, Shield, Headphones, X, CheckCircle2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
+import { GlobalSearch } from "@/components/GlobalSearch";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import atolLogo from "@assets/atol_1765460218085.png";
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const phoneNumber = useDynamicPhoneNumber();
   const phoneNumberClean = phoneNumber.replace(/\s/g, "");
 
@@ -43,7 +51,7 @@ export function Header() {
       {/* Header */}
       <header className="bg-white border-b border-stone-200">
         <div className="container mx-auto px-4 py-3 xl:py-2">
-          {/* Row 1: Logo, Trust Badges, Phone Button */}
+          {/* Row 1: Logo, Trust Badges, Search, Phone Button */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <Link href="/">
@@ -56,6 +64,23 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Desktop search bar */}
+              <div className="hidden lg:block w-64 xl:w-80">
+                <GlobalSearch placeholder="Search destinations, tours..." />
+              </div>
+              
+              {/* Mobile/tablet search button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden"
+                onClick={() => setSearchOpen(true)}
+                aria-label="Search"
+                data-testid="button-open-search"
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+
               {/* Mobile phone icon only */}
               <a 
                 href={`tel:${phoneNumberClean}`}
@@ -145,6 +170,20 @@ export function Header() {
           )}
         </div>
       </header>
+
+      {/* Mobile Search Dialog */}
+      <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+        <DialogContent className="sm:max-w-lg top-[10%] translate-y-0">
+          <VisuallyHidden>
+            <DialogTitle>Search</DialogTitle>
+          </VisuallyHidden>
+          <GlobalSearch 
+            autoFocus 
+            onClose={() => setSearchOpen(false)}
+            placeholder="Search destinations, tours, packages..."
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import { usePostHogPageView } from "@/hooks/usePostHogPageView";
+import { ChristmasBanner } from "@/components/ChristmasBanner";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -185,6 +186,7 @@ function App() {
               <ScrollToTop />
               <PostHogPageTracker />
               <Toaster />
+              <ChristmasBanner />
               <Router />
             </TooltipProvider>
           </CartProvider>

@@ -223,7 +223,7 @@ export default function SearchResults() {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {Array.from({ length: 8 }).map((_, i) => (
                 <ResultSkeleton key={i} />
               ))}
@@ -233,12 +233,9 @@ export default function SearchResults() {
               <CardContent className="pt-6">
                 <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
                 <h2 className="text-xl font-semibold mb-2">Search Error</h2>
-                <p className="text-muted-foreground mb-4">
+                <p className="text-muted-foreground">
                   Something went wrong. Please try again.
                 </p>
-                <Button onClick={() => navigate("/packages")} data-testid="button-browse-packages">
-                  Browse All Packages
-                </Button>
               </CardContent>
             </Card>
           ) : !query || query.length < 2 ? (
@@ -277,9 +274,6 @@ export default function SearchResults() {
                     </div>
                   </div>
                 )}
-                <Button onClick={() => navigate("/packages")} data-testid="button-browse-packages">
-                  Browse All Packages
-                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -307,7 +301,7 @@ export default function SearchResults() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {results.map((result) => (
                   <ResultCard key={`${result.type}-${result.id}`} result={result} />
                 ))}

@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
-import { Search, MapPin, Clock, Plane, Star, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { MapPin, Clock, Plane, Star, ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import type { FlightPackage, BlogPost } from "@shared/schema";
@@ -107,7 +107,6 @@ function PackageCard({ pkg, showSpecialBadge = false }: { pkg: FlightPackage; sh
 }
 
 export default function Packages() {
-  const [searchQuery, setSearchQuery] = useState("");
   const destinationsRef = useRef<HTMLDivElement>(null);
   const collectionsRef = useRef<HTMLDivElement>(null);
 
@@ -135,10 +134,6 @@ export default function Packages() {
     queryKey: ["/api/packages/homepage"],
   });
 
-  const { data: allPackages = [] } = useQuery<FlightPackage[]>({
-    queryKey: ["/api/packages"],
-  });
-
   useEffect(() => {
     const title = "Flight Inclusive Packages - Flights and Packages";
     const description = "Explore our curated flight-inclusive holiday packages to India, Maldives, Dubai, and more. Complete travel packages with flights, hotels, and guided tours.";
@@ -164,15 +159,6 @@ export default function Packages() {
       }
     ]);
   }, []);
-
-  // Filter packages by search
-  const filteredPackages = searchQuery
-    ? allPackages.filter(pkg => 
-        pkg.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (pkg.excerpt || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        pkg.category.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
 
   const specialOffers = homepageData?.specialOffers || [];
   const destinations = homepageData?.destinations || [];
@@ -203,50 +189,18 @@ export default function Packages() {
           </p>
           
           {/* Search Bar in Hero */}
-          <div className="relative w-full max-w-xl">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-            <Input 
-              placeholder="Search packages..." 
-              className="pl-12 h-12 text-lg bg-white/95 backdrop-blur-sm border-0"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              data-testid="input-search"
+          <div className="w-full max-w-xl">
+            <GlobalSearch 
+              placeholder="Search destinations, tours, packages..." 
+              className="h-12 text-lg"
+              variant="hero"
             />
           </div>
         </div>
       </section>
 
-      {/* Search Results (only shown when searching) */}
-      {searchQuery && (
-        <section className="py-12 md:py-16 bg-muted/30">
-          <div className="container mx-auto px-4 md:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-bold">
-                Search Results for "{searchQuery}"
-              </h2>
-              <Button variant="ghost" onClick={() => setSearchQuery("")}>
-                Clear search
-              </Button>
-            </div>
-            {filteredPackages.length === 0 ? (
-              <div className="text-center py-16">
-                <Plane className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No packages found</h3>
-                <p className="text-muted-foreground">Try adjusting your search criteria</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredPackages.map((pkg) => (
-                  <PackageCard key={pkg.id} pkg={pkg} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
       {/* Special Offers Section */}
-      {!searchQuery && specialOffers.length > 0 && (
+      {specialOffers.length > 0 && (
         <section className="py-12 md:py-16">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
@@ -274,7 +228,7 @@ export default function Packages() {
       )}
 
       {/* Collections Section - Carousel Style */}
-      {!searchQuery && collections.length > 0 && (
+      {collections.length > 0 && (
         <section className="py-12 md:py-16 bg-stone-100">
           <div className="container mx-auto px-4 md:px-8">
             <div className="text-center mb-10">
@@ -344,7 +298,7 @@ export default function Packages() {
       )}
 
       {/* Destinations Section - Carousel Style */}
-      {!searchQuery && destinations.length > 0 && (
+      {destinations.length > 0 && (
         <section className="py-12 md:py-16 bg-stone-100">
           <div className="container mx-auto px-4 md:px-8">
             <div className="text-center mb-10">
@@ -416,7 +370,7 @@ export default function Packages() {
       )}
 
       {/* Blog Section */}
-      {!searchQuery && blogPosts.length > 0 && (
+      {blogPosts.length > 0 && (
         <section className="py-12 md:py-16 bg-muted/30">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
@@ -464,7 +418,7 @@ export default function Packages() {
       )}
 
       {/* Loading State */}
-      {isLoading && !searchQuery && (
+      {isLoading && (
         <section className="py-12 md:py-16">
           <div className="container mx-auto px-4 md:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

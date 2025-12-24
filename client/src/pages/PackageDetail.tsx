@@ -27,7 +27,8 @@ import {
   captureEnquirySubmitted,
   captureDateSelected,
   captureTabChanged,
-  captureGalleryInteraction
+  captureGalleryInteraction,
+  captureCtaClicked
 } from "@/lib/posthog";
 import { useScrollDepth } from "@/hooks/useScrollDepth";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
@@ -1609,6 +1610,14 @@ export default function PackageDetail() {
                             className="w-full" 
                             disabled={isSubmitting}
                             data-testid="button-submit-enquiry"
+                            onClick={() => {
+                              captureCtaClicked('enquire', 'package_detail', {
+                                cta_label: 'Submit Enquiry',
+                                package_id: pkg?.id,
+                                package_title: pkg?.title,
+                                package_slug: slug
+                              });
+                            }}
                           >
                             {isSubmitting ? "Submitting..." : "Submit Enquiry"}
                           </Button>

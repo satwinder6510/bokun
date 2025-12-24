@@ -57,7 +57,7 @@ interface TourProperties {
 
 interface SearchProperties {
   search_query?: string;
-  search_type?: 'packages' | 'tours' | 'destinations' | 'global';
+  search_type?: 'packages' | 'tours' | 'destinations' | 'global' | 'search_page';
   results_count?: number;
 }
 

@@ -35,11 +35,12 @@ interface GlobalSearchProps {
   onClose?: () => void;
   autoFocus?: boolean;
   variant?: "default" | "hero";
+  initialValue?: string;
 }
 
-export function GlobalSearch({ className, placeholder = "Search destinations, tours...", onClose, autoFocus = false, variant = "default" }: GlobalSearchProps) {
+export function GlobalSearch({ className, placeholder = "Search destinations, tours...", onClose, autoFocus = false, variant = "default", initialValue = "" }: GlobalSearchProps) {
   const [, navigate] = useLocation();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialValue);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -89,22 +90,34 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
     inputRef.current?.focus();
   }, []);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!isOpen || results.length === 0) return;
+  const handleSubmitSearch = useCallback(() => {
+    if (query.length >= 2) {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
+      setIsOpen(false);
+      onClose?.();
+    }
+  }, [query, navigate, onClose]);
 
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     switch (e.key) {
       case "ArrowDown":
-        e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, results.length - 1));
+        if (isOpen && results.length > 0) {
+          e.preventDefault();
+          setSelectedIndex(prev => Math.min(prev + 1, results.length - 1));
+        }
         break;
       case "ArrowUp":
-        e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, -1));
+        if (isOpen && results.length > 0) {
+          e.preventDefault();
+          setSelectedIndex(prev => Math.max(prev - 1, -1));
+        }
         break;
       case "Enter":
         e.preventDefault();
         if (selectedIndex >= 0 && results[selectedIndex]) {
           handleNavigate(results[selectedIndex], selectedIndex);
+        } else {
+          handleSubmitSearch();
         }
         break;
       case "Escape":
@@ -113,7 +126,7 @@ export function GlobalSearch({ className, placeholder = "Search destinations, to
         onClose?.();
         break;
     }
-  }, [isOpen, results, selectedIndex, handleNavigate, onClose]);
+  }, [isOpen, results, selectedIndex, handleNavigate, onClose, handleSubmitSearch]);
 
   useEffect(() => {
     if (query.length >= 2) {

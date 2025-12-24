@@ -22,7 +22,7 @@ export function ChristmasBanner() {
             <span className="font-semibold">Merry Christmas!</span>
             <span className="hidden sm:inline"> from all of us at Flights and Packages.</span>
             <span className="ml-2 text-white/90">
-              <span className="font-medium">Holiday Hours:</span> Closed 25-26 Dec, Open 27 Dec onwards
+              <span className="font-medium">Holiday Hours:</span> Closed 25 Dec, Open 26 Dec onwards
             </span>
           </p>
         </div>

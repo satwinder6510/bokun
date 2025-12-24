@@ -18,75 +18,8 @@ declare global {
       getFeatureFlag: (key: string) => string | boolean | undefined;
       onFeatureFlags: (callback: (flags: string[]) => void) => void;
       reloadFeatureFlags: () => void;
-      __loaded?: boolean;
     };
   }
-}
-
-// Event queue for buffering events before PostHog is ready
-interface QueuedEvent {
-  eventName: string;
-  properties: Record<string, unknown>;
-  timestamp: string;
-}
-
-const eventQueue: QueuedEvent[] = [];
-let isFlushingQueue = false;
-let flushInterval: ReturnType<typeof setInterval> | null = null;
-
-function isPostHogReady(): boolean {
-  return typeof window !== 'undefined' && !!window.posthog && !!window.posthog.capture;
-}
-
-function flushEventQueue(): void {
-  if (isFlushingQueue || !isPostHogReady() || eventQueue.length === 0) {
-    return;
-  }
-  
-  isFlushingQueue = true;
-  const posthog = window.posthog!;
-  
-  while (eventQueue.length > 0) {
-    const event = eventQueue.shift();
-    if (event) {
-      posthog.capture(event.eventName, {
-        ...event.properties,
-        timestamp: event.timestamp,
-        queued: true,
-      });
-    }
-  }
-  
-  isFlushingQueue = false;
-  
-  // Stop interval once queue is flushed and PostHog is ready
-  if (flushInterval && eventQueue.length === 0) {
-    clearInterval(flushInterval);
-    flushInterval = null;
-  }
-}
-
-function startFlushInterval(): void {
-  if (flushInterval) return;
-  
-  // Check every 500ms if PostHog is ready
-  flushInterval = setInterval(() => {
-    if (isPostHogReady()) {
-      flushEventQueue();
-    }
-  }, 500);
-  
-  // Stop trying after 30 seconds to prevent memory leaks
-  setTimeout(() => {
-    if (flushInterval) {
-      clearInterval(flushInterval);
-      flushInterval = null;
-      if (eventQueue.length > 0) {
-        console.warn(`[PostHog] Dropped ${eventQueue.length} events - PostHog did not load in time`);
-        eventQueue.length = 0;
-      }
-    }
-  }, 30000);
 }
 
 type PageType = 
@@ -151,24 +84,12 @@ function isPostHogAvailable(): boolean {
 }
 
 export function captureEvent(eventName: string, properties?: Record<string, unknown>): void {
-  const timestamp = new Date().toISOString();
-  const eventProperties = {
-    ...properties,
-    timestamp,
-  };
-  
-  if (isPostHogReady()) {
-    // PostHog is ready, send immediately
-    window.posthog!.capture(eventName, eventProperties);
-  } else {
-    // Queue the event for later
-    eventQueue.push({
-      eventName,
-      properties: eventProperties,
-      timestamp,
+  const posthog = getPostHog();
+  if (posthog) {
+    posthog.capture(eventName, {
+      ...properties,
+      timestamp: new Date().toISOString(),
     });
-    // Start the flush interval if not already running
-    startFlushInterval();
   }
 }
 

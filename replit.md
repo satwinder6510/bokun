@@ -155,14 +155,7 @@ Comprehensive user activity tracking is implemented using PostHog (EU data resid
 -   `capture_pageview: false` (using custom route-based hook)
 -   Session recording enabled with input masking
 -   Autocapture enabled for CSS selectors
--   PostHog loads with 2-second delay after page load
-
-**Event Queue System:**
-Since PostHog loads asynchronously (2s delay), early events like search tracking are buffered:
--   Events are queued if PostHog isn't ready yet
--   Queue flushes every 500ms once PostHog initializes
--   Queued events include a `queued: true` property for debugging
--   Queue times out after 30 seconds with console warning if PostHog fails to load
+-   PostHog loads immediately on page load for reliable event capture
 
 **Utility (`client/src/lib/posthog.ts`):**
 Centralized, typed event tracking functions:

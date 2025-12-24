@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 export function ChristmasBanner() {
   const [dismissed, setDismissed] = useState(false);
 
-  // Auto-hide after January 2nd 2025
-  const expiryDate = new Date("2025-01-02T23:59:59");
+  // Auto-hide after January 2nd 2026
+  const expiryDate = new Date("2026-01-02T23:59:59");
   const now = new Date();
   
   if (dismissed || now > expiryDate) {
@@ -22,7 +22,7 @@ export function ChristmasBanner() {
             <span className="font-semibold">Merry Christmas!</span>
             <span className="hidden sm:inline"> from all of us at Flights and Packages.</span>
             <span className="ml-2 text-white/90">
-              <span className="font-medium">Holiday Hours:</span> Closed 25 Dec, Open 26 Dec onwards
+              <span className="font-medium">Holiday Hours:</span> Closed 25 Dec, Open 26 Dec onwards 9am-6pm
             </span>
           </p>
         </div>

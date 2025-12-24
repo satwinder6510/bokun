@@ -155,6 +155,14 @@ Comprehensive user activity tracking is implemented using PostHog (EU data resid
 -   `capture_pageview: false` (using custom route-based hook)
 -   Session recording enabled with input masking
 -   Autocapture enabled for CSS selectors
+-   PostHog loads with 2-second delay after page load
+
+**Event Queue System:**
+Since PostHog loads asynchronously (2s delay), early events like search tracking are buffered:
+-   Events are queued if PostHog isn't ready yet
+-   Queue flushes every 500ms once PostHog initializes
+-   Queued events include a `queued: true` property for debugging
+-   Queue times out after 30 seconds with console warning if PostHog fails to load
 
 **Utility (`client/src/lib/posthog.ts`):**
 Centralized, typed event tracking functions:
@@ -177,7 +185,12 @@ Centralized, typed event tracking functions:
 -   `$pageview` - Automatic route tracking via `usePostHogPageView` hook
 -   `package_viewed` - Package detail page with ID, title, country, price
 -   `tour_viewed` - Tour detail page with ID, title, duration, price
+-   `search_performed` - Search queries with query text, type, and results count
+-   `search_result_clicked` - When users click on search results
 -   `cta_clicked` - Call/chat/enquire button clicks
+-   `call_cta_clicked` - Phone call CTA clicks with package info
+-   `chat_cta_clicked` - Chat CTA clicks with package info
+-   `enquire_cta_clicked` - Enquiry form opens with package info
 -   `newsletter_signup` - Success/failure with email domain
 -   `contact_form_submitted` - Contact page submissions
 -   `enquiry_submitted` - Package enquiry form submissions

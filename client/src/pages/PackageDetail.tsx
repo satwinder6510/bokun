@@ -1451,18 +1451,18 @@ export default function PackageDetail() {
                       className="w-full" 
                       size="lg" 
                       asChild
-                      onClick={() => {
-                        captureCallCtaClicked({
-                          package_title: pkg?.title,
-                          package_id: pkg?.id,
-                          package_slug: slug,
-                          phone_number: phoneNumber
-                        });
-                      }}
                     >
                       <a 
                         href={`tel:${phoneNumber.replace(/\s/g, "")}`} 
                         data-testid="button-call"
+                        onClick={() => {
+                          captureCallCtaClicked({
+                            package_title: pkg?.title,
+                            package_id: pkg?.id,
+                            package_slug: slug,
+                            phone_number: phoneNumber
+                          });
+                        }}
                       >
                         <Phone className="w-5 h-5 mr-2" />
                         {phoneNumber}

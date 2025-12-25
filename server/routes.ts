@@ -2749,11 +2749,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Count products for each tag
       const collectionsWithCounts = tagDefinitions.map(def => {
-        // Count flight packages with this tag
-        const packageCount = allPackages.filter(pkg => 
+        // Get flight packages with this tag
+        const matchingPackages = allPackages.filter(pkg => 
           pkg.tags && Array.isArray(pkg.tags) && 
           pkg.tags.some(t => t.toLowerCase() === def.tag.toLowerCase())
-        ).length;
+        );
+        const packageCount = matchingPackages.length;
         
         // Count Bokun products with matching activityCategories
         const tourCount = cachedProducts.filter(product => 
@@ -2765,12 +2766,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         ).length;
         
+        // Use custom image, or fallback to first package's featured image
+        const customImage = imageMap.get(def.tag.toLowerCase());
+        const fallbackImage = matchingPackages.length > 0 ? matchingPackages[0].featuredImage : null;
+        
         return {
           ...def,
           packageCount,
           tourCount,
           totalCount: packageCount + tourCount,
-          imageUrl: imageMap.get(def.tag.toLowerCase()) || null
+          imageUrl: customImage || fallbackImage || null
         };
       });
       

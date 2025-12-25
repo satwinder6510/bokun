@@ -35,6 +35,8 @@ export default function AdminContentImages() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/content-images"] });
       queryClient.invalidateQueries({ queryKey: ["/api/packages/homepage"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/destinations"] });
       toast({ title: "Image saved successfully" });
     },
     onError: (error: Error) => {
@@ -47,6 +49,8 @@ export default function AdminContentImages() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/content-images"] });
       queryClient.invalidateQueries({ queryKey: ["/api/packages/homepage"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/collections"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/destinations"] });
       toast({ title: "Custom image removed" });
     },
     onError: (error: Error) => {

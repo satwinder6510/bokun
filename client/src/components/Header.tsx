@@ -106,55 +106,28 @@ export function Header() {
             </div>
           </div>
 
-          {/* Row 2: Desktop Navigation - Full Width */}
-          <nav className="hidden xl:flex items-center justify-center gap-8 pt-3 border-t border-stone-100 mt-3">
-            <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-home">
-              Home
-            </Link>
-            <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-packages">
-              Flight Packages
+          {/* Row 2: Desktop Navigation - Simplified */}
+          <nav className="hidden xl:flex items-center justify-center gap-10 pt-3 border-t border-stone-100 mt-3">
+            <Link href="/Holidays" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-holidays">
+              Holidays
             </Link>
             <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-tours">
-              Land Tours
-            </Link>
-            <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-collections">
-              Collections
-            </Link>
-            <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-destinations">
-              Destinations
-            </Link>
-            <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-blog">
-              Blog
+              Tours
             </Link>
             <Link href="/contact" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-contact">
               Contact
             </Link>
           </nav>
 
-          {/* Mobile Menu */}
+          {/* Mobile Menu - Simplified */}
           {mobileMenuOpen && (
             <nav className="xl:hidden pt-4 pb-2 border-t mt-4">
               <div className="flex flex-col gap-3">
-                <Link href="/" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-home">
-                  Home
-                </Link>
-                <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-packages">
-                  Flight Packages
+                <Link href="/Holidays" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-holidays">
+                  Holidays
                 </Link>
                 <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-tours">
-                  Land Tours
-                </Link>
-                <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-collections">
-                  Collections
-                </Link>
-                <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-destinations">
-                  Destinations
-                </Link>
-                <Link href="/blog" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-blog">
-                  Blog
-                </Link>
-                <Link href="/faq" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-faq">
-                  FAQ
+                  Tours
                 </Link>
                 <Link href="/contact" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-contact">
                   Contact

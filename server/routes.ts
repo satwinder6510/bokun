@@ -2734,9 +2734,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { tag: "Solo Travellers", slug: "solo-travellers", title: "Solo Travel", description: "Perfect adventures designed for independent explorers" }
       ];
       
-      // Get all published flight packages and cached products
-      const allPackages = await storage.getPublishedFlightPackages();
-      const cachedProducts = await storage.getCachedProducts("USD");
+      // Get all published flight packages, cached products, and collection images
+      const [allPackages, cachedProducts, collectionImages] = await Promise.all([
+        storage.getPublishedFlightPackages(),
+        storage.getCachedProducts("USD"),
+        storage.getContentImagesByType("collection")
+      ]);
+      
+      // Create a map of tag name to image URL
+      const imageMap = new Map<string, string>();
+      collectionImages.forEach(img => {
+        imageMap.set(img.name.toLowerCase(), img.imageUrl);
+      });
       
       // Count products for each tag
       const collectionsWithCounts = tagDefinitions.map(def => {
@@ -2760,7 +2769,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...def,
           packageCount,
           tourCount,
-          totalCount: packageCount + tourCount
+          totalCount: packageCount + tourCount,
+          imageUrl: imageMap.get(def.tag.toLowerCase()) || null
         };
       });
       

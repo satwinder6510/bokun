@@ -132,11 +132,11 @@ export function Footer() {
             <div>
               <h4 className="font-bold text-lg mb-4">Quick Links</h4>
               <div className="flex flex-col gap-2">
-                <Link href="/Holidays" className="text-stone-400 hover:text-white text-sm transition-colors">
-                  Holidays
+                <Link href="/packages" className="text-stone-400 hover:text-white text-sm transition-colors">
+                  Flight Packages
                 </Link>
                 <Link href="/tours" className="text-stone-400 hover:text-white text-sm transition-colors">
-                  Tours
+                  Land Tours
                 </Link>
                 <Link href="/blog" className="text-stone-400 hover:text-white text-sm transition-colors">
                   Travel Blog

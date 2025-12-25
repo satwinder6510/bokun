@@ -65,7 +65,6 @@ import Collections from "@/pages/Collections";
 import CollectionDetail from "@/pages/CollectionDetail";
 import Destinations from "@/pages/Destinations";
 import DestinationDetail from "@/pages/DestinationDetail";
-import HolidaysLanding from "@/pages/HolidaysLanding";
 import SpecialOffers from "@/pages/SpecialOffers";
 import HeroConcepts from "@/pages/HeroConcepts";
 import SearchResults from "@/pages/SearchResults";
@@ -92,7 +91,7 @@ function Router() {
       <Route path="/holidays/:tag" component={CollectionDetail} />
       <Route path="/destinations" component={Destinations} />
       <Route path="/destinations/:country" component={DestinationDetail} />
-      <Route path="/Holidays" component={HolidaysLanding} />
+      <Route path="/Holidays" component={Destinations} />
       <Route path="/Holidays/:country" component={DestinationDetail} />
       <Route path="/Holidays/:country/:slug" component={PackageDetail} />
       <Route path="/design-preview" component={DesignPreview} />

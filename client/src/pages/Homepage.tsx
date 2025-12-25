@@ -6,7 +6,8 @@ import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { getProxiedImageUrl, getHeroImageUrl, getCardImageUrl } from "@/lib/imageProxy";
-import { Search, X, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone } from "lucide-react";
+import { Search, X, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone, Map as MapIcon, ArrowRight } from "lucide-react";
+import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -126,6 +127,22 @@ export default function Homepage() {
   // Use database reviews if available, otherwise fallback to defaults
   const testimonials = reviews.length > 0 ? reviews : fallbackTestimonials;
 
+  // Fetch destinations with flight packages and land tour counts
+  interface Destination {
+    name: string;
+    flightPackageCount: number;
+    landTourCount: number;
+    image: string | null;
+  }
+  
+  const { data: destinations = [] } = useQuery<Destination[]>({
+    queryKey: ['/api/destinations'],
+    staleTime: 1000 * 60 * 10,
+  });
+  
+  // Top 6 destinations for homepage display
+  const topDestinations = destinations.slice(0, 6);
+
   // Fetch initial batch of products for quick display (12 items)
   const { 
     data: initialProductsData,
@@ -232,16 +249,6 @@ export default function Homepage() {
   });
 
   const allCountries = Array.from(countryData.keys()).sort();
-  
-  // Top destinations for inspiration section
-  const topDestinations = Array.from(countryData.entries())
-    .sort((a, b) => b[1].count - a[1].count)
-    .slice(0, 6)
-    .map(([country, data]) => ({
-      name: country,
-      count: data.count,
-      image: getCardImageUrl(products.find(p => p.googlePlace?.country === country)?.keyPhoto?.originalUrl)
-    }));
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = !tourSearchQuery || 
@@ -872,35 +879,63 @@ export default function Homepage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-              {topDestinations.map((dest, index) => (
-                <button
-                  key={dest.name}
-                  onClick={() => {
-                    captureDestinationViewed(dest.name, dest.count);
-                    setSelectedCountry(dest.name);
-                    document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className={`relative overflow-hidden rounded-xl group ${
-                    index === 0 ? 'col-span-2 md:col-span-1 row-span-2 aspect-[3/4]' : 'aspect-[4/3]'
-                  }`}
-                  data-testid={`button-destination-${dest.name.toLowerCase().replace(/\s+/g, '-')}`}
+              {topDestinations.map((dest, index) => {
+                const totalHolidays = dest.flightPackageCount + dest.landTourCount;
+                const countrySlug = dest.name.replace(/\s+/g, '-');
+                return (
+                  <Link
+                    key={dest.name}
+                    href={`/Holidays/${countrySlug}`}
+                    onClick={() => {
+                      captureDestinationViewed(dest.name, totalHolidays);
+                    }}
+                    className={`relative overflow-hidden rounded-xl group block ${
+                      index === 0 ? 'col-span-2 md:col-span-1 row-span-2 aspect-[3/4]' : 'aspect-[4/3]'
+                    }`}
+                    data-testid={`link-destination-${dest.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <img
+                      src={dest.image || placeholderImage}
+                      alt={dest.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                    <div className="absolute bottom-4 left-4 right-4 text-left">
+                      <h3 className="text-white text-xl md:text-2xl font-bold mb-2">
+                        {dest.name}
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {dest.flightPackageCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-white/90 text-xs bg-blue-600/80 px-2 py-1 rounded">
+                            <Plane className="h-3 w-3" />
+                            {dest.flightPackageCount} {dest.flightPackageCount === 1 ? 'package' : 'packages'}
+                          </span>
+                        )}
+                        {dest.landTourCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-white/90 text-xs bg-emerald-600/80 px-2 py-1 rounded">
+                            <MapIcon className="h-3 w-3" />
+                            {dest.landTourCount} {dest.landTourCount === 1 ? 'tour' : 'tours'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="text-center mt-8">
+              <Link href="/destinations">
+                <Button 
+                  size="lg" 
+                  variant="outline"
+                  className="border-slate-300 text-slate-700 hover:bg-white"
+                  data-testid="button-view-all-destinations"
                 >
-                  <img
-                    src={dest.image || placeholderImage}
-                    alt={dest.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-                  <div className="absolute bottom-4 left-4 right-4 text-left">
-                    <h3 className="text-white text-xl md:text-2xl font-bold mb-1">
-                      {dest.name}
-                    </h3>
-                    <p className="text-white/80 text-sm">
-                      {dest.count} {dest.count === 1 ? 'tour' : 'tours'}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                  View All Destinations
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </div>
           </div>
         </section>

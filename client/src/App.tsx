@@ -10,7 +10,6 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import { usePostHogPageView } from "@/hooks/usePostHogPageView";
 import { useTidio } from "@/hooks/use-tidio";
-import { ChristmasBanner } from "@/components/ChristmasBanner";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -194,7 +193,6 @@ function App() {
               <PostHogPageTracker />
               <TidioLoader />
               <Toaster />
-              <ChristmasBanner />
               <Router />
             </TooltipProvider>
           </CartProvider>

@@ -30,6 +30,13 @@ import {
   captureGalleryInteraction,
   captureCtaClicked
 } from "@/lib/posthog";
+import {
+  trackViewContent,
+  trackCallCta,
+  trackChatCta,
+  trackEnquireCta,
+  trackEnquirySubmitted
+} from "@/lib/meta-pixel";
 import { useScrollDepth } from "@/hooks/useScrollDepth";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
@@ -447,7 +454,7 @@ export default function PackageDetail() {
         })
       ]);
 
-      // Track package viewed event
+      // Track package viewed event (PostHog)
       capturePackageViewed({
         package_id: pkg.id,
         package_title: pkg.title,
@@ -455,6 +462,16 @@ export default function PackageDetail() {
         package_country: pkg.category,
         package_duration: pkg.duration || undefined,
         package_price: pkg.price
+      });
+
+      // Track package viewed event (Meta Pixel)
+      trackViewContent({
+        content_name: pkg.title,
+        content_category: pkg.category || 'Flight Package',
+        content_ids: [String(pkg.id)],
+        content_type: 'product',
+        value: pkg.price,
+        currency: 'GBP'
       });
     }
   }, [pkg]);
@@ -484,11 +501,18 @@ export default function PackageDetail() {
         pricePerPerson: selectedPricing?.price || pkg?.price || null,
       });
 
-      // Track successful enquiry submission
+      // Track successful enquiry submission (PostHog)
       captureEnquirySubmitted(true, {
         package_id: pkg?.id,
         package_title: pkg?.title,
         package_slug: slug
+      });
+      // Track successful enquiry submission (Meta Pixel)
+      trackEnquirySubmitted({
+        content_name: pkg?.title,
+        content_category: pkg?.category || 'Flight Package',
+        value: pkg?.price,
+        currency: 'GBP'
       });
 
       toast({
@@ -1463,6 +1487,10 @@ export default function PackageDetail() {
                             package_slug: slug,
                             phone_number: phoneNumber
                           });
+                          trackCallCta({
+                            content_name: pkg?.title,
+                            content_category: pkg?.category || 'Flight Package'
+                          });
                         }}
                       >
                         <Phone className="w-5 h-5 mr-2" />
@@ -1481,6 +1509,11 @@ export default function PackageDetail() {
                           package_title: pkg?.title,
                           package_id: pkg?.id,
                           package_slug: slug
+                        });
+                        // Track Meta Pixel event
+                        trackChatCta({
+                          content_name: pkg?.title,
+                          content_category: pkg?.category || 'Flight Package'
                         });
                         
                         // Open Tidio chat
@@ -1513,6 +1546,12 @@ export default function PackageDetail() {
                               package_title: pkg?.title,
                               package_id: pkg?.id,
                               package_slug: slug
+                            });
+                            trackEnquireCta({
+                              content_name: pkg?.title,
+                              content_category: pkg?.category || 'Flight Package',
+                              value: pkg?.price,
+                              currency: 'GBP'
                             });
                           }}
                         >

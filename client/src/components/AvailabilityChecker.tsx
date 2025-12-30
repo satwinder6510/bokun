@@ -247,9 +247,13 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
     try {
       const pricing = getPricingForSelectedRate();
       
-      // Get original referrer from session storage (captured on first page load)
-      const originalReferrer = sessionStorage.getItem('original_referrer') || 'Direct';
-      const landingPage = sessionStorage.getItem('landing_page') || null;
+      // Get original referrer - try sessionStorage first, then document.referrer as fallback
+      let originalReferrer = sessionStorage.getItem('original_referrer');
+      if (!originalReferrer) {
+        const ref = document.referrer;
+        originalReferrer = (ref && !ref.includes(window.location.hostname)) ? ref : 'Direct';
+      }
+      const landingPage = sessionStorage.getItem('landing_page') || window.location.href;
       
       await apiRequest("POST", `/api/tours/${productId}/enquiry`, {
         productTitle,

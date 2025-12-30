@@ -126,6 +126,28 @@ export interface OpenJawSearchParams {
   endDate: string;                // YYYY-MM-DD format
 }
 
+// Internal flight search parameters (one-way domestic flights)
+export interface InternalFlightSearchParams {
+  fromAirport: string;            // Departure airport e.g., "DEL"
+  toAirport: string;              // Arrival airport e.g., "JAI"
+  dates: string[];                // Array of dates to search (YYYY-MM-DD format)
+}
+
+// Internal flight result
+export interface InternalFlightOffer {
+  fromAirport: string;
+  fromAirportName: string;
+  toAirport: string;
+  toAirportName: string;
+  date: string;                   // YYYY-MM-DD
+  departureTime: string;          // HH:mm
+  arrivalTime: string;            // HH:mm
+  pricePerPerson: number;         // GBP (or local currency converted)
+  airline: string;
+  duration: number;               // minutes
+  stops: number;
+}
+
 // Open-jaw flight result with both legs
 export interface OpenJawFlightOffer {
   ukDepartureAirport: string;
@@ -721,6 +743,157 @@ export function getCheapestOpenJawByDateAndAirport(
   }
   
   return cheapestByDateAirport;
+}
+
+/**
+ * Fetch internal/domestic one-way flights for a single date
+ */
+async function fetchInternalFlightForDate(
+  apiKey: string,
+  fromAirport: string,
+  toAirport: string,
+  date: string
+): Promise<InternalFlightOffer[]> {
+  const offers: InternalFlightOffer[] = [];
+  
+  try {
+    const url = new URL(SERPAPI_BASE);
+    url.searchParams.set("engine", "google_flights");
+    url.searchParams.set("api_key", apiKey);
+    url.searchParams.set("departure_id", fromAirport);
+    url.searchParams.set("arrival_id", toAirport);
+    url.searchParams.set("outbound_date", date);
+    url.searchParams.set("type", "2"); // One-way
+    url.searchParams.set("currency", "GBP");
+    url.searchParams.set("gl", "uk");
+    url.searchParams.set("hl", "en");
+    url.searchParams.set("adults", "1");
+    url.searchParams.set("travel_class", "1"); // Economy
+    url.searchParams.set("sort_by", "2"); // Sort by price
+    
+    console.log(`[SerpAPI Internal] ${fromAirport} -> ${toAirport} on ${date}`);
+    
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`[SerpAPI Internal] Error: ${response.status} ${response.statusText}`);
+      return [];
+    }
+    
+    const data = await response.json() as SerpApiResponse;
+    
+    if (data.error) {
+      console.error(`[SerpAPI Internal] API Error: ${data.error}`);
+      return [];
+    }
+    
+    // Process flights
+    const flights = [...(data.best_flights || []), ...(data.other_flights || [])];
+    
+    for (const flight of flights) {
+      if (!flight.flights || flight.flights.length === 0) continue;
+      
+      const firstLeg = flight.flights[0];
+      const lastLeg = flight.flights[flight.flights.length - 1];
+      
+      // Parse times
+      const depTimeStr = firstLeg.departure_airport.time || "";
+      const arrTimeStr = lastLeg.arrival_airport.time || "";
+      
+      offers.push({
+        fromAirport: firstLeg.departure_airport.id,
+        fromAirportName: firstLeg.departure_airport.name,
+        toAirport: lastLeg.arrival_airport.id,
+        toAirportName: lastLeg.arrival_airport.name,
+        date: date,
+        departureTime: depTimeStr.split(" ")[1] || depTimeStr,
+        arrivalTime: arrTimeStr.split(" ")[1] || arrTimeStr,
+        pricePerPerson: flight.price,
+        airline: firstLeg.airline || "",
+        duration: flight.total_duration,
+        stops: flight.flights.length - 1,
+      });
+    }
+    
+  } catch (error) {
+    console.error(`[SerpAPI Internal] Error fetching flights for ${date}:`, error);
+  }
+  
+  return offers;
+}
+
+/**
+ * Search for internal/domestic one-way flights using SERP API
+ * Used for internal transfers within a destination country
+ */
+export async function searchInternalFlights(params: InternalFlightSearchParams): Promise<InternalFlightOffer[]> {
+  const apiKey = process.env.SERPAPI_KEY;
+  
+  if (!apiKey) {
+    throw new Error("SERPAPI_KEY not configured. Please add your SerpApi key to secrets.");
+  }
+  
+  console.log(`[SerpAPI Internal] Searching ${params.dates.length} dates for ${params.fromAirport} -> ${params.toAirport}`);
+  
+  if (params.dates.length === 0) {
+    console.log(`[SerpAPI Internal] No dates to search`);
+    return [];
+  }
+  
+  // Parallel fetch with concurrency limit
+  const CONCURRENCY = 10;
+  const allOffers: InternalFlightOffer[] = [];
+  
+  for (let i = 0; i < params.dates.length; i += CONCURRENCY) {
+    const batch = params.dates.slice(i, i + CONCURRENCY);
+    console.log(`[SerpAPI Internal] Fetching batch ${Math.floor(i / CONCURRENCY) + 1}/${Math.ceil(params.dates.length / CONCURRENCY)}`);
+    
+    const batchResults = await Promise.all(
+      batch.map(date => fetchInternalFlightForDate(
+        apiKey,
+        params.fromAirport,
+        params.toAirport,
+        date
+      ))
+    );
+    
+    for (const offers of batchResults) {
+      allOffers.push(...offers);
+    }
+    
+    // Delay between batches
+    if (i + CONCURRENCY < params.dates.length) {
+      await sleep(500);
+    }
+  }
+  
+  console.log(`[SerpAPI Internal] Found ${allOffers.length} total internal flight offers`);
+  
+  return allOffers;
+}
+
+/**
+ * Get cheapest internal flight per date
+ */
+export function getCheapestInternalByDate(
+  offers: InternalFlightOffer[]
+): Map<string, InternalFlightOffer> {
+  const cheapestByDate = new Map<string, InternalFlightOffer>();
+  
+  for (const offer of offers) {
+    const existing = cheapestByDate.get(offer.date);
+    
+    if (!existing || offer.pricePerPerson < existing.pricePerPerson) {
+      cheapestByDate.set(offer.date, offer);
+    }
+  }
+  
+  return cheapestByDate;
 }
 
 // Helper functions

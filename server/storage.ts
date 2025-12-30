@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, flightPackages, packageEnquiries, tourEnquiries, packagePricing, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, type PackageSeason, type InsertPackageSeason, type PricingExport, type InsertPricingExport, flightPackages, packageEnquiries, tourEnquiries, packagePricing, packageSeasons, pricingExports, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql, and } from "drizzle-orm";
@@ -77,6 +77,17 @@ export interface IStorage {
   createPackagePricingBatch(pricings: InsertPackagePricing[]): Promise<PackagePricing[]>;
   deletePackagePricing(id: number): Promise<boolean>;
   deletePackagePricingByPackage(packageId: number): Promise<boolean>;
+  
+  // Package seasons methods
+  getPackageSeasons(packageId: number): Promise<PackageSeason[]>;
+  createPackageSeason(season: InsertPackageSeason): Promise<PackageSeason>;
+  updatePackageSeason(id: number, season: Partial<InsertPackageSeason>): Promise<PackageSeason | undefined>;
+  deletePackageSeason(id: number): Promise<boolean>;
+  deletePackageSeasonsByPackage(packageId: number): Promise<boolean>;
+  
+  // Pricing export history methods
+  getPricingExports(packageId: number): Promise<PricingExport[]>;
+  createPricingExport(exportRecord: InsertPricingExport): Promise<PricingExport>;
   
   // Review methods
   getAllReviews(): Promise<Review[]>;
@@ -853,6 +864,58 @@ export class MemStorage implements IStorage {
   async deletePackagePricingByPackage(packageId: number): Promise<boolean> {
     await db.delete(packagePricing).where(eq(packagePricing.packageId, packageId));
     return true;
+  }
+
+  // Package seasons methods
+  async getPackageSeasons(packageId: number): Promise<PackageSeason[]> {
+    try {
+      return await db.select().from(packageSeasons)
+        .where(eq(packageSeasons.packageId, packageId))
+        .orderBy(asc(packageSeasons.startDate));
+    } catch (error) {
+      console.error("Error fetching package seasons:", error);
+      return [];
+    }
+  }
+
+  async createPackageSeason(season: InsertPackageSeason): Promise<PackageSeason> {
+    const [created] = await db.insert(packageSeasons).values(season).returning();
+    return created;
+  }
+
+  async updatePackageSeason(id: number, season: Partial<InsertPackageSeason>): Promise<PackageSeason | undefined> {
+    const [updated] = await db.update(packageSeasons)
+      .set({ ...season, updatedAt: new Date() })
+      .where(eq(packageSeasons.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deletePackageSeason(id: number): Promise<boolean> {
+    await db.delete(packageSeasons).where(eq(packageSeasons.id, id));
+    return true;
+  }
+
+  async deletePackageSeasonsByPackage(packageId: number): Promise<boolean> {
+    await db.delete(packageSeasons).where(eq(packageSeasons.packageId, packageId));
+    return true;
+  }
+
+  // Pricing export history methods
+  async getPricingExports(packageId: number): Promise<PricingExport[]> {
+    try {
+      return await db.select().from(pricingExports)
+        .where(eq(pricingExports.packageId, packageId))
+        .orderBy(desc(pricingExports.createdAt));
+    } catch (error) {
+      console.error("Error fetching pricing exports:", error);
+      return [];
+    }
+  }
+
+  async createPricingExport(exportRecord: InsertPricingExport): Promise<PricingExport> {
+    const [created] = await db.insert(pricingExports).values(exportRecord).returning();
+    return created;
   }
 
   // Review methods

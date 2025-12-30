@@ -558,6 +558,59 @@ export const insertPackagePricingSchema = createInsertSchema(packagePricing).omi
 export type PackagePricing = typeof packagePricing.$inferSelect;
 export type InsertPackagePricing = z.infer<typeof insertPackagePricingSchema>;
 
+// Package Seasons - for seasonal land cost pricing per package
+export const packageSeasons = pgTable("package_seasons", {
+  id: serial("id").primaryKey(),
+  packageId: integer("package_id").notNull().references(() => flightPackages.id, { onDelete: 'cascade' }),
+  seasonName: text("season_name").notNull(), // e.g., "Peak", "Shoulder", "Low", "Season 1"
+  startDate: text("start_date").notNull(), // YYYY-MM-DD
+  endDate: text("end_date").notNull(), // YYYY-MM-DD
+  landCostPerPerson: real("land_cost_per_person").notNull(), // Land/tour cost in GBP
+  hotelCostPerPerson: real("hotel_cost_per_person"), // Optional hotel cost per night
+  notes: text("notes"), // Admin notes
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPackageSeasonSchema = createInsertSchema(packageSeasons).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true
+}).extend({
+  packageId: z.number().positive("Package ID is required"),
+  seasonName: z.string().min(1, "Season name is required"),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be in YYYY-MM-DD format"),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be in YYYY-MM-DD format"),
+  landCostPerPerson: z.number().positive("Land cost must be positive"),
+  hotelCostPerPerson: z.number().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export type PackageSeason = typeof packageSeasons.$inferSelect;
+export type InsertPackageSeason = z.infer<typeof insertPackageSeasonSchema>;
+
+// Pricing Export History - track generated CSVs
+export const pricingExports = pgTable("pricing_exports", {
+  id: serial("id").primaryKey(),
+  packageId: integer("package_id").notNull().references(() => flightPackages.id, { onDelete: 'cascade' }),
+  fileName: text("file_name").notNull(),
+  flightApiUsed: text("flight_api_used").notNull(), // "european" or "serp"
+  dateRangeStart: text("date_range_start").notNull(),
+  dateRangeEnd: text("date_range_end").notNull(),
+  departureAirports: text("departure_airports").notNull(), // Pipe-separated
+  totalRows: integer("total_rows").notNull().default(0),
+  status: text("status").notNull().default("completed"), // completed, failed
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPricingExportSchema = createInsertSchema(pricingExports).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export type PricingExport = typeof pricingExports.$inferSelect;
+export type InsertPricingExport = z.infer<typeof insertPricingExportSchema>;
+
 // Customer Reviews schema
 export const reviews = pgTable("reviews", {
   id: serial("id").primaryKey(),

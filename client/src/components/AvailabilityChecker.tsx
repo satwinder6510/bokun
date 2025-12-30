@@ -247,6 +247,10 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
     try {
       const pricing = getPricingForSelectedRate();
       
+      // Get original referrer from session storage (captured on first page load)
+      const originalReferrer = sessionStorage.getItem('original_referrer') || 'Direct';
+      const landingPage = sessionStorage.getItem('landing_page') || null;
+      
       await apiRequest("POST", `/api/tours/${productId}/enquiry`, {
         productTitle,
         ...formData,
@@ -256,7 +260,8 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
         estimatedPrice: pricing?.totalPrice || null,
         currency: "GBP",
         pageUrl: window.location.href,
-        referrer: document.referrer || null,
+        referrer: originalReferrer,
+        landingPage: landingPage,
       });
 
       toast({

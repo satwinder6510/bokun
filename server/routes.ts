@@ -1382,7 +1382,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Message": message,
           "Source": "Website Contact Form",
           "Page URL": req.body.pageUrl || `${req.protocol}://${req.get('host')}/contact`,
-          "Referrer": req.body.referrer || "Direct",
+          "Original Referrer": req.body.referrer || "Direct",
+          "Landing Page": req.body.landingPage || "Not captured",
           "Submitted At": new Date().toISOString(),
         },
       };
@@ -4680,7 +4681,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               "Additional Requirements": req.body.message || "None",
               "Source": "Tour Enquiry Form",
               "Page URL": req.body.pageUrl || tourUrl,
-              "Referrer": req.body.referrer || "Direct",
+              "Original Referrer": req.body.referrer || "Direct",
+              "Landing Page": req.body.landingPage || "Not captured",
               "Submitted At": new Date().toISOString(),
             },
           };

@@ -65,10 +65,15 @@ export default function Contact() {
 
   const contactMutation = useMutation({
     mutationFn: async (data: ContactLead) => {
+      // Get original referrer from session storage (captured on first page load)
+      const originalReferrer = sessionStorage.getItem('original_referrer') || 'Direct';
+      const landingPage = sessionStorage.getItem('landing_page') || null;
+      
       return await apiRequest("POST", "/api/contact", {
         ...data,
         pageUrl: window.location.href,
-        referrer: document.referrer || null,
+        referrer: originalReferrer,
+        landingPage: landingPage,
       });
     },
     onSuccess: () => {

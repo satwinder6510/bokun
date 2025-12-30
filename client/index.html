@@ -49,6 +49,21 @@
     <meta name="twitter:title" content="Flights and Packages - Book 700+ Tours Worldwide" />
     <meta name="twitter:description" content="Discover and book 700+ unique tours worldwide. Explore destinations, compare prices, and check availability." />
     <meta name="twitter:image" content="https://tours.flightsandpackages.com/og-image.jpg" />
+    <!-- Original Referrer Tracking - Capture on first page load -->
+    <script>
+      (function() {
+        try {
+          // Only store if we don't already have an original referrer in this session
+          if (!sessionStorage.getItem('original_referrer')) {
+            var ref = document.referrer || '';
+            // Check if referrer is external (not from our own domain)
+            var isExternal = ref && !ref.includes(window.location.hostname);
+            sessionStorage.setItem('original_referrer', isExternal ? ref : 'Direct');
+            sessionStorage.setItem('landing_page', window.location.href);
+          }
+        } catch(e) {}
+      })();
+    </script>
     <!-- Meta Pixel Code -->
     <script>
       !function(f,b,e,v,n,t,s)

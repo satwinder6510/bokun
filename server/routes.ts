@@ -1369,26 +1369,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Normalize booking reference (empty string to "N/A")
       const normalizedBookingRef = bookingReference && bookingReference.trim() !== "" ? bookingReference : "N/A";
 
-      // Prepare payload for Privyr webhook - using field_N_label/field_N_value format
+      // Prepare payload for Privyr webhook - using other_fields dict format per docs
       const payload = {
         name: `${firstName} ${lastName}`,
-        first_name: firstName,
-        last_name: lastName,
         email: email,
         phone: phone,
-        cf_reference: "Website Contact Form",
-        field_1_label: "Booking Reference",
-        field_1_value: normalizedBookingRef,
-        field_2_label: "Message",
-        field_2_value: message,
-        field_3_label: "Original Referrer",
-        field_3_value: req.body.referrer || "Direct",
-        field_4_label: "Landing Page",
-        field_4_value: req.body.landingPage || "Not captured",
-        field_5_label: "Page URL",
-        field_5_value: req.body.pageUrl || `${req.protocol}://${req.get('host')}/contact`,
-        field_6_label: "Submitted At",
-        field_6_value: new Date().toISOString(),
+        display_name: firstName,
+        other_fields: {
+          "Booking Reference": normalizedBookingRef,
+          "Message": message,
+          "Original Referrer": req.body.referrer || "Direct",
+          "Landing Page": req.body.landingPage || "Not captured",
+          "Page URL": req.body.pageUrl || `${req.protocol}://${req.get('host')}/contact`,
+          "Source": "Website Contact Form"
+        }
       };
       
       console.log("Contact form payload being sent to Privyr:", JSON.stringify(payload, null, 2));
@@ -4668,34 +4662,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           };
 
-          // Prepare payload for Privyr webhook - using field_N_label/field_N_value format
+          // Prepare payload for Privyr webhook - using other_fields dict format per docs
           const privyrPayload = {
             name: `${req.body.firstName} ${req.body.lastName}`,
-            first_name: req.body.firstName,
-            last_name: req.body.lastName,
             email: req.body.email,
             phone: req.body.phone,
-            cf_reference: "Tour Enquiry Form",
-            field_1_label: "Tour Name",
-            field_1_value: req.body.productTitle,
-            field_2_label: "Departure Date",
-            field_2_value: formatDate(req.body.departureDate),
-            field_3_label: "Room/Category",
-            field_3_value: req.body.rateTitle || "Not specified",
-            field_4_label: "Estimated Price",
-            field_4_value: formatPrice(req.body.estimatedPrice),
-            field_5_label: "Number of Travellers",
-            field_5_value: req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
-            field_6_label: "Additional Requirements",
-            field_6_value: req.body.message || "None",
-            field_7_label: "Original Referrer",
-            field_7_value: req.body.referrer || "Direct",
-            field_8_label: "Landing Page",
-            field_8_value: req.body.landingPage || "Not captured",
-            field_9_label: "Page URL",
-            field_9_value: req.body.pageUrl || tourUrl,
-            field_10_label: "Tour URL",
-            field_10_value: tourUrl,
+            display_name: req.body.firstName,
+            other_fields: {
+              "Tour Name": req.body.productTitle,
+              "Departure Date": formatDate(req.body.departureDate),
+              "Room/Category": req.body.rateTitle || "Not specified",
+              "Estimated Price": formatPrice(req.body.estimatedPrice),
+              "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
+              "Additional Requirements": req.body.message || "None",
+              "Original Referrer": req.body.referrer || "Direct",
+              "Landing Page": req.body.landingPage || "Not captured",
+              "Page URL": req.body.pageUrl || tourUrl,
+              "Tour URL": tourUrl,
+              "Source": "Tour Enquiry Form"
+            }
           };
           
           console.log("Tour enquiry payload being sent to Privyr:", JSON.stringify(privyrPayload, null, 2));

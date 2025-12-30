@@ -1369,23 +1369,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Normalize booking reference (empty string to "N/A")
       const normalizedBookingRef = bookingReference && bookingReference.trim() !== "" ? bookingReference : "N/A";
 
-      // Prepare payload for Privyr webhook with proper structure
+      // Prepare payload for Privyr webhook - custom fields as top-level parameters
       const payload = {
         name: `${firstName} ${lastName}`,
+        first_name: firstName,
+        last_name: lastName,
         email: email,
         phone: phone,
-        display_name: firstName,
-        other_fields: {
-          "First Name": firstName,
-          "Last Name": lastName,
-          "Booking Reference": normalizedBookingRef,
-          "Message": message,
-          "Source": "Website Contact Form",
-          "Page URL": req.body.pageUrl || `${req.protocol}://${req.get('host')}/contact`,
-          "Original Referrer": req.body.referrer || "Direct",
-          "Landing Page": req.body.landingPage || "Not captured",
-          "Submitted At": new Date().toISOString(),
-        },
+        cf_reference: "Website Contact Form",
+        booking_reference: normalizedBookingRef,
+        message: message,
+        page_url: req.body.pageUrl || `${req.protocol}://${req.get('host')}/contact`,
+        original_referrer: req.body.referrer || "Direct",
+        landing_page: req.body.landingPage || "Not captured",
+        submitted_at: new Date().toISOString(),
       };
 
       console.log("Sending contact form to Privyr webhook...");
@@ -4663,28 +4660,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           };
 
-          // Prepare payload for Privyr webhook
+          // Prepare payload for Privyr webhook - custom fields as top-level parameters
           const privyrPayload = {
             name: `${req.body.firstName} ${req.body.lastName}`,
+            first_name: req.body.firstName,
+            last_name: req.body.lastName,
             email: req.body.email,
             phone: req.body.phone,
-            display_name: req.body.firstName,
-            other_fields: {
-              "First Name": req.body.firstName,
-              "Last Name": req.body.lastName,
-              "Tour Name": req.body.productTitle,
-              "Tour URL": tourUrl,
-              "Departure Date": formatDate(req.body.departureDate),
-              "Room/Category": req.body.rateTitle || "Not specified",
-              "Estimated Price": formatPrice(req.body.estimatedPrice),
-              "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
-              "Additional Requirements": req.body.message || "None",
-              "Source": "Tour Enquiry Form",
-              "Page URL": req.body.pageUrl || tourUrl,
-              "Original Referrer": req.body.referrer || "Direct",
-              "Landing Page": req.body.landingPage || "Not captured",
-              "Submitted At": new Date().toISOString(),
-            },
+            cf_reference: "Tour Enquiry Form",
+            tour_name: req.body.productTitle,
+            tour_url: tourUrl,
+            departure_date: formatDate(req.body.departureDate),
+            room_category: req.body.rateTitle || "Not specified",
+            estimated_price: formatPrice(req.body.estimatedPrice),
+            number_of_travellers: req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
+            additional_requirements: req.body.message || "None",
+            page_url: req.body.pageUrl || tourUrl,
+            original_referrer: req.body.referrer || "Direct",
+            landing_page: req.body.landingPage || "Not captured",
+            submitted_at: new Date().toISOString(),
           };
           
           await fetch(process.env.PRIVYR_WEBHOOK_URL, {

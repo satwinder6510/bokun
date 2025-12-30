@@ -10,10 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import {
-  ArrowLeft, Plus, Trash2, Calendar, Download, Upload, 
-  Loader2, Plane, RefreshCw, FileSpreadsheet
+  ArrowLeft, Plus, Trash2, Calendar, Download, 
+  Loader2, Plane, RefreshCw, FileSpreadsheet, ArrowRight
 } from "lucide-react";
 import {
   Dialog,
@@ -60,20 +60,33 @@ type SeasonFormData = {
   notes: string;
 };
 
-type GeneratorConfig = {
-  flightApi: "european" | "serp";
-  departAirports: string;
-  arriveAirportCode: string;
-  durationNights: number;
+type OpenJawConfig = {
+  ukAirports: string;
+  arriveAirport: string;       // Fly into this city
+  departAirport: string;       // Fly out from this city (different for open-jaw)
+  nights: number;
   searchStartDate: string;
   searchEndDate: string;
+  // Internal flight settings
+  hasInternalFlight: boolean;
+  internalFromAirport: string;
+  internalToAirport: string;
+  internalDaysAfterArrival: number;
 };
 
-type PricingRow = {
-  date: string;
-  departureAirport: string;
-  departureAirportName: string;
+type OpenJawPricingRow = {
+  outboundDate: string;
+  ukDepartureAirport: string;
+  ukDepartureAirportName: string;
+  outboundArrivalDate: string;
+  effectiveArrivalDate: string;
+  returnDate: string;
+  outboundAirline: string;
+  returnAirline: string;
+  sameAirline: boolean;
   flightPrice: number;
+  internalFlightDate?: string;
+  internalFlightPrice?: number;
   landCost: number;
   hotelCost: number;
   totalCost: number;
@@ -89,7 +102,7 @@ const emptySeasonForm: SeasonFormData = {
   notes: "",
 };
 
-const defaultAirports = "LGW|STN|LTN|LHR|MAN|BHX|BRS|EDI|GLA";
+const defaultUkAirports = "LHR|LGW|MAN|BHX|STN|LTN|BRS|EDI|GLA";
 
 export default function AdminPricingGenerator() {
   const { toast } = useToast();
@@ -98,15 +111,21 @@ export default function AdminPricingGenerator() {
   const [seasonFormOpen, setSeasonFormOpen] = useState(false);
   const [editingSeason, setEditingSeason] = useState<PackageSeason | null>(null);
   const [seasonForm, setSeasonForm] = useState<SeasonFormData>(emptySeasonForm);
-  const [generatorConfig, setGeneratorConfig] = useState<GeneratorConfig>({
-    flightApi: "serp",
-    departAirports: defaultAirports,
-    arriveAirportCode: "",
-    durationNights: 7,
+  
+  const [config, setConfig] = useState<OpenJawConfig>({
+    ukAirports: defaultUkAirports,
+    arriveAirport: "",
+    departAirport: "",
+    nights: 10,
     searchStartDate: "",
     searchEndDate: "",
+    hasInternalFlight: false,
+    internalFromAirport: "",
+    internalToAirport: "",
+    internalDaysAfterArrival: 3,
   });
-  const [pricingResults, setPricingResults] = useState<PricingRow[]>([]);
+  
+  const [pricingResults, setPricingResults] = useState<OpenJawPricingRow[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: packages = [], isLoading: packagesLoading } = useQuery<FlightPackage[]>({
@@ -199,6 +218,8 @@ export default function AdminPricingGenerator() {
     }).format(value);
   };
 
+  const isOpenJaw = config.arriveAirport !== config.departAirport && config.departAirport !== "";
+
   const handleGeneratePricing = async () => {
     if (!selectedPackageId || seasons.length === 0) {
       toast({ 
@@ -209,21 +230,49 @@ export default function AdminPricingGenerator() {
       return;
     }
 
-    if (!generatorConfig.arriveAirportCode || !generatorConfig.searchStartDate || !generatorConfig.searchEndDate) {
+    if (!config.arriveAirport || !config.searchStartDate || !config.searchEndDate) {
       toast({ 
         title: "Missing configuration", 
-        description: "Please fill in destination airport and date range",
+        description: "Please fill in arrival airport and date range",
         variant: "destructive" 
       });
       return;
+    }
+
+    // For open-jaw, departAirport is required
+    if (!config.departAirport) {
+      toast({ 
+        title: "Missing departure airport", 
+        description: "Please enter the return departure airport",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Validate internal flight configuration if enabled
+    if (config.hasInternalFlight) {
+      if (!config.internalFromAirport || !config.internalToAirport) {
+        toast({ 
+          title: "Missing internal flight configuration", 
+          description: "Please enter both the departure and arrival airports for the internal flight",
+          variant: "destructive" 
+        });
+        return;
+      }
     }
 
     setIsGenerating(true);
     setPricingResults([]);
 
     try {
-      const response = await apiRequest("POST", `/api/admin/packages/${selectedPackageId}/generate-pricing`, {
-        ...generatorConfig,
+      const requestData: Record<string, unknown> = {
+        ukAirports: config.ukAirports.split("|").filter(a => a.trim()),
+        arriveAirport: config.arriveAirport,
+        departAirport: config.departAirport,
+        nights: config.nights,
+        searchStartDate: config.searchStartDate,
+        searchEndDate: config.searchEndDate,
+        hasInternalFlight: config.hasInternalFlight,
         seasons: seasons.map(s => ({
           id: s.id,
           seasonName: s.seasonName,
@@ -232,13 +281,23 @@ export default function AdminPricingGenerator() {
           landCostPerPerson: s.landCostPerPerson,
           hotelCostPerPerson: s.hotelCostPerPerson,
         })),
-      });
+      };
 
-      const data = await response.json();
+      // Only include internal flight fields if the toggle is enabled
+      if (config.hasInternalFlight) {
+        requestData.internalFromAirport = config.internalFromAirport;
+        requestData.internalToAirport = config.internalToAirport;
+        requestData.internalDaysAfterArrival = Math.max(0, config.internalDaysAfterArrival);
+      }
+
+      const data = await apiRequest("POST", `/api/admin/packages/${selectedPackageId}/generate-openjaw-pricing`, requestData);
       
       if (data.results) {
         setPricingResults(data.results);
-        toast({ title: "Pricing generated", description: `${data.results.length} price entries created` });
+        toast({ 
+          title: "Pricing generated", 
+          description: `${data.results.length} price entries created${data.sameAirlineCount ? ` (${data.sameAirlineCount} same-airline)` : ""}` 
+        });
       }
     } catch (error: any) {
       toast({ 
@@ -254,17 +313,43 @@ export default function AdminPricingGenerator() {
   const handleDownloadCsv = () => {
     if (pricingResults.length === 0) return;
 
-    const headers = ["Date", "Departure Airport", "Airport Name", "Flight Price (GBP)", "Land Cost (GBP)", "Hotel Cost (GBP)", "Total Cost (GBP)", "Season", "Selling Price (GBP)"];
+    const headers = [
+      "Outbound Date",
+      "UK Departure",
+      "Arrival Date",
+      "Effective Arrival",
+      "Return Date",
+      "Outbound Airline",
+      "Return Airline",
+      "Same Airline",
+      "Flight Price (GBP)",
+      ...(config.hasInternalFlight ? ["Internal Date", "Internal Price (GBP)"] : []),
+      "Land Cost (GBP)",
+      "Hotel Cost (GBP)",
+      "Total Cost (GBP)",
+      "Season",
+      "Selling Price (GBP)"
+    ];
+    
     const rows = pricingResults.map(row => [
-      row.date,
-      row.departureAirport,
-      row.departureAirportName,
+      row.outboundDate,
+      row.ukDepartureAirport,
+      row.outboundArrivalDate,
+      row.effectiveArrivalDate,
+      row.returnDate,
+      row.outboundAirline,
+      row.returnAirline,
+      row.sameAirline ? "Yes" : "No",
       row.flightPrice.toFixed(2),
+      ...(config.hasInternalFlight ? [
+        row.internalFlightDate || "",
+        row.internalFlightPrice?.toFixed(2) || "",
+      ] : []),
       row.landCost.toFixed(2),
       row.hotelCost.toFixed(2),
       row.totalCost.toFixed(2),
       row.seasonName,
-      "", // Empty column for selling price to be filled in
+      "", // Selling price to fill in
     ]);
 
     const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
@@ -272,7 +357,7 @@ export default function AdminPricingGenerator() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `pricing_${selectedPackage?.slug || "package"}_${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `openjaw_pricing_${selectedPackage?.slug || "package"}_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -304,12 +389,15 @@ export default function AdminPricingGenerator() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold">Pricing Generator</h1>
-            <p className="text-muted-foreground">Generate pricing CSV with flight + land costs</p>
+            <h1 className="text-3xl font-bold">Open-Jaw Pricing Generator</h1>
+            <p className="text-muted-foreground">
+              Generate pricing for open-jaw flights (fly into one city, out of another)
+            </p>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Package & Seasons */}
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader>
@@ -391,7 +479,7 @@ export default function AdminPricingGenerator() {
                           <p className="text-xs text-muted-foreground">
                             {season.startDate} to {season.endDate}
                           </p>
-                          <div className="flex gap-2 mt-1">
+                          <div className="flex gap-2 mt-1 flex-wrap">
                             <Badge variant="secondary">
                               Land: {formatCurrency(season.landCostPerPerson)}
                             </Badge>
@@ -445,94 +533,91 @@ export default function AdminPricingGenerator() {
             </Card>
           </div>
 
+          {/* Right Column - Flight Configuration */}
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Flight Configuration</CardTitle>
-                <CardDescription>Configure flight search parameters</CardDescription>
+                <CardTitle>Open-Jaw Flight Configuration</CardTitle>
+                <CardDescription>
+                  Configure the open-jaw route: fly into one city, return from another
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Flight API</Label>
-                    <Select
-                      value={generatorConfig.flightApi}
-                      onValueChange={(value: "european" | "serp") => 
-                        setGeneratorConfig({ ...generatorConfig, flightApi: value })
-                      }
-                    >
-                      <SelectTrigger data-testid="select-flight-api">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="european">European API (Sunshine)</SelectItem>
-                        <SelectItem value="serp">SERP API (Google Flights)</SelectItem>
-                      </SelectContent>
-                    </Select>
+              <CardContent className="space-y-6">
+                {/* Route Configuration */}
+                <div className="p-4 border rounded-lg bg-muted/30">
+                  <Label className="text-base font-semibold mb-3 block">Flight Route</Label>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex-1 min-w-[120px]">
+                      <Label className="text-xs text-muted-foreground">UK Airports</Label>
+                      <Input
+                        placeholder="LHR|MAN|BHX"
+                        value={config.ukAirports}
+                        onChange={(e) => setConfig({ ...config, ukAirports: e.target.value.toUpperCase() })}
+                        data-testid="input-uk-airports"
+                      />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground mt-4" />
+                    <div className="w-24">
+                      <Label className="text-xs text-muted-foreground">Fly Into</Label>
+                      <Input
+                        placeholder="DEL"
+                        value={config.arriveAirport}
+                        onChange={(e) => setConfig({ ...config, arriveAirport: e.target.value.toUpperCase() })}
+                        data-testid="input-arrive-airport"
+                      />
+                    </div>
+                    <span className="text-muted-foreground mt-4">...</span>
+                    <div className="w-24">
+                      <Label className="text-xs text-muted-foreground">Fly Out</Label>
+                      <Input
+                        placeholder="BOM"
+                        value={config.departAirport}
+                        onChange={(e) => setConfig({ ...config, departAirport: e.target.value.toUpperCase() })}
+                        data-testid="input-depart-airport"
+                      />
+                    </div>
+                    <ArrowRight className="h-5 w-5 text-muted-foreground mt-4" />
+                    <div className="mt-4">
+                      <Badge variant={isOpenJaw ? "default" : "secondary"}>
+                        {isOpenJaw ? "Open-Jaw" : "Round Trip"}
+                      </Badge>
+                    </div>
                   </div>
-
-                  <div>
-                    <Label>Destination Airport Code</Label>
-                    <Input
-                      placeholder="e.g., DEL, BKK, DXB"
-                      value={generatorConfig.arriveAirportCode}
-                      onChange={(e) => 
-                        setGeneratorConfig({ ...generatorConfig, arriveAirportCode: e.target.value.toUpperCase() })
-                      }
-                      data-testid="input-destination-airport"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Departure Airports (pipe-separated)</Label>
-                  <Input
-                    placeholder="LGW|STN|LTN|LHR|MAN"
-                    value={generatorConfig.departAirports}
-                    onChange={(e) => 
-                      setGeneratorConfig({ ...generatorConfig, departAirports: e.target.value.toUpperCase() })
-                    }
-                    data-testid="input-departure-airports"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Common UK airports: LGW, STN, LTN, LHR, MAN, BHX, BRS, EDI, GLA
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Example: LHR → DEL (Delhi), then BOM (Mumbai) → LHR
                   </p>
                 </div>
 
+                {/* Duration & Date Range */}
                 <div className="grid sm:grid-cols-3 gap-4">
                   <div>
                     <Label>Duration (nights)</Label>
                     <Input
                       type="number"
                       min={1}
-                      value={generatorConfig.durationNights}
-                      onChange={(e) => 
-                        setGeneratorConfig({ ...generatorConfig, durationNights: parseInt(e.target.value) || 7 })
-                      }
-                      data-testid="input-duration"
+                      value={config.nights}
+                      onChange={(e) => setConfig({ ...config, nights: parseInt(e.target.value) || 7 })}
+                      data-testid="input-nights"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Return = effective arrival + nights
+                    </p>
                   </div>
-
                   <div>
-                    <Label>Start Date</Label>
+                    <Label>Search Start Date</Label>
                     <Input
                       type="date"
-                      value={generatorConfig.searchStartDate}
-                      onChange={(e) => 
-                        setGeneratorConfig({ ...generatorConfig, searchStartDate: e.target.value })
-                      }
+                      value={config.searchStartDate}
+                      onChange={(e) => setConfig({ ...config, searchStartDate: e.target.value })}
                       data-testid="input-start-date"
                     />
                   </div>
-
                   <div>
-                    <Label>End Date</Label>
+                    <Label>Search End Date</Label>
                     <Input
                       type="date"
-                      value={generatorConfig.searchEndDate}
-                      onChange={(e) => 
-                        setGeneratorConfig({ ...generatorConfig, searchEndDate: e.target.value })
-                      }
+                      value={config.searchEndDate}
+                      onChange={(e) => setConfig({ ...config, searchEndDate: e.target.value })}
                       data-testid="input-end-date"
                     />
                   </div>
@@ -540,6 +625,65 @@ export default function AdminPricingGenerator() {
 
                 <Separator />
 
+                {/* Internal Flight Configuration */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-base">Internal Flight</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add a domestic flight within the destination country
+                      </p>
+                    </div>
+                    <Switch
+                      checked={config.hasInternalFlight}
+                      onCheckedChange={(checked) => setConfig({ ...config, hasInternalFlight: checked })}
+                      data-testid="switch-internal-flight"
+                    />
+                  </div>
+
+                  {config.hasInternalFlight && (
+                    <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <div className="w-24">
+                          <Label className="text-xs text-muted-foreground">From</Label>
+                          <Input
+                            placeholder="DEL"
+                            value={config.internalFromAirport}
+                            onChange={(e) => setConfig({ ...config, internalFromAirport: e.target.value.toUpperCase() })}
+                            data-testid="input-internal-from"
+                          />
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground mt-4" />
+                        <div className="w-24">
+                          <Label className="text-xs text-muted-foreground">To</Label>
+                          <Input
+                            placeholder="JAI"
+                            value={config.internalToAirport}
+                            onChange={(e) => setConfig({ ...config, internalToAirport: e.target.value.toUpperCase() })}
+                            data-testid="input-internal-to"
+                          />
+                        </div>
+                        <div className="w-32">
+                          <Label className="text-xs text-muted-foreground">Days After Arrival</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={config.internalDaysAfterArrival}
+                            onChange={(e) => setConfig({ ...config, internalDaysAfterArrival: parseInt(e.target.value) || 0 })}
+                            data-testid="input-internal-days"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Internal flight date = effective arrival date + {config.internalDaysAfterArrival} days
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <Separator />
+
+                {/* Generate Button */}
                 <div className="flex gap-2">
                   <Button
                     onClick={handleGeneratePricing}
@@ -550,12 +694,12 @@ export default function AdminPricingGenerator() {
                     {isGenerating ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Generating...
+                        Generating (this may take a few minutes)...
                       </>
                     ) : (
                       <>
                         <FileSpreadsheet className="h-4 w-4 mr-2" />
-                        Generate Pricing
+                        Generate Open-Jaw Pricing
                       </>
                     )}
                   </Button>
@@ -573,48 +717,79 @@ export default function AdminPricingGenerator() {
               </CardContent>
             </Card>
 
+            {/* Results Table */}
             {pricingResults.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
+                  <CardTitle className="flex items-center justify-between gap-2 flex-wrap">
                     <span>Generated Pricing ({pricingResults.length} rows)</span>
-                    <Badge variant="secondary">{selectedPackage?.title}</Badge>
+                    <div className="flex gap-2">
+                      <Badge variant="secondary">{selectedPackage?.title}</Badge>
+                      <Badge variant="outline">
+                        {pricingResults.filter(r => r.sameAirline).length} same-airline
+                      </Badge>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="max-h-[400px] overflow-auto border rounded-lg">
+                  <div className="max-h-[500px] overflow-auto border rounded-lg">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Airport</TableHead>
+                          <TableHead>Outbound</TableHead>
+                          <TableHead>UK Airport</TableHead>
+                          <TableHead>Arrival</TableHead>
+                          <TableHead>Return</TableHead>
+                          <TableHead>Airlines</TableHead>
                           <TableHead className="text-right">Flight</TableHead>
+                          {config.hasInternalFlight && (
+                            <TableHead className="text-right">Internal</TableHead>
+                          )}
                           <TableHead className="text-right">Land</TableHead>
-                          <TableHead className="text-right">Hotel</TableHead>
                           <TableHead className="text-right">Total</TableHead>
                           <TableHead>Season</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {pricingResults.slice(0, 50).map((row, idx) => (
-                          <TableRow key={idx}>
-                            <TableCell>{row.date}</TableCell>
-                            <TableCell>{row.departureAirport}</TableCell>
+                        {pricingResults.slice(0, 100).map((row, idx) => (
+                          <TableRow key={idx} className={row.sameAirline ? "" : "opacity-60"}>
+                            <TableCell>{row.outboundDate}</TableCell>
+                            <TableCell>{row.ukDepartureAirport}</TableCell>
+                            <TableCell>
+                              <span title={`Actual: ${row.outboundArrivalDate}`}>
+                                {row.effectiveArrivalDate}
+                              </span>
+                            </TableCell>
+                            <TableCell>{row.returnDate}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs">{row.outboundAirline}</span>
+                                {row.sameAirline ? (
+                                  <Badge variant="default" className="text-[10px] px-1">Same</Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">/ {row.returnAirline}</span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell className="text-right">{formatCurrency(row.flightPrice)}</TableCell>
+                            {config.hasInternalFlight && (
+                              <TableCell className="text-right">
+                                {row.internalFlightPrice ? formatCurrency(row.internalFlightPrice) : "-"}
+                              </TableCell>
+                            )}
                             <TableCell className="text-right">{formatCurrency(row.landCost)}</TableCell>
-                            <TableCell className="text-right">{formatCurrency(row.hotelCost)}</TableCell>
                             <TableCell className="text-right font-medium">{formatCurrency(row.totalCost)}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">{row.seasonName}</Badge>
+                              <Badge variant="outline" className="text-[10px]">{row.seasonName}</Badge>
                             </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
                     </Table>
                   </div>
-                  {pricingResults.length > 50 && (
+                  {pricingResults.length > 100 && (
                     <p className="text-sm text-muted-foreground text-center mt-2">
-                      Showing first 50 of {pricingResults.length} rows. Download CSV for full data.
+                      Showing first 100 of {pricingResults.length} rows. Download CSV for full data.
                     </p>
                   )}
                 </CardContent>
@@ -624,6 +799,7 @@ export default function AdminPricingGenerator() {
         </div>
       </div>
 
+      {/* Season Form Dialog */}
       <Dialog open={seasonFormOpen} onOpenChange={setSeasonFormOpen}>
         <DialogContent>
           <DialogHeader>
@@ -637,7 +813,7 @@ export default function AdminPricingGenerator() {
             <div>
               <Label>Season Name</Label>
               <Input
-                placeholder="e.g., Peak Season, Low Season, Season 1"
+                placeholder="e.g., Peak Season, Low Season"
                 value={seasonForm.seasonName}
                 onChange={(e) => setSeasonForm({ ...seasonForm, seasonName: e.target.value })}
                 data-testid="input-season-name"
@@ -681,7 +857,7 @@ export default function AdminPricingGenerator() {
                 <Input
                   type="number"
                   min={0}
-                  placeholder="Leave empty if included in land cost"
+                  placeholder="Leave empty if included"
                   value={seasonForm.hotelCostPerPerson ?? ""}
                   onChange={(e) => setSeasonForm({ 
                     ...seasonForm, 
@@ -712,9 +888,9 @@ export default function AdminPricingGenerator() {
               disabled={createSeasonMutation.isPending || updateSeasonMutation.isPending}
               data-testid="button-save-season"
             >
-              {(createSeasonMutation.isPending || updateSeasonMutation.isPending) ? (
+              {(createSeasonMutation.isPending || updateSeasonMutation.isPending) && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
+              )}
               {editingSeason ? "Update" : "Create"}
             </Button>
           </DialogFooter>

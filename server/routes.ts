@@ -8,7 +8,7 @@ import bcrypt from "bcrypt";
 import sharp from "sharp";
 import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertTourEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions, newsletterSubscribers } from "@shared/schema";
 import { calculateCombinedPrices, getFlightsForDateWithPrices, UK_AIRPORTS, getDefaultDepartAirports, searchFlights } from "./flightApi";
-import { searchSerpFlights, getCheapestSerpFlightsByDateAndAirport, isSerpApiConfigured } from "./serpFlightApi";
+import { searchSerpFlights, getCheapestSerpFlightsByDateAndAirport, isSerpApiConfigured, searchOpenJawFlights, getCheapestOpenJawByDateAndAirport, searchInternalFlights, getCheapestInternalByDate } from "./serpFlightApi";
 import { db } from "./db";
 import { eq, lt, desc } from "drizzle-orm";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
@@ -3284,6 +3284,192 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("[PricingGenerator] Error:", error);
       res.status(500).json({ error: error.message || "Failed to generate pricing" });
+    }
+  });
+
+  // Generate open-jaw pricing (fly into one city, out of another)
+  app.post("/api/admin/packages/:id/generate-openjaw-pricing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { 
+        ukAirports, 
+        arriveAirport, 
+        departAirport,
+        nights, 
+        searchStartDate, 
+        searchEndDate, 
+        hasInternalFlight,
+        internalFromAirport,
+        internalToAirport,
+        internalDaysAfterArrival,
+        seasons 
+      } = req.body;
+
+      if (!ukAirports || !arriveAirport || !departAirport || !searchStartDate || !searchEndDate) {
+        return res.status(400).json({ error: "Missing required configuration" });
+      }
+
+      if (!seasons || !Array.isArray(seasons) || seasons.length === 0) {
+        return res.status(400).json({ error: "At least one season is required" });
+      }
+
+      if (!isSerpApiConfigured()) {
+        return res.status(400).json({ error: "SERPAPI_KEY is not configured" });
+      }
+
+      console.log(`[OpenJawPricing] Generating for package ${id}`);
+      console.log(`[OpenJawPricing] Route: UK -> ${arriveAirport}, ${departAirport} -> UK`);
+      console.log(`[OpenJawPricing] Duration: ${nights} nights, Date range: ${searchStartDate} to ${searchEndDate}`);
+
+      type OpenJawPricingRow = {
+        outboundDate: string;
+        ukDepartureAirport: string;
+        ukDepartureAirportName: string;
+        outboundArrivalDate: string;
+        effectiveArrivalDate: string;
+        returnDate: string;
+        outboundAirline: string;
+        returnAirline: string;
+        sameAirline: boolean;
+        flightPrice: number;
+        internalFlightDate?: string;
+        internalFlightPrice?: number;
+        landCost: number;
+        hotelCost: number;
+        totalCost: number;
+        seasonName: string;
+      };
+
+      const results: OpenJawPricingRow[] = [];
+
+      // Helper to find which season a date falls into
+      const findSeasonForDate = (dateStr: string): { name: string; landCost: number; hotelCost: number } | null => {
+        const date = new Date(dateStr);
+        for (const season of seasons) {
+          const start = new Date(season.startDate);
+          const end = new Date(season.endDate);
+          if (date >= start && date <= end) {
+            return {
+              name: season.seasonName,
+              landCost: season.landCostPerPerson || 0,
+              hotelCost: season.hotelCostPerPerson || 0,
+            };
+          }
+        }
+        return null;
+      };
+
+      // Search for open-jaw flights
+      const openJawOffers = await searchOpenJawFlights({
+        ukAirports: Array.isArray(ukAirports) ? ukAirports : ukAirports.split("|").filter((a: string) => a.trim()),
+        arriveAirport,
+        departAirport,
+        nights,
+        startDate: searchStartDate,
+        endDate: searchEndDate,
+      });
+
+      // Get cheapest per date/airport, preferring same-airline
+      const cheapestOpenJaw = getCheapestOpenJawByDateAndAirport(openJawOffers, true);
+      
+      console.log(`[OpenJawPricing] Found ${openJawOffers.length} total offers, ${cheapestOpenJaw.size} unique date/airport combinations`);
+
+      // If internal flight is requested, collect all internal flight dates needed
+      let internalFlightPrices = new Map<string, number>();
+      
+      if (hasInternalFlight && internalFromAirport && internalToAirport) {
+        // Calculate all internal flight dates based on effective arrival dates
+        const internalDates = new Set<string>();
+        
+        for (const [_, flight] of Array.from(cheapestOpenJaw.entries())) {
+          // Calculate internal flight date
+          const effectiveArrival = new Date(flight.effectiveArrivalDate);
+          effectiveArrival.setDate(effectiveArrival.getDate() + (internalDaysAfterArrival || 0));
+          const internalDate = effectiveArrival.toISOString().split('T')[0];
+          internalDates.add(internalDate);
+        }
+
+        console.log(`[OpenJawPricing] Searching internal flights for ${internalDates.size} dates`);
+
+        // Search for internal flights
+        const internalOffers = await searchInternalFlights({
+          fromAirport: internalFromAirport,
+          toAirport: internalToAirport,
+          dates: Array.from(internalDates),
+        });
+
+        // Get cheapest per date
+        const cheapestInternal = getCheapestInternalByDate(internalOffers);
+        
+        for (const [date, offer] of Array.from(cheapestInternal.entries())) {
+          internalFlightPrices.set(date, offer.pricePerPerson);
+        }
+
+        console.log(`[OpenJawPricing] Found internal flight prices for ${internalFlightPrices.size} dates`);
+      }
+
+      // Build results
+      for (const [key, flight] of Array.from(cheapestOpenJaw.entries())) {
+        const season = findSeasonForDate(flight.effectiveArrivalDate);
+        if (!season) continue; // Skip dates not covered by any season
+
+        // Calculate internal flight date and price
+        let internalFlightDate: string | undefined;
+        let internalFlightPrice: number | undefined;
+
+        if (hasInternalFlight && internalFromAirport && internalToAirport) {
+          const effectiveArrival = new Date(flight.effectiveArrivalDate);
+          effectiveArrival.setDate(effectiveArrival.getDate() + (internalDaysAfterArrival || 0));
+          internalFlightDate = effectiveArrival.toISOString().split('T')[0];
+          internalFlightPrice = internalFlightPrices.get(internalFlightDate);
+        }
+
+        const totalCost = flight.pricePerPerson + 
+          (internalFlightPrice || 0) + 
+          season.landCost + 
+          season.hotelCost;
+
+        results.push({
+          outboundDate: flight.outboundDate,
+          ukDepartureAirport: flight.ukDepartureAirport,
+          ukDepartureAirportName: flight.ukDepartureAirportName,
+          outboundArrivalDate: flight.outboundArrivalDate,
+          effectiveArrivalDate: flight.effectiveArrivalDate,
+          returnDate: flight.returnDate,
+          outboundAirline: flight.outboundAirline,
+          returnAirline: flight.returnAirline,
+          sameAirline: flight.sameAirline,
+          flightPrice: Math.round(flight.pricePerPerson * 100) / 100,
+          internalFlightDate,
+          internalFlightPrice: internalFlightPrice ? Math.round(internalFlightPrice * 100) / 100 : undefined,
+          landCost: season.landCost,
+          hotelCost: season.hotelCost,
+          totalCost: Math.round(totalCost * 100) / 100,
+          seasonName: season.name,
+        });
+      }
+
+      // Sort by date
+      results.sort((a, b) => a.outboundDate.localeCompare(b.outboundDate));
+
+      const sameAirlineCount = results.filter(r => r.sameAirline).length;
+      console.log(`[OpenJawPricing] Generated ${results.length} pricing entries (${sameAirlineCount} same-airline)`);
+
+      res.json({ 
+        success: true, 
+        results,
+        sameAirlineCount,
+        summary: {
+          totalEntries: results.length,
+          sameAirlineEntries: sameAirlineCount,
+          dateRange: { start: searchStartDate, end: searchEndDate },
+          route: `UK -> ${arriveAirport}, ${departAirport} -> UK`,
+          hasInternalFlight,
+        }
+      });
+    } catch (error: any) {
+      console.error("[OpenJawPricing] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to generate open-jaw pricing" });
     }
   });
 

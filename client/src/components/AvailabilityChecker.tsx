@@ -278,10 +278,11 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
         phone: "",
         message: "",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Enquiry submission error:", error);
       toast({
         title: "Error",
-        description: "Failed to submit enquiry. Please try again.",
+        description: error?.message || "Failed to submit enquiry. Please try again.",
         variant: "destructive",
       });
     } finally {

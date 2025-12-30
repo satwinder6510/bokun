@@ -255,6 +255,8 @@ export function AvailabilityChecker({ productId, productTitle, rates, bookableEx
         numberOfTravelers: numberOfPeople,
         estimatedPrice: pricing?.totalPrice || null,
         currency: "GBP",
+        pageUrl: window.location.href,
+        referrer: document.referrer || null,
       });
 
       toast({

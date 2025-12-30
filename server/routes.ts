@@ -1381,7 +1381,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "Booking Reference": normalizedBookingRef,
           "Message": message,
           "Source": "Website Contact Form",
-          "Landing URL": `${req.protocol}://${req.get('host')}/contact`,
+          "Page URL": req.body.pageUrl || `${req.protocol}://${req.get('host')}/contact`,
+          "Referrer": req.body.referrer || "Direct",
           "Submitted At": new Date().toISOString(),
         },
       };
@@ -4678,6 +4679,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
               "Additional Requirements": req.body.message || "None",
               "Source": "Tour Enquiry Form",
+              "Page URL": req.body.pageUrl || tourUrl,
+              "Referrer": req.body.referrer || "Direct",
               "Submitted At": new Date().toISOString(),
             },
           };

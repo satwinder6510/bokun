@@ -65,7 +65,11 @@ export default function Contact() {
 
   const contactMutation = useMutation({
     mutationFn: async (data: ContactLead) => {
-      return await apiRequest("POST", "/api/contact", data);
+      return await apiRequest("POST", "/api/contact", {
+        ...data,
+        pageUrl: window.location.href,
+        referrer: document.referrer || null,
+      });
     },
     onSuccess: () => {
       captureContactFormSubmitted(true);

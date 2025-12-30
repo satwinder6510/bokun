@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 import sharp from "sharp";
 import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertTourEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions, newsletterSubscribers } from "@shared/schema";
 import { calculateCombinedPrices, getFlightsForDateWithPrices, UK_AIRPORTS, getDefaultDepartAirports, searchFlights } from "./flightApi";
+import { searchSerpFlights, getCheapestSerpFlightsByDateAndAirport, isSerpApiConfigured } from "./serpFlightApi";
 import { db } from "./db";
 import { eq, lt, desc } from "drizzle-orm";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
@@ -3031,6 +3032,258 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting package pricing:", error);
       res.status(500).json({ error: "Failed to delete pricing" });
+    }
+  });
+
+  // ==================== Package Seasons Admin Routes ====================
+  
+  // Get seasons for a package
+  app.get("/api/admin/packages/:id/seasons", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const seasons = await storage.getPackageSeasons(parseInt(id));
+      res.json(seasons);
+    } catch (error: any) {
+      console.error("Error fetching package seasons:", error);
+      res.status(500).json({ error: "Failed to fetch seasons" });
+    }
+  });
+
+  // Create a season for a package
+  app.post("/api/admin/packages/:id/seasons", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const seasonData = { ...req.body, packageId: parseInt(id) };
+      const created = await storage.createPackageSeason(seasonData);
+      res.status(201).json(created);
+    } catch (error: any) {
+      console.error("Error creating package season:", error);
+      res.status(500).json({ error: "Failed to create season" });
+    }
+  });
+
+  // Update a season
+  app.patch("/api/admin/seasons/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updatePackageSeason(parseInt(id), req.body);
+      if (!updated) {
+        return res.status(404).json({ error: "Season not found" });
+      }
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating package season:", error);
+      res.status(500).json({ error: "Failed to update season" });
+    }
+  });
+
+  // Delete a season
+  app.delete("/api/admin/seasons/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deletePackageSeason(parseInt(id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting package season:", error);
+      res.status(500).json({ error: "Failed to delete season" });
+    }
+  });
+
+  // Delete all seasons for a package
+  app.delete("/api/admin/packages/:id/seasons", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deletePackageSeasonsByPackage(parseInt(id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting package seasons:", error);
+      res.status(500).json({ error: "Failed to delete seasons" });
+    }
+  });
+
+  // ==================== Pricing Export History Routes ====================
+  
+  // Get pricing exports for a package
+  app.get("/api/admin/packages/:id/exports", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const exports = await storage.getPricingExports(parseInt(id));
+      res.json(exports);
+    } catch (error: any) {
+      console.error("Error fetching pricing exports:", error);
+      res.status(500).json({ error: "Failed to fetch exports" });
+    }
+  });
+
+  // Generate pricing by combining flight prices with seasonal land costs
+  app.post("/api/admin/packages/:id/generate-pricing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { 
+        flightApi, 
+        departAirports, 
+        arriveAirportCode, 
+        durationNights, 
+        searchStartDate, 
+        searchEndDate, 
+        seasons 
+      } = req.body;
+
+      if (!flightApi || !departAirports || !arriveAirportCode || !searchStartDate || !searchEndDate) {
+        return res.status(400).json({ error: "Missing required configuration" });
+      }
+
+      if (!seasons || !Array.isArray(seasons) || seasons.length === 0) {
+        return res.status(400).json({ error: "At least one season is required" });
+      }
+
+      console.log(`[PricingGenerator] Generating for package ${id} using ${flightApi} API`);
+      console.log(`[PricingGenerator] Destination: ${arriveAirportCode}, Duration: ${durationNights} nights`);
+      console.log(`[PricingGenerator] Date range: ${searchStartDate} to ${searchEndDate}`);
+
+      type PricingRow = {
+        date: string;
+        departureAirport: string;
+        departureAirportName: string;
+        flightPrice: number;
+        landCost: number;
+        hotelCost: number;
+        totalCost: number;
+        seasonName: string;
+      };
+
+      const results: PricingRow[] = [];
+
+      // Helper to find which season a date falls into
+      const findSeasonForDate = (dateStr: string): { name: string; landCost: number; hotelCost: number } | null => {
+        const date = new Date(dateStr);
+        for (const season of seasons) {
+          const start = new Date(season.startDate);
+          const end = new Date(season.endDate);
+          if (date >= start && date <= end) {
+            return {
+              name: season.seasonName,
+              landCost: season.landCostPerPerson || 0,
+              hotelCost: season.hotelCostPerPerson || 0,
+            };
+          }
+        }
+        return null;
+      };
+
+      if (flightApi === "serp") {
+        // Use SERP API (Google Flights)
+        if (!isSerpApiConfigured()) {
+          return res.status(400).json({ error: "SERPAPI_KEY is not configured" });
+        }
+
+        const airportArray = departAirports.split("|").filter((a: string) => a.trim());
+        
+        const flightOffers = await searchSerpFlights({
+          departAirports: airportArray,
+          arriveAirport: arriveAirportCode,
+          nights: durationNights,
+          startDate: searchStartDate,
+          endDate: searchEndDate,
+        });
+
+        // Get cheapest flight per date/airport
+        const cheapestFlights = getCheapestSerpFlightsByDateAndAirport(flightOffers);
+
+        for (const [key, flight] of Array.from(cheapestFlights.entries())) {
+          const season = findSeasonForDate(flight.departureDate);
+          if (!season) continue; // Skip dates not covered by any season
+
+          results.push({
+            date: flight.departureDate,
+            departureAirport: flight.departureAirport,
+            departureAirportName: flight.departureAirportName,
+            flightPrice: Math.round(flight.pricePerPerson * 100) / 100,
+            landCost: season.landCost,
+            hotelCost: season.hotelCost,
+            totalCost: Math.round((flight.pricePerPerson + season.landCost + season.hotelCost) * 100) / 100,
+            seasonName: season.name,
+          });
+        }
+      } else {
+        // Use European API (Sunshine)
+        // Convert dates to DD/MM/YYYY format for European API
+        const formatForEuropeanApi = (isoDate: string) => {
+          const [year, month, day] = isoDate.split("-");
+          return `${day}/${month}/${year}`;
+        };
+
+        try {
+          const flightOffers = await searchFlights({
+            departAirports,
+            arriveAirport: arriveAirportCode,
+            nights: durationNights,
+            startDate: formatForEuropeanApi(searchStartDate),
+            endDate: formatForEuropeanApi(searchEndDate),
+          });
+
+          // Group by date and airport, get cheapest
+          const cheapestByDateAirport = new Map<string, { price: number; airport: string; airportName: string }>();
+          
+          for (const offer of flightOffers) {
+            // outdep format is "DD/MM/YYYY HH:mm", extract just the date part
+            const datePart = offer.outdep.split(" ")[0];
+            const [day, month, year] = datePart.split("/");
+            const isoDate = `${year}-${month}-${day}`;
+            const key = `${isoDate}|${offer.depapt}`;
+            
+            // Parse price from string
+            const flightPrice = parseFloat(offer.fltSellpricepp) || 0;
+            
+            const existing = cheapestByDateAirport.get(key);
+            if (!existing || flightPrice < existing.price) {
+              cheapestByDateAirport.set(key, {
+                price: flightPrice,
+                airport: offer.depapt,
+                airportName: offer.depname || UK_AIRPORTS[offer.depapt] || offer.depapt,
+              });
+            }
+          }
+
+          for (const [key, flight] of Array.from(cheapestByDateAirport.entries())) {
+            const [dateStr] = key.split("|");
+            const season = findSeasonForDate(dateStr);
+            if (!season) continue;
+
+            results.push({
+              date: dateStr,
+              departureAirport: flight.airport,
+              departureAirportName: flight.airportName,
+              flightPrice: Math.round(flight.price * 100) / 100,
+              landCost: season.landCost,
+              hotelCost: season.hotelCost,
+              totalCost: Math.round((flight.price + season.landCost + season.hotelCost) * 100) / 100,
+              seasonName: season.name,
+            });
+          }
+        } catch (apiError: any) {
+          console.error("[PricingGenerator] European API error:", apiError.message);
+          return res.status(500).json({ error: `Flight API error: ${apiError.message}` });
+        }
+      }
+
+      // Sort by date
+      results.sort((a, b) => a.date.localeCompare(b.date));
+
+      console.log(`[PricingGenerator] Generated ${results.length} pricing entries`);
+
+      res.json({ 
+        success: true, 
+        results,
+        summary: {
+          totalEntries: results.length,
+          dateRange: { start: searchStartDate, end: searchEndDate },
+          flightApi,
+        }
+      });
+    } catch (error: any) {
+      console.error("[PricingGenerator] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to generate pricing" });
     }
   });
 

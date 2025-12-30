@@ -52,6 +52,7 @@ import AdminReviews from "@/pages/AdminReviews";
 import AdminTrackingNumbers from "@/pages/AdminTrackingNumbers";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminFlightPricing from "@/pages/AdminFlightPricing";
+import AdminPricingGenerator from "@/pages/AdminPricingGenerator";
 import AdminSettings from "@/pages/AdminSettings";
 import AdminMedia from "@/pages/AdminMedia";
 import AdminHotels from "@/pages/AdminHotels";
@@ -155,6 +156,11 @@ function Router() {
       <Route path="/admin/flight-pricing">
         <ProtectedRoute>
           <AdminFlightPricing />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/pricing-generator">
+        <ProtectedRoute>
+          <AdminPricingGenerator />
         </ProtectedRoute>
       </Route>
       <Route path="/admin/settings">

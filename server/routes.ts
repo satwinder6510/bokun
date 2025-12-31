@@ -4675,11 +4675,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
               "Estimated Price": formatPrice(req.body.estimatedPrice),
               "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
               "Additional Requirements": req.body.message || "None",
-              "Original Referrer": req.body.referrer || "Direct",
               "Landing Page": req.body.landingPage || "Not captured",
               "Page URL": req.body.pageUrl || tourUrl,
               "Tour URL": tourUrl,
-              "Source": "Tour Enquiry Form"
+              "Source": req.body.referrer || "Direct"
             }
           };
           

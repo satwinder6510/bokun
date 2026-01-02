@@ -32,7 +32,8 @@ import {
   Phone,
   MessageSquare,
   ExternalLink,
-  Filter
+  Filter,
+  Globe
 } from "lucide-react";
 import { format, subDays, startOfDay, endOfDay, isWithinInterval, parseISO } from "date-fns";
 import type { PackageEnquiry, TourEnquiry } from "@shared/schema";
@@ -117,6 +118,7 @@ export default function AdminReports() {
       "Preferred Dates",
       "Travelers",
       "Notes/Message",
+      "Referrer",
       "Status"
     ];
 
@@ -140,6 +142,7 @@ export default function AdminReports() {
         preferredDates,
         enquiry.numberOfTravelers?.toString() || "",
         enquiry.message?.replace(/"/g, '""') || "",
+        enquiry.referrer || "",
         enquiry.status
       ];
     });
@@ -323,6 +326,7 @@ export default function AdminReports() {
                         <TableHead>Contact</TableHead>
                         <TableHead>Package/Tour</TableHead>
                         <TableHead>Notes</TableHead>
+                        <TableHead>Referrer</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -399,6 +403,20 @@ export default function AdminReports() {
                                 </div>
                               ) : (
                                 <span className="text-sm text-muted-foreground italic">No notes</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {enquiry.referrer ? (
+                                <div className="flex items-center gap-1">
+                                  <Globe className="h-3 w-3 text-muted-foreground" />
+                                  <span className="text-sm" title={enquiry.referrer}>
+                                    {enquiry.referrer.length > 25 
+                                      ? `${enquiry.referrer.substring(0, 25)}...` 
+                                      : enquiry.referrer}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-muted-foreground italic">Direct</span>
                               )}
                             </TableCell>
                             <TableCell>

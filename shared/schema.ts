@@ -467,6 +467,9 @@ export const packageEnquiries = pgTable("package_enquiries", {
   numberOfTravelers: integer("number_of_travelers"),
   message: text("message"),
   
+  // Tracking
+  referrer: text("referrer"), // External referring domain (e.g., travelzoo.com)
+  
   // Status
   status: text("status").notNull().default("new"), // new, contacted, converted, closed
   
@@ -482,6 +485,7 @@ export const insertPackageEnquirySchema = createInsertSchema(packageEnquiries).o
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Valid email is required"),
   phone: z.string().min(7, "Phone number is required"),
+  referrer: z.string().optional(),
 });
 
 export type PackageEnquiry = typeof packageEnquiries.$inferSelect;
@@ -507,6 +511,9 @@ export const tourEnquiries = pgTable("tour_enquiries", {
   currency: text("currency").default("GBP"),
   message: text("message"),
   
+  // Tracking
+  referrer: text("referrer"), // External referring domain (e.g., travelzoo.com)
+  
   // Status
   status: text("status").notNull().default("new"), // new, contacted, converted, closed
   
@@ -522,7 +529,6 @@ export const insertTourEnquirySchema = createInsertSchema(tourEnquiries).omit({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Valid email is required"),
   phone: z.string().min(7, "Phone number is required"),
-  // Optional tracking fields (not stored in DB, used for webhook)
   referrer: z.string().optional(),
   landingPage: z.string().optional(),
   pageUrl: z.string().optional(),

@@ -430,6 +430,29 @@ export default function Dashboard() {
               </CardHeader>
             </Card>
 
+            <Card data-testid="card-reports">
+              <CardHeader>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-primary/10">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg">Enquiry Reports</CardTitle>
+                      <CardDescription>
+                        Daily reports and CSV export
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Link href="/admin/reports">
+                    <Button variant="outline" size="sm" data-testid="button-view-reports">
+                      View Reports
+                    </Button>
+                  </Link>
+                </div>
+              </CardHeader>
+            </Card>
+
             <Card data-testid="card-flight-pricing-management">
               <CardHeader>
                 <div className="flex items-center justify-between gap-4">

@@ -522,6 +522,10 @@ export const insertTourEnquirySchema = createInsertSchema(tourEnquiries).omit({
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Valid email is required"),
   phone: z.string().min(7, "Phone number is required"),
+  // Optional tracking fields (not stored in DB, used for webhook)
+  referrer: z.string().optional(),
+  landingPage: z.string().optional(),
+  pageUrl: z.string().optional(),
 });
 
 export type TourEnquiry = typeof tourEnquiries.$inferSelect;

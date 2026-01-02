@@ -56,8 +56,10 @@
           // Only store if we don't already have an original referrer in this session
           if (!sessionStorage.getItem('original_referrer')) {
             var ref = document.referrer || '';
-            // Check if referrer is external (not from our own domain)
-            var isExternal = ref && !ref.includes(window.location.hostname);
+            // Check if referrer is external (not from any of our domains)
+            // Must exclude: tours.flightsandpackages.com, flightsandpackages.com, www.flightsandpackages.com, and replit dev domains
+            var ownDomains = ['flightsandpackages.com', 'flightsandpackages', 'replit.dev', 'replit.app', 'repl.co'];
+            var isExternal = ref && !ownDomains.some(function(d) { return ref.includes(d); });
             sessionStorage.setItem('original_referrer', isExternal ? ref : 'Direct');
             sessionStorage.setItem('landing_page', window.location.href);
           }

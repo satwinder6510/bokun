@@ -490,6 +490,13 @@ export default function PackageDetail() {
     setIsSubmitting(true);
 
     try {
+      // Get original referrer from sessionStorage (captured on first page load)
+      let originalReferrer = sessionStorage.getItem('original_referrer');
+      if (!originalReferrer) {
+        const ref = document.referrer;
+        originalReferrer = (ref && !ref.includes(window.location.hostname)) ? ref : 'Direct';
+      }
+      
       await apiRequest("POST", `/api/packages/${slug}/enquiry`, {
         packageId: pkg?.id,
         packageTitle: pkg?.title,
@@ -499,6 +506,8 @@ export default function PackageDetail() {
         selectedAirport: selectedAirport || null,
         selectedAirportName: airports.find(a => a.code === selectedAirport)?.name || null,
         pricePerPerson: selectedPricing?.price || pkg?.price || null,
+        referrer: originalReferrer,
+        pageUrl: window.location.href,
       });
 
       // Track successful enquiry submission (PostHog)

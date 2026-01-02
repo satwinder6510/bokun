@@ -1378,10 +1378,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         other_fields: {
           "Booking Reference": normalizedBookingRef,
           "Message": message,
-          "Original Referrer": req.body.referrer || "Direct",
+          "Source": req.body.referrer || "Direct",
           "Landing Page": req.body.landingPage || "Not captured",
           "Page URL": req.body.pageUrl || `${req.protocol}://${req.get('host')}/contact`,
-          "Source": "Website Contact Form"
+          "Form Type": "Contact Form"
         }
       };
       
@@ -4560,10 +4560,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               "Price Per Person": formatPrice(req.body.pricePerPerson),
               "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
               "Additional Requirements": req.body.message || "None",
-              "Source": "Package Enquiry Form",
+              "Source": req.body.referrer || "Direct",
+              "Form Type": "Package Enquiry",
               "Submitted At": new Date().toISOString(),
             },
           };
+          
+          console.log("Package enquiry payload being sent to Privyr:", JSON.stringify(privyrPayload, null, 2));
           
           await fetch(process.env.PRIVYR_WEBHOOK_URL, {
             method: 'POST',
@@ -4675,10 +4678,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               "Estimated Price": formatPrice(req.body.estimatedPrice),
               "Number of Travellers": req.body.numberOfTravelers ? String(req.body.numberOfTravelers) : "Not specified",
               "Additional Requirements": req.body.message || "None",
-              "Landing Page": req.body.landingPage || "Not captured",
-              "Page URL": req.body.pageUrl || tourUrl,
-              "Tour URL": tourUrl,
-              "Source": req.body.referrer || "Direct"
+              "Source": req.body.referrer || "Direct",
+              "Form Type": "Tour Enquiry",
+              "Tour URL": tourUrl
             }
           };
           

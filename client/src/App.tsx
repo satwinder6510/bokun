@@ -57,7 +57,6 @@ import AdminSettings from "@/pages/AdminSettings";
 import AdminMedia from "@/pages/AdminMedia";
 import AdminHotels from "@/pages/AdminHotels";
 import AdminContentImages from "@/pages/AdminContentImages";
-import AdminReports from "@/pages/AdminReports";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import DesignPreview from "@/pages/DesignPreview";
@@ -182,11 +181,6 @@ function Router() {
       <Route path="/admin/content-images">
         <ProtectedRoute>
           <AdminContentImages />
-        </ProtectedRoute>
-      </Route>
-      <Route path="/admin/reports">
-        <ProtectedRoute>
-          <AdminReports />
         </ProtectedRoute>
       </Route>
       <Route component={NotFound} />

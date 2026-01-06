@@ -16,6 +16,17 @@ const SERPAPI_BASE = "https://serpapi.com/search";
 // Flat baggage surcharge for all flight types (shown as separate line item)
 export const BAGGAGE_SURCHARGE_GBP = 150;
 
+// Goa has 2 airports - automatically expand searches to include both
+const GOA_AIRPORTS = ["GOI", "GOX"]; // GOI = Dabolim, GOX = Mopa
+
+// Helper to expand airport codes (e.g., if GOI specified, search both GOI and GOX)
+function expandAirportCodes(airport: string): string[] {
+  if (GOA_AIRPORTS.includes(airport.toUpperCase())) {
+    return GOA_AIRPORTS;
+  }
+  return [airport];
+}
+
 interface SerpFlightSearchParams {
   departAirports: string[];   // Array of airport codes e.g., ["LGW", "STN"]
   arriveAirport: string;      // Single airport code e.g., "DEL"
@@ -456,21 +467,25 @@ async function fetchOpenJawFlightsForDate(
   // Since we don't know exact arrival time yet, use outbound date + nights as starting point
   const estimatedReturnDate = addDays(outboundDate, nights);
   
+  // Expand return airports (e.g., GOI -> [GOI, GOX] for Goa)
+  const returnAirports = expandAirportCodes(departAirport);
+  
   try {
     for (const ukAirport of ukAirports) {
-      // Build multi-city JSON for open-jaw search
-      const multiCityLegs = [
-        {
-          departure_id: ukAirport,
-          arrival_id: arriveAirport,
-          date: outboundDate,
-        },
-        {
-          departure_id: departAirport,
-          arrival_id: ukAirport, // Return to same UK airport
-          date: estimatedReturnDate,
-        },
-      ];
+      for (const returnAirport of returnAirports) {
+        // Build multi-city JSON for open-jaw search
+        const multiCityLegs = [
+          {
+            departure_id: ukAirport,
+            arrival_id: arriveAirport,
+            date: outboundDate,
+          },
+          {
+            departure_id: returnAirport,
+            arrival_id: ukAirport, // Return to same UK airport
+            date: estimatedReturnDate,
+          },
+        ];
       
       const url = new URL(SERPAPI_BASE);
       url.searchParams.set("engine", "google_flights");
@@ -486,7 +501,7 @@ async function fetchOpenJawFlightsForDate(
       url.searchParams.set("travel_class", "1"); // Economy
       url.searchParams.set("sort_by", "2"); // Sort by price
       
-      console.log(`[SerpAPI OpenJaw] ${ukAirport} -> ${arriveAirport}, ${departAirport} -> ${ukAirport} on ${outboundDate}`);
+      console.log(`[SerpAPI OpenJaw] ${ukAirport} -> ${arriveAirport}, ${returnAirport} -> ${ukAirport} on ${outboundDate}`);
       
       const response = await fetch(url.toString(), {
         method: "GET",
@@ -635,6 +650,7 @@ async function fetchOpenJawFlightsForDate(
       
       // Small delay between airport searches
       await sleep(200);
+      }
     }
     
   } catch (error) {

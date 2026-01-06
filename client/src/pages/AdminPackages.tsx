@@ -308,6 +308,14 @@ export default function AdminPackages() {
   const [isFetchingFlightPrices, setIsFetchingFlightPrices] = useState(false);
   const [flightPriceResults, setFlightPriceResults] = useState<any>(null);
   
+  // Open-jaw and internal flight state (SERP API only)
+  const [flightType, setFlightType] = useState<"round_trip" | "open_jaw">("round_trip");
+  const [openJawArriveAirport, setOpenJawArriveAirport] = useState(""); // Where outbound lands
+  const [openJawDepartAirport, setOpenJawDepartAirport] = useState(""); // Where return departs from
+  const [hasInternalFlight, setHasInternalFlight] = useState(false);
+  const [internalFromAirport, setInternalFromAirport] = useState(""); // Internal flight from
+  const [internalToAirport, setInternalToAirport] = useState(""); // Internal flight to
+  
   // Seasonal land pricing state (for manual packages)
   const [packageSeasons, setPackageSeasons] = useState<PackageSeason[]>([]);
   const [isLoadingSeasons, setIsLoadingSeasons] = useState(false);
@@ -805,9 +813,23 @@ export default function AdminPackages() {
   };
   
   const handleFetchSerpFlightPrices = async () => {
-    if (!editingPackage || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate) {
-      toast({ title: "Missing information", variant: "destructive" });
-      return;
+    // Validate based on flight type
+    const isOpenJaw = formData.flightApiSource === "serp" && flightType === "open_jaw";
+    
+    if (isOpenJaw) {
+      if (!editingPackage || !openJawArriveAirport || !openJawDepartAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate) {
+        toast({ title: "Missing information", description: "Please fill in arrival and departure airports", variant: "destructive" });
+        return;
+      }
+      if (hasInternalFlight && (!internalFromAirport || !internalToAirport)) {
+        toast({ title: "Missing internal flight info", description: "Please fill in internal flight from/to airports", variant: "destructive" });
+        return;
+      }
+    } else {
+      if (!editingPackage || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate) {
+        toast({ title: "Missing information", variant: "destructive" });
+        return;
+      }
     }
     
     if (packageSeasons.length === 0) {
@@ -827,7 +849,7 @@ export default function AdminPackages() {
         },
         body: JSON.stringify({
           packageId: editingPackage.id,
-          destinationAirport: flightDestAirport,
+          destinationAirport: isOpenJaw ? openJawArriveAirport : flightDestAirport,
           departureAirports: flightDepartAirports,
           duration: flightDuration,
           startDate: flightStartDate,
@@ -835,6 +857,14 @@ export default function AdminPackages() {
           markup: flightMarkup,
           seasons: packageSeasons,
           flightApiSource: formData.flightApiSource || "serp",
+          // Open-jaw specific parameters
+          flightType: isOpenJaw ? "open_jaw" : "round_trip",
+          openJawArriveAirport: isOpenJaw ? openJawArriveAirport : undefined,
+          openJawDepartAirport: isOpenJaw ? openJawDepartAirport : undefined,
+          // Internal flight parameters
+          hasInternalFlight: isOpenJaw && hasInternalFlight,
+          internalFromAirport: hasInternalFlight ? internalFromAirport : undefined,
+          internalToAirport: hasInternalFlight ? internalToAirport : undefined,
         }),
       });
       
@@ -3267,37 +3297,165 @@ export default function AdminPackages() {
                                 
                                 <Separator />
                                 
+                                {/* Flight Type Selector - SERP API only */}
+                                {formData.flightApiSource === "serp" && (
+                                  <div>
+                                    <Label className="mb-2 block">Flight Type</Label>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        type="button"
+                                        variant={flightType === "round_trip" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => {
+                                          setFlightType("round_trip");
+                                          setHasInternalFlight(false);
+                                        }}
+                                        data-testid="button-flight-roundtrip"
+                                      >
+                                        Round-Trip
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant={flightType === "open_jaw" ? "default" : "outline"}
+                                        size="sm"
+                                        onClick={() => setFlightType("open_jaw")}
+                                        data-testid="button-flight-openjaw"
+                                      >
+                                        Open-Jaw
+                                      </Button>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {flightType === "round_trip" 
+                                        ? "Fly into and return from the same airport"
+                                        : "Fly into one city, return from another (e.g., London → Delhi, Mumbai → London)"
+                                      }
+                                    </p>
+                                  </div>
+                                )}
+                                
                                 {packageSeasons.length === 0 ? (
                                   <div className="p-4 bg-amber-50 dark:bg-amber-950 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
                                     <p>Please add at least one season with land costs before fetching flight prices.</p>
                                   </div>
                                 ) : (
                                   <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <Label>Destination Airport Code</Label>
-                                        <Input
-                                          value={flightDestAirport}
-                                          onChange={(e) => setFlightDestAirport(e.target.value.toUpperCase())}
-                                          placeholder="e.g., DEL, BOM, GOI"
-                                          maxLength={3}
-                                          className="mt-1 font-mono uppercase"
-                                          data-testid="input-dest-airport"
-                                        />
+                                    {/* Round-trip destination OR Open-jaw airports */}
+                                    {formData.flightApiSource === "serp" && flightType === "open_jaw" ? (
+                                      <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                            <Label>Arrival Airport (Outbound)</Label>
+                                            <Input
+                                              value={openJawArriveAirport}
+                                              onChange={(e) => setOpenJawArriveAirport(e.target.value.toUpperCase())}
+                                              placeholder="e.g., DEL (Delhi)"
+                                              maxLength={3}
+                                              className="mt-1 font-mono uppercase"
+                                              data-testid="input-openjaw-arrive"
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1">Where outbound flight lands</p>
+                                          </div>
+                                          <div>
+                                            <Label>Departure Airport (Return)</Label>
+                                            <Input
+                                              value={openJawDepartAirport}
+                                              onChange={(e) => setOpenJawDepartAirport(e.target.value.toUpperCase())}
+                                              placeholder="e.g., BOM (Mumbai)"
+                                              maxLength={3}
+                                              className="mt-1 font-mono uppercase"
+                                              data-testid="input-openjaw-depart"
+                                            />
+                                            <p className="text-xs text-muted-foreground mt-1">Where return flight departs</p>
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Internal Flight Option */}
+                                        <div className="p-3 bg-muted/50 rounded-lg space-y-3">
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="checkbox"
+                                              id="hasInternalFlight"
+                                              checked={hasInternalFlight}
+                                              onChange={(e) => setHasInternalFlight(e.target.checked)}
+                                              className="h-4 w-4"
+                                              data-testid="checkbox-internal-flight"
+                                            />
+                                            <Label htmlFor="hasInternalFlight" className="cursor-pointer">
+                                              Include Internal Flight
+                                            </Label>
+                                          </div>
+                                          
+                                          {hasInternalFlight && (
+                                            <div className="grid grid-cols-2 gap-4">
+                                              <div>
+                                                <Label>Internal From</Label>
+                                                <Input
+                                                  value={internalFromAirport}
+                                                  onChange={(e) => setInternalFromAirport(e.target.value.toUpperCase())}
+                                                  placeholder="e.g., DEL"
+                                                  maxLength={3}
+                                                  className="mt-1 font-mono uppercase"
+                                                  data-testid="input-internal-from"
+                                                />
+                                              </div>
+                                              <div>
+                                                <Label>Internal To</Label>
+                                                <Input
+                                                  value={internalToAirport}
+                                                  onChange={(e) => setInternalToAirport(e.target.value.toUpperCase())}
+                                                  placeholder="e.g., JAI"
+                                                  maxLength={3}
+                                                  className="mt-1 font-mono uppercase"
+                                                  data-testid="input-internal-to"
+                                                />
+                                              </div>
+                                            </div>
+                                          )}
+                                          <p className="text-xs text-muted-foreground">
+                                            Add a domestic flight within the destination country (e.g., Delhi → Jaipur)
+                                          </p>
+                                        </div>
+                                        
+                                        <div>
+                                          <Label>Duration (Nights)</Label>
+                                          <Input
+                                            type="number"
+                                            min="1"
+                                            max="30"
+                                            value={flightDuration}
+                                            onChange={(e) => setFlightDuration(parseInt(e.target.value) || 7)}
+                                            className="mt-1 w-1/2"
+                                            data-testid="input-duration"
+                                          />
+                                        </div>
                                       </div>
-                                      <div>
-                                        <Label>Duration (Nights)</Label>
-                                        <Input
-                                          type="number"
-                                          min="1"
-                                          max="30"
-                                          value={flightDuration}
-                                          onChange={(e) => setFlightDuration(parseInt(e.target.value) || 7)}
-                                          className="mt-1"
-                                          data-testid="input-duration"
-                                        />
+                                    ) : (
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <Label>Destination Airport Code</Label>
+                                          <Input
+                                            value={flightDestAirport}
+                                            onChange={(e) => setFlightDestAirport(e.target.value.toUpperCase())}
+                                            placeholder="e.g., DEL, BOM, GOI"
+                                            maxLength={3}
+                                            className="mt-1 font-mono uppercase"
+                                            data-testid="input-dest-airport"
+                                          />
+                                        </div>
+                                        <div>
+                                          <Label>Duration (Nights)</Label>
+                                          <Input
+                                            type="number"
+                                            min="1"
+                                            max="30"
+                                            value={flightDuration}
+                                            onChange={(e) => setFlightDuration(parseInt(e.target.value) || 7)}
+                                            className="mt-1"
+                                            data-testid="input-duration"
+                                          />
+                                        </div>
                                       </div>
-                                    </div>
+                                    )}
                                     
                                     <div>
                                       <Label className="mb-2 block">Departure Airports</Label>
@@ -3365,7 +3523,16 @@ export default function AdminPackages() {
                                     <Button
                                       type="button"
                                       onClick={handleFetchSerpFlightPrices}
-                                      disabled={isFetchingFlightPrices || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate}
+                                      disabled={
+                                        isFetchingFlightPrices || 
+                                        flightDepartAirports.length === 0 || 
+                                        !flightStartDate || 
+                                        !flightEndDate ||
+                                        (formData.flightApiSource === "serp" && flightType === "open_jaw" 
+                                          ? (!openJawArriveAirport || !openJawDepartAirport)
+                                          : !flightDestAirport
+                                        )
+                                      }
                                       className="w-full"
                                       data-testid="button-fetch-flight-prices"
                                     >

@@ -550,6 +550,7 @@ export const packagePricing = pgTable("package_pricing", {
   price: real("price").notNull(),
   flightPricePerPerson: real("flight_price_per_person"), // Actual flight price per person (GBP)
   landPricePerPerson: real("land_price_per_person"), // Bokun tour price per person with markup (GBP)
+  airlineName: text("airline_name"), // Airline operating the flight
   currency: text("currency").notNull().default("GBP"),
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -566,6 +567,7 @@ export const insertPackagePricingSchema = createInsertSchema(packagePricing).omi
   price: z.number().positive("Price must be positive"),
   flightPricePerPerson: z.number().optional().nullable(),
   landPricePerPerson: z.number().optional().nullable(),
+  airlineName: z.string().optional().nullable(),
 });
 
 export type PackagePricing = typeof packagePricing.$inferSelect;

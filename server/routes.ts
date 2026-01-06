@@ -3474,6 +3474,222 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fetch SERP/European flight prices, combine with seasonal land costs, and SAVE to database
+  app.post("/api/admin/packages/fetch-serp-flight-prices", async (req, res) => {
+    try {
+      const { 
+        packageId, 
+        destinationAirport, 
+        departureAirports, 
+        duration, 
+        startDate, 
+        endDate, 
+        markup,
+        seasons,
+        flightApiSource = "serp"
+      } = req.body;
+
+      if (!packageId || !destinationAirport || !departureAirports?.length || !startDate || !endDate) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      if (!seasons || !Array.isArray(seasons) || seasons.length === 0) {
+        return res.status(400).json({ error: "At least one season is required" });
+      }
+
+      console.log(`[FetchFlightPrices] Package ${packageId}, API: ${flightApiSource}`);
+      console.log(`[FetchFlightPrices] Destination: ${destinationAirport}, Duration: ${duration} nights`);
+      console.log(`[FetchFlightPrices] Date range: ${startDate} to ${endDate}, Markup: ${markup}%`);
+
+      // Helper to find which season a date falls into
+      const findSeasonForDate = (dateStr: string): { name: string; landCost: number; hotelCost: number } | null => {
+        // Parse the date - handle both DD/MM/YYYY and YYYY-MM-DD formats
+        let date: Date;
+        if (dateStr.includes('/')) {
+          const [day, month, year] = dateStr.split('/');
+          date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+        } else {
+          date = new Date(dateStr);
+        }
+        
+        for (const season of seasons) {
+          const start = new Date(season.startDate);
+          const end = new Date(season.endDate);
+          if (date >= start && date <= end) {
+            return {
+              name: season.seasonName,
+              landCost: season.landCostPerPerson || 0,
+              hotelCost: season.hotelCostPerPerson || 0,
+            };
+          }
+        }
+        return null;
+      };
+
+      // Smart rounding helper (to x49, x69, or x99)
+      const smartRound = (price: number): number => {
+        const base = Math.floor(price / 100) * 100;
+        const remainder = price - base;
+        if (remainder <= 49) return base + 49;
+        if (remainder <= 69) return base + 69;
+        return base + 99;
+      };
+
+      type PricingEntry = {
+        packageId: number;
+        departureAirport: string;
+        departureAirportName: string;
+        departureDate: string;
+        price: number;
+        currency: string;
+        isAvailable: boolean;
+      };
+
+      const pricingEntries: PricingEntry[] = [];
+
+      // Convert DD/MM/YYYY to YYYY-MM-DD for API calls
+      const parseDate = (dateStr: string): string => {
+        if (dateStr.includes('/')) {
+          const [day, month, year] = dateStr.split('/');
+          return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        return dateStr;
+      };
+
+      const isoStartDate = parseDate(startDate);
+      const isoEndDate = parseDate(endDate);
+
+      if (flightApiSource === "serp") {
+        // Use SERP API (Google Flights)
+        if (!isSerpApiConfigured()) {
+          return res.status(400).json({ error: "SERPAPI_KEY is not configured" });
+        }
+
+        console.log(`[FetchFlightPrices] Using SERP API for ${departureAirports.join(', ')} -> ${destinationAirport}`);
+
+        const flightOffers = await searchSerpFlights({
+          departAirports: departureAirports,
+          arriveAirport: destinationAirport,
+          nights: duration,
+          startDate: isoStartDate,
+          endDate: isoEndDate,
+        });
+
+        console.log(`[FetchFlightPrices] SERP API returned ${flightOffers.length} flight offers`);
+
+        // Get cheapest flight per date/airport
+        const cheapestFlights = getCheapestSerpFlightsByDateAndAirport(flightOffers);
+
+        for (const [key, flight] of Array.from(cheapestFlights.entries())) {
+          const season = findSeasonForDate(flight.departureDate);
+          if (!season) {
+            console.log(`[FetchFlightPrices] No season for date ${flight.departureDate}, skipping`);
+            continue;
+          }
+
+          // Combined price = (flight + land cost + hotel cost) * (1 + markup%)
+          const rawTotal = flight.pricePerPerson + season.landCost + season.hotelCost;
+          const withMarkup = rawTotal * (1 + (markup || 0) / 100);
+          const finalPrice = smartRound(withMarkup);
+
+          console.log(`[FetchFlightPrices] ${flight.departureAirport} ${flight.departureDate}: Flight £${flight.pricePerPerson} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice} (with ${markup}% markup)`);
+
+          pricingEntries.push({
+            packageId,
+            departureAirport: flight.departureAirport,
+            departureAirportName: flight.departureAirportName || UK_AIRPORTS_MAP[flight.departureAirport] || flight.departureAirport,
+            departureDate: flight.departureDate,
+            price: finalPrice,
+            currency: 'GBP',
+            isAvailable: true,
+          });
+        }
+      } else {
+        // Use European Flight API
+        console.log(`[FetchFlightPrices] Using European API for ${departureAirports.join('|')} -> ${destinationAirport}`);
+
+        try {
+          const flightOffers = await searchFlights({
+            departAirports: departureAirports.join('|'),
+            arriveAirport: destinationAirport,
+            nights: duration,
+            startDate: startDate, // European API uses DD/MM/YYYY
+            endDate: endDate,
+          });
+
+          console.log(`[FetchFlightPrices] European API returned ${flightOffers.length} flight offers`);
+
+          // Group by date and airport, get cheapest
+          const cheapestByDateAirport = new Map<string, { price: number; airport: string; airportName: string; date: string }>();
+
+          for (const offer of flightOffers) {
+            // outdep format is "DD/MM/YYYY HH:mm", extract just the date part
+            const datePart = offer.outdep.split(" ")[0];
+            const [day, month, year] = datePart.split("/");
+            const isoDate = `${year}-${month}-${day}`;
+            const key = `${isoDate}|${offer.depapt}`;
+
+            // Parse price from string
+            const flightPrice = parseFloat(offer.fltSellpricepp) || 0;
+
+            const existing = cheapestByDateAirport.get(key);
+            if (!existing || flightPrice < existing.price) {
+              cheapestByDateAirport.set(key, {
+                price: flightPrice,
+                airport: offer.depapt,
+                airportName: offer.depname || UK_AIRPORTS_MAP[offer.depapt] || offer.depapt,
+                date: isoDate,
+              });
+            }
+          }
+
+          for (const [key, flight] of Array.from(cheapestByDateAirport.entries())) {
+            const season = findSeasonForDate(flight.date);
+            if (!season) continue;
+
+            // Combined price = (flight + land cost + hotel cost) * (1 + markup%)
+            const rawTotal = flight.price + season.landCost + season.hotelCost;
+            const withMarkup = rawTotal * (1 + (markup || 0) / 100);
+            const finalPrice = smartRound(withMarkup);
+
+            console.log(`[FetchFlightPrices] ${flight.airport} ${flight.date}: Flight £${flight.price} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice}`);
+
+            pricingEntries.push({
+              packageId,
+              departureAirport: flight.airport,
+              departureAirportName: flight.airportName,
+              departureDate: flight.date,
+              price: finalPrice,
+              currency: 'GBP',
+              isAvailable: true,
+            });
+          }
+        } catch (apiError: any) {
+          console.error("[FetchFlightPrices] European API error:", apiError.message);
+          return res.status(500).json({ error: `Flight API error: ${apiError.message}` });
+        }
+      }
+
+      if (pricingEntries.length === 0) {
+        return res.status(400).json({ error: "No pricing could be generated. Check that your date range overlaps with defined seasons." });
+      }
+
+      // Save pricing entries to the database
+      console.log(`[FetchFlightPrices] Saving ${pricingEntries.length} pricing entries to database`);
+      const saved = await storage.createPackagePricingBatch(pricingEntries);
+
+      res.json({ 
+        success: true, 
+        pricesFound: pricingEntries.length,
+        saved: saved.length,
+        message: `Generated and saved ${saved.length} pricing entries`
+      });
+    } catch (error: any) {
+      console.error("[FetchFlightPrices] Error:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch flight prices" });
+    }
+  });
+
   // ==================== Content Images Admin Routes ====================
   
   // Get all content images
@@ -3529,6 +3745,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting content image:", error);
       res.status(500).json({ error: "Failed to delete content image" });
+    }
+  });
+
+  // Download pricing CSV (admin)
+  app.get("/api/admin/packages/:id/pricing/download-csv", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const packageId = parseInt(id);
+      
+      // Get package info
+      const allPackages = await storage.getAllFlightPackages();
+      const pkg = allPackages.find(p => p.id === packageId);
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      // Get pricing entries
+      const pricing = await storage.getPackagePricing(packageId);
+      
+      if (pricing.length === 0) {
+        return res.status(400).json({ error: "No pricing entries to download" });
+      }
+      
+      // Build CSV content
+      const headers = ['departure_airport', 'airport_name', 'date', 'price', 'currency', 'is_available'];
+      const rows = pricing.map(entry => [
+        entry.departureAirport,
+        entry.departureAirportName || '',
+        entry.departureDate,
+        entry.price.toString(),
+        entry.currency || 'GBP',
+        entry.isAvailable ? 'true' : 'false',
+      ]);
+      
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+      ].join('\n');
+      
+      // Send as file download
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="pricing-${pkg.slug || packageId}.csv"`);
+      res.send(csvContent);
+    } catch (error: any) {
+      console.error("Error generating CSV download:", error);
+      res.status(500).json({ error: "Failed to generate CSV" });
     }
   });
 

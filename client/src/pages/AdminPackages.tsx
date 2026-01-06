@@ -295,6 +295,7 @@ export default function AdminPackages() {
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const [isSavingPricing, setIsSavingPricing] = useState(false);
   const [isUploadingCsv, setIsUploadingCsv] = useState(false);
+  const [isDownloadingCsv, setIsDownloadingCsv] = useState(false);
   const csvFileRef = useRef<HTMLInputElement>(null);
   
   // Dynamic flight pricing state
@@ -833,6 +834,7 @@ export default function AdminPackages() {
           endDate: flightEndDate,
           markup: flightMarkup,
           seasons: packageSeasons,
+          flightApiSource: formData.flightApiSource || "serp",
         }),
       });
       
@@ -956,6 +958,39 @@ export default function AdminPackages() {
       if (csvFileRef.current) {
         csvFileRef.current.value = '';
       }
+    }
+  };
+
+  const handleDownloadCsv = async () => {
+    if (!editingPackage) return;
+    
+    setIsDownloadingCsv(true);
+    try {
+      const response = await fetch(`/api/admin/packages/${editingPackage.id}/pricing/download-csv`);
+      
+      if (!response.ok) {
+        throw new Error("Failed to download CSV");
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pricing-${editingPackage.slug || editingPackage.id}-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({ title: "CSV downloaded successfully" });
+    } catch (error: any) {
+      toast({ 
+        title: "Error downloading CSV", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsDownloadingCsv(false);
     }
   };
 
@@ -3329,7 +3364,7 @@ export default function AdminPackages() {
                                     
                                     <Button
                                       type="button"
-                                      onClick={formData.flightApiSource === "european" ? handleFetchFlightPrices : handleFetchSerpFlightPrices}
+                                      onClick={handleFetchSerpFlightPrices}
                                       disabled={isFetchingFlightPrices || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate}
                                       className="w-full"
                                       data-testid="button-fetch-flight-prices"
@@ -3372,21 +3407,50 @@ export default function AdminPackages() {
                         <Separator />
                         
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          {/* CSV Upload Section */}
+                          {/* CSV Download/Upload Section */}
                           <Card>
                             <CardHeader>
                               <CardTitle className="text-base flex items-center gap-2">
-                                <Upload className="w-4 h-4" />
-                                Bulk Upload CSV
+                                <Download className="w-4 h-4" />
+                                Export / Import Pricing
                               </CardTitle>
                               <CardDescription>
-                                Import pricing from CSV file
+                                Download to validate flight prices, edit selling prices, then re-upload
                               </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                              <p className="text-sm text-muted-foreground">
-                                CSV format: airport_code, date (YYYY-MM-DD), price
-                              </p>
+                              <div className="p-3 bg-muted/50 rounded-lg text-sm">
+                                <p className="font-medium mb-1">CSV Format:</p>
+                                <p className="text-muted-foreground text-xs">
+                                  airport_code, date (YYYY-MM-DD), price, flight_cost (optional), land_cost (optional)
+                                </p>
+                              </div>
+                              
+                              {/* Download Button */}
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleDownloadCsv}
+                                disabled={isDownloadingCsv || existingPricing.length === 0}
+                                className="w-full"
+                                data-testid="button-download-csv"
+                              >
+                                {isDownloadingCsv ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Downloading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Download Current Pricing CSV
+                                  </>
+                                )}
+                              </Button>
+                              
+                              <Separator />
+                              
+                              {/* Upload Button */}
                               <input
                                 type="file"
                                 ref={csvFileRef}
@@ -3410,10 +3474,14 @@ export default function AdminPackages() {
                                 ) : (
                                   <>
                                     <Upload className="w-4 h-4 mr-2" />
-                                    Choose CSV File
+                                    Upload Modified CSV
                                   </>
                                 )}
                               </Button>
+                              
+                              <p className="text-xs text-muted-foreground">
+                                Uploading will replace existing prices for matching airport/date combinations
+                              </p>
                             </CardContent>
                           </Card>
 

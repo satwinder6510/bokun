@@ -116,7 +116,8 @@ type PackageFormData = {
   price: number;
   singlePrice: number | null;
   pricingDisplay: "both" | "twin" | "single";
-  pricingModule: "manual" | "european_api" | "open_jaw_seasonal";
+  pricingModule: "manual" | "open_jaw_seasonal";
+  flightApiSource: "european" | "serp";
   currency: string;
   priceLabel: string;
   description: string;
@@ -170,6 +171,7 @@ const emptyPackage: PackageFormData = {
   singlePrice: null,
   pricingDisplay: "both",
   pricingModule: "manual",
+  flightApiSource: "european",
   currency: "GBP",
   priceLabel: "per adult",
   description: "",
@@ -646,7 +648,8 @@ export default function AdminPackages() {
       price: pkg.price,
       singlePrice: pkg.singlePrice || null,
       pricingDisplay: (pkg.pricingDisplay as "both" | "twin" | "single") || "both",
-      pricingModule: (pkg.pricingModule as "manual" | "european_api" | "open_jaw_seasonal") || "manual",
+      pricingModule: (pkg.pricingModule === "open_jaw_seasonal" ? "open_jaw_seasonal" : "manual") as "manual" | "open_jaw_seasonal",
+      flightApiSource: ((pkg as any).flightApiSource as "european" | "serp") || "european",
       currency: pkg.currency,
       priceLabel: pkg.priceLabel,
       description: pkg.description,
@@ -3000,15 +3003,6 @@ export default function AdminPackages() {
                               </Button>
                               <Button
                                 type="button"
-                                variant={formData.pricingModule === "european_api" ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setFormData({ ...formData, pricingModule: "european_api" })}
-                                data-testid="button-module-european"
-                              >
-                                European Flight API
-                              </Button>
-                              <Button
-                                type="button"
                                 variant={formData.pricingModule === "open_jaw_seasonal" ? "default" : "outline"}
                                 size="sm"
                                 onClick={() => setFormData({ ...formData, pricingModule: "open_jaw_seasonal" })}
@@ -3018,9 +3012,8 @@ export default function AdminPackages() {
                               </Button>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
-                              {formData.pricingModule === "manual" && "Enter prices manually per airport/date"}
-                              {formData.pricingModule === "european_api" && "Fetch flight prices from European API + package base price"}
-                              {formData.pricingModule === "open_jaw_seasonal" && "Seasonal land costs + SERP API for Google Flights pricing"}
+                              {formData.pricingModule === "manual" && "Enter prices manually per departure airport and date"}
+                              {formData.pricingModule === "open_jaw_seasonal" && "Define seasonal land costs, then fetch flight prices from your chosen API"}
                             </p>
                           </CardContent>
                         </Card>
@@ -3104,151 +3097,6 @@ export default function AdminPackages() {
                                   </>
                                 )}
                               </Button>
-                            </CardContent>
-                          </Card>
-                        )}
-                        
-                        {/* European Flight API Module */}
-                        {formData.pricingModule === "european_api" && (
-                        <Card className="border-primary/20 bg-primary/5">
-                          <CardHeader>
-                            <CardTitle className="text-base flex items-center gap-2">
-                              <Plane className="w-4 h-4 text-primary" />
-                              Dynamic Flight Pricing
-                            </CardTitle>
-                            <CardDescription>
-                              {formData.bokunProductId 
-                                ? "Fetch live flight prices and combine with Bokun land tour price"
-                                : `Fetch live flight prices and combine with package base price (£${formData.price || 0})`
-                              }
-                            </CardDescription>
-                          </CardHeader>
-                            <CardContent className="space-y-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label>Destination Airport Code</Label>
-                                  <Input
-                                    value={flightDestAirport}
-                                    onChange={(e) => setFlightDestAirport(e.target.value.toUpperCase())}
-                                    placeholder="e.g., SOF, ATH, IST"
-                                    maxLength={3}
-                                    className="mt-1 font-mono uppercase"
-                                    data-testid="input-dest-airport"
-                                  />
-                                  <p className="text-xs text-muted-foreground mt-1">3-letter IATA code</p>
-                                </div>
-                                <div>
-                                  <Label>Duration (Nights)</Label>
-                                  <Input
-                                    type="number"
-                                    min="1"
-                                    max="30"
-                                    value={flightDuration}
-                                    onChange={(e) => setFlightDuration(parseInt(e.target.value) || 7)}
-                                    className="mt-1"
-                                    data-testid="input-duration"
-                                  />
-                                </div>
-                              </div>
-                              
-                              <div>
-                                <Label className="mb-2 block">Departure Airports</Label>
-                                <div className="flex flex-wrap gap-2">
-                                  {UK_AIRPORTS.map(airport => (
-                                    <Badge
-                                      key={airport.code}
-                                      variant={flightDepartAirports.includes(airport.code) ? "default" : "outline"}
-                                      className="cursor-pointer"
-                                      onClick={() => toggleDepartAirport(airport.code)}
-                                      data-testid={`badge-airport-${airport.code}`}
-                                    >
-                                      {airport.code}
-                                    </Badge>
-                                  ))}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  {flightDepartAirports.length} airports selected
-                                </p>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label>Start Date</Label>
-                                  <Input
-                                    type="text"
-                                    value={flightStartDate}
-                                    onChange={(e) => setFlightStartDate(e.target.value)}
-                                    placeholder="DD/MM/YYYY"
-                                    className="mt-1"
-                                    data-testid="input-start-date"
-                                  />
-                                </div>
-                                <div>
-                                  <Label>End Date</Label>
-                                  <Input
-                                    type="text"
-                                    value={flightEndDate}
-                                    onChange={(e) => setFlightEndDate(e.target.value)}
-                                    placeholder="DD/MM/YYYY"
-                                    className="mt-1"
-                                    data-testid="input-end-date"
-                                  />
-                                </div>
-                              </div>
-                              
-                              <div className="w-1/2">
-                                <Label>Markup %</Label>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  max="100"
-                                  value={flightMarkup}
-                                  onChange={(e) => setFlightMarkup(parseFloat(e.target.value) || 0)}
-                                  className="mt-1"
-                                  data-testid="input-markup"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Applied on top of flight + land tour price
-                                </p>
-                              </div>
-                              
-                              <Separator />
-                              
-                              <Button
-                                type="button"
-                                onClick={handleFetchFlightPrices}
-                                disabled={isFetchingFlightPrices || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate}
-                                className="w-full"
-                                data-testid="button-fetch-flight-prices"
-                              >
-                                {isFetchingFlightPrices ? (
-                                  <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Fetching Flight Prices...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Plane className="w-4 h-4 mr-2" />
-                                    Fetch Flight Prices & Save to Package
-                                  </>
-                                )}
-                              </Button>
-                              
-                              {flightPriceResults && (
-                                <div className={`p-3 rounded-lg text-sm ${flightPriceResults.error ? 'bg-destructive/10 text-destructive' : 'bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200'}`}>
-                                  {flightPriceResults.error ? (
-                                    <div className="flex items-center gap-2">
-                                      <AlertCircle className="w-4 h-4" />
-                                      {flightPriceResults.error}
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <CheckCircle2 className="w-4 h-4" />
-                                      Found {flightPriceResults.pricesFound} prices, saved {flightPriceResults.saved} entries
-                                    </div>
-                                  )}
-                                </div>
-                              )}
                             </CardContent>
                           </Card>
                         )}
@@ -3339,18 +3187,51 @@ export default function AdminPackages() {
                               </CardContent>
                             </Card>
                             
-                            {/* SERP API Flight Fetcher */}
-                            <Card className="border-orange-500/20 bg-orange-500/5">
+                            {/* Flight API Selection & Fetcher */}
+                            <Card className="border-primary/20 bg-primary/5">
                               <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
-                                  <Plane className="w-4 h-4 text-orange-600" />
-                                  Google Flights Pricing (SERP API)
+                                  <Plane className="w-4 h-4 text-primary" />
+                                  Flight Pricing
                                 </CardTitle>
                                 <CardDescription>
-                                  Fetch open-jaw flight prices and combine with seasonal land costs
+                                  Fetch flight prices and combine with seasonal land costs
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
+                                {/* Flight API Source Selector */}
+                                <div>
+                                  <Label className="mb-2 block">Flight API Source</Label>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      variant={formData.flightApiSource === "european" ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => setFormData({ ...formData, flightApiSource: "european" })}
+                                      data-testid="button-api-european"
+                                    >
+                                      European Flight API
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={formData.flightApiSource === "serp" ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => setFormData({ ...formData, flightApiSource: "serp" })}
+                                      data-testid="button-api-serp"
+                                    >
+                                      SERP API (Google Flights)
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {formData.flightApiSource === "european" 
+                                      ? "Uses European Flight API for direct flight pricing (requires IP whitelisting)"
+                                      : "Uses SERP API to get Google Flights pricing data"
+                                    }
+                                  </p>
+                                </div>
+                                
+                                <Separator />
+                                
                                 {packageSeasons.length === 0 ? (
                                   <div className="p-4 bg-amber-50 dark:bg-amber-950 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
                                     <p>Please add at least one season with land costs before fetching flight prices.</p>
@@ -3366,7 +3247,7 @@ export default function AdminPackages() {
                                           placeholder="e.g., DEL, BOM, GOI"
                                           maxLength={3}
                                           className="mt-1 font-mono uppercase"
-                                          data-testid="input-dest-airport-serp"
+                                          data-testid="input-dest-airport"
                                         />
                                       </div>
                                       <div>
@@ -3378,7 +3259,7 @@ export default function AdminPackages() {
                                           value={flightDuration}
                                           onChange={(e) => setFlightDuration(parseInt(e.target.value) || 7)}
                                           className="mt-1"
-                                          data-testid="input-duration-serp"
+                                          data-testid="input-duration"
                                         />
                                       </div>
                                     </div>
@@ -3392,12 +3273,15 @@ export default function AdminPackages() {
                                             variant={flightDepartAirports.includes(airport.code) ? "default" : "outline"}
                                             className="cursor-pointer"
                                             onClick={() => toggleDepartAirport(airport.code)}
-                                            data-testid={`badge-airport-serp-${airport.code}`}
+                                            data-testid={`badge-airport-${airport.code}`}
                                           >
                                             {airport.code}
                                           </Badge>
                                         ))}
                                       </div>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {flightDepartAirports.length} airports selected
+                                      </p>
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-4">
@@ -3409,7 +3293,7 @@ export default function AdminPackages() {
                                           onChange={(e) => setFlightStartDate(e.target.value)}
                                           placeholder="DD/MM/YYYY"
                                           className="mt-1"
-                                          data-testid="input-start-date-serp"
+                                          data-testid="input-start-date"
                                         />
                                       </div>
                                       <div>
@@ -3420,7 +3304,7 @@ export default function AdminPackages() {
                                           onChange={(e) => setFlightEndDate(e.target.value)}
                                           placeholder="DD/MM/YYYY"
                                           className="mt-1"
-                                          data-testid="input-end-date-serp"
+                                          data-testid="input-end-date"
                                         />
                                       </div>
                                     </div>
@@ -3434,23 +3318,26 @@ export default function AdminPackages() {
                                         value={flightMarkup}
                                         onChange={(e) => setFlightMarkup(parseFloat(e.target.value) || 0)}
                                         className="mt-1"
-                                        data-testid="input-markup-serp"
+                                        data-testid="input-markup"
                                       />
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Applied on top of flight + land cost
+                                      </p>
                                     </div>
                                     
                                     <Separator />
                                     
                                     <Button
                                       type="button"
-                                      onClick={handleFetchSerpFlightPrices}
+                                      onClick={formData.flightApiSource === "european" ? handleFetchFlightPrices : handleFetchSerpFlightPrices}
                                       disabled={isFetchingFlightPrices || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate}
                                       className="w-full"
-                                      data-testid="button-fetch-serp-prices"
+                                      data-testid="button-fetch-flight-prices"
                                     >
                                       {isFetchingFlightPrices ? (
                                         <>
                                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                          Fetching Google Flights Prices...
+                                          Fetching Flight Prices...
                                         </>
                                       ) : (
                                         <>

@@ -111,25 +111,22 @@ The pricing tab features a module selector allowing admins to choose the pricing
    - Multi-date selection with DayPicker calendar
    - Simple form: select airport, enter price, pick dates, add entries
 
-2. **European Flight API Module:**
-   - Fetches live flight prices from European Flight API
-   - Combines with package base price (or Bokun land tour price if linked)
-   - Configuration: nights, markup %, departure airports, destination airport, date range
-   - Applies smart rounding (x49, x69, x99)
-
-3. **Open-Jaw Seasonal Pricing Module:**
+2. **Open-Jaw Seasonal Pricing Module:**
    - Inline season management with add/edit/delete functionality
    - Seasons define: name, date range, land cost, hotel cost
-   - Integrates with SERP API for Google Flights pricing data
    - Stored in `package_seasons` table linked to flight package
+   - **Flight API Source selector** (toggle between two APIs):
+     - **European Flight API:** Direct flight pricing (requires IP whitelisting)
+     - **SERP API (Google Flights):** Uses SERP API for Google Flights data
+   - Configuration: destination airport, duration, departure airports, date range, markup %
 
-**Pricing Calculation Flow (European API):**
-1.  Flight prices from external API.
-2.  Land Tour Price from Bokun (with 10% markup).
-3.  Combined Price: `(Flight Price + Land Tour Price) * (1 + Markup%)`.
-4.  Smart Rounding.
+**Pricing Calculation Flow:**
+1.  Flight prices from selected API (European or SERP).
+2.  Seasonal land cost from package seasons.
+3.  Combined Price: `(Flight Price + Land Cost) * (1 + Markup%)`.
+4.  Smart Rounding (x49, x69, x99).
 
-The external flight API requires IP whitelisting. The `pricingModule` field on each package determines which module is active (values: "manual", "european_api", "open_jaw_seasonal").
+The European Flight API requires IP whitelisting. The `pricingModule` field on each package determines which module is active (values: "manual", "open_jaw_seasonal"). The `flightApiSource` field determines which flight API to use (values: "european", "serp").
 
 ## External Dependencies
 

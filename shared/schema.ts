@@ -367,7 +367,8 @@ export const flightPackages = pgTable("flight_packages", {
   price: real("price").notNull(), // Double room / twin share price per person
   singlePrice: real("single_price"), // Single room / solo traveler price (optional)
   pricingDisplay: text("pricing_display").notNull().default("both"), // "both", "twin", "single"
-  pricingModule: text("pricing_module").notNull().default("manual"), // "manual", "european_api", "open_jaw_seasonal"
+  pricingModule: text("pricing_module").notNull().default("manual"), // "manual", "open_jaw_seasonal"
+  flightApiSource: text("flight_api_source").notNull().default("european"), // "european", "serp" - which flight API to use for open_jaw_seasonal
   currency: text("currency").notNull().default("GBP"),
   priceLabel: text("price_label").notNull().default("per adult"),
   

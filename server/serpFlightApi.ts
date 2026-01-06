@@ -207,7 +207,7 @@ async function fetchFlightsForDate(
     url.searchParams.set("arrival_id", arriveAirport);
     url.searchParams.set("outbound_date", outboundDate);
     url.searchParams.set("return_date", returnDate);
-    url.searchParams.set("type", "1"); // Round trip
+    url.searchParams.set("type", "2"); // Round trip (1=one-way, 2=round-trip, 3=multi-city)
     url.searchParams.set("currency", "GBP");
     url.searchParams.set("gl", "uk");
     url.searchParams.set("hl", "en");
@@ -780,7 +780,7 @@ async function fetchInternalFlightForDate(
     url.searchParams.set("departure_id", fromAirport);
     url.searchParams.set("arrival_id", toAirport);
     url.searchParams.set("outbound_date", date);
-    url.searchParams.set("type", "2"); // One-way
+    url.searchParams.set("type", "1"); // One-way (1=one-way, 2=round-trip, 3=multi-city)
     url.searchParams.set("currency", "GBP");
     url.searchParams.set("gl", "uk");
     url.searchParams.set("hl", "en");

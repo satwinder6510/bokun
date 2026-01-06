@@ -3578,6 +3578,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         departureDate: string;
         price: number;
         flightPricePerPerson?: number;
+        internalFlightPricePerPerson?: number | null;
         landPricePerPerson?: number;
         airlineName?: string;
         currency: string;
@@ -3701,7 +3702,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               departureAirportName: flight.ukDepartureAirportName || UK_AIRPORTS_MAP[flight.ukDepartureAirport] || flight.ukDepartureAirport,
               departureDate: flight.outboundDate,
               price: finalPrice,
-              flightPricePerPerson: flight.pricePerPerson + internalFlightPrice,
+              flightPricePerPerson: flight.pricePerPerson,
+              internalFlightPricePerPerson: internalFlightPrice > 0 ? internalFlightPrice : null,
               landPricePerPerson: season.landCost + season.hotelCost,
               airlineName: airlineName,
               currency: 'GBP',
@@ -3746,6 +3748,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               departureDate: flight.departureDate,
               price: finalPrice,
               flightPricePerPerson: flight.pricePerPerson,
+              internalFlightPricePerPerson: null, // No internal flight for round-trip
               landPricePerPerson: season.landCost + season.hotelCost,
               airlineName: flight.airline || undefined,
               currency: 'GBP',
@@ -3813,6 +3816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               departureDate: flight.date,
               price: finalPrice,
               flightPricePerPerson: flight.price,
+              internalFlightPricePerPerson: null, // No internal flight for European API
               landPricePerPerson: season.landCost + season.hotelCost,
               currency: 'GBP',
               isAvailable: true,
@@ -3927,13 +3931,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Build CSV content with breakdown columns (baggage is flat £150 per person)
-      const headers = ['departure_airport', 'airport_name', 'date', 'airline', 'flight_cost', 'baggage_cost', 'land_cost', 'selling_price', 'currency', 'is_available'];
+      const headers = ['departure_airport', 'airport_name', 'date', 'airline', 'flight_cost', 'internal_flight_cost', 'baggage_cost', 'land_cost', 'selling_price', 'currency', 'is_available'];
       const rows = pricing.map(entry => [
         entry.departureAirport,
         entry.departureAirportName || '',
         entry.departureDate,
         entry.airlineName || '',
         entry.flightPricePerPerson?.toFixed(2) || '',
+        entry.internalFlightPricePerPerson?.toFixed(2) || '', // Internal/domestic flight cost
         BAGGAGE_SURCHARGE_GBP.toFixed(2), // Flat £150 baggage surcharge
         entry.landPricePerPerson?.toFixed(2) || '',
         entry.price.toString(),

@@ -549,6 +549,7 @@ export const packagePricing = pgTable("package_pricing", {
   departureDate: text("departure_date").notNull(), // ISO date string YYYY-MM-DD
   price: real("price").notNull(),
   flightPricePerPerson: real("flight_price_per_person"), // Actual flight price per person (GBP)
+  internalFlightPricePerPerson: real("internal_flight_price_per_person"), // Internal/domestic flight cost (GBP)
   landPricePerPerson: real("land_price_per_person"), // Bokun tour price per person with markup (GBP)
   airlineName: text("airline_name"), // Airline operating the flight
   currency: text("currency").notNull().default("GBP"),
@@ -566,6 +567,7 @@ export const insertPackagePricingSchema = createInsertSchema(packagePricing).omi
   departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
   price: z.number().positive("Price must be positive"),
   flightPricePerPerson: z.number().optional().nullable(),
+  internalFlightPricePerPerson: z.number().optional().nullable(),
   landPricePerPerson: z.number().optional().nullable(),
   airlineName: z.string().optional().nullable(),
 });

@@ -24,6 +24,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { Calendar } from "@/components/ui/calendar";
+import { DayPicker } from "react-day-picker";
 import { format } from "date-fns";
 import {
   Dialog,

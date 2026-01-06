@@ -102,18 +102,34 @@ A multi-user admin authentication system with role-based access control is imple
 
 The platform supports dynamic combined pricing for Bokun land tours with external flight prices, integrated into the Flight Packages admin workflow.
 
-**Admin Workflow (`Flight Packages` → `Pricing Tab`):**
-1.  Import Bokun Tour.
-2.  Configure Flight Settings: Destination Airport Code, Departure Airports, Duration, Date Range, Markup %.
-3.  "Fetch Flight Prices & Save to Package": Fetches live flight prices, combines with Bokun land tour price (with 10% markup), applies configured markup, smart-rounds to x49, x69, or x99, and populates `package_pricing`.
+**Unified Pricing Module System (`Flight Packages` → `Pricing Tab`):**
 
-**Pricing Calculation Flow:**
+The pricing tab features a module selector allowing admins to choose the pricing approach per package:
+
+1. **Manual Pricing Module:**
+   - Direct entry of prices per departure airport and date
+   - Multi-date selection with DayPicker calendar
+   - Simple form: select airport, enter price, pick dates, add entries
+
+2. **European Flight API Module:**
+   - Fetches live flight prices from European Flight API
+   - Combines with package base price (or Bokun land tour price if linked)
+   - Configuration: nights, markup %, departure airports, destination airport, date range
+   - Applies smart rounding (x49, x69, x99)
+
+3. **Open-Jaw Seasonal Pricing Module:**
+   - Inline season management with add/edit/delete functionality
+   - Seasons define: name, date range, land cost, hotel cost
+   - Integrates with SERP API for Google Flights pricing data
+   - Stored in `package_seasons` table linked to flight package
+
+**Pricing Calculation Flow (European API):**
 1.  Flight prices from external API.
 2.  Land Tour Price from Bokun (with 10% markup).
 3.  Combined Price: `(Flight Price + Land Tour Price) * (1 + Markup%)`.
 4.  Smart Rounding.
 
-The external flight API requires IP whitelisting.
+The external flight API requires IP whitelisting. The `pricingModule` field on each package determines which module is active (values: "manual", "european_api", "open_jaw_seasonal").
 
 ## External Dependencies
 

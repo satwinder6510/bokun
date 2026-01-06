@@ -903,10 +903,13 @@ export default function AdminPackages() {
   };
 
   const handleFetchFlightPrices = async () => {
-    if (!editingPackage || !formData.bokunProductId) {
-      toast({ title: "No Bokun tour linked", variant: "destructive" });
+    if (!editingPackage) {
+      toast({ title: "Save package first", variant: "destructive" });
       return;
     }
+    
+    // For manual packages without Bokun, use the package base price as land cost
+    const landCostForManual = !formData.bokunProductId ? (formData.price || 0) : null;
     
     if (!flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate) {
       toast({ 
@@ -926,7 +929,8 @@ export default function AdminPackages() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           packageId: editingPackage.id,
-          bokunProductId: formData.bokunProductId,
+          bokunProductId: formData.bokunProductId || null,
+          landCostOverride: landCostForManual,  // For manual packages without Bokun
           destAirport: flightDestAirport,
           departAirports: flightDepartAirports.join("|"),
           durationNights: flightDuration,
@@ -2812,18 +2816,20 @@ export default function AdminPackages() {
                       </div>
                     ) : (
                       <>
-                        {/* Dynamic Flight Pricing Section - Only show for Bokun-linked packages */}
-                        {formData.bokunProductId && (
-                          <Card className="border-primary/20 bg-primary/5">
-                            <CardHeader>
-                              <CardTitle className="text-base flex items-center gap-2">
-                                <Plane className="w-4 h-4 text-primary" />
-                                Dynamic Flight Pricing
-                              </CardTitle>
-                              <CardDescription>
-                                Automatically fetch live flight prices and combine with the Bokun land tour price
-                              </CardDescription>
-                            </CardHeader>
+                        {/* Dynamic Flight Pricing Section - Available for all packages */}
+                        <Card className="border-primary/20 bg-primary/5">
+                          <CardHeader>
+                            <CardTitle className="text-base flex items-center gap-2">
+                              <Plane className="w-4 h-4 text-primary" />
+                              Dynamic Flight Pricing
+                            </CardTitle>
+                            <CardDescription>
+                              {formData.bokunProductId 
+                                ? "Fetch live flight prices and combine with Bokun land tour price"
+                                : `Fetch live flight prices and combine with package base price (£${formData.price || 0})`
+                              }
+                            </CardDescription>
+                          </CardHeader>
                             <CardContent className="space-y-4">
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -2952,7 +2958,6 @@ export default function AdminPackages() {
                               )}
                             </CardContent>
                           </Card>
-                        )}
 
                         <Separator />
                         

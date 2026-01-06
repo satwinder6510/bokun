@@ -117,14 +117,27 @@ The pricing tab features a module selector allowing admins to choose the pricing
    - Stored in `package_seasons` table linked to flight package
    - **Flight API Source selector** (toggle between two APIs):
      - **European Flight API:** Direct flight pricing (requires IP whitelisting)
-     - **SERP API (Google Flights):** Uses SERP API for Google Flights data
+     - **SERP API (Google Flights):** Uses SERP API for Google Flights data with additional flight type options
    - Configuration: destination airport, duration, departure airports, date range, markup %
+
+**SERP API Flight Types:**
+When using SERP API, three flight types are available:
+1. **Round-Trip:** Standard round-trip flights (same arrival/departure airport)
+2. **Open-Jaw:** Fly into one airport, return from another (e.g., London → Delhi, Mumbai → London)
+3. **Open-Jaw + Internal:** Open-jaw with domestic connection (e.g., Delhi → Jaipur internal flight)
+
+**Open-Jaw Configuration:**
+- Arrival Airport: Where outbound flight lands (e.g., Delhi)
+- Return Departure Airport: Where return flight departs from (e.g., Mumbai)
+- Internal Flight (optional): Adds domestic connection cost to final price
 
 **Pricing Calculation Flow:**
 1.  Flight prices from selected API (European or SERP).
-2.  Seasonal land cost from package seasons.
-3.  Combined Price: `(Flight Price + Land Cost) * (1 + Markup%)`.
-4.  Smart Rounding (x49, x69, x99).
+2.  For SERP open-jaw: Outbound + Return flight costs combined
+3.  For internal flights: Additional domestic flight cost added
+4.  Seasonal land cost + hotel cost from package seasons.
+5.  Combined Price: `(Flight Cost + Internal Flight Cost + Land Cost + Hotel Cost) * (1 + Markup%)`.
+6.  Smart Rounding (x49, x69, x99).
 
 The European Flight API requires IP whitelisting. The `pricingModule` field on each package determines which module is active (values: "manual", "open_jaw_seasonal"). The `flightApiSource` field determines which flight API to use (values: "european", "serp").
 

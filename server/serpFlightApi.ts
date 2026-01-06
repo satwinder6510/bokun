@@ -482,7 +482,7 @@ async function fetchOpenJawFlightsForDate(
       url.searchParams.set("hl", "en");
       url.searchParams.set("adults", "1");
       url.searchParams.set("bags", "1");
-      url.searchParams.set("stops", "1"); // Max 1 connection (direct or 1 stop only)
+      // Note: No stops limit for open-jaw/multi-city - these routes need flexibility
       url.searchParams.set("travel_class", "1"); // Economy
       url.searchParams.set("sort_by", "2"); // Sort by price
       

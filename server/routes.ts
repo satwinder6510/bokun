@@ -3507,21 +3507,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         landCost: s.landCostPerPerson
       }))));
 
-      // Helper to find which season a date falls into
-      const findSeasonForDate = (dateStr: string): { name: string; landCost: number; hotelCost: number } | null => {
-        // Parse the date - handle both DD/MM/YYYY and YYYY-MM-DD formats
-        let date: Date;
+      // Helper to normalize date string to YYYY-MM-DD format
+      const normalizeDate = (dateStr: string): string => {
+        if (!dateStr) return '';
+        // Handle DD/MM/YYYY format
         if (dateStr.includes('/')) {
           const [day, month, year] = dateStr.split('/');
-          date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
-        } else {
-          date = new Date(dateStr);
+          return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         }
+        // Handle ISO format with time (2026-04-01T00:00:00.000Z)
+        if (dateStr.includes('T')) {
+          return dateStr.split('T')[0];
+        }
+        // Already YYYY-MM-DD
+        return dateStr;
+      };
+
+      // Helper to find which season a date falls into
+      const findSeasonForDate = (dateStr: string): { name: string; landCost: number; hotelCost: number } | null => {
+        const normalizedDate = normalizeDate(dateStr);
         
         for (const season of seasons) {
-          const start = new Date(season.startDate);
-          const end = new Date(season.endDate);
-          if (date >= start && date <= end) {
+          const startDate = normalizeDate(season.startDate);
+          const endDate = normalizeDate(season.endDate);
+          
+          // Simple string comparison works for YYYY-MM-DD format
+          if (normalizedDate >= startDate && normalizedDate <= endDate) {
+            console.log(`[FetchFlightPrices] Date ${normalizedDate} matched season "${season.seasonName}" (${startDate} to ${endDate}), Land: £${season.landCostPerPerson}`);
             return {
               name: season.seasonName,
               landCost: season.landCostPerPerson || 0,
@@ -3529,6 +3541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
           }
         }
+        console.log(`[FetchFlightPrices] No season match for date ${normalizedDate}`);
         return null;
       };
 

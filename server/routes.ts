@@ -3495,6 +3495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         hasInternalFlight = false,
         internalFromAirport,
         internalToAirport,
+        internalFlightOffsetDays = 1,
       } = req.body;
 
       const isOpenJaw = flightApiSource === "serp" && flightType === "open_jaw";
@@ -3622,26 +3623,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const cheapestOpenJaw = getCheapestOpenJawByDateAndAirport(openJawOffers, true);
 
           // If internal flight is requested, search for those too
-          let internalFlightsByDate = new Map<string, number>();
+          // Internal flight happens X days after effective arrival date
+          let internalFlightsByArrivalDate = new Map<string, number>(); // Maps effectiveArrivalDate -> internal flight price
           if (hasInternalFlight && internalFromAirport && internalToAirport) {
-            console.log(`[FetchFlightPrices] Searching internal flights: ${internalFromAirport} -> ${internalToAirport}`);
+            // Validate offset: must be non-negative integer, max 14
+            const rawOffset = typeof internalFlightOffsetDays === 'number' ? internalFlightOffsetDays : parseInt(internalFlightOffsetDays);
+            const offsetDays = isNaN(rawOffset) ? 1 : Math.max(0, Math.min(14, Math.floor(rawOffset)));
+            console.log(`[FetchFlightPrices] Searching internal flights: ${internalFromAirport} -> ${internalToAirport}, ${offsetDays} days after arrival`);
             
-            // Collect unique dates from open-jaw offers
-            const datesToSearch = Array.from(new Set(openJawOffers.map(o => o.effectiveArrivalDate)));
+            // Collect unique effective arrival dates and calculate internal flight dates
+            const arrivalDates = Array.from(new Set(openJawOffers.map(o => o.effectiveArrivalDate)));
+            const internalFlightDates = arrivalDates.map(arrivalDate => {
+              // Add offset days to arrival date
+              const parts = arrivalDate.split('-');
+              const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+              date.setDate(date.getDate() + offsetDays);
+              return {
+                arrivalDate,
+                internalDate: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+              };
+            });
             
-            if (datesToSearch.length > 0) {
+            // Get unique internal flight dates to search (avoids duplicate API calls)
+            const uniqueInternalDates = Array.from(new Set(internalFlightDates.map(d => d.internalDate)));
+            
+            if (uniqueInternalDates.length > 0) {
               const internalOffers = await searchInternalFlights({
                 fromAirport: internalFromAirport,
                 toAirport: internalToAirport,
-                dates: datesToSearch,
+                dates: uniqueInternalDates,
               });
               
               console.log(`[FetchFlightPrices] Found ${internalOffers.length} internal flight offers`);
               
               // Get cheapest internal flight per date
               const cheapestInternal = getCheapestInternalByDate(internalOffers);
-              for (const [date, offer] of Array.from(cheapestInternal.entries())) {
-                internalFlightsByDate.set(date, offer.pricePerPerson);
+              
+              // Map internal flight prices back to arrival dates
+              // Note: Multiple arrival dates may map to the same internal date - that's fine,
+              // they'll both get the same internal flight price for that date
+              for (const mapping of internalFlightDates) {
+                const internalOffer = cheapestInternal.get(mapping.internalDate);
+                if (internalOffer) {
+                  internalFlightsByArrivalDate.set(mapping.arrivalDate, internalOffer.pricePerPerson);
+                  console.log(`[FetchFlightPrices] Arrival ${mapping.arrivalDate} -> Internal ${mapping.internalDate}: £${internalOffer.pricePerPerson}`);
+                }
               }
             }
           }
@@ -3653,9 +3679,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
 
-            // Get internal flight price if applicable
+            // Get internal flight price if applicable (mapped from effective arrival date)
             const internalFlightPrice = hasInternalFlight 
-              ? (internalFlightsByDate.get(flight.effectiveArrivalDate) || 0) 
+              ? (internalFlightsByArrivalDate.get(flight.effectiveArrivalDate) || 0) 
               : 0;
 
             // Combined price = (open-jaw flight + internal flight + land cost + hotel cost) * (1 + markup%)

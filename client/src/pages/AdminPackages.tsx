@@ -315,6 +315,7 @@ export default function AdminPackages() {
   const [hasInternalFlight, setHasInternalFlight] = useState(false);
   const [internalFromAirport, setInternalFromAirport] = useState(""); // Internal flight from
   const [internalToAirport, setInternalToAirport] = useState(""); // Internal flight to
+  const [internalFlightOffsetDays, setInternalFlightOffsetDays] = useState<number>(1); // Days after arrival for internal flight
   
   // Seasonal land pricing state (for manual packages)
   const [packageSeasons, setPackageSeasons] = useState<PackageSeason[]>([]);
@@ -865,6 +866,7 @@ export default function AdminPackages() {
           hasInternalFlight: isOpenJaw && hasInternalFlight,
           internalFromAirport: hasInternalFlight ? internalFromAirport : undefined,
           internalToAirport: hasInternalFlight ? internalToAirport : undefined,
+          internalFlightOffsetDays: hasInternalFlight ? internalFlightOffsetDays : undefined,
         }),
       });
       
@@ -3386,34 +3388,58 @@ export default function AdminPackages() {
                                           </div>
                                           
                                           {hasInternalFlight && (
-                                            <div className="grid grid-cols-2 gap-4">
-                                              <div>
-                                                <Label>Internal From</Label>
-                                                <Input
-                                                  value={internalFromAirport}
-                                                  onChange={(e) => setInternalFromAirport(e.target.value.toUpperCase())}
-                                                  placeholder="e.g., DEL"
-                                                  maxLength={3}
-                                                  className="mt-1 font-mono uppercase"
-                                                  data-testid="input-internal-from"
-                                                />
+                                            <div className="space-y-3">
+                                              <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                  <Label>Internal From</Label>
+                                                  <Input
+                                                    value={internalFromAirport}
+                                                    onChange={(e) => setInternalFromAirport(e.target.value.toUpperCase())}
+                                                    placeholder="e.g., DEL"
+                                                    maxLength={3}
+                                                    className="mt-1 font-mono uppercase"
+                                                    data-testid="input-internal-from"
+                                                  />
+                                                </div>
+                                                <div>
+                                                  <Label>Internal To</Label>
+                                                  <Input
+                                                    value={internalToAirport}
+                                                    onChange={(e) => setInternalToAirport(e.target.value.toUpperCase())}
+                                                    placeholder="e.g., JAI"
+                                                    maxLength={3}
+                                                    className="mt-1 font-mono uppercase"
+                                                    data-testid="input-internal-to"
+                                                  />
+                                                </div>
                                               </div>
-                                              <div>
-                                                <Label>Internal To</Label>
+                                              <div className="w-1/2">
+                                                <Label>Days After Arrival</Label>
                                                 <Input
-                                                  value={internalToAirport}
-                                                  onChange={(e) => setInternalToAirport(e.target.value.toUpperCase())}
-                                                  placeholder="e.g., JAI"
-                                                  maxLength={3}
-                                                  className="mt-1 font-mono uppercase"
-                                                  data-testid="input-internal-to"
+                                                  type="number"
+                                                  min="0"
+                                                  max="14"
+                                                  value={internalFlightOffsetDays}
+                                                  onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    // Validate: positive integer 0-14
+                                                    if (!isNaN(val) && val >= 0 && val <= 14) {
+                                                      setInternalFlightOffsetDays(val);
+                                                    } else if (e.target.value === '') {
+                                                      setInternalFlightOffsetDays(0);
+                                                    }
+                                                  }}
+                                                  className="mt-1"
+                                                  data-testid="input-internal-offset"
                                                 />
+                                                <p className="text-xs text-muted-foreground mt-1">
+                                                  Internal flight on day {internalFlightOffsetDays + 1} of trip (0 = same day as arrival)
+                                                </p>
                                               </div>
                                             </div>
                                           )}
                                           <p className="text-xs text-muted-foreground">
-                                            Add a domestic flight within the destination country (e.g., Delhi → Jaipur)
-                                          </p>
+                                            Add a domestic flight within the destination country (e.g., Delhi → Jaipur)</p>
                                         </div>
                                         
                                         <div>

@@ -130,11 +130,20 @@ When using SERP API, three flight types are available:
 - Arrival Airport: Where outbound flight lands (e.g., Delhi)
 - Return Departure Airport: Where return flight departs from (e.g., Mumbai)
 - Internal Flight (optional): Adds domestic connection cost to final price
+- Days After Arrival: When the internal flight occurs (0 = same day as arrival)
+
+**Date Calculation Logic (6am Threshold):**
+- If a flight lands **before 6am**, the "effective arrival" date is the **previous day**
+- If a flight lands **after 6am**, the effective arrival date is the landing day
+- This effective arrival date is used for:
+  - Calculating trip duration (nights start from effective arrival)
+  - Determining which seasonal pricing applies
+  - Scheduling internal flights (effective arrival + offset days)
 
 **Pricing Calculation Flow:**
 1.  Flight prices from selected API (European or SERP).
 2.  For SERP open-jaw: Outbound + Return flight costs combined
-3.  For internal flights: Additional domestic flight cost added
+3.  For internal flights: Additional domestic flight cost added (searched on effective arrival + offset days)
 4.  Seasonal land cost + hotel cost from package seasons.
 5.  Combined Price: `(Flight Cost + Internal Flight Cost + Land Cost + Hotel Cost) * (1 + Markup%)`.
 6.  Smart Rounding (x49, x69, x99).

@@ -8,7 +8,7 @@ import bcrypt from "bcrypt";
 import sharp from "sharp";
 import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertTourEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions, newsletterSubscribers } from "@shared/schema";
 import { calculateCombinedPrices, getFlightsForDateWithPrices, UK_AIRPORTS, getDefaultDepartAirports, searchFlights } from "./flightApi";
-import { searchSerpFlights, getCheapestSerpFlightsByDateAndAirport, isSerpApiConfigured, searchOpenJawFlights, getCheapestOpenJawByDateAndAirport, searchInternalFlights, getCheapestInternalByDate } from "./serpFlightApi";
+import { searchSerpFlights, getCheapestSerpFlightsByDateAndAirport, isSerpApiConfigured, searchOpenJawFlights, getCheapestOpenJawByDateAndAirport, searchInternalFlights, getCheapestInternalByDate, BAGGAGE_SURCHARGE_GBP } from "./serpFlightApi";
 import { db } from "./db";
 import { eq, lt, desc } from "drizzle-orm";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
@@ -3684,8 +3684,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? (internalFlightsByArrivalDate.get(flight.effectiveArrivalDate) || 0) 
               : 0;
 
-            // Combined price = (open-jaw flight + internal flight + land cost + hotel cost) * (1 + markup%)
-            const rawTotal = flight.pricePerPerson + internalFlightPrice + season.landCost + season.hotelCost;
+            // Combined price = (open-jaw flight + internal flight + baggage + land cost + hotel cost) * (1 + markup%)
+            const rawTotal = flight.pricePerPerson + internalFlightPrice + BAGGAGE_SURCHARGE_GBP + season.landCost + season.hotelCost;
             const withMarkup = rawTotal * (1 + (markup || 0) / 100);
             const finalPrice = smartRound(withMarkup);
 
@@ -3693,7 +3693,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ? flight.outboundAirline 
               : `${flight.outboundAirline} / ${flight.returnAirline}`;
 
-            console.log(`[FetchFlightPrices] ${flight.ukDepartureAirport} ${flight.outboundDate}: Flight £${flight.pricePerPerson}${internalFlightPrice ? ` + Internal £${internalFlightPrice}` : ''} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice} (${markup}% markup)`);
+            console.log(`[FetchFlightPrices] ${flight.ukDepartureAirport} ${flight.outboundDate}: Flight £${flight.pricePerPerson}${internalFlightPrice ? ` + Internal £${internalFlightPrice}` : ''} + Baggage £${BAGGAGE_SURCHARGE_GBP} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice} (${markup}% markup)`);
 
             pricingEntries.push({
               packageId,
@@ -3732,12 +3732,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
 
-            // Combined price = (flight + land cost + hotel cost) * (1 + markup%)
-            const rawTotal = flight.pricePerPerson + season.landCost + season.hotelCost;
+            // Combined price = (flight + baggage + land cost + hotel cost) * (1 + markup%)
+            const rawTotal = flight.pricePerPerson + BAGGAGE_SURCHARGE_GBP + season.landCost + season.hotelCost;
             const withMarkup = rawTotal * (1 + (markup || 0) / 100);
             const finalPrice = smartRound(withMarkup);
 
-            console.log(`[FetchFlightPrices] ${flight.departureAirport} ${flight.departureDate}: Flight £${flight.pricePerPerson} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice} (with ${markup}% markup)`);
+            console.log(`[FetchFlightPrices] ${flight.departureAirport} ${flight.departureDate}: Flight £${flight.pricePerPerson} + Baggage £${BAGGAGE_SURCHARGE_GBP} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice} (with ${markup}% markup)`);
 
             pricingEntries.push({
               packageId,
@@ -3799,12 +3799,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
 
-            // Combined price = (flight + land cost + hotel cost) * (1 + markup%)
-            const rawTotal = flight.price + season.landCost + season.hotelCost;
+            // Combined price = (flight + baggage + land cost + hotel cost) * (1 + markup%)
+            const rawTotal = flight.price + BAGGAGE_SURCHARGE_GBP + season.landCost + season.hotelCost;
             const withMarkup = rawTotal * (1 + (markup || 0) / 100);
             const finalPrice = smartRound(withMarkup);
 
-            console.log(`[FetchFlightPrices] ${flight.airport} ${flight.date}: Flight £${flight.price} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice}`);
+            console.log(`[FetchFlightPrices] ${flight.airport} ${flight.date}: Flight £${flight.price} + Baggage £${BAGGAGE_SURCHARGE_GBP} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice}`);
 
             pricingEntries.push({
               packageId,
@@ -3926,14 +3926,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No pricing entries to download" });
       }
       
-      // Build CSV content with breakdown columns
-      const headers = ['departure_airport', 'airport_name', 'date', 'airline', 'flight_cost', 'land_cost', 'selling_price', 'currency', 'is_available'];
+      // Build CSV content with breakdown columns (baggage is flat £150 per person)
+      const headers = ['departure_airport', 'airport_name', 'date', 'airline', 'flight_cost', 'baggage_cost', 'land_cost', 'selling_price', 'currency', 'is_available'];
       const rows = pricing.map(entry => [
         entry.departureAirport,
         entry.departureAirportName || '',
         entry.departureDate,
         entry.airlineName || '',
         entry.flightPricePerPerson?.toFixed(2) || '',
+        BAGGAGE_SURCHARGE_GBP.toFixed(2), // Flat £150 baggage surcharge
         entry.landPricePerPerson?.toFixed(2) || '',
         entry.price.toString(),
         entry.currency || 'GBP',

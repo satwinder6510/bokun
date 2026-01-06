@@ -13,7 +13,8 @@ const SERPAPI_BASE = "https://serpapi.com/search";
 
 // Hold baggage surcharge - SERP API only supports carry-on bag filtering,
 // so we add a fixed amount to cover typical hold/checked baggage costs
-const HOLD_BAGGAGE_SURCHARGE_GBP = 100;
+// Flat baggage surcharge for all flight types (shown as separate line item)
+export const BAGGAGE_SURCHARGE_GBP = 150;
 
 interface SerpFlightSearchParams {
   departAirports: string[];   // Array of airport codes e.g., ["LGW", "STN"]
@@ -201,7 +202,7 @@ async function fetchFlightsForDate(
     url.searchParams.set("hl", "en");
     url.searchParams.set("adults", "1");
     url.searchParams.set("bags", "1"); // Include 1 carry-on bag in price
-    url.searchParams.set("stops", "2"); // 1 stop or fewer
+    url.searchParams.set("stops", "1"); // Max 1 connection (direct or 1 stop only)
     url.searchParams.set("travel_class", "1"); // Economy
     url.searchParams.set("sort_by", "2"); // Sort by price
     
@@ -251,7 +252,7 @@ async function fetchFlightsForDate(
         arrivalTime: arrivalTime,
         returnDate: returnDate,
         returnTime: "",
-        pricePerPerson: flight.price + HOLD_BAGGAGE_SURCHARGE_GBP,
+        pricePerPerson: flight.price, // Raw flight cost (baggage shown separately)
         airline: firstLeg.airline,
         duration: flight.total_duration,
         stops: flight.flights.length - 1,
@@ -481,7 +482,7 @@ async function fetchOpenJawFlightsForDate(
       url.searchParams.set("hl", "en");
       url.searchParams.set("adults", "1");
       url.searchParams.set("bags", "1");
-      url.searchParams.set("stops", "2"); // 1 stop or fewer
+      url.searchParams.set("stops", "1"); // Max 1 connection (direct or 1 stop only)
       url.searchParams.set("travel_class", "1"); // Economy
       url.searchParams.set("sort_by", "2"); // Sort by price
       
@@ -576,7 +577,7 @@ async function fetchOpenJawFlightsForDate(
                 effectiveArrivalDate: effectiveArrivalDate,
                 returnDate: properReturnDate,
                 returnArrivalDate: lastLeg.arrival_airport.time?.split(" ")[0] || properReturnDate,
-                pricePerPerson: flight.price + (HOLD_BAGGAGE_SURCHARGE_GBP * 2), // Surcharge for both legs
+                pricePerPerson: flight.price, // Raw flight cost (baggage shown separately)
                 outboundAirline: outboundAirline,
                 returnAirline: returnAirline,
                 sameAirline: outboundAirline.toLowerCase() === returnAirline.toLowerCase(),
@@ -622,7 +623,7 @@ async function fetchOpenJawFlightsForDate(
           effectiveArrivalDate: effectiveArrivalDate,
           returnDate: properReturnDate,
           returnArrivalDate: returnLast.arrival_airport.time?.split(" ")[0] || properReturnDate,
-          pricePerPerson: flight.price + (HOLD_BAGGAGE_SURCHARGE_GBP * 2),
+          pricePerPerson: flight.price, // Raw flight cost (baggage shown separately)
           outboundAirline: outboundAirline,
           returnAirline: returnAirline,
           sameAirline: outboundAirline.toLowerCase() === returnAirline.toLowerCase(),
@@ -768,6 +769,7 @@ async function fetchInternalFlightForDate(
     url.searchParams.set("gl", "uk");
     url.searchParams.set("hl", "en");
     url.searchParams.set("adults", "1");
+    url.searchParams.set("stops", "1"); // Max 1 connection (direct or 1 stop only)
     url.searchParams.set("travel_class", "1"); // Economy
     url.searchParams.set("sort_by", "2"); // Sort by price
     
@@ -813,7 +815,7 @@ async function fetchInternalFlightForDate(
         date: date,
         departureTime: depTimeStr.split(" ")[1] || depTimeStr,
         arrivalTime: arrTimeStr.split(" ")[1] || arrTimeStr,
-        pricePerPerson: flight.price,
+        pricePerPerson: flight.price, // Raw flight cost (baggage shown separately)
         airline: firstLeg.airline || "",
         duration: flight.total_duration,
         stops: flight.flights.length - 1,

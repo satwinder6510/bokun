@@ -115,6 +115,7 @@ type PackageFormData = {
   price: number;
   singlePrice: number | null;
   pricingDisplay: "both" | "twin" | "single";
+  pricingModule: "manual" | "european_api" | "open_jaw_seasonal";
   currency: string;
   priceLabel: string;
   description: string;
@@ -167,6 +168,7 @@ const emptyPackage: PackageFormData = {
   price: 0,
   singlePrice: null,
   pricingDisplay: "both",
+  pricingModule: "manual",
   currency: "GBP",
   priceLabel: "per adult",
   description: "",
@@ -643,6 +645,7 @@ export default function AdminPackages() {
       price: pkg.price,
       singlePrice: pkg.singlePrice || null,
       pricingDisplay: (pkg.pricingDisplay as "both" | "twin" | "single") || "both",
+      pricingModule: (pkg.pricingModule as "manual" | "european_api" | "open_jaw_seasonal") || "manual",
       currency: pkg.currency,
       priceLabel: pkg.priceLabel,
       description: pkg.description,
@@ -678,6 +681,9 @@ export default function AdminPackages() {
     
     // Load existing pricing for this package
     await loadPackagePricing(pkg.id);
+    
+    // Load seasons for open-jaw pricing
+    await loadPackageSeasons(pkg.id);
   };
 
   const loadPackagePricing = async (packageId: number) => {
@@ -696,6 +702,148 @@ export default function AdminPackages() {
       console.error("Failed to load pricing:", error);
     } finally {
       setIsLoadingPricing(false);
+    }
+  };
+  
+  // Seasonal land pricing functions
+  const loadPackageSeasons = async (packageId: number) => {
+    setIsLoadingSeasons(true);
+    try {
+      const response = await fetch(`/api/admin/packages/${packageId}/seasons`, {
+        headers: { 'X-Admin-Session': localStorage.getItem('admin_session_token') || '' },
+      });
+      if (response.ok) {
+        const seasons = await response.json();
+        setPackageSeasons(seasons);
+      }
+    } catch (error) {
+      console.error("Failed to load seasons:", error);
+    } finally {
+      setIsLoadingSeasons(false);
+    }
+  };
+  
+  const handleAddSeason = () => {
+    setEditingSeasonData(null);
+    setSeasonForm({
+      seasonName: "",
+      startDate: "",
+      endDate: "",
+      landCostPerPerson: 0,
+      hotelCostPerPerson: null,
+      notes: "",
+    });
+    setSeasonDialogOpen(true);
+  };
+  
+  const handleEditSeason = (season: PackageSeason) => {
+    setEditingSeasonData(season);
+    setSeasonForm({
+      seasonName: season.seasonName,
+      startDate: format(new Date(season.startDate), "yyyy-MM-dd"),
+      endDate: format(new Date(season.endDate), "yyyy-MM-dd"),
+      landCostPerPerson: season.landCostPerPerson,
+      hotelCostPerPerson: season.hotelCostPerPerson,
+      notes: season.notes || "",
+    });
+    setSeasonDialogOpen(true);
+  };
+  
+  const handleSaveSeason = async () => {
+    if (!editingPackage || !seasonForm.seasonName || !seasonForm.startDate || !seasonForm.endDate || !seasonForm.landCostPerPerson) {
+      toast({ title: "Missing information", description: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+    
+    try {
+      const url = editingSeasonData 
+        ? `/api/admin/seasons/${editingSeasonData.id}`
+        : `/api/admin/packages/${editingPackage.id}/seasons`;
+      
+      const response = await fetch(url, {
+        method: editingSeasonData ? "PATCH" : "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+        },
+        body: JSON.stringify(seasonForm),
+      });
+      
+      if (response.ok) {
+        toast({ title: editingSeasonData ? "Season updated" : "Season added" });
+        setSeasonDialogOpen(false);
+        await loadPackageSeasons(editingPackage.id);
+      } else {
+        throw new Error("Failed to save season");
+      }
+    } catch (error) {
+      toast({ title: "Error saving season", variant: "destructive" });
+    }
+  };
+  
+  const handleDeleteSeason = async (seasonId: number) => {
+    if (!editingPackage) return;
+    
+    try {
+      const response = await fetch(`/api/admin/seasons/${seasonId}`, {
+        method: "DELETE",
+        headers: { 'X-Admin-Session': localStorage.getItem('admin_session_token') || '' },
+      });
+      
+      if (response.ok) {
+        toast({ title: "Season deleted" });
+        await loadPackageSeasons(editingPackage.id);
+      }
+    } catch (error) {
+      toast({ title: "Error deleting season", variant: "destructive" });
+    }
+  };
+  
+  const handleFetchSerpFlightPrices = async () => {
+    if (!editingPackage || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate) {
+      toast({ title: "Missing information", variant: "destructive" });
+      return;
+    }
+    
+    if (packageSeasons.length === 0) {
+      toast({ title: "No seasons defined", description: "Add at least one season with land costs first", variant: "destructive" });
+      return;
+    }
+    
+    setIsFetchingFlightPrices(true);
+    setFlightPriceResults(null);
+    
+    try {
+      const response = await fetch("/api/admin/packages/fetch-serp-flight-prices", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+        },
+        body: JSON.stringify({
+          packageId: editingPackage.id,
+          destinationAirport: flightDestAirport,
+          departureAirports: flightDepartAirports,
+          duration: flightDuration,
+          startDate: flightStartDate,
+          endDate: flightEndDate,
+          markup: flightMarkup,
+          seasons: packageSeasons,
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setFlightPriceResults(result);
+        await loadPackagePricing(editingPackage.id);
+      } else {
+        const error = await response.json();
+        setFlightPriceResults({ error: error.message || "Failed to fetch prices" });
+      }
+    } catch (error) {
+      setFlightPriceResults({ error: "Network error fetching prices" });
+    } finally {
+      setIsFetchingFlightPrices(false);
     }
   };
 
@@ -2830,7 +2978,137 @@ export default function AdminPackages() {
                       </div>
                     ) : (
                       <>
-                        {/* Dynamic Flight Pricing Section - Available for all packages */}
+                        {/* Pricing Module Selector */}
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base">Pricing Module</CardTitle>
+                            <CardDescription>
+                              Choose how pricing is generated for this package
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                type="button"
+                                variant={formData.pricingModule === "manual" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setFormData({ ...formData, pricingModule: "manual" })}
+                                data-testid="button-module-manual"
+                              >
+                                Manual Pricing
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={formData.pricingModule === "european_api" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setFormData({ ...formData, pricingModule: "european_api" })}
+                                data-testid="button-module-european"
+                              >
+                                European Flight API
+                              </Button>
+                              <Button
+                                type="button"
+                                variant={formData.pricingModule === "open_jaw_seasonal" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setFormData({ ...formData, pricingModule: "open_jaw_seasonal" })}
+                                data-testid="button-module-openjaw"
+                              >
+                                Open-Jaw + Seasonal Land Cost
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {formData.pricingModule === "manual" && "Enter prices manually per airport/date"}
+                              {formData.pricingModule === "european_api" && "Fetch flight prices from European API + package base price"}
+                              {formData.pricingModule === "open_jaw_seasonal" && "Seasonal land costs + SERP API for Google Flights pricing"}
+                            </p>
+                          </CardContent>
+                        </Card>
+                        
+                        {/* Manual Pricing Module */}
+                        {formData.pricingModule === "manual" && (
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Manual Pricing
+                              </CardTitle>
+                              <CardDescription>
+                                Add prices per departure airport and date
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <Label>Departure Airport</Label>
+                                  <select
+                                    value={pricingAirport}
+                                    onChange={(e) => setPricingAirport(e.target.value)}
+                                    className="w-full mt-1 p-2 border rounded-md bg-background"
+                                    data-testid="select-airport-manual"
+                                  >
+                                    <option value="">Select airport</option>
+                                    {UK_AIRPORTS.map(airport => (
+                                      <option key={airport.code} value={airport.code}>
+                                        {airport.code} - {airport.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <Label>Price (£ per person)</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    value={pricingPrice}
+                                    onChange={(e) => setPricingPrice(parseFloat(e.target.value) || 0)}
+                                    className="mt-1"
+                                    data-testid="input-price-manual"
+                                  />
+                                </div>
+                              </div>
+                              
+                              <div>
+                                <Label className="mb-2 block">Select Departure Dates</Label>
+                                <DayPicker
+                                  mode="multiple"
+                                  selected={selectedDates}
+                                  onSelect={(dates) => setSelectedDates(dates || [])}
+                                  disabled={{ before: new Date() }}
+                                  className="border rounded-lg p-3"
+                                />
+                              </div>
+                              
+                              {selectedDates.length > 0 && (
+                                <p className="text-sm text-muted-foreground">
+                                  {selectedDates.length} date(s) selected
+                                </p>
+                              )}
+                              
+                              <Button
+                                type="button"
+                                onClick={handleAddPricingEntries}
+                                disabled={isSavingPricing || !pricingAirport || !pricingPrice || selectedDates.length === 0}
+                                className="w-full"
+                                data-testid="button-add-pricing"
+                              >
+                                {isSavingPricing ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Adding Pricing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add Pricing Entries
+                                  </>
+                                )}
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        )}
+                        
+                        {/* European Flight API Module */}
+                        {formData.pricingModule === "european_api" && (
                         <Card className="border-primary/20 bg-primary/5">
                           <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2">
@@ -2972,156 +3250,282 @@ export default function AdminPackages() {
                               )}
                             </CardContent>
                           </Card>
+                        )}
+                        
+                        {/* Open-Jaw Seasonal Pricing Module */}
+                        {formData.pricingModule === "open_jaw_seasonal" && (
+                          <>
+                            {/* Seasonal Land Costs Section */}
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <CalendarIcon className="w-4 h-4" />
+                                  Seasonal Land Costs
+                                </CardTitle>
+                                <CardDescription>
+                                  Define land costs per person for different seasons
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                {isLoadingSeasons ? (
+                                  <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                  </div>
+                                ) : packageSeasons.length === 0 ? (
+                                  <div className="text-center py-6 text-muted-foreground">
+                                    <CalendarIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">No seasons defined yet</p>
+                                    <p className="text-xs mt-1">Add seasons to define land costs for different periods</p>
+                                  </div>
+                                ) : (
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Season</TableHead>
+                                        <TableHead>Dates</TableHead>
+                                        <TableHead className="text-right">Land Cost (pp)</TableHead>
+                                        <TableHead className="w-[80px]"></TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {packageSeasons.map((season) => (
+                                        <TableRow key={season.id}>
+                                          <TableCell className="font-medium">{season.seasonName}</TableCell>
+                                          <TableCell className="text-sm text-muted-foreground">
+                                            {format(new Date(season.startDate), "dd MMM")} - {format(new Date(season.endDate), "dd MMM yyyy")}
+                                          </TableCell>
+                                          <TableCell className="text-right font-mono">
+                                            £{season.landCostPerPerson}
+                                          </TableCell>
+                                          <TableCell>
+                                            <div className="flex gap-1">
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleEditSeason(season)}
+                                                data-testid={`button-edit-season-${season.id}`}
+                                              >
+                                                <Edit2 className="w-3 h-3" />
+                                              </Button>
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleDeleteSeason(season.id)}
+                                                data-testid={`button-delete-season-${season.id}`}
+                                              >
+                                                <Trash2 className="w-3 h-3" />
+                                              </Button>
+                                            </div>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                )}
+                                
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={handleAddSeason}
+                                  className="w-full"
+                                  data-testid="button-add-season"
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Add Season
+                                </Button>
+                              </CardContent>
+                            </Card>
+                            
+                            {/* SERP API Flight Fetcher */}
+                            <Card className="border-orange-500/20 bg-orange-500/5">
+                              <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Plane className="w-4 h-4 text-orange-600" />
+                                  Google Flights Pricing (SERP API)
+                                </CardTitle>
+                                <CardDescription>
+                                  Fetch open-jaw flight prices and combine with seasonal land costs
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                {packageSeasons.length === 0 ? (
+                                  <div className="p-4 bg-amber-50 dark:bg-amber-950 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
+                                    <p>Please add at least one season with land costs before fetching flight prices.</p>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <Label>Destination Airport Code</Label>
+                                        <Input
+                                          value={flightDestAirport}
+                                          onChange={(e) => setFlightDestAirport(e.target.value.toUpperCase())}
+                                          placeholder="e.g., DEL, BOM, GOI"
+                                          maxLength={3}
+                                          className="mt-1 font-mono uppercase"
+                                          data-testid="input-dest-airport-serp"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>Duration (Nights)</Label>
+                                        <Input
+                                          type="number"
+                                          min="1"
+                                          max="30"
+                                          value={flightDuration}
+                                          onChange={(e) => setFlightDuration(parseInt(e.target.value) || 7)}
+                                          className="mt-1"
+                                          data-testid="input-duration-serp"
+                                        />
+                                      </div>
+                                    </div>
+                                    
+                                    <div>
+                                      <Label className="mb-2 block">Departure Airports</Label>
+                                      <div className="flex flex-wrap gap-2">
+                                        {UK_AIRPORTS.map(airport => (
+                                          <Badge
+                                            key={airport.code}
+                                            variant={flightDepartAirports.includes(airport.code) ? "default" : "outline"}
+                                            className="cursor-pointer"
+                                            onClick={() => toggleDepartAirport(airport.code)}
+                                            data-testid={`badge-airport-serp-${airport.code}`}
+                                          >
+                                            {airport.code}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                      <div>
+                                        <Label>Start Date</Label>
+                                        <Input
+                                          type="text"
+                                          value={flightStartDate}
+                                          onChange={(e) => setFlightStartDate(e.target.value)}
+                                          placeholder="DD/MM/YYYY"
+                                          className="mt-1"
+                                          data-testid="input-start-date-serp"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label>End Date</Label>
+                                        <Input
+                                          type="text"
+                                          value={flightEndDate}
+                                          onChange={(e) => setFlightEndDate(e.target.value)}
+                                          placeholder="DD/MM/YYYY"
+                                          className="mt-1"
+                                          data-testid="input-end-date-serp"
+                                        />
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="w-1/2">
+                                      <Label>Markup %</Label>
+                                      <Input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={flightMarkup}
+                                        onChange={(e) => setFlightMarkup(parseFloat(e.target.value) || 0)}
+                                        className="mt-1"
+                                        data-testid="input-markup-serp"
+                                      />
+                                    </div>
+                                    
+                                    <Separator />
+                                    
+                                    <Button
+                                      type="button"
+                                      onClick={handleFetchSerpFlightPrices}
+                                      disabled={isFetchingFlightPrices || !flightDestAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate}
+                                      className="w-full"
+                                      data-testid="button-fetch-serp-prices"
+                                    >
+                                      {isFetchingFlightPrices ? (
+                                        <>
+                                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                          Fetching Google Flights Prices...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Plane className="w-4 h-4 mr-2" />
+                                          Fetch Flight Prices & Calculate Package Prices
+                                        </>
+                                      )}
+                                    </Button>
+                                    
+                                    {flightPriceResults && (
+                                      <div className={`p-3 rounded-lg text-sm ${flightPriceResults.error ? 'bg-destructive/10 text-destructive' : 'bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200'}`}>
+                                        {flightPriceResults.error ? (
+                                          <div className="flex items-center gap-2">
+                                            <AlertCircle className="w-4 h-4" />
+                                            {flightPriceResults.error}
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                            Found {flightPriceResults.pricesFound} prices, saved {flightPriceResults.saved} entries
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </>
+                        )}
 
                         <Separator />
                         
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                          {/* Add New Pricing - Manual */}
+                          {/* CSV Upload Section */}
                           <Card>
                             <CardHeader>
                               <CardTitle className="text-base flex items-center gap-2">
-                                <Plus className="w-4 h-4" />
-                                Add Pricing Manually
+                                <Upload className="w-4 h-4" />
+                                Bulk Upload CSV
                               </CardTitle>
                               <CardDescription>
-                                Select airport, enter price, then pick departure dates
+                                Import pricing from CSV file
                               </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <Label>Departure Airport</Label>
-                                  <select
-                                    value={pricingAirport}
-                                    onChange={(e) => setPricingAirport(e.target.value)}
-                                    className="w-full mt-1 p-2 border rounded-md bg-background"
-                                    data-testid="select-airport"
-                                  >
-                                    <option value="">Select airport...</option>
-                                    {UK_AIRPORTS.map(airport => (
-                                      <option key={airport.code} value={airport.code}>
-                                        {airport.code} - {airport.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
-                                <div>
-                                  <Label>Price (GBP)</Label>
-                                  <div className="relative mt-1">
-                                    <PoundSterling className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <Input
-                                      type="number"
-                                      min="0"
-                                      step="1"
-                                      value={pricingPrice}
-                                      onChange={(e) => setPricingPrice(parseFloat(e.target.value) || 0)}
-                                      className="pl-9"
-                                      data-testid="input-pricing-price"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div>
-                                <Label className="mb-2 block">Select Departure Dates</Label>
-                                <div className="border rounded-lg p-3 flex justify-center">
-                                  <Calendar
-                                    mode="multiple"
-                                    selected={selectedDates}
-                                    onSelect={(dates) => setSelectedDates(dates || [])}
-                                    disabled={(date) => date < new Date()}
-                                    className="rounded-md"
-                                    data-testid="calendar-dates"
-                                  />
-                                </div>
-                                {selectedDates.length > 0 && (
-                                  <p className="text-sm text-muted-foreground mt-2">
-                                    {selectedDates.length} date(s) selected
-                                  </p>
-                                )}
-                              </div>
-
+                              <p className="text-sm text-muted-foreground">
+                                CSV format: airport_code, date (YYYY-MM-DD), price
+                              </p>
+                              <input
+                                type="file"
+                                ref={csvFileRef}
+                                accept=".csv"
+                                onChange={handleCsvUpload}
+                                className="hidden"
+                              />
                               <Button
                                 type="button"
-                                onClick={handleAddPricingEntries}
-                                disabled={isSavingPricing || !pricingAirport || !pricingPrice || selectedDates.length === 0}
+                                variant="outline"
+                                onClick={() => csvFileRef.current?.click()}
+                                disabled={isUploadingCsv}
                                 className="w-full"
-                                data-testid="button-add-pricing"
+                                data-testid="button-upload-csv"
                               >
-                                {isSavingPricing ? (
+                                {isUploadingCsv ? (
                                   <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Adding...
+                                    Uploading...
                                   </>
                                 ) : (
                                   <>
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Add {selectedDates.length} Price Entries
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Choose CSV File
                                   </>
                                 )}
                               </Button>
-
-                              <Separator className="my-4" />
-
-                              {/* CSV Upload Section */}
-                              <div className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                  <Upload className="w-4 h-4 text-muted-foreground" />
-                                  <Label>Or Upload CSV File</Label>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                  Upload a pricing CSV with format: Destination Airport, Board Basis rows, 
-                                  then groups of Departure Airport/Date/Price rows.
-                                </p>
-                                <input
-                                  ref={csvFileRef}
-                                  type="file"
-                                  accept=".csv"
-                                  onChange={handleCsvUpload}
-                                  className="hidden"
-                                  data-testid="input-csv-upload"
-                                />
-                                <div className="flex gap-2">
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => csvFileRef.current?.click()}
-                                    disabled={isUploadingCsv}
-                                    className="flex-1"
-                                    data-testid="button-upload-csv"
-                                  >
-                                    {isUploadingCsv ? (
-                                      <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Processing CSV...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Upload className="w-4 h-4 mr-2" />
-                                        Upload Pricing CSV
-                                      </>
-                                    )}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={handleExportPricingCsv}
-                                    disabled={existingPricing.length === 0 && !formData.bokunProductId}
-                                    data-testid="button-export-csv"
-                                  >
-                                    <Download className="w-4 h-4 mr-2" />
-                                    Export CSV
-                                  </Button>
-                                </div>
-                                {formData.bokunProductId && (
-                                  <div className="p-2 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded text-xs">
-                                    <p className="text-blue-800 dark:text-blue-200 flex items-center gap-1">
-                                      <Plane className="w-3 h-3" />
-                                      Linked to Bokun tour. Export includes Bokun net prices for reference.
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
                             </CardContent>
                           </Card>
 
@@ -3478,6 +3882,89 @@ export default function AdminPackages() {
             <DialogFooter className="mt-4">
               <Button variant="outline" onClick={() => setHotelPickerOpen(false)}>
                 Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Season Add/Edit Dialog */}
+        <Dialog open={seasonDialogOpen} onOpenChange={setSeasonDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingSeasonData ? "Edit Season" : "Add Season"}</DialogTitle>
+              <DialogDescription>
+                Define land costs for this season period
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label>Season Name</Label>
+                <Input
+                  value={seasonForm.seasonName}
+                  onChange={(e) => setSeasonForm({ ...seasonForm, seasonName: e.target.value })}
+                  placeholder="e.g., Peak Season, Shoulder Season"
+                  className="mt-1"
+                  data-testid="input-season-name"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Start Date</Label>
+                  <Input
+                    type="date"
+                    value={seasonForm.startDate}
+                    onChange={(e) => setSeasonForm({ ...seasonForm, startDate: e.target.value })}
+                    className="mt-1"
+                    data-testid="input-season-start"
+                  />
+                </div>
+                <div>
+                  <Label>End Date</Label>
+                  <Input
+                    type="date"
+                    value={seasonForm.endDate}
+                    onChange={(e) => setSeasonForm({ ...seasonForm, endDate: e.target.value })}
+                    className="mt-1"
+                    data-testid="input-season-end"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label>Land Cost Per Person (£)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={seasonForm.landCostPerPerson}
+                  onChange={(e) => setSeasonForm({ ...seasonForm, landCostPerPerson: parseFloat(e.target.value) || 0 })}
+                  className="mt-1"
+                  data-testid="input-season-land-cost"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This is the tour/accommodation cost before adding flights
+                </p>
+              </div>
+              
+              <div>
+                <Label>Notes (Optional)</Label>
+                <Input
+                  value={seasonForm.notes}
+                  onChange={(e) => setSeasonForm({ ...seasonForm, notes: e.target.value })}
+                  placeholder="Any notes about this season"
+                  className="mt-1"
+                  data-testid="input-season-notes"
+                />
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSeasonDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveSeason} data-testid="button-save-season">
+                {editingSeasonData ? "Update Season" : "Add Season"}
               </Button>
             </DialogFooter>
           </DialogContent>

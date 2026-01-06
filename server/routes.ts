@@ -3241,7 +3241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               cheapestByDateAirport.set(key, {
                 price: flightPrice,
                 airport: offer.depapt,
-                airportName: offer.depname || UK_AIRPORTS[offer.depapt] || offer.depapt,
+                airportName: offer.depname || UK_AIRPORTS_MAP[offer.depapt] || offer.depapt,
               });
             }
           }
@@ -6013,7 +6013,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             departureInfo: 'Departures available year-round',
             isPublished: true,
             displayOrder: i,
-            pricingDisplay: 'both' as const
+            pricingDisplay: 'both' as const,
+            pricingModule: 'manual' as const
           };
           
           await storage.createFlightPackage(packageData);

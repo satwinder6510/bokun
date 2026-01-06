@@ -54,7 +54,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { FlightPackage, InsertFlightPackage, PackagePricing, Hotel } from "@shared/schema";
+import type { FlightPackage, InsertFlightPackage, PackagePricing, Hotel, PackageSeason } from "@shared/schema";
 import { MediaPicker } from "@/components/MediaPicker";
 import { Star } from "lucide-react";
 
@@ -301,6 +301,20 @@ export default function AdminPackages() {
   const [flightMarkup, setFlightMarkup] = useState<number>(5);
   const [isFetchingFlightPrices, setIsFetchingFlightPrices] = useState(false);
   const [flightPriceResults, setFlightPriceResults] = useState<any>(null);
+  
+  // Seasonal land pricing state (for manual packages)
+  const [packageSeasons, setPackageSeasons] = useState<PackageSeason[]>([]);
+  const [isLoadingSeasons, setIsLoadingSeasons] = useState(false);
+  const [seasonDialogOpen, setSeasonDialogOpen] = useState(false);
+  const [editingSeasonData, setEditingSeasonData] = useState<PackageSeason | null>(null);
+  const [seasonForm, setSeasonForm] = useState({
+    seasonName: "",
+    startDate: "",
+    endDate: "",
+    landCostPerPerson: 0,
+    hotelCostPerPerson: null as number | null,
+    notes: "",
+  });
 
   // Bokun tour import state
   const [bokunSearchOpen, setBokunSearchOpen] = useState(false);

@@ -3500,6 +3500,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[FetchFlightPrices] Package ${packageId}, API: ${flightApiSource}`);
       console.log(`[FetchFlightPrices] Destination: ${destinationAirport}, Duration: ${duration} nights`);
       console.log(`[FetchFlightPrices] Date range: ${startDate} to ${endDate}, Markup: ${markup}%`);
+      console.log(`[FetchFlightPrices] Seasons received:`, JSON.stringify(seasons.map((s: any) => ({
+        name: s.seasonName,
+        start: s.startDate,
+        end: s.endDate,
+        landCost: s.landCostPerPerson
+      }))));
 
       // Helper to find which season a date falls into
       const findSeasonForDate = (dateStr: string): { name: string; landCost: number; hotelCost: number } | null => {
@@ -3645,7 +3651,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           for (const [key, flight] of Array.from(cheapestByDateAirport.entries())) {
             const season = findSeasonForDate(flight.date);
-            if (!season) continue;
+            if (!season) {
+              console.log(`[FetchFlightPrices] No season found for date ${flight.date}, skipping`);
+              continue;
+            }
 
             // Combined price = (flight + land cost + hotel cost) * (1 + markup%)
             const rawTotal = flight.price + season.landCost + season.hotelCost;

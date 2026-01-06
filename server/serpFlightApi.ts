@@ -213,7 +213,7 @@ async function fetchFlightsForDate(
     url.searchParams.set("hl", "en");
     url.searchParams.set("adults", "1");
     url.searchParams.set("bags", "1"); // Include 1 carry-on bag in price
-    url.searchParams.set("stops", "1"); // Max 1 connection (direct or 1 stop only)
+    // Note: Removed stops filter to get more results for long-haul routes
     url.searchParams.set("travel_class", "1"); // Economy
     url.searchParams.set("sort_by", "2"); // Sort by price
     

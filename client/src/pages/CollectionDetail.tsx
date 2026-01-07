@@ -1,4 +1,4 @@
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { Header } from "@/components/Header";
@@ -12,9 +12,18 @@ import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import type { FlightPackage, BokunProduct } from "@shared/schema";
 
+// Known collection tag slugs - if a slug is not in this list, it might be a destination
+const KNOWN_COLLECTION_SLUGS = new Set([
+  "beach", "city-breaks", "city-break", "family", "adventure", "luxury", "budget",
+  "cultural", "safari", "cruise", "river-cruise", "golden-triangle", "multi-centre",
+  "wellness", "religious", "wildlife", "island", "twin-centre", "all-inclusive",
+  "gems", "solo-travellers"
+]);
+
 const TAG_DISPLAY_NAMES: Record<string, string> = {
   "beach": "Beach Holidays",
   "city-break": "City Breaks",
+  "city-breaks": "City Breaks",
   "family": "Family Holidays",
   "adventure": "Adventure Tours",
   "luxury": "Luxury Escapes",
@@ -28,7 +37,11 @@ const TAG_DISPLAY_NAMES: Record<string, string> = {
   "wellness": "Wellness Retreats",
   "religious": "Pilgrimage Tours",
   "wildlife": "Wildlife Experiences",
-  "island": "Island Escapes"
+  "island": "Island Escapes",
+  "twin-centre": "Twin-Centre Holidays",
+  "all-inclusive": "All-Inclusive Holidays",
+  "gems": "Hidden Gems",
+  "solo-travellers": "Solo Travel"
 };
 
 interface CollectionData {
@@ -107,14 +120,27 @@ function LandTourCard({ tour }: { tour: BokunProduct }) {
 
 export default function CollectionDetail() {
   const [, params] = useRoute("/holidays/:tag");
+  const [, setLocation] = useLocation();
   const tagSlug = params?.tag || "";
   const displayName = TAG_DISPLAY_NAMES[tagSlug] || tagSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  
+  // Check if this is a known collection slug
+  const isKnownCollection = KNOWN_COLLECTION_SLUGS.has(tagSlug.toLowerCase());
 
   const { data, isLoading, error } = useQuery<CollectionData>({
     queryKey: ['/api/collections', tagSlug],
     queryFn: () => apiRequest('GET', `/api/collections/${encodeURIComponent(tagSlug)}`),
-    enabled: !!tagSlug,
+    enabled: !!tagSlug && isKnownCollection,
   });
+
+  // Redirect to destination page if this is not a known collection
+  // This handles case-insensitive URL matching on production servers
+  useEffect(() => {
+    if (tagSlug && !isKnownCollection) {
+      // Redirect to destination page (e.g., /holidays/sri-lanka -> /Holidays/sri-lanka)
+      setLocation(`/Holidays/${tagSlug}`, { replace: true });
+    }
+  }, [tagSlug, isKnownCollection, setLocation]);
 
   useEffect(() => {
     if (data) {
@@ -165,7 +191,7 @@ export default function CollectionDetail() {
         </div>
 
         <div className="container mx-auto px-4 py-8">
-          {isLoading ? (
+          {(isLoading || !isKnownCollection) ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
                 <Skeleton key={i} className="h-80 rounded-lg" />

@@ -963,7 +963,7 @@ export default function PackageDetail() {
                   <Card>
                     <CardContent className="pt-6">
                       <div 
-                        className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
                         dangerouslySetInnerHTML={{ __html: pkg.description }}
                       />
                     </CardContent>
@@ -1013,7 +1013,7 @@ export default function PackageDetail() {
                           </CardHeader>
                           <CardContent>
                             <div 
-                              className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
+                              className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
                               dangerouslySetInnerHTML={{ __html: day.description }}
                             />
                           </CardContent>
@@ -1048,7 +1048,7 @@ export default function PackageDetail() {
                           </CardHeader>
                           <CardContent className="space-y-4">
                             <div 
-                              className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
+                              className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
                               dangerouslySetInnerHTML={{ __html: hotel.description || '' }}
                             />
                             {hotel.images && hotel.images.length > 0 && (
@@ -1085,7 +1085,7 @@ export default function PackageDetail() {
                         </CardHeader>
                         <CardContent>
                           <div 
-                            className="prose prose-sm max-w-none dark:prose-invert"
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
                             dangerouslySetInnerHTML={{ __html: pkg.excluded }}
                           />
                         </CardContent>
@@ -1099,7 +1099,7 @@ export default function PackageDetail() {
                         </CardHeader>
                         <CardContent>
                           <div 
-                            className="prose prose-sm max-w-none dark:prose-invert"
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
                             dangerouslySetInnerHTML={{ __html: pkg.requirements }}
                           />
                         </CardContent>
@@ -1113,7 +1113,7 @@ export default function PackageDetail() {
                         </CardHeader>
                         <CardContent>
                           <div 
-                            className="prose prose-sm max-w-none dark:prose-invert"
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
                             dangerouslySetInnerHTML={{ __html: pkg.attention }}
                           />
                         </CardContent>
@@ -1127,7 +1127,7 @@ export default function PackageDetail() {
                       <CardContent>
                         {pkg.otherInfo ? (
                           <div 
-                            className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
                             dangerouslySetInnerHTML={{ __html: pkg.otherInfo }}
                           />
                         ) : (
@@ -1146,7 +1146,7 @@ export default function PackageDetail() {
                         </CardHeader>
                         <CardContent>
                           <div 
-                            className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
                             dangerouslySetInnerHTML={{ __html: pkg.review }}
                             data-testid="content-reviews-mobile"
                           />
@@ -1177,7 +1177,7 @@ export default function PackageDetail() {
                     </CardHeader>
                     <CardContent>
                       <div 
-                        className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
                         dangerouslySetInnerHTML={{ __html: pkg.description }}
                         data-testid="content-description"
                       />
@@ -1244,7 +1244,7 @@ export default function PackageDetail() {
                         </CardHeader>
                         <CardContent>
                           <div 
-                            className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground"
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
                             dangerouslySetInnerHTML={{ __html: day.description }}
                           />
                         </CardContent>
@@ -1269,7 +1269,7 @@ export default function PackageDetail() {
                         </CardHeader>
                         <CardContent>
                           <div 
-                            className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground mb-4"
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4"
                             dangerouslySetInnerHTML={{ __html: hotel.description }}
                           />
                           {hotel.images && hotel.images.length > 0 && (
@@ -1303,7 +1303,7 @@ export default function PackageDetail() {
                       </CardHeader>
                       <CardContent>
                         <div 
-                          className="prose prose-sm max-w-none dark:prose-invert"
+                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
                           dangerouslySetInnerHTML={{ __html: pkg.excluded }}
                           data-testid="content-excluded"
                         />
@@ -1318,7 +1318,7 @@ export default function PackageDetail() {
                       </CardHeader>
                       <CardContent>
                         <div 
-                          className="prose prose-sm max-w-none dark:prose-invert"
+                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
                           dangerouslySetInnerHTML={{ __html: pkg.requirements }}
                           data-testid="content-requirements"
                         />
@@ -1333,7 +1333,7 @@ export default function PackageDetail() {
                       </CardHeader>
                       <CardContent>
                         <div 
-                          className="prose prose-sm max-w-none dark:prose-invert"
+                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
                           dangerouslySetInnerHTML={{ __html: pkg.attention }}
                           data-testid="content-attention"
                         />
@@ -1348,7 +1348,7 @@ export default function PackageDetail() {
                     <CardContent>
                       {pkg.otherInfo ? (
                         <div 
-                          className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
                           dangerouslySetInnerHTML={{ __html: pkg.otherInfo }}
                           data-testid="content-other-info"
                         />
@@ -1370,7 +1370,7 @@ export default function PackageDetail() {
                       </CardHeader>
                       <CardContent>
                         <div 
-                          className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
                           dangerouslySetInnerHTML={{ __html: pkg.review }}
                           data-testid="content-reviews"
                         />

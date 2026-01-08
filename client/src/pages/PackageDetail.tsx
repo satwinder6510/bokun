@@ -55,6 +55,7 @@ import type { FlightPackage, PackagePricing } from "@shared/schema";
 interface WindowWithTidio extends Window {
   tidioChatApi?: {
     show: () => void;
+    hide: () => void;
     open: () => void;
   };
 }
@@ -1136,17 +1137,36 @@ export default function PackageDetail() {
                         )}
                       </CardContent>
                     </Card>
+
+                    {/* Customer Reviews - Mobile */}
+                    {pkg.review && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Customer Reviews</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                            dangerouslySetInnerHTML={{ __html: pkg.review }}
+                            data-testid="content-reviews-mobile"
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Desktop: Tabbed content */}
               <Tabs defaultValue="overview" className="w-full hidden lg:block">
-                <TabsList className="grid w-full grid-cols-4 mb-6">
+                <TabsList className={`grid w-full mb-6 ${pkg.review ? 'grid-cols-5' : 'grid-cols-4'}`}>
                   <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
                   <TabsTrigger value="itinerary" data-testid="tab-itinerary">Itinerary</TabsTrigger>
                   <TabsTrigger value="accommodation" data-testid="tab-accommodation">Hotels</TabsTrigger>
                   <TabsTrigger value="info" data-testid="tab-info">Info</TabsTrigger>
+                  {pkg.review && (
+                    <TabsTrigger value="reviews" data-testid="tab-reviews">Reviews</TabsTrigger>
+                  )}
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
@@ -1340,6 +1360,24 @@ export default function PackageDetail() {
                     </CardContent>
                   </Card>
                 </TabsContent>
+
+                {/* Reviews Tab - Only shown when review content exists */}
+                {pkg.review && (
+                  <TabsContent value="reviews" className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Customer Reviews</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-line"
+                          dangerouslySetInnerHTML={{ __html: pkg.review }}
+                          data-testid="content-reviews"
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
               </Tabs>
             </div>
 

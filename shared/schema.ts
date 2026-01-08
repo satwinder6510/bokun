@@ -404,6 +404,9 @@ export const flightPackages = pgTable("flight_packages", {
   }[]>().notNull().default([]),
   otherInfo: text("other_info"), // HTML content for terms, conditions, etc.
   
+  // Customer review/testimonial for this package
+  review: text("review"), // HTML content - customer review shown in Reviews tab
+  
   // Images
   featuredImage: text("featured_image"),
   gallery: jsonb("gallery").$type<string[]>().default([]),

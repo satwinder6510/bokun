@@ -127,6 +127,7 @@ type PackageFormData = {
   itinerary: ItineraryDay[];
   accommodations: Accommodation[];
   otherInfo: string;
+  review: string | null;
   excluded: string | null;
   requirements: string | null;
   attention: string | null;
@@ -181,6 +182,7 @@ const emptyPackage: PackageFormData = {
   itinerary: [],
   accommodations: [],
   otherInfo: "",
+  review: null,
   excluded: null,
   requirements: null,
   attention: null,
@@ -669,6 +671,7 @@ export default function AdminPackages() {
       itinerary: (pkg.itinerary || []) as ItineraryDay[],
       accommodations: (pkg.accommodations || []) as Accommodation[],
       otherInfo: pkg.otherInfo || "",
+      review: pkg.review || null,
       excluded: pkg.excluded || null,
       requirements: pkg.requirements || null,
       attention: pkg.attention || null,
@@ -2812,6 +2815,21 @@ export default function AdminPackages() {
                         placeholder="Terms, conditions, visa info..."
                         rows={6}
                         data-testid="input-other-info"
+                      />
+                    </div>
+
+                    <Separator className="my-4" />
+
+                    <div>
+                      <Label htmlFor="review">Customer Review (HTML)</Label>
+                      <p className="text-xs text-muted-foreground mb-1">Customer testimonial to display in Reviews tab. Leave empty to hide the Reviews tab.</p>
+                      <Textarea
+                        id="review"
+                        value={formData.review || ""}
+                        onChange={(e) => setFormData({ ...formData, review: e.target.value || null })}
+                        placeholder="Customer testimonial or review..."
+                        rows={6}
+                        data-testid="input-review"
                       />
                     </div>
                   </TabsContent>

@@ -3789,9 +3789,16 @@ export default function AdminPackages() {
                                   ) : (
                                     <p className="text-sm text-muted-foreground">Not synced yet</p>
                                   )}
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {bokunDepartures.length} departures loaded
-                                  </p>
+                                  <div className="flex items-center gap-3 mt-1">
+                                    <p className="text-xs text-muted-foreground">
+                                      {bokunDepartures.length} departures
+                                    </p>
+                                    {bokunDepartures[0]?.durationNights && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {bokunDepartures[0].durationNights} nights (auto-detected)
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
                                 <Button
                                   type="button"

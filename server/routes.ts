@@ -3137,26 +3137,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[SyncDepartures] Syncing departures for package ${id} (Bokun product ${pkg.bokunProductId})`);
       
-      // Fetch departures from Bokun
-      const { departures, totalRates } = await syncBokunDepartures(pkg.bokunProductId, exchangeRate);
+      // Fetch departures from Bokun (also extracts duration from product details)
+      const { departures, totalRates, durationNights } = await syncBokunDepartures(pkg.bokunProductId, exchangeRate);
       
       if (departures.length === 0) {
         return res.json({ 
           success: true, 
           message: "No departures found in Bokun for the next 12 months",
           departuresCount: 0,
-          ratesCount: 0
+          ratesCount: 0,
+          durationNights
         });
       }
       
-      // Store departures in database
-      const result = await storage.syncBokunDepartures(parseInt(id), pkg.bokunProductId, departures);
+      // Store departures in database (includes durationNights extracted from Bokun)
+      const result = await storage.syncBokunDepartures(parseInt(id), pkg.bokunProductId, departures, durationNights);
       
       res.json({
         success: true,
         message: `Synced ${result.departuresCount} departures with ${result.ratesCount} rates`,
         departuresCount: result.departuresCount,
         ratesCount: result.ratesCount,
+        durationNights,
         lastSyncedAt: new Date().toISOString()
       });
     } catch (error: any) {
@@ -3203,15 +3205,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fetch flight prices for all Bokun departure rates
   app.post("/api/admin/packages/fetch-bokun-departure-flights", async (req, res) => {
     try {
-      const { packageId, destinationAirport, departureAirports, duration, markup } = req.body;
+      const { packageId, destinationAirport, departureAirports, duration: requestDuration, markup } = req.body;
       
       if (!packageId || !destinationAirport || !departureAirports || departureAirports.length === 0) {
         return res.status(400).json({ error: "Missing required parameters" });
       }
-      
-      console.log(`[BokunFlights] Fetching flights for package ${packageId}`);
-      console.log(`[BokunFlights] Destination: ${destinationAirport}, Duration: ${duration}, Markup: ${markup}%`);
-      console.log(`[BokunFlights] UK Airports: ${departureAirports.join(", ")}`);
       
       // Get all departures for this package
       const departures = await storage.getBokunDepartures(packageId);
@@ -3220,8 +3218,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ success: true, updated: 0, message: "No departures found" });
       }
       
+      // Use stored duration from Bokun product, or fall back to request param, or default to 7
+      const storedDuration = departures[0]?.durationNights;
+      const duration = requestDuration || storedDuration || 7;
+      
+      console.log(`[BokunFlights] Fetching flights for package ${packageId}`);
+      console.log(`[BokunFlights] Destination: ${destinationAirport}, Duration: ${duration} nights (stored: ${storedDuration}, requested: ${requestDuration}), Markup: ${markup}%`);
+      console.log(`[BokunFlights] UK Airports: ${departureAirports.join(", ")}`);
+      
       // Collect unique departure dates
-      const uniqueDates = [...new Set(departures.map(d => d.departureDate))];
+      const uniqueDates = Array.from(new Set(departures.map(d => d.departureDate)));
       console.log(`[BokunFlights] Found ${uniqueDates.length} unique departure dates`);
       
       // Fetch flight prices for each date/airport combination using SERP API
@@ -3233,7 +3239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate return date based on duration
         const departDate = new Date(date);
         const returnDate = new Date(departDate);
-        returnDate.setDate(returnDate.getDate() + (duration || 7));
+        returnDate.setDate(returnDate.getDate() + duration);
         const returnDateStr = returnDate.toISOString().split("T")[0];
         
         for (const ukAirport of departureAirports) {

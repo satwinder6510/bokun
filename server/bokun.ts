@@ -529,6 +529,34 @@ export interface ParsedDeparture {
   rates: ParsedDepartureRate[];
 }
 
+// Parse duration text (e.g., "8 days", "7 Days / 6 Nights") to nights
+export function parseDurationToNights(durationText: string | null | undefined): number | null {
+  if (!durationText) return null;
+  
+  const text = durationText.toLowerCase().trim();
+  
+  // Try to find explicit nights: "6 nights", "7 Nights"
+  const nightsMatch = text.match(/(\d+)\s*nights?/i);
+  if (nightsMatch) {
+    return parseInt(nightsMatch[1], 10);
+  }
+  
+  // Try to find days: "8 days" = 7 nights, "7 Days" = 6 nights
+  const daysMatch = text.match(/(\d+)\s*days?/i);
+  if (daysMatch) {
+    const days = parseInt(daysMatch[1], 10);
+    return Math.max(1, days - 1); // Days - 1 = Nights
+  }
+  
+  // Try weeks: "1 week" = 7 nights, "2 weeks" = 14 nights
+  const weeksMatch = text.match(/(\d+)\s*weeks?/i);
+  if (weeksMatch) {
+    return parseInt(weeksMatch[1], 10) * 7;
+  }
+  
+  return null;
+}
+
 // Parse room category from rate title
 function parseRoomCategory(rateTitle: string, minPerBooking: number): "twin" | "single" | "triple" | "standard" {
   const titleLower = rateTitle.toLowerCase();
@@ -569,7 +597,7 @@ function parseHotelCategory(rateTitle: string): string | null {
 export async function syncBokunDepartures(
   productId: string,
   exchangeRate: number = 0.79 // Default USD to GBP rate
-): Promise<{ departures: ParsedDeparture[]; totalRates: number }> {
+): Promise<{ departures: ParsedDeparture[]; totalRates: number; durationNights: number | null }> {
   // Fetch next 12 months of availability
   const startDate = new Date();
   const endDate = new Date();
@@ -580,12 +608,23 @@ export async function syncBokunDepartures(
   
   console.log(`[SyncDepartures] Fetching Bokun availability for product ${productId} from ${startStr} to ${endStr}`);
   
+  // Fetch product details to get duration
+  let durationNights: number | null = null;
+  try {
+    const productDetails = await getBokunProductDetails(productId, "USD");
+    const durationText = productDetails?.durationText || productDetails?.fields?.durationText;
+    durationNights = parseDurationToNights(durationText);
+    console.log(`[SyncDepartures] Product ${productId} duration: "${durationText}" -> ${durationNights} nights`);
+  } catch (err) {
+    console.warn(`[SyncDepartures] Could not fetch product details for duration: ${err}`);
+  }
+  
   // Fetch in USD (Bokun default)
   const availabilityData = await getBokunAvailability(productId, startStr, endStr, "USD");
   
   if (!Array.isArray(availabilityData) || availabilityData.length === 0) {
     console.log(`[SyncDepartures] No availability data returned for product ${productId}`);
-    return { departures: [], totalRates: 0 };
+    return { departures: [], totalRates: 0, durationNights };
   }
   
   const departures: ParsedDeparture[] = [];
@@ -718,5 +757,5 @@ export async function syncBokunDepartures(
   
   console.log(`[SyncDepartures] Parsed ${departures.length} departures with ${totalRates} total rates for product ${productId}`);
   
-  return { departures, totalRates };
+  return { departures, totalRates, durationNights };
 }

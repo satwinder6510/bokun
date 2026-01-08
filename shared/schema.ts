@@ -615,6 +615,9 @@ export const bokunDepartures = pgTable("bokun_departures", {
   packageId: integer("package_id").notNull().references(() => flightPackages.id, { onDelete: 'cascade' }),
   bokunProductId: text("bokun_product_id").notNull(),
   
+  // Tour duration extracted from Bokun product
+  durationNights: integer("duration_nights"), // Trip duration in nights (e.g., 7 for an 8-day tour)
+  
   // Departure details from Bokun
   departureDate: text("departure_date").notNull(), // YYYY-MM-DD
   startTime: text("start_time"), // e.g., "09:00"

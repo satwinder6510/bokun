@@ -159,7 +159,7 @@ export interface IStorage {
   deleteContentImage(id: number): Promise<boolean>;
   
   // Bokun departures methods
-  syncBokunDepartures(packageId: number, bokunProductId: string, departures: ParsedDeparture[]): Promise<{ departuresCount: number; ratesCount: number }>;
+  syncBokunDepartures(packageId: number, bokunProductId: string, departures: ParsedDeparture[], durationNights?: number | null): Promise<{ departuresCount: number; ratesCount: number }>;
   getBokunDepartures(packageId: number): Promise<DepartureWithRates[]>;
   updateDepartureRateFlightPricing(rateId: number, flightPriceGbp: number, departureAirport: string, combinedPriceGbp?: number): Promise<BokunDepartureRate | undefined>;
   
@@ -1434,7 +1434,7 @@ export class MemStorage implements IStorage {
   }
   
   // Bokun departures methods
-  async syncBokunDepartures(packageId: number, bokunProductId: string, departures: ParsedDeparture[]): Promise<{ departuresCount: number; ratesCount: number }> {
+  async syncBokunDepartures(packageId: number, bokunProductId: string, departures: ParsedDeparture[], durationNights: number | null = null): Promise<{ departuresCount: number; ratesCount: number }> {
     try {
       // Delete existing departures for this package (cascade deletes rates)
       await db.delete(bokunDepartures).where(eq(bokunDepartures.packageId, packageId));
@@ -1443,10 +1443,11 @@ export class MemStorage implements IStorage {
       let ratesCount = 0;
       
       for (const departure of departures) {
-        // Insert departure
+        // Insert departure with duration from Bokun product
         const [insertedDeparture] = await db.insert(bokunDepartures).values({
           packageId,
           bokunProductId,
+          durationNights, // Extracted from Bokun product details
           departureDate: departure.departureDate,
           startTime: departure.startTime,
           totalCapacity: departure.totalCapacity,

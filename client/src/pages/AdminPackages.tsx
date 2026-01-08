@@ -57,7 +57,7 @@ import {
 } from "@/components/ui/table";
 import type { FlightPackage, InsertFlightPackage, PackagePricing, Hotel, PackageSeason } from "@shared/schema";
 import { MediaPicker } from "@/components/MediaPicker";
-import { Star } from "lucide-react";
+import { Star, RefreshCw } from "lucide-react";
 
 // UK Airports list
 const UK_AIRPORTS = [
@@ -116,7 +116,7 @@ type PackageFormData = {
   price: number;
   singlePrice: number | null;
   pricingDisplay: "both" | "twin" | "single";
-  pricingModule: "manual" | "open_jaw_seasonal";
+  pricingModule: "manual" | "open_jaw_seasonal" | "bokun_departures";
   flightApiSource: "european" | "serp";
   currency: string;
   priceLabel: string;
@@ -344,6 +344,12 @@ export default function AdminPackages() {
     doubleRoomPrice?: number;
     rates?: { id: number; title: string; minPerBooking: number; price: number }[];
   } | null>(null);
+  
+  // Bokun departures state (for bokun_departures pricing module)
+  const [bokunDepartures, setBokunDepartures] = useState<any[]>([]);
+  const [isLoadingDepartures, setIsLoadingDepartures] = useState(false);
+  const [isSyncingDepartures, setIsSyncingDepartures] = useState(false);
+  const [lastDepartureSync, setLastDepartureSync] = useState<string | null>(null);
   
   // Hotel library picker state
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
@@ -660,7 +666,7 @@ export default function AdminPackages() {
       price: pkg.price,
       singlePrice: pkg.singlePrice || null,
       pricingDisplay: (pkg.pricingDisplay as "both" | "twin" | "single") || "both",
-      pricingModule: (pkg.pricingModule === "open_jaw_seasonal" ? "open_jaw_seasonal" : "manual") as "manual" | "open_jaw_seasonal",
+      pricingModule: (pkg.pricingModule === "open_jaw_seasonal" ? "open_jaw_seasonal" : pkg.pricingModule === "bokun_departures" ? "bokun_departures" : "manual") as "manual" | "open_jaw_seasonal" | "bokun_departures",
       flightApiSource: ((pkg as any).flightApiSource as "european" | "serp") || "european",
       currency: pkg.currency,
       priceLabel: pkg.priceLabel,
@@ -701,6 +707,11 @@ export default function AdminPackages() {
     
     // Load seasons for open-jaw pricing
     await loadPackageSeasons(pkg.id);
+    
+    // Load Bokun departures if using bokun_departures module
+    if (pkg.pricingModule === "bokun_departures" && pkg.bokunProductId) {
+      await loadBokunDepartures(pkg.id);
+    }
   };
 
   const loadPackagePricing = async (packageId: number) => {
@@ -815,6 +826,63 @@ export default function AdminPackages() {
       }
     } catch (error) {
       toast({ title: "Error deleting season", variant: "destructive" });
+    }
+  };
+  
+  // Bokun departures functions
+  const loadBokunDepartures = async (packageId: number) => {
+    setIsLoadingDepartures(true);
+    try {
+      const response = await fetch(`/api/admin/packages/${packageId}/departures`, {
+        headers: { 'X-Admin-Session': localStorage.getItem('admin_session_token') || '' },
+      });
+      if (response.ok) {
+        const departures = await response.json();
+        setBokunDepartures(departures);
+        if (departures.length > 0 && departures[0].lastSyncedAt) {
+          setLastDepartureSync(departures[0].lastSyncedAt);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load Bokun departures:", error);
+    } finally {
+      setIsLoadingDepartures(false);
+    }
+  };
+  
+  const handleSyncDepartures = async () => {
+    if (!editingPackage) return;
+    
+    setIsSyncingDepartures(true);
+    try {
+      const response = await fetch(`/api/admin/packages/${editingPackage.id}/sync-departures`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+        },
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        toast({ 
+          title: "Departures synced", 
+          description: `Found ${result.departuresCount} departures with ${result.ratesCount} rates` 
+        });
+        setLastDepartureSync(result.lastSyncedAt);
+        await loadBokunDepartures(editingPackage.id);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to sync departures");
+      }
+    } catch (error: any) {
+      toast({ 
+        title: "Error syncing departures", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsSyncingDepartures(false);
     }
   };
   
@@ -3097,10 +3165,22 @@ export default function AdminPackages() {
                               >
                                 Open-Jaw + Seasonal Land Cost
                               </Button>
+                              {formData.bokunProductId && (
+                                <Button
+                                  type="button"
+                                  variant={formData.pricingModule === "bokun_departures" ? "default" : "outline"}
+                                  size="sm"
+                                  onClick={() => setFormData({ ...formData, pricingModule: "bokun_departures" })}
+                                  data-testid="button-module-bokun-departures"
+                                >
+                                  Bokun Departures + Flights
+                                </Button>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
                               {formData.pricingModule === "manual" && "Enter prices manually per departure airport and date"}
                               {formData.pricingModule === "open_jaw_seasonal" && "Define seasonal land costs, then fetch flight prices from your chosen API"}
+                              {formData.pricingModule === "bokun_departures" && "Sync actual departure dates from Bokun, then add flight costs to each"}
                             </p>
                           </CardContent>
                         </Card>
@@ -3615,6 +3695,121 @@ export default function AdminPackages() {
                               </CardContent>
                             </Card>
                           </>
+                        )}
+                        
+                        {/* Bokun Departures + Flights Pricing Module */}
+                        {formData.pricingModule === "bokun_departures" && (
+                          <Card>
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <CalendarIcon className="w-4 h-4" />
+                                Bokun Departure Dates
+                              </CardTitle>
+                              <CardDescription>
+                                Sync actual departure dates and rates from Bokun, then add flight costs
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              {/* Sync Status and Button */}
+                              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                                <div>
+                                  {lastDepartureSync ? (
+                                    <p className="text-sm">
+                                      Last synced: {format(new Date(lastDepartureSync), "dd MMM yyyy HH:mm")}
+                                    </p>
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">Not synced yet</p>
+                                  )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {bokunDepartures.length} departures loaded
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  onClick={handleSyncDepartures}
+                                  disabled={isSyncingDepartures}
+                                  data-testid="button-sync-departures"
+                                >
+                                  {isSyncingDepartures ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Syncing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <RefreshCw className="w-4 h-4 mr-2" />
+                                      Sync from Bokun
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                              
+                              {/* Departures Table */}
+                              {isLoadingDepartures ? (
+                                <div className="flex items-center justify-center py-8">
+                                  <Loader2 className="w-6 h-6 animate-spin" />
+                                </div>
+                              ) : bokunDepartures.length === 0 ? (
+                                <div className="text-center py-6 text-muted-foreground">
+                                  <CalendarIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                  <p className="text-sm">No departures synced yet</p>
+                                  <p className="text-xs mt-1">Click "Sync from Bokun" to fetch departure dates</p>
+                                </div>
+                              ) : (
+                                <div className="border rounded-lg overflow-hidden">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Rate</TableHead>
+                                        <TableHead>Room</TableHead>
+                                        <TableHead>Hotel</TableHead>
+                                        <TableHead className="text-right">Land (£)</TableHead>
+                                        <TableHead className="text-right">Flight (£)</TableHead>
+                                        <TableHead className="text-right">Total (£)</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {bokunDepartures.slice(0, 20).map((departure) => (
+                                        departure.rates?.map((rate: any) => (
+                                          <TableRow key={`${departure.id}-${rate.id}`}>
+                                            <TableCell className="font-medium">
+                                              {format(new Date(departure.departureDate), "dd MMM yyyy")}
+                                            </TableCell>
+                                            <TableCell className="text-sm max-w-[150px] truncate" title={rate.rateTitle}>
+                                              {rate.rateTitle}
+                                            </TableCell>
+                                            <TableCell>
+                                              <Badge variant="outline" className="text-xs">
+                                                {rate.roomCategory}
+                                              </Badge>
+                                            </TableCell>
+                                            <TableCell className="text-sm text-muted-foreground">
+                                              {rate.hotelCategory || "-"}
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono">
+                                              £{rate.priceGbp?.toFixed(0) || 0}
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono text-muted-foreground">
+                                              {rate.flightPriceGbp ? `£${rate.flightPriceGbp.toFixed(0)}` : "-"}
+                                            </TableCell>
+                                            <TableCell className="text-right font-mono font-medium">
+                                              {rate.combinedPriceGbp ? `£${rate.combinedPriceGbp.toFixed(0)}` : "-"}
+                                            </TableCell>
+                                          </TableRow>
+                                        ))
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                  {bokunDepartures.length > 20 && (
+                                    <div className="p-2 text-center text-xs text-muted-foreground border-t">
+                                      Showing first 20 of {bokunDepartures.length} departures
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
                         )}
 
                         <Separator />

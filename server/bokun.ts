@@ -595,37 +595,62 @@ export async function syncBokunDepartures(
     // Skip if no date
     if (!availability.date) continue;
     
-    const departureDate = availability.date;
+    // Convert timestamp to YYYY-MM-DD format
+    const dateValue = typeof availability.date === 'number' 
+      ? new Date(availability.date).toISOString().split('T')[0]
+      : availability.date;
+    const departureDate = dateValue;
     const startTime = availability.startTime || null;
     
     // Check overall availability
     const isSoldOut = availability.soldOut === true || availability.available === false;
     const totalCapacity = availability.maxParticipants || null;
-    const availableSpots = availability.availableSpots || null;
+    const availableSpots = availability.availableSpots || availability.availabilityCount || null;
     
-    // Parse rates from pricesByRate
+    // Build a map of rate details from the rates array
+    const rateDetailsMap = new Map<number, any>();
+    if (availability.rates && Array.isArray(availability.rates)) {
+      for (const rate of availability.rates) {
+        rateDetailsMap.set(rate.id, rate);
+      }
+    }
+    
+    // Parse rates from pricesByRate (which contains the actual prices)
     const rates: ParsedDepartureRate[] = [];
     
     if (availability.pricesByRate && Array.isArray(availability.pricesByRate)) {
       for (const ratePrice of availability.pricesByRate) {
-        const rateId = ratePrice.rateId?.toString() || null;
-        const rateTitle = ratePrice.title || ratePrice.rateName || "Standard Rate";
-        const pricingCategoryId = ratePrice.pricingCategoryId?.toString() || null;
+        const rateId = (ratePrice.activityRateId || ratePrice.rateId)?.toString() || null;
         
-        // Get price - try different fields
-        const originalPrice = ratePrice.price || ratePrice.pricePerPerson || ratePrice.amount || 0;
-        const originalCurrency = ratePrice.currency || "USD";
+        // Get rate details from the rates array
+        const rateDetails = rateDetailsMap.get(ratePrice.activityRateId) || {};
+        const rateTitle = rateDetails.title || ratePrice.title || ratePrice.rateName || "Standard Rate";
+        
+        // Get the first adult price from pricePerCategoryUnit
+        let originalPrice = 0;
+        let originalCurrency = "USD";
+        let pricingCategoryId: string | null = null;
+        
+        if (ratePrice.pricePerCategoryUnit && Array.isArray(ratePrice.pricePerCategoryUnit) && ratePrice.pricePerCategoryUnit.length > 0) {
+          // Get the first pricing category (typically Adult)
+          const firstPricing = ratePrice.pricePerCategoryUnit[0];
+          pricingCategoryId = firstPricing.id?.toString() || null;
+          if (firstPricing.amount) {
+            originalPrice = firstPricing.amount.amount || 0;
+            originalCurrency = firstPricing.amount.currency || "USD";
+          }
+        }
         
         // Convert to GBP
         const priceGbp = originalCurrency === "GBP" 
           ? originalPrice 
           : Math.round(originalPrice * exchangeRate * 100) / 100;
         
-        // Parse min/max booking
-        const minPerBooking = ratePrice.minPerBooking || 1;
-        const maxPerBooking = ratePrice.maxPerBooking || null;
+        // Parse min/max booking from rate details
+        const minPerBooking = rateDetails.minPerBooking || 1;
+        const maxPerBooking = rateDetails.maxPerBooking || null;
         
-        // Determine room and hotel categories
+        // Determine room and hotel categories from the rate title
         const roomCategory = parseRoomCategory(rateTitle, minPerBooking);
         const hotelCategory = parseHotelCategory(rateTitle);
         
@@ -640,7 +665,7 @@ export async function syncBokunDepartures(
           originalPrice,
           originalCurrency,
           priceGbp,
-          availableForRate: ratePrice.availableSpots || null,
+          availableForRate: null,
         });
         totalRates++;
       }

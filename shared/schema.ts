@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, timestamp, jsonb, integer, serial, boolean, real } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, integer, serial, boolean, real, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const bokunProductSchema = z.object({
@@ -685,6 +685,36 @@ export type BokunDeparture = typeof bokunDepartures.$inferSelect;
 export type InsertBokunDeparture = z.infer<typeof insertBokunDepartureSchema>;
 export type BokunDepartureRate = typeof bokunDepartureRates.$inferSelect;
 export type InsertBokunDepartureRate = z.infer<typeof insertBokunDepartureRateSchema>;
+
+// Flight pricing per departure rate per UK airport
+export const bokunDepartureRateFlights = pgTable("bokun_departure_rate_flights", {
+  id: serial("id").primaryKey(),
+  rateId: integer("rate_id").notNull().references(() => bokunDepartureRates.id, { onDelete: 'cascade' }),
+  airportCode: text("airport_code").notNull(), // UK departure airport code (LGW, STN, LTN, LHR, MAN, etc.)
+  flightPriceGbp: real("flight_price_gbp").notNull(), // Flight cost per person
+  combinedPriceGbp: real("combined_price_gbp").notNull(), // Land tour + flight total per person (smart rounded)
+  markupApplied: real("markup_applied").default(0), // Markup % that was applied
+  flightSource: text("flight_source").default("serp"), // API source: "serp", "european"
+  fetchedAt: timestamp("fetched_at").notNull().defaultNow(), // When the flight price was fetched
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  // Unique constraint on (rateId, airportCode) to prevent duplicates
+  uniqueIndex("bokun_rate_airport_unique").on(table.rateId, table.airportCode),
+]);
+
+export const insertBokunDepartureRateFlightSchema = createInsertSchema(bokunDepartureRateFlights).omit({ 
+  id: true, 
+  createdAt: true,
+  fetchedAt: true
+}).extend({
+  rateId: z.number().positive("Rate ID is required"),
+  airportCode: z.string().min(2).max(4, "Airport code must be 2-4 characters"),
+  flightPriceGbp: z.number().nonnegative("Flight price must be non-negative"),
+  combinedPriceGbp: z.number().positive("Combined price must be positive"),
+});
+
+export type BokunDepartureRateFlight = typeof bokunDepartureRateFlights.$inferSelect;
+export type InsertBokunDepartureRateFlight = z.infer<typeof insertBokunDepartureRateFlightSchema>;
 
 // Pricing Export History - track generated CSVs
 export const pricingExports = pgTable("pricing_exports", {

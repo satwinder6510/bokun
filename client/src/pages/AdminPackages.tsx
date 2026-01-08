@@ -350,6 +350,11 @@ export default function AdminPackages() {
   const [isLoadingDepartures, setIsLoadingDepartures] = useState(false);
   const [isSyncingDepartures, setIsSyncingDepartures] = useState(false);
   const [lastDepartureSync, setLastDepartureSync] = useState<string | null>(null);
+  const [bokunFlightDestAirport, setBokunFlightDestAirport] = useState("");
+  const [bokunFlightDepartAirports, setBokunFlightDepartAirports] = useState<string[]>(["LGW", "STN", "LTN", "LHR", "MAN"]);
+  const [isFetchingBokunFlights, setIsFetchingBokunFlights] = useState(false);
+  const [bokunFlightResults, setBokunFlightResults] = useState<{ success?: boolean; updated?: number; error?: string } | null>(null);
+  const [bokunFlightMarkup, setBokunFlightMarkup] = useState(10);
   
   // Hotel library picker state
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
@@ -883,6 +888,65 @@ export default function AdminPackages() {
       });
     } finally {
       setIsSyncingDepartures(false);
+    }
+  };
+  
+  const handleFetchBokunDepartureFlights = async () => {
+    if (!editingPackage || bokunDepartures.length === 0) {
+      toast({ title: "No departures to update", description: "Please sync departures first", variant: "destructive" });
+      return;
+    }
+    
+    if (!bokunFlightDestAirport) {
+      toast({ title: "Missing destination airport", description: "Please select a destination airport", variant: "destructive" });
+      return;
+    }
+    
+    if (bokunFlightDepartAirports.length === 0) {
+      toast({ title: "No departure airports", description: "Please select at least one UK departure airport", variant: "destructive" });
+      return;
+    }
+    
+    setIsFetchingBokunFlights(true);
+    setBokunFlightResults(null);
+    
+    try {
+      const response = await fetch("/api/admin/packages/fetch-bokun-departure-flights", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+        },
+        body: JSON.stringify({
+          packageId: editingPackage.id,
+          destinationAirport: bokunFlightDestAirport,
+          departureAirports: bokunFlightDepartAirports,
+          duration: parseInt(editingPackage.duration || "7"),
+          markup: bokunFlightMarkup,
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setBokunFlightResults({ success: true, updated: result.updated });
+        toast({ 
+          title: "Flight prices updated", 
+          description: `Updated ${result.updated} departure rates with flight prices` 
+        });
+        await loadBokunDepartures(editingPackage.id);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to fetch flight prices");
+      }
+    } catch (error: any) {
+      setBokunFlightResults({ error: error.message });
+      toast({ 
+        title: "Error fetching flights", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    } finally {
+      setIsFetchingBokunFlights(false);
     }
   };
   
@@ -3801,10 +3865,30 @@ export default function AdminPackages() {
                                               £{rate.priceGbp?.toFixed(0) || 0}
                                             </TableCell>
                                             <TableCell className="text-right font-mono text-muted-foreground">
-                                              {rate.flightPriceGbp ? `£${rate.flightPriceGbp.toFixed(0)}` : "-"}
+                                              {rate.flights && rate.flights.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1 justify-end">
+                                                  {rate.flights.map((f: any) => (
+                                                    <Badge key={f.airportCode} variant="secondary" className="text-xs font-mono">
+                                                      {f.airportCode}: £{f.flightPriceGbp?.toFixed(0)}
+                                                    </Badge>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                              )}
                                             </TableCell>
                                             <TableCell className="text-right font-mono font-medium">
-                                              {rate.combinedPriceGbp ? `£${rate.combinedPriceGbp.toFixed(0)}` : "-"}
+                                              {rate.flights && rate.flights.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1 justify-end">
+                                                  {rate.flights.map((f: any) => (
+                                                    <Badge key={f.airportCode} variant="outline" className="text-xs font-mono">
+                                                      {f.airportCode}: £{f.combinedPriceGbp?.toFixed(0)}
+                                                    </Badge>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                              )}
                                             </TableCell>
                                           </TableRow>
                                         ))
@@ -3814,6 +3898,106 @@ export default function AdminPackages() {
                                   {bokunDepartures.length > 20 && (
                                     <div className="p-2 text-center text-xs text-muted-foreground border-t">
                                       Showing first 20 of {bokunDepartures.length} departures
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Flight Configuration Section */}
+                              {bokunDepartures.length > 0 && (
+                                <div className="border-t pt-4 mt-4 space-y-4">
+                                  <h4 className="font-medium flex items-center gap-2">
+                                    <Plane className="w-4 h-4" />
+                                    Add Flight Prices
+                                  </h4>
+                                  
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Destination Airport */}
+                                    <div className="space-y-2">
+                                      <Label>Destination Airport (IATA Code)</Label>
+                                      <Input
+                                        placeholder="e.g. IST, DEL, BKK"
+                                        value={bokunFlightDestAirport}
+                                        onChange={(e) => setBokunFlightDestAirport(e.target.value.toUpperCase())}
+                                        maxLength={3}
+                                        data-testid="input-bokun-dest-airport"
+                                      />
+                                    </div>
+                                    
+                                    {/* Markup */}
+                                    <div className="space-y-2">
+                                      <Label>Markup %</Label>
+                                      <Input
+                                        type="number"
+                                        value={bokunFlightMarkup}
+                                        onChange={(e) => setBokunFlightMarkup(parseInt(e.target.value) || 0)}
+                                        min={0}
+                                        max={100}
+                                        data-testid="input-bokun-markup"
+                                      />
+                                    </div>
+                                  </div>
+                                  
+                                  {/* UK Departure Airports */}
+                                  <div className="space-y-2">
+                                    <Label>UK Departure Airports</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                      {UK_AIRPORTS.map((airport) => (
+                                        <Badge
+                                          key={airport.code}
+                                          variant={bokunFlightDepartAirports.includes(airport.code) ? "default" : "outline"}
+                                          className="cursor-pointer"
+                                          onClick={() => {
+                                            if (bokunFlightDepartAirports.includes(airport.code)) {
+                                              setBokunFlightDepartAirports(bokunFlightDepartAirports.filter(c => c !== airport.code));
+                                            } else {
+                                              setBokunFlightDepartAirports([...bokunFlightDepartAirports, airport.code]);
+                                            }
+                                          }}
+                                        >
+                                          {airport.code}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                      {bokunFlightDepartAirports.length} airports selected
+                                    </p>
+                                  </div>
+                                  
+                                  {/* Fetch Button */}
+                                  <Button
+                                    type="button"
+                                    onClick={handleFetchBokunDepartureFlights}
+                                    disabled={isFetchingBokunFlights || !bokunFlightDestAirport || bokunFlightDepartAirports.length === 0}
+                                    className="w-full"
+                                    data-testid="button-fetch-bokun-flights"
+                                  >
+                                    {isFetchingBokunFlights ? (
+                                      <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Fetching Flight Prices...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Plane className="w-4 h-4 mr-2" />
+                                        Fetch Flight Prices for All Departures
+                                      </>
+                                    )}
+                                  </Button>
+                                  
+                                  {bokunFlightResults && (
+                                    <div className={`p-3 rounded-lg text-sm ${bokunFlightResults.error ? 'bg-destructive/10 text-destructive' : 'bg-green-50 dark:bg-green-950 text-green-800 dark:text-green-200'}`}>
+                                      {bokunFlightResults.error ? (
+                                        <div className="flex items-center gap-2">
+                                          <AlertCircle className="w-4 h-4" />
+                                          {bokunFlightResults.error}
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-2">
+                                          <CheckCircle2 className="w-4 h-4" />
+                                          Updated {bokunFlightResults.updated} departure rates with flight prices
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>

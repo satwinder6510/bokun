@@ -24,6 +24,20 @@ import * as stockImageService from "./stockImageService";
 // Password hashing constants
 const SALT_ROUNDS = 12;
 
+// Smart rounding helper - rounds prices to x49, x69, or x99 for psychological pricing
+function smartRound(price: number): number {
+  const base = Math.floor(price / 100) * 100;
+  const remainder = price - base;
+  
+  if (remainder <= 49) {
+    return base + 49;
+  } else if (remainder <= 69) {
+    return base + 69;
+  } else {
+    return base + 99;
+  }
+}
+
 // Pending sessions for 2FA (in-memory, short-lived - 5 minutes max)
 const pendingSessions = new Map<string, { userId: number; email: string; role: string; expiresAt: Date }>();
 
@@ -3183,6 +3197,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating departure rate flight pricing:", error);
       res.status(500).json({ error: "Failed to update flight pricing" });
+    }
+  });
+
+  // Fetch flight prices for all Bokun departure rates
+  app.post("/api/admin/packages/fetch-bokun-departure-flights", async (req, res) => {
+    try {
+      const { packageId, destinationAirport, departureAirports, duration, markup } = req.body;
+      
+      if (!packageId || !destinationAirport || !departureAirports || departureAirports.length === 0) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      console.log(`[BokunFlights] Fetching flights for package ${packageId}`);
+      console.log(`[BokunFlights] Destination: ${destinationAirport}, Duration: ${duration}, Markup: ${markup}%`);
+      console.log(`[BokunFlights] UK Airports: ${departureAirports.join(", ")}`);
+      
+      // Get all departures for this package
+      const departures = await storage.getBokunDepartures(packageId);
+      
+      if (departures.length === 0) {
+        return res.json({ success: true, updated: 0, message: "No departures found" });
+      }
+      
+      // Collect unique departure dates
+      const uniqueDates = [...new Set(departures.map(d => d.departureDate))];
+      console.log(`[BokunFlights] Found ${uniqueDates.length} unique departure dates`);
+      
+      // Fetch flight prices for each date/airport combination using SERP API
+      const flightPrices: Record<string, Record<string, number>> = {}; // date -> { airport: price }
+      
+      for (const date of uniqueDates) {
+        flightPrices[date] = {};
+        
+        // Calculate return date based on duration
+        const departDate = new Date(date);
+        const returnDate = new Date(departDate);
+        returnDate.setDate(returnDate.getDate() + (duration || 7));
+        const returnDateStr = returnDate.toISOString().split("T")[0];
+        
+        for (const ukAirport of departureAirports) {
+          try {
+            // Use SERP API for Google Flights
+            const serpApiKey = process.env.SERPAPI_KEY;
+            if (!serpApiKey) {
+              console.log(`[BokunFlights] No SERP API key, skipping flight search`);
+              continue;
+            }
+            
+            const params = new URLSearchParams({
+              engine: "google_flights",
+              departure_id: ukAirport,
+              arrival_id: destinationAirport,
+              outbound_date: date,
+              return_date: returnDateStr,
+              currency: "GBP",
+              hl: "en",
+              gl: "uk",
+              api_key: serpApiKey,
+            });
+            
+            const serpUrl = `https://serpapi.com/search?${params.toString()}`;
+            const response = await fetch(serpUrl);
+            
+            if (response.ok) {
+              const data = await response.json();
+              
+              // Extract cheapest price from best_flights or other_flights
+              let cheapestPrice = null;
+              
+              if (data.best_flights && data.best_flights.length > 0) {
+                cheapestPrice = data.best_flights[0].price;
+              } else if (data.other_flights && data.other_flights.length > 0) {
+                cheapestPrice = data.other_flights[0].price;
+              }
+              
+              if (cheapestPrice) {
+                // Apply markup
+                const markedUpPrice = Math.round(cheapestPrice * (1 + (markup || 0) / 100));
+                flightPrices[date][ukAirport] = markedUpPrice;
+                console.log(`[BokunFlights] ${ukAirport} -> ${destinationAirport} on ${date}: £${cheapestPrice} (with markup: £${markedUpPrice})`);
+              }
+            }
+          } catch (err: any) {
+            console.error(`[BokunFlights] Error fetching flight ${ukAirport} -> ${destinationAirport} on ${date}:`, err.message);
+          }
+        }
+      }
+      
+      // Now upsert flight prices into the child table (per rate, per airport)
+      let updatedCount = 0;
+      
+      for (const departure of departures) {
+        const dateFlights = flightPrices[departure.departureDate] || {};
+        
+        for (const rate of departure.rates || []) {
+          // For each UK airport that has a price for this date
+          for (const [airport, flightPrice] of Object.entries(dateFlights)) {
+            // Calculate combined price (land tour + flight)
+            const combinedPrice = Math.round((rate.priceGbp || 0) + flightPrice);
+            
+            // Apply smart rounding to combined price (x49, x69, x99)
+            const smartRoundedPrice = smartRound(combinedPrice);
+            
+            // Upsert into the child table (one row per rate/airport combination)
+            await storage.upsertDepartureRateFlight(
+              rate.id,
+              airport,
+              flightPrice,
+              smartRoundedPrice,
+              markup,
+              "serp"
+            );
+            updatedCount++;
+          }
+        }
+      }
+      
+      console.log(`[BokunFlights] Upserted ${updatedCount} departure rate flight entries`);
+      
+      res.json({ 
+        success: true, 
+        updated: updatedCount,
+        flightDates: Object.keys(flightPrices).length 
+      });
+    } catch (error: any) {
+      console.error("Error fetching Bokun departure flights:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch flight prices" });
     }
   });
 

@@ -504,3 +504,194 @@ export async function confirmBokunBooking(
     throw new Error(error.message || "Failed to confirm booking with Bokun");
   }
 }
+
+// Types for parsed departure data
+export interface ParsedDepartureRate {
+  rateId: string | null;
+  rateTitle: string;
+  pricingCategoryId: string | null;
+  roomCategory: "twin" | "single" | "triple" | "standard";
+  hotelCategory: string | null;
+  minPerBooking: number;
+  maxPerBooking: number | null;
+  originalPrice: number;
+  originalCurrency: string;
+  priceGbp: number;
+  availableForRate: number | null;
+}
+
+export interface ParsedDeparture {
+  departureDate: string;
+  startTime: string | null;
+  totalCapacity: number | null;
+  availableSpots: number | null;
+  isSoldOut: boolean;
+  rates: ParsedDepartureRate[];
+}
+
+// Parse room category from rate title
+function parseRoomCategory(rateTitle: string, minPerBooking: number): "twin" | "single" | "triple" | "standard" {
+  const titleLower = rateTitle.toLowerCase();
+  
+  // Check explicit mentions
+  if (titleLower.includes("single") || titleLower.includes("solo")) return "single";
+  if (titleLower.includes("triple") || titleLower.includes("3-share")) return "triple";
+  if (titleLower.includes("twin") || titleLower.includes("double") || titleLower.includes("2-share")) return "twin";
+  
+  // Infer from minPerBooking
+  if (minPerBooking === 1) return "single";
+  if (minPerBooking === 2) return "twin";
+  if (minPerBooking === 3) return "triple";
+  
+  return "standard";
+}
+
+// Parse hotel category from rate title
+function parseHotelCategory(rateTitle: string): string | null {
+  const titleLower = rateTitle.toLowerCase();
+  
+  // Check for star ratings
+  const starMatch = rateTitle.match(/(\d)\s*[-*]?\s*star/i);
+  if (starMatch) return `${starMatch[1]}-star`;
+  
+  // Check for common hotel tier keywords
+  if (titleLower.includes("deluxe")) return "Deluxe";
+  if (titleLower.includes("premium")) return "Premium";
+  if (titleLower.includes("standard")) return "Standard";
+  if (titleLower.includes("budget")) return "Budget";
+  if (titleLower.includes("luxury")) return "Luxury";
+  if (titleLower.includes("superior")) return "Superior";
+  
+  return null;
+}
+
+// Sync departures from Bokun for a given product
+export async function syncBokunDepartures(
+  productId: string,
+  exchangeRate: number = 0.79 // Default USD to GBP rate
+): Promise<{ departures: ParsedDeparture[]; totalRates: number }> {
+  // Fetch next 12 months of availability
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setMonth(endDate.getMonth() + 12);
+  
+  const startStr = startDate.toISOString().split('T')[0];
+  const endStr = endDate.toISOString().split('T')[0];
+  
+  console.log(`[SyncDepartures] Fetching Bokun availability for product ${productId} from ${startStr} to ${endStr}`);
+  
+  // Fetch in USD (Bokun default)
+  const availabilityData = await getBokunAvailability(productId, startStr, endStr, "USD");
+  
+  if (!Array.isArray(availabilityData) || availabilityData.length === 0) {
+    console.log(`[SyncDepartures] No availability data returned for product ${productId}`);
+    return { departures: [], totalRates: 0 };
+  }
+  
+  const departures: ParsedDeparture[] = [];
+  let totalRates = 0;
+  
+  for (const availability of availabilityData) {
+    // Skip if no date
+    if (!availability.date) continue;
+    
+    const departureDate = availability.date;
+    const startTime = availability.startTime || null;
+    
+    // Check overall availability
+    const isSoldOut = availability.soldOut === true || availability.available === false;
+    const totalCapacity = availability.maxParticipants || null;
+    const availableSpots = availability.availableSpots || null;
+    
+    // Parse rates from pricesByRate
+    const rates: ParsedDepartureRate[] = [];
+    
+    if (availability.pricesByRate && Array.isArray(availability.pricesByRate)) {
+      for (const ratePrice of availability.pricesByRate) {
+        const rateId = ratePrice.rateId?.toString() || null;
+        const rateTitle = ratePrice.title || ratePrice.rateName || "Standard Rate";
+        const pricingCategoryId = ratePrice.pricingCategoryId?.toString() || null;
+        
+        // Get price - try different fields
+        const originalPrice = ratePrice.price || ratePrice.pricePerPerson || ratePrice.amount || 0;
+        const originalCurrency = ratePrice.currency || "USD";
+        
+        // Convert to GBP
+        const priceGbp = originalCurrency === "GBP" 
+          ? originalPrice 
+          : Math.round(originalPrice * exchangeRate * 100) / 100;
+        
+        // Parse min/max booking
+        const minPerBooking = ratePrice.minPerBooking || 1;
+        const maxPerBooking = ratePrice.maxPerBooking || null;
+        
+        // Determine room and hotel categories
+        const roomCategory = parseRoomCategory(rateTitle, minPerBooking);
+        const hotelCategory = parseHotelCategory(rateTitle);
+        
+        rates.push({
+          rateId,
+          rateTitle,
+          pricingCategoryId,
+          roomCategory,
+          hotelCategory,
+          minPerBooking,
+          maxPerBooking,
+          originalPrice,
+          originalCurrency,
+          priceGbp,
+          availableForRate: ratePrice.availableSpots || null,
+        });
+        totalRates++;
+      }
+    }
+    
+    // If no pricesByRate, try to get pricing from rates array
+    if (rates.length === 0 && availability.rates && Array.isArray(availability.rates)) {
+      for (const rate of availability.rates) {
+        const rateId = rate.id?.toString() || null;
+        const rateTitle = rate.title || rate.name || "Standard Rate";
+        const originalPrice = rate.price || rate.pricePerPerson || 0;
+        const originalCurrency = rate.currency || "USD";
+        const priceGbp = originalCurrency === "GBP" 
+          ? originalPrice 
+          : Math.round(originalPrice * exchangeRate * 100) / 100;
+        
+        const minPerBooking = rate.minPerBooking || 1;
+        const roomCategory = parseRoomCategory(rateTitle, minPerBooking);
+        const hotelCategory = parseHotelCategory(rateTitle);
+        
+        rates.push({
+          rateId,
+          rateTitle,
+          pricingCategoryId: null,
+          roomCategory,
+          hotelCategory,
+          minPerBooking,
+          maxPerBooking: rate.maxPerBooking || null,
+          originalPrice,
+          originalCurrency,
+          priceGbp,
+          availableForRate: null,
+        });
+        totalRates++;
+      }
+    }
+    
+    // Only add departure if it has rates with prices
+    if (rates.length > 0) {
+      departures.push({
+        departureDate,
+        startTime,
+        totalCapacity,
+        availableSpots,
+        isSoldOut,
+        rates,
+      });
+    }
+  }
+  
+  console.log(`[SyncDepartures] Parsed ${departures.length} departures with ${totalRates} total rates for product ${productId}`);
+  
+  return { departures, totalRates };
+}

@@ -3956,39 +3956,37 @@ export default function AdminPackages() {
                                         <div className="space-y-2">
                                           <Label>Arrival Airport (Outbound)</Label>
                                           <Input
-                                            placeholder="e.g. DEL (Delhi)"
+                                            placeholder="e.g. DEL or IST|SAW"
                                             value={bokunFlightDestAirport}
                                             onChange={(e) => setBokunFlightDestAirport(e.target.value.toUpperCase())}
-                                            maxLength={3}
                                             className="font-mono uppercase"
                                             data-testid="input-bokun-dest-airport"
                                           />
-                                          <p className="text-xs text-muted-foreground">Where outbound flight lands</p>
+                                          <p className="text-xs text-muted-foreground">Where outbound lands. Use | for multiple (e.g. IST|SAW)</p>
                                         </div>
                                         <div className="space-y-2">
                                           <Label>Departure Airport (Return)</Label>
                                           <Input
-                                            placeholder="e.g. BOM (Mumbai)"
+                                            placeholder="e.g. BOM or IST|SAW"
                                             value={bokunFlightReturnAirport}
                                             onChange={(e) => setBokunFlightReturnAirport(e.target.value.toUpperCase())}
-                                            maxLength={3}
                                             className="font-mono uppercase"
                                             data-testid="input-bokun-return-airport"
                                           />
-                                          <p className="text-xs text-muted-foreground">Where return flight departs</p>
+                                          <p className="text-xs text-muted-foreground">Where return departs. Use | for multiple (e.g. IST|SAW)</p>
                                         </div>
                                       </div>
                                     ) : (
                                       <div className="space-y-2">
                                         <Label>Destination Airport (IATA Code)</Label>
                                         <Input
-                                          placeholder="e.g. IST, DEL, BKK"
+                                          placeholder="e.g. IST or IST|SAW for multiple"
                                           value={bokunFlightDestAirport}
                                           onChange={(e) => setBokunFlightDestAirport(e.target.value.toUpperCase())}
-                                          maxLength={3}
                                           className="font-mono uppercase w-full md:w-64"
                                           data-testid="input-bokun-dest-airport"
                                         />
+                                        <p className="text-xs text-muted-foreground">Use | to search multiple airports (e.g. IST|SAW)</p>
                                       </div>
                                     )}
                                     

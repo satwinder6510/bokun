@@ -426,6 +426,15 @@ export const flightPackages = pgTable("flight_packages", {
   // Source URL for rescraping
   sourceUrl: text("source_url"),
   
+  // Auto-refresh settings for Bokun flight pricing
+  autoRefreshEnabled: boolean("auto_refresh_enabled").notNull().default(false),
+  lastFlightRefreshAt: timestamp("last_flight_refresh_at"),
+  flightRefreshConfig: jsonb("flight_refresh_config").$type<{
+    destinationAirport: string;
+    departureAirports: string[];
+    markup: number;
+  }>(),
+  
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

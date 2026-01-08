@@ -3354,64 +3354,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const uniqueDates = Array.from(new Set(departures.map(d => d.departureDate)));
       console.log(`[BokunFlights] Found ${uniqueDates.length} unique departure dates`);
       
-      // Fetch flight prices for each date/airport combination using SERP API
+      // Fetch flight prices using Sunshine European Flight API
       const flightPrices: Record<string, Record<string, number>> = {}; // date -> { airport: price }
       
-      for (const date of uniqueDates) {
-        flightPrices[date] = {};
+      // Format dates for Sunshine API (DD/MM/YYYY)
+      const formatDateForApi = (isoDate: string): string => {
+        const [year, month, day] = isoDate.split("-");
+        return `${day}/${month}/${year}`;
+      };
+      
+      // Get date range for API call
+      const sortedDates = [...uniqueDates].sort();
+      const startDate = formatDateForApi(sortedDates[0]);
+      const endDate = formatDateForApi(sortedDates[sortedDates.length - 1]);
+      
+      // Build pipe-separated airport list
+      const airportList = departureAirports.join("|");
+      
+      try {
+        // Call Sunshine European Flight API
+        const flightApiUrl = new URL("http://87.102.127.86:8119/search/searchoffers.dll");
+        flightApiUrl.searchParams.set("agtid", "122");
+        flightApiUrl.searchParams.set("page", "FLTDATE");
+        flightApiUrl.searchParams.set("platform", "WEB");
+        flightApiUrl.searchParams.set("depart", airportList);
+        flightApiUrl.searchParams.set("arrive", destinationAirport);
+        flightApiUrl.searchParams.set("Startdate", startDate);
+        flightApiUrl.searchParams.set("EndDate", endDate);
+        flightApiUrl.searchParams.set("duration", duration.toString());
+        flightApiUrl.searchParams.set("output", "JSON");
         
-        // Calculate return date based on duration
-        const departDate = new Date(date);
-        const returnDate = new Date(departDate);
-        returnDate.setDate(returnDate.getDate() + duration);
-        const returnDateStr = returnDate.toISOString().split("T")[0];
+        console.log(`[BokunFlights] Calling Sunshine API: ${flightApiUrl.toString()}`);
         
-        for (const ukAirport of departureAirports) {
-          try {
-            // Use SERP API for Google Flights
-            const serpApiKey = process.env.SERPAPI_KEY;
-            if (!serpApiKey) {
-              console.log(`[BokunFlights] No SERP API key, skipping flight search`);
-              continue;
-            }
-            
-            const params = new URLSearchParams({
-              engine: "google_flights",
-              departure_id: ukAirport,
-              arrival_id: destinationAirport,
-              outbound_date: date,
-              return_date: returnDateStr,
-              currency: "GBP",
-              hl: "en",
-              gl: "uk",
-              api_key: serpApiKey,
-            });
-            
-            const serpUrl = `https://serpapi.com/search?${params.toString()}`;
-            const response = await fetch(serpUrl);
-            
-            if (response.ok) {
-              const data = await response.json();
-              
-              // Extract cheapest price from best_flights or other_flights
-              let cheapestPrice = null;
-              
-              if (data.best_flights && data.best_flights.length > 0) {
-                cheapestPrice = data.best_flights[0].price;
-              } else if (data.other_flights && data.other_flights.length > 0) {
-                cheapestPrice = data.other_flights[0].price;
-              }
-              
-              if (cheapestPrice) {
-                // Store raw flight price (markup applied to total later)
-                flightPrices[date][ukAirport] = cheapestPrice;
-                console.log(`[BokunFlights] ${ukAirport} -> ${destinationAirport} on ${date}: £${cheapestPrice}`);
-              }
-            }
-          } catch (err: any) {
-            console.error(`[BokunFlights] Error fetching flight ${ukAirport} -> ${destinationAirport} on ${date}:`, err.message);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
+        
+        const response = await fetch(flightApiUrl.toString(), {
+          method: "GET",
+          headers: { "Accept": "application/json" },
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Sunshine API returned ${response.status}`);
+        }
+        
+        const rawText = await response.text();
+        
+        // Check for XML error response
+        if (rawText.startsWith("<?xml") || rawText.includes("<Error>")) {
+          const errorMatch = rawText.match(/<Error>(.*?)<\/Error>/i);
+          throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine API");
+        }
+        
+        const data = JSON.parse(rawText);
+        const offers = data.Offers || [];
+        
+        console.log(`[BokunFlights] Sunshine API returned ${offers.length} flight offers`);
+        
+        // Parse offers and find cheapest per date/airport
+        for (const offer of offers) {
+          // Extract departure date (DD/MM/YYYY from outdep like "06/02/2026 10:30")
+          const outdepParts = offer.outdep?.split(" ") || [];
+          const datePart = outdepParts[0]; // DD/MM/YYYY
+          
+          if (!datePart) continue;
+          
+          // Convert DD/MM/YYYY to YYYY-MM-DD
+          const [day, month, year] = datePart.split("/");
+          const isoDate = `${year}-${month}-${day}`;
+          
+          // Check if this date is in our list
+          if (!uniqueDates.includes(isoDate)) continue;
+          
+          const airport = offer.depapt; // Departure airport code
+          const price = parseFloat(offer.fltnetpricepp); // Flight price per person
+          
+          if (!airport || isNaN(price)) continue;
+          
+          // Initialize date object if needed
+          if (!flightPrices[isoDate]) {
+            flightPrices[isoDate] = {};
+          }
+          
+          // Keep cheapest price per date/airport
+          if (!flightPrices[isoDate][airport] || price < flightPrices[isoDate][airport]) {
+            flightPrices[isoDate][airport] = price;
+            console.log(`[BokunFlights] ${airport} -> ${destinationAirport} on ${isoDate}: £${price}`);
           }
         }
+      } catch (err: any) {
+        console.error(`[BokunFlights] Error fetching from Sunshine API:`, err.message);
+        return res.status(500).json({ error: `Flight API error: ${err.message}` });
       }
       
       // Now upsert flight prices into the child table (per rate, per airport)
@@ -3439,7 +3475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               flightPrice as number,
               smartRoundedPrice,
               markup,
-              "serp"
+              "sunshine"
             );
             updatedCount++;
           }

@@ -1149,6 +1149,43 @@ export default function PackageDetail() {
                       </CardContent>
                     </Card>
 
+                    {/* India e-Visa Tips - Mobile */}
+                    {pkg.category?.toLowerCase() === 'india' && (
+                      <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
+                        <CardHeader>
+                          <CardTitle className="text-amber-800 dark:text-amber-200">Mandatory Tips for Applying for an Indian e-Visa</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                            Failure to follow these steps may result in repeated errors or an incomplete application:
+                          </p>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-amber-800 dark:text-amber-200">
+                            <li>Use a desktop or laptop (do not use a mobile phone or tablet)</li>
+                            <li>Use Google Chrome or Microsoft Edge only</li>
+                            <li>Do not use autofill when entering personal details</li>
+                            <li>Complete the application in one sitting</li>
+                          </ul>
+                          <div className="border-t border-amber-200 dark:border-amber-700 pt-4">
+                            <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">Official Government Website</p>
+                            <p className="text-sm text-amber-800 dark:text-amber-200">
+                              For your reference, the only official Government of India e-Visa website is:{' '}
+                              <a 
+                                href="https://indianvisaonline.gov.in/evisa/" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-secondary hover:underline font-medium"
+                              >
+                                https://indianvisaonline.gov.in/evisa/
+                              </a>
+                            </p>
+                            <p className="text-sm text-amber-700 dark:text-amber-300 mt-2 italic">
+                              Please be cautious, as there are many unofficial websites online that charge additional fees and often cause technical issues.
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* Customer Reviews - Mobile */}
                     {pkg.review && (
                       <Card>
@@ -1381,6 +1418,43 @@ export default function PackageDetail() {
                       </p>
                     </CardContent>
                   </Card>
+
+                  {/* India e-Visa Tips - Desktop */}
+                  {pkg.category?.toLowerCase() === 'india' && (
+                    <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800" data-testid="india-visa-tips">
+                      <CardHeader>
+                        <CardTitle className="text-amber-800 dark:text-amber-200">Mandatory Tips for Applying for an Indian e-Visa</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                          Failure to follow these steps may result in repeated errors or an incomplete application:
+                        </p>
+                        <ul className="list-disc list-inside space-y-1 text-sm text-amber-800 dark:text-amber-200">
+                          <li>Use a desktop or laptop (do not use a mobile phone or tablet)</li>
+                          <li>Use Google Chrome or Microsoft Edge only</li>
+                          <li>Do not use autofill when entering personal details</li>
+                          <li>Complete the application in one sitting</li>
+                        </ul>
+                        <div className="border-t border-amber-200 dark:border-amber-700 pt-4">
+                          <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-2">Official Government Website</p>
+                          <p className="text-sm text-amber-800 dark:text-amber-200">
+                            For your reference, the only official Government of India e-Visa website is:{' '}
+                            <a 
+                              href="https://indianvisaonline.gov.in/evisa/" 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-secondary hover:underline font-medium"
+                            >
+                              https://indianvisaonline.gov.in/evisa/
+                            </a>
+                          </p>
+                          <p className="text-sm text-amber-700 dark:text-amber-300 mt-2 italic">
+                            Please be cautious, as there are many unofficial websites online that charge additional fees and often cause technical issues.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
 
                 {/* Reviews Tab - Only shown when review content exists */}

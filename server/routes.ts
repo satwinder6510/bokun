@@ -2601,6 +2601,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get Bokun departure pricing by package ID (public) - for Bokun Departures + Flights module
+  app.get("/api/packages/:id/bokun-pricing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const packageId = parseInt(id);
+      
+      // Get departures with rates
+      const departures = await storage.getBokunDepartures(packageId);
+      
+      if (departures.length === 0) {
+        return res.json({ enabled: false, prices: [] });
+      }
+      
+      // Collect all rate IDs
+      const allRateIds: number[] = [];
+      departures.forEach(d => {
+        if (d.rates && Array.isArray(d.rates)) {
+          d.rates.forEach((r: any) => allRateIds.push(r.id));
+        }
+      });
+      
+      if (allRateIds.length === 0) {
+        return res.json({ enabled: false, prices: [] });
+      }
+      
+      // Get flight pricing for all rates
+      const flightPricing = await storage.getDepartureRateFlights(allRateIds);
+      
+      if (flightPricing.length === 0) {
+        return res.json({ enabled: false, prices: [], message: "No flight pricing available" });
+      }
+      
+      // Build a map of rateId -> flight pricing by airport
+      const flightsByRate = new Map<number, Map<string, { flightPrice: number, combinedPrice: number }>>();
+      flightPricing.forEach(fp => {
+        if (!flightsByRate.has(fp.rateId)) {
+          flightsByRate.set(fp.rateId, new Map());
+        }
+        flightsByRate.get(fp.rateId)!.set(fp.airportCode, {
+          flightPrice: fp.flightPriceGbp,
+          combinedPrice: fp.combinedPriceGbp
+        });
+      });
+      
+      // Build the pricing output
+      const prices: Array<{
+        departureDate: string;
+        rateTitle: string;
+        rateId: number;
+        landPrice: number;
+        airportCode: string;
+        airportName: string;
+        flightPrice: number;
+        combinedPrice: number;
+        durationNights: number | null;
+      }> = [];
+      
+      // Airport code to name mapping
+      const airportNames: Record<string, string> = {
+        "LGW": "London Gatwick",
+        "LHR": "London Heathrow",
+        "STN": "London Stansted",
+        "LTN": "London Luton",
+        "MAN": "Manchester",
+        "BHX": "Birmingham",
+        "EDI": "Edinburgh",
+        "GLA": "Glasgow",
+        "BRS": "Bristol",
+        "NCL": "Newcastle",
+        "LPL": "Liverpool",
+        "EMA": "East Midlands",
+        "LBA": "Leeds Bradford",
+      };
+      
+      for (const departure of departures) {
+        if (!departure.rates || !Array.isArray(departure.rates)) continue;
+        
+        for (const rate of departure.rates) {
+          const rateFlights = flightsByRate.get(rate.id);
+          if (!rateFlights) continue;
+          
+          // Add an entry for each airport with pricing
+          for (const [airportCode, pricing] of rateFlights) {
+            prices.push({
+              departureDate: departure.departureDate,
+              rateTitle: rate.title || "Standard Rate",
+              rateId: rate.id,
+              landPrice: rate.priceGbp || 0,
+              airportCode,
+              airportName: airportNames[airportCode] || airportCode,
+              flightPrice: pricing.flightPrice,
+              combinedPrice: pricing.combinedPrice,
+              durationNights: departure.durationNights || null,
+            });
+          }
+        }
+      }
+      
+      // Sort by date, then by combined price
+      prices.sort((a, b) => {
+        const dateCompare = a.departureDate.localeCompare(b.departureDate);
+        if (dateCompare !== 0) return dateCompare;
+        return a.combinedPrice - b.combinedPrice;
+      });
+      
+      // Get min price for "from" display
+      const minPrice = prices.length > 0 ? Math.min(...prices.map(p => p.combinedPrice)) : 0;
+      
+      // Get duration from first departure
+      const durationNights = departures[0]?.durationNights || null;
+      
+      res.json({ 
+        enabled: true, 
+        prices,
+        minPrice,
+        durationNights,
+        totalDepartures: departures.length,
+      });
+    } catch (error: any) {
+      console.error("Error fetching Bokun departure pricing:", error);
+      res.status(500).json({ error: "Failed to fetch pricing" });
+    }
+  });
+
   // Destinations API - get all destinations with counts
   app.get("/api/destinations", async (req, res) => {
     try {

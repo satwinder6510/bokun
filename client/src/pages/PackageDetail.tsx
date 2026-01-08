@@ -284,6 +284,199 @@ function PriceCalendarWidget({
   );
 }
 
+// Bokun Price Calendar Widget Component (for Bokun Departures + Flights module)
+type BokunPricingEntryType = {
+  departureDate: string;
+  rateTitle: string;
+  rateId: number;
+  landPrice: number;
+  airportCode: string;
+  airportName: string;
+  flightPrice: number;
+  combinedPrice: number;
+  durationNights: number | null;
+};
+
+function BokunPriceCalendarWidget({ 
+  pricingData, 
+  selectedDate, 
+  onDateSelect,
+  formatPrice 
+}: { 
+  pricingData: BokunPricingEntryType[];
+  selectedDate: Date | undefined;
+  onDateSelect: (date: Date | undefined) => void;
+  formatPrice: (price: number) => string;
+}) {
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
+
+  // Helper to parse date string without timezone issues
+  const parsePricingDate = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  // Navigate to month with cheapest future price when data changes
+  useEffect(() => {
+    if (pricingData.length > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Find future pricing entries
+      const futurePricing = pricingData
+        .filter(p => {
+          const d = parsePricingDate(p.departureDate);
+          return d >= today && p.combinedPrice > 0;
+        })
+        .sort((a, b) => a.combinedPrice - b.combinedPrice);
+      
+      if (futurePricing.length > 0) {
+        const cheapestEntry = futurePricing[0];
+        const cheapestDate = parsePricingDate(cheapestEntry.departureDate);
+        const newMonth = new Date(cheapestDate.getFullYear(), cheapestDate.getMonth(), 1);
+        setCurrentMonth(newMonth);
+      }
+    }
+  }, [pricingData]);
+
+  // Get cheapest price for a specific date
+  const getPriceForDate = (date: Date) => {
+    const pricesForDate = pricingData.filter(p => {
+      const pDate = parsePricingDate(p.departureDate);
+      return pDate.toDateString() === date.toDateString();
+    });
+    if (pricesForDate.length === 0) return undefined;
+    return Math.min(...pricesForDate.map(p => p.combinedPrice));
+  };
+
+  // Check if date has pricing
+  const hasPrice = (date: Date) => {
+    return pricingData.some(p => {
+      const pDate = parsePricingDate(p.departureDate);
+      return pDate.toDateString() === date.toDateString();
+    });
+  };
+
+  // Get days in month
+  const getDaysInMonth = (year: number, month: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  // Get first day of month (0 = Sunday, 1 = Monday, etc.)
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    const day = new Date(year, month, 1).getDay();
+    return day === 0 ? 6 : day - 1; // Convert to Monday = 0
+  };
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = getFirstDayOfMonth(year, month);
+  const monthName = currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const prevMonth = () => {
+    setCurrentMonth(new Date(year, month - 1, 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(new Date(year, month + 1, 1));
+  };
+
+  // Check if there are prices in adjacent months for navigation
+  const hasPricesInPrevMonth = pricingData.some(p => {
+    const d = parsePricingDate(p.departureDate);
+    return d.getFullYear() < year || (d.getFullYear() === year && d.getMonth() < month);
+  });
+
+  const hasPricesInNextMonth = pricingData.some(p => {
+    const d = parsePricingDate(p.departureDate);
+    return d.getFullYear() > year || (d.getFullYear() === year && d.getMonth() > month);
+  });
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      {/* Month Navigation */}
+      <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-950/30">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={prevMonth}
+          disabled={!hasPricesInPrevMonth}
+          className="h-8 w-8"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="font-semibold">{monthName}</span>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={nextMonth}
+          disabled={!hasPricesInNextMonth}
+          className="h-8 w-8"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Day Headers */}
+      <div className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground border-b">
+        {days.map(day => (
+          <div key={day} className="py-2">{day}</div>
+        ))}
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7">
+        {/* Empty cells for days before first of month */}
+        {Array.from({ length: firstDay }).map((_, i) => (
+          <div key={`empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
+        ))}
+
+        {/* Days of the month */}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const dayNum = i + 1;
+          const date = new Date(year, month, dayNum);
+          const price = getPriceForDate(date);
+          const isSelected = selectedDate?.toDateString() === date.toDateString();
+          const isToday = new Date().toDateString() === date.toDateString();
+          const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+
+          return (
+            <div
+              key={dayNum}
+              onClick={() => price && !isPast && onDateSelect(date)}
+              className={`
+                h-14 border-b border-r flex flex-col items-center justify-center text-xs
+                ${price && !isPast ? 'cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30' : ''}
+                ${isSelected ? 'bg-blue-600 text-white' : ''}
+                ${isPast ? 'text-muted-foreground/50' : ''}
+                ${isToday && !isSelected ? 'font-bold' : ''}
+              `}
+              data-testid={`bokun-calendar-day-${dayNum}`}
+            >
+              <span className={`${isSelected ? 'text-white' : ''}`}>
+                {dayNum}
+              </span>
+              {price && !isPast && (
+                <span className={`text-[10px] font-semibold ${isSelected ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`}>
+                  {formatPrice(price)}
+                </span>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Fill remaining cells */}
+        {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
+          <div key={`end-empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function PackageDetail() {
   const { toast } = useToast();
   const phoneNumber = useDynamicPhoneNumber();
@@ -353,6 +546,75 @@ export default function PackageDetail() {
     },
     enabled: !!pkg?.id,
   });
+
+  // Bokun departure pricing (from Bokun Departures + Flights module)
+  type BokunPricingEntry = {
+    departureDate: string;
+    rateTitle: string;
+    rateId: number;
+    landPrice: number;
+    airportCode: string;
+    airportName: string;
+    flightPrice: number;
+    combinedPrice: number;
+    durationNights: number | null;
+  };
+  
+  type BokunPricingResponse = {
+    enabled: boolean;
+    prices: BokunPricingEntry[];
+    minPrice: number;
+    durationNights: number | null;
+    totalDepartures: number;
+  };
+
+  const { data: bokunPricing } = useQuery<BokunPricingResponse>({
+    queryKey: ["/api/packages", pkg?.id, "bokun-pricing"],
+    queryFn: async () => {
+      console.log("[Public Page] Fetching Bokun pricing for package:", pkg?.id);
+      const response = await fetch(`/api/packages/${pkg?.id}/bokun-pricing`);
+      if (!response.ok) throw new Error("Failed to fetch Bokun pricing");
+      const data = await response.json();
+      console.log("[Public Page] Bokun pricing received:", data.prices?.length || 0, "entries, enabled:", data.enabled);
+      return data;
+    },
+    enabled: !!pkg?.id,
+  });
+
+  // Bokun pricing state
+  const [selectedBokunAirport, setSelectedBokunAirport] = useState<string>("");
+  const [selectedBokunDate, setSelectedBokunDate] = useState<Date | undefined>();
+
+  // Get unique airports from Bokun pricing, sorted by cheapest price
+  const bokunAirports = bokunPricing?.enabled && bokunPricing.prices.length > 0
+    ? Array.from(new Set(bokunPricing.prices.map(p => p.airportCode)))
+        .map(code => {
+          const entry = bokunPricing.prices.find(p => p.airportCode === code);
+          const minPrice = Math.min(...bokunPricing.prices.filter(p => p.airportCode === code).map(p => p.combinedPrice));
+          return { code, name: entry?.airportName || code, minPrice };
+        })
+        .sort((a, b) => a.minPrice - b.minPrice)
+    : [];
+
+  // Filter Bokun pricing by selected airport
+  const filteredBokunPricing = selectedBokunAirport && bokunPricing?.prices
+    ? bokunPricing.prices.filter(p => p.airportCode === selectedBokunAirport)
+    : [];
+
+  // Get selected Bokun pricing based on selected date
+  const selectedBokunPricing = selectedBokunDate && filteredBokunPricing.length > 0
+    ? filteredBokunPricing.find(p => {
+        const pDate = new Date(p.departureDate + 'T00:00:00');
+        return pDate.toDateString() === selectedBokunDate.toDateString();
+      })
+    : undefined;
+
+  // Auto-select cheapest Bokun airport
+  useEffect(() => {
+    if (bokunAirports.length > 0 && !selectedBokunAirport) {
+      setSelectedBokunAirport(bokunAirports[0].code);
+    }
+  }, [bokunAirports, selectedBokunAirport]);
 
   // Get unique airports from pricing data, sorted by cheapest price
   // Only include airports that have valid prices
@@ -945,6 +1207,116 @@ export default function PackageDetail() {
                 </CardContent>
               </Card>
             )}
+          </div>
+        </section>
+      )}
+
+      {/* Mobile Bokun Departures + Flights Calendar - Shown when Bokun pricing is available */}
+      {bokunPricing?.enabled && bokunPricing.prices.length > 0 && bokunAirports.length > 0 && (
+        <section className="lg:hidden pb-6" id="bokun-pricing-mobile">
+          <div className="container mx-auto px-4">
+            <Card className="border-2 border-blue-300 dark:border-blue-700">
+              <CardHeader className="bg-blue-50 dark:bg-blue-950/30 pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                      <Plane className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">Flight + Tour Package</p>
+                      <p className="text-xs text-muted-foreground">
+                        {bokunPricing.durationNights ? `${bokunPricing.durationNights} nights` : 'Flights included'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-muted-foreground">From</span>
+                    <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatPrice(bokunPricing.minPrice)}</p>
+                    <span className="text-xs text-muted-foreground">per person</span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-5 h-5 text-blue-600" />
+                  <p className="font-medium">Select Departure Date</p>
+                </div>
+                
+                {bokunAirports.length > 0 && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground mb-1 block">Flying from</Label>
+                    <select
+                      value={selectedBokunAirport}
+                      onChange={(e) => {
+                        setSelectedBokunAirport(e.target.value);
+                        setSelectedBokunDate(undefined);
+                      }}
+                      className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
+                      data-testid="select-bokun-airport-mobile"
+                    >
+                      {bokunAirports.map(airport => (
+                        <option key={airport.code} value={airport.code}>
+                          {airport.name} (from {formatPrice(airport.minPrice)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {selectedBokunAirport && filteredBokunPricing.length > 0 && (
+                  <div className="space-y-3">
+                    <BokunPriceCalendarWidget
+                      pricingData={filteredBokunPricing}
+                      selectedDate={selectedBokunDate}
+                      onDateSelect={setSelectedBokunDate}
+                      formatPrice={formatPrice}
+                    />
+                    
+                    {selectedBokunDate && selectedBokunPricing && (
+                      <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium">
+                              {selectedBokunDate.toLocaleDateString('en-GB', { 
+                                weekday: 'short',
+                                day: 'numeric', 
+                                month: 'short'
+                              })}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              From {selectedBokunPricing.airportName}
+                            </p>
+                            {selectedBokunPricing.rateTitle && selectedBokunPricing.rateTitle !== "Standard Rate" && (
+                              <p className="text-xs text-blue-600 dark:text-blue-400">
+                                {selectedBokunPricing.rateTitle}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                              {formatPrice(selectedBokunPricing.combinedPrice)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">per person</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      data-testid="button-enquire-bokun-mobile"
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Enquire Now
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+              </CardContent>
+            </Card>
           </div>
         </section>
       )}
@@ -1609,6 +1981,90 @@ export default function PackageDetail() {
                             <p className="text-sm text-muted-foreground text-center py-2">
                               Please select a departure airport to see available dates
                             </p>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Bokun Departures + Flights Calendar */}
+                    {bokunPricing?.enabled && bokunPricing.prices.length > 0 && bokunAirports.length > 0 && (
+                      <>
+                        <Separator />
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+                              <Plane className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-blue-600 dark:text-blue-400">Flight + Tour Package</p>
+                              <p className="text-xs text-muted-foreground">
+                                From {formatPrice(bokunPricing.minPrice)} pp
+                                {bokunPricing.durationNights && ` · ${bokunPricing.durationNights} nights`}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {bokunAirports.length > 0 && (
+                            <div>
+                              <Label className="text-sm text-muted-foreground mb-1 block">Flying from</Label>
+                              <select
+                                value={selectedBokunAirport}
+                                onChange={(e) => {
+                                  setSelectedBokunAirport(e.target.value);
+                                  setSelectedBokunDate(undefined);
+                                }}
+                                className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
+                                data-testid="select-bokun-airport"
+                              >
+                                {bokunAirports.map(airport => (
+                                  <option key={airport.code} value={airport.code}>
+                                    {airport.name} (from {formatPrice(airport.minPrice)})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {selectedBokunAirport && filteredBokunPricing.length > 0 && (
+                            <div className="space-y-3">
+                              <BokunPriceCalendarWidget
+                                pricingData={filteredBokunPricing}
+                                selectedDate={selectedBokunDate}
+                                onDateSelect={setSelectedBokunDate}
+                                formatPrice={formatPrice}
+                              />
+                              
+                              {selectedBokunDate && selectedBokunPricing && (
+                                <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <p className="font-medium">
+                                        {selectedBokunDate.toLocaleDateString('en-GB', { 
+                                          weekday: 'long',
+                                          day: 'numeric', 
+                                          month: 'long',
+                                          year: 'numeric'
+                                        })}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        From {selectedBokunPricing.airportName}
+                                      </p>
+                                      {selectedBokunPricing.rateTitle && selectedBokunPricing.rateTitle !== "Standard Rate" && (
+                                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                                          {selectedBokunPricing.rateTitle}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                        {formatPrice(selectedBokunPricing.combinedPrice)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">per person</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
                       </>

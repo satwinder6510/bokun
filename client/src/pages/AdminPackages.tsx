@@ -742,11 +742,13 @@ export default function AdminPackages() {
   
   const handleAddSeason = () => {
     setEditingSeasonData(null);
+    // Pre-populate land cost from the package's imported Bokun price
+    const defaultLandCost = editingPackage?.price || 0;
     setSeasonForm({
       seasonName: "",
       startDate: "",
       endDate: "",
-      landCostPerPerson: 0,
+      landCostPerPerson: defaultLandCost,
       hotelCostPerPerson: null,
       notes: "",
     });

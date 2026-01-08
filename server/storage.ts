@@ -1,4 +1,10 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, type PackageSeason, type InsertPackageSeason, type PricingExport, type InsertPricingExport, flightPackages, packageEnquiries, tourEnquiries, packagePricing, packageSeasons, pricingExports, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, type PackageSeason, type InsertPackageSeason, type PricingExport, type InsertPricingExport, type BokunDeparture, type BokunDepartureRate, flightPackages, packageEnquiries, tourEnquiries, packagePricing, packageSeasons, pricingExports, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages, bokunDepartures, bokunDepartureRates } from "@shared/schema";
+import { type ParsedDeparture } from "./bokun";
+
+// Extended type for departures with their rates
+export interface DepartureWithRates extends BokunDeparture {
+  rates: BokunDepartureRate[];
+}
 import { randomUUID } from "crypto";
 import { db } from "./db";
 import { eq, desc, asc, sql, and } from "drizzle-orm";
@@ -146,6 +152,14 @@ export interface IStorage {
   getContentImage(type: string, name: string): Promise<ContentImage | undefined>;
   upsertContentImage(type: string, name: string, imageUrl: string): Promise<ContentImage>;
   deleteContentImage(id: number): Promise<boolean>;
+  
+  // Bokun departures methods
+  syncBokunDepartures(packageId: number, bokunProductId: string, departures: ParsedDeparture[]): Promise<{ departuresCount: number; ratesCount: number }>;
+  getBokunDepartures(packageId: number): Promise<DepartureWithRates[]>;
+  updateDepartureRateFlightPricing(rateId: number, flightPriceGbp: number, departureAirport: string): Promise<BokunDepartureRate | undefined>;
+  
+  // Site settings helper
+  getSiteSettings(): Promise<SiteSetting | null>;
 }
 
 // In-memory storage with per-currency product caching
@@ -1406,6 +1420,136 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error deleting content image:", error);
       return false;
+    }
+  }
+  
+  // Bokun departures methods
+  async syncBokunDepartures(packageId: number, bokunProductId: string, departures: ParsedDeparture[]): Promise<{ departuresCount: number; ratesCount: number }> {
+    try {
+      // Delete existing departures for this package (cascade deletes rates)
+      await db.delete(bokunDepartures).where(eq(bokunDepartures.packageId, packageId));
+      
+      let departuresCount = 0;
+      let ratesCount = 0;
+      
+      for (const departure of departures) {
+        // Insert departure
+        const [insertedDeparture] = await db.insert(bokunDepartures).values({
+          packageId,
+          bokunProductId,
+          departureDate: departure.departureDate,
+          startTime: departure.startTime,
+          totalCapacity: departure.totalCapacity,
+          availableSpots: departure.availableSpots,
+          isSoldOut: departure.isSoldOut,
+        }).returning();
+        
+        departuresCount++;
+        
+        // Insert rates for this departure
+        for (const rate of departure.rates) {
+          await db.insert(bokunDepartureRates).values({
+            departureId: insertedDeparture.id,
+            rateId: rate.rateId,
+            rateTitle: rate.rateTitle,
+            pricingCategoryId: rate.pricingCategoryId,
+            roomCategory: rate.roomCategory,
+            hotelCategory: rate.hotelCategory,
+            minPerBooking: rate.minPerBooking,
+            maxPerBooking: rate.maxPerBooking,
+            originalPrice: rate.originalPrice,
+            originalCurrency: rate.originalCurrency,
+            priceGbp: rate.priceGbp,
+            availableForRate: rate.availableForRate,
+          });
+          ratesCount++;
+        }
+      }
+      
+      console.log(`[Storage] Synced ${departuresCount} departures with ${ratesCount} rates for package ${packageId}`);
+      return { departuresCount, ratesCount };
+    } catch (error) {
+      console.error("Error syncing Bokun departures:", error);
+      throw error;
+    }
+  }
+  
+  async getBokunDepartures(packageId: number): Promise<DepartureWithRates[]> {
+    try {
+      // Get all departures for this package
+      const departureRows = await db.select().from(bokunDepartures)
+        .where(eq(bokunDepartures.packageId, packageId))
+        .orderBy(asc(bokunDepartures.departureDate));
+      
+      // Get all rates for these departures
+      const departureIds = departureRows.map(d => d.id);
+      if (departureIds.length === 0) {
+        return [];
+      }
+      
+      const rateRows = await db.select().from(bokunDepartureRates)
+        .orderBy(asc(bokunDepartureRates.departureId));
+      
+      // Group rates by departure
+      const ratesByDeparture = new Map<number, BokunDepartureRate[]>();
+      for (const rate of rateRows) {
+        if (departureIds.includes(rate.departureId)) {
+          if (!ratesByDeparture.has(rate.departureId)) {
+            ratesByDeparture.set(rate.departureId, []);
+          }
+          ratesByDeparture.get(rate.departureId)!.push(rate);
+        }
+      }
+      
+      // Combine departures with their rates
+      const result: DepartureWithRates[] = departureRows.map(departure => ({
+        ...departure,
+        rates: ratesByDeparture.get(departure.id) || [],
+      }));
+      
+      return result;
+    } catch (error) {
+      console.error("Error getting Bokun departures:", error);
+      return [];
+    }
+  }
+  
+  async updateDepartureRateFlightPricing(rateId: number, flightPriceGbp: number, departureAirport: string): Promise<BokunDepartureRate | undefined> {
+    try {
+      // Get the current rate to calculate combined price
+      const [existingRate] = await db.select().from(bokunDepartureRates)
+        .where(eq(bokunDepartureRates.id, rateId));
+      
+      if (!existingRate) {
+        return undefined;
+      }
+      
+      // Calculate combined price (land + flight)
+      const combinedPriceGbp = Math.round((existingRate.priceGbp + flightPriceGbp) * 100) / 100;
+      
+      const [updated] = await db.update(bokunDepartureRates)
+        .set({ 
+          flightPriceGbp, 
+          departureAirport,
+          combinedPriceGbp
+        })
+        .where(eq(bokunDepartureRates.id, rateId))
+        .returning();
+      
+      return updated;
+    } catch (error) {
+      console.error("Error updating departure rate flight pricing:", error);
+      return undefined;
+    }
+  }
+  
+  async getSiteSettings(): Promise<SiteSetting | null> {
+    try {
+      const [setting] = await db.select().from(siteSettings).limit(1);
+      return setting || null;
+    } catch (error) {
+      console.error("Error getting site settings:", error);
+      return null;
     }
   }
 }

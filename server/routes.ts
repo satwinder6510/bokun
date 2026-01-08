@@ -1,6 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { testBokunConnection, searchBokunProducts, searchBokunProductsByKeyword, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking } from "./bokun";
+import { testBokunConnection, searchBokunProducts, searchBokunProductsByKeyword, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking, syncBokunDepartures } from "./bokun";
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
@@ -3099,6 +3099,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting package seasons:", error);
       res.status(500).json({ error: "Failed to delete seasons" });
+    }
+  });
+
+  // ==================== Bokun Departures Routes ====================
+
+  // Sync departures from Bokun for a package
+  app.post("/api/admin/packages/:id/sync-departures", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const pkg = await storage.getFlightPackageById(parseInt(id));
+      
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+      
+      if (!pkg.bokunProductId) {
+        return res.status(400).json({ error: "Package has no linked Bokun product" });
+      }
+      
+      // Get exchange rate from settings
+      const exchangeRate = await storage.getExchangeRate();
+      
+      console.log(`[SyncDepartures] Syncing departures for package ${id} (Bokun product ${pkg.bokunProductId})`);
+      
+      // Fetch departures from Bokun
+      const { departures, totalRates } = await syncBokunDepartures(pkg.bokunProductId, exchangeRate);
+      
+      if (departures.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: "No departures found in Bokun for the next 12 months",
+          departuresCount: 0,
+          ratesCount: 0
+        });
+      }
+      
+      // Store departures in database
+      const result = await storage.syncBokunDepartures(parseInt(id), pkg.bokunProductId, departures);
+      
+      res.json({
+        success: true,
+        message: `Synced ${result.departuresCount} departures with ${result.ratesCount} rates`,
+        departuresCount: result.departuresCount,
+        ratesCount: result.ratesCount,
+        lastSyncedAt: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error("Error syncing Bokun departures:", error);
+      res.status(500).json({ error: error.message || "Failed to sync departures" });
+    }
+  });
+
+  // Get departures for a package
+  app.get("/api/admin/packages/:id/departures", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const departures = await storage.getBokunDepartures(parseInt(id));
+      res.json(departures);
+    } catch (error: any) {
+      console.error("Error fetching Bokun departures:", error);
+      res.status(500).json({ error: "Failed to fetch departures" });
+    }
+  });
+
+  // Update flight pricing for a departure rate
+  app.patch("/api/admin/departure-rates/:id/flight-pricing", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { flightPriceGbp, departureAirport } = req.body;
+      
+      const updated = await storage.updateDepartureRateFlightPricing(
+        parseInt(id), 
+        flightPriceGbp, 
+        departureAirport
+      );
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Departure rate not found" });
+      }
+      
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating departure rate flight pricing:", error);
+      res.status(500).json({ error: "Failed to update flight pricing" });
     }
   });
 

@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/hover-card";
 import { Calendar } from "@/components/ui/calendar";
 import { DayPicker } from "react-day-picker";
-import { format } from "date-fns";
+import { format, parseISO, isValid } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -3715,7 +3715,12 @@ export default function AdminPackages() {
                                 <div>
                                   {lastDepartureSync ? (
                                     <p className="text-sm">
-                                      Last synced: {format(new Date(lastDepartureSync), "dd MMM yyyy HH:mm")}
+                                      Last synced: {(() => {
+                                        try {
+                                          const date = new Date(lastDepartureSync);
+                                          return isValid(date) ? format(date, "dd MMM yyyy HH:mm") : "Unknown";
+                                        } catch { return "Unknown"; }
+                                      })()}
                                     </p>
                                   ) : (
                                     <p className="text-sm text-muted-foreground">Not synced yet</p>
@@ -3774,7 +3779,12 @@ export default function AdminPackages() {
                                         departure.rates?.map((rate: any) => (
                                           <TableRow key={`${departure.id}-${rate.id}`}>
                                             <TableCell className="font-medium">
-                                              {format(new Date(departure.departureDate), "dd MMM yyyy")}
+                                              {(() => {
+                                                try {
+                                                  const date = parseISO(departure.departureDate);
+                                                  return isValid(date) ? format(date, "dd MMM yyyy") : departure.departureDate;
+                                                } catch { return departure.departureDate || "-"; }
+                                              })()}
                                             </TableCell>
                                             <TableCell className="text-sm max-w-[150px] truncate" title={rate.rateTitle}>
                                               {rate.rateTitle}

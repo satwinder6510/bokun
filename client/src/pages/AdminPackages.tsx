@@ -351,6 +351,7 @@ export default function AdminPackages() {
   const [isSyncingDepartures, setIsSyncingDepartures] = useState(false);
   const [lastDepartureSync, setLastDepartureSync] = useState<string | null>(null);
   const [bokunFlightDestAirport, setBokunFlightDestAirport] = useState("");
+  const [bokunFlightReturnAirport, setBokunFlightReturnAirport] = useState(""); // For open-jaw: where return flight departs
   const [bokunFlightDepartAirports, setBokunFlightDepartAirports] = useState<string[]>(["LGW", "STN", "LTN", "LHR", "MAN"]);
   const [isFetchingBokunFlights, setIsFetchingBokunFlights] = useState(false);
   const [bokunFlightResults, setBokunFlightResults] = useState<{ success?: boolean; updated?: number; error?: string } | null>(null);
@@ -899,7 +900,12 @@ export default function AdminPackages() {
     }
     
     if (!bokunFlightDestAirport) {
-      toast({ title: "Missing destination airport", description: "Please select a destination airport", variant: "destructive" });
+      toast({ title: "Missing destination airport", description: "Please enter the destination airport", variant: "destructive" });
+      return;
+    }
+    
+    if (bokunFlightType === "openjaw" && !bokunFlightReturnAirport) {
+      toast({ title: "Missing return airport", description: "Please enter the return departure airport for open-jaw flights", variant: "destructive" });
       return;
     }
     
@@ -921,6 +927,7 @@ export default function AdminPackages() {
         body: JSON.stringify({
           packageId: editingPackage.id,
           destinationAirport: bokunFlightDestAirport,
+          returnAirport: bokunFlightType === "openjaw" ? bokunFlightReturnAirport : undefined,
           departureAirports: bokunFlightDepartAirports,
           duration: parseInt(editingPackage.duration || "7"),
           markup: bokunFlightMarkup,
@@ -3920,27 +3927,15 @@ export default function AdminPackages() {
                                     Add Flight Prices
                                   </h4>
                                   
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {/* Destination Airport */}
-                                    <div className="space-y-2">
-                                      <Label>Destination Airport (IATA Code)</Label>
-                                      <Input
-                                        placeholder="e.g. IST, DEL, BKK"
-                                        value={bokunFlightDestAirport}
-                                        onChange={(e) => setBokunFlightDestAirport(e.target.value.toUpperCase())}
-                                        maxLength={3}
-                                        data-testid="input-bokun-dest-airport"
-                                      />
-                                    </div>
-                                    
-                                    {/* Flight Type */}
+                                  <div className="space-y-4">
+                                    {/* Flight Type Selector */}
                                     <div className="space-y-2">
                                       <Label>Flight Type</Label>
                                       <Select
                                         value={bokunFlightType}
                                         onValueChange={(value: "roundtrip" | "openjaw") => setBokunFlightType(value)}
                                       >
-                                        <SelectTrigger data-testid="select-bokun-flight-type">
+                                        <SelectTrigger data-testid="select-bokun-flight-type" className="w-full md:w-64">
                                           <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -3950,10 +3945,52 @@ export default function AdminPackages() {
                                       </Select>
                                       <p className="text-xs text-muted-foreground">
                                         {bokunFlightType === "openjaw" 
-                                          ? "Searches outbound + return flights separately" 
-                                          : "Searches for combined return flights"}
+                                          ? "Fly into one city, return from another (e.g., UK → Delhi, Mumbai → UK)" 
+                                          : "Fly into and return from the same airport"}
                                       </p>
                                     </div>
+                                    
+                                    {/* Airport inputs - different for round-trip vs open-jaw */}
+                                    {bokunFlightType === "openjaw" ? (
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                          <Label>Arrival Airport (Outbound)</Label>
+                                          <Input
+                                            placeholder="e.g. DEL (Delhi)"
+                                            value={bokunFlightDestAirport}
+                                            onChange={(e) => setBokunFlightDestAirport(e.target.value.toUpperCase())}
+                                            maxLength={3}
+                                            className="font-mono uppercase"
+                                            data-testid="input-bokun-dest-airport"
+                                          />
+                                          <p className="text-xs text-muted-foreground">Where outbound flight lands</p>
+                                        </div>
+                                        <div className="space-y-2">
+                                          <Label>Departure Airport (Return)</Label>
+                                          <Input
+                                            placeholder="e.g. BOM (Mumbai)"
+                                            value={bokunFlightReturnAirport}
+                                            onChange={(e) => setBokunFlightReturnAirport(e.target.value.toUpperCase())}
+                                            maxLength={3}
+                                            className="font-mono uppercase"
+                                            data-testid="input-bokun-return-airport"
+                                          />
+                                          <p className="text-xs text-muted-foreground">Where return flight departs</p>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        <Label>Destination Airport (IATA Code)</Label>
+                                        <Input
+                                          placeholder="e.g. IST, DEL, BKK"
+                                          value={bokunFlightDestAirport}
+                                          onChange={(e) => setBokunFlightDestAirport(e.target.value.toUpperCase())}
+                                          maxLength={3}
+                                          className="font-mono uppercase w-full md:w-64"
+                                          data-testid="input-bokun-dest-airport"
+                                        />
+                                      </div>
+                                    )}
                                     
                                     {/* Markup */}
                                     <div className="space-y-2">
@@ -3964,6 +4001,7 @@ export default function AdminPackages() {
                                         onChange={(e) => setBokunFlightMarkup(parseInt(e.target.value) || 0)}
                                         min={0}
                                         max={100}
+                                        className="w-full md:w-32"
                                         data-testid="input-bokun-markup"
                                       />
                                     </div>
@@ -3999,7 +4037,12 @@ export default function AdminPackages() {
                                   <Button
                                     type="button"
                                     onClick={handleFetchBokunDepartureFlights}
-                                    disabled={isFetchingBokunFlights || !bokunFlightDestAirport || bokunFlightDepartAirports.length === 0}
+                                    disabled={
+                                      isFetchingBokunFlights || 
+                                      !bokunFlightDestAirport || 
+                                      (bokunFlightType === "openjaw" && !bokunFlightReturnAirport) ||
+                                      bokunFlightDepartAirports.length === 0
+                                    }
                                     className="w-full"
                                     data-testid="button-fetch-bokun-flights"
                                   >

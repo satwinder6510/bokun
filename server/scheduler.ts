@@ -98,10 +98,12 @@ async function refreshPackageFlights(pkg: any): Promise<{ success: boolean; upda
       const outboundFlights = outboundData.Flights || [];
       console.log(`[AutoRefresh] Found ${outboundFlights.length} outbound one-way flights`);
       
-      // 2. Fetch RETURN one-way flights (destination → UK)
+      // 2. Fetch RETURN one-way flights (returnAirport → UK)
+      // For open-jaw: return departs from a different airport than where outbound landed
+      const returnDepartureAirport = config.returnAirport || config.destinationAirport;
       const returnUrl = new URL(SUNSHINE_ONEWAY_URL);
       returnUrl.searchParams.set("agtid", "122");
-      returnUrl.searchParams.set("depart", config.destinationAirport);
+      returnUrl.searchParams.set("depart", returnDepartureAirport);
       returnUrl.searchParams.set("Arrive", airportList);
       returnUrl.searchParams.set("startdate", returnStartDate);
       returnUrl.searchParams.set("enddate", returnEndDate);

@@ -3332,6 +3332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { 
         packageId, 
         destinationAirport, 
+        returnAirport, // For open-jaw: where return flight departs from
         departureAirports, 
         duration: requestDuration, 
         markup,
@@ -3340,6 +3341,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!packageId || !destinationAirport || !departureAirports || departureAirports.length === 0) {
         return res.status(400).json({ error: "Missing required parameters" });
+      }
+      
+      // For open-jaw, require return airport
+      if (flightType === "openjaw" && !returnAirport) {
+        return res.status(400).json({ error: "Return airport is required for open-jaw flights" });
       }
       
       // Get all departures for this package
@@ -3354,7 +3360,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const duration = requestDuration || storedDuration || 7;
       
       console.log(`[BokunFlights] Fetching ${flightType} flights for package ${packageId}`);
-      console.log(`[BokunFlights] Destination: ${destinationAirport}, Duration: ${duration} nights (stored: ${storedDuration}, requested: ${requestDuration}), Markup: ${markup}%`);
+      if (flightType === "openjaw") {
+        console.log(`[BokunFlights] Outbound to: ${destinationAirport}, Return from: ${returnAirport}, Duration: ${duration} nights, Markup: ${markup}%`);
+      } else {
+        console.log(`[BokunFlights] Destination: ${destinationAirport}, Duration: ${duration} nights, Markup: ${markup}%`);
+      }
       console.log(`[BokunFlights] UK Airports: ${departureAirports.join(", ")}`);
       
       // Collect unique departure dates
@@ -3432,10 +3442,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const outboundFlights = outboundData.Flights || [];
           console.log(`[BokunFlights] Found ${outboundFlights.length} outbound one-way flights`);
           
-          // 2. Fetch RETURN one-way flights (destination → UK)
+          // 2. Fetch RETURN one-way flights (returnAirport → UK)
+          // For open-jaw: return departs from a different airport than where outbound landed
+          const returnDepartureAirport = returnAirport || destinationAirport;
           const returnUrl = new URL("http://87.102.127.86:8119/owflights/owflights.dll");
           returnUrl.searchParams.set("agtid", "122");
-          returnUrl.searchParams.set("depart", destinationAirport);
+          returnUrl.searchParams.set("depart", returnDepartureAirport);
           returnUrl.searchParams.set("Arrive", airportList);
           returnUrl.searchParams.set("startdate", returnStartDate);
           returnUrl.searchParams.set("enddate", returnEndDate);
@@ -3657,6 +3669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           packageId,
           {
             destinationAirport,
+            returnAirport: flightType === "openjaw" ? returnAirport : undefined,
             departureAirports,
             markup: typeof markup === 'number' ? markup : 0,
             flightType: flightType as "roundtrip" | "openjaw"

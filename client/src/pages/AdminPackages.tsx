@@ -355,6 +355,7 @@ export default function AdminPackages() {
   const [isFetchingBokunFlights, setIsFetchingBokunFlights] = useState(false);
   const [bokunFlightResults, setBokunFlightResults] = useState<{ success?: boolean; updated?: number; error?: string } | null>(null);
   const [bokunFlightMarkup, setBokunFlightMarkup] = useState(10);
+  const [bokunFlightType, setBokunFlightType] = useState<"roundtrip" | "openjaw">("roundtrip");
   
   // Hotel library picker state
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
@@ -923,6 +924,7 @@ export default function AdminPackages() {
           departureAirports: bokunFlightDepartAirports,
           duration: parseInt(editingPackage.duration || "7"),
           markup: bokunFlightMarkup,
+          flightType: bokunFlightType,
         }),
       });
       
@@ -3918,7 +3920,7 @@ export default function AdminPackages() {
                                     Add Flight Prices
                                   </h4>
                                   
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     {/* Destination Airport */}
                                     <div className="space-y-2">
                                       <Label>Destination Airport (IATA Code)</Label>
@@ -3929,6 +3931,28 @@ export default function AdminPackages() {
                                         maxLength={3}
                                         data-testid="input-bokun-dest-airport"
                                       />
+                                    </div>
+                                    
+                                    {/* Flight Type */}
+                                    <div className="space-y-2">
+                                      <Label>Flight Type</Label>
+                                      <Select
+                                        value={bokunFlightType}
+                                        onValueChange={(value: "roundtrip" | "openjaw") => setBokunFlightType(value)}
+                                      >
+                                        <SelectTrigger data-testid="select-bokun-flight-type">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="roundtrip">Round-trip</SelectItem>
+                                          <SelectItem value="openjaw">Open-jaw (One-way x2)</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <p className="text-xs text-muted-foreground">
+                                        {bokunFlightType === "openjaw" 
+                                          ? "Searches outbound + return flights separately" 
+                                          : "Searches for combined return flights"}
+                                      </p>
                                     </div>
                                     
                                     {/* Markup */}

@@ -171,7 +171,7 @@ export interface IStorage {
   // Auto-refresh methods for scheduled flight price updates
   getPackagesWithAutoRefresh(): Promise<FlightPackage[]>;
   updateFlightPackageRefreshTimestamp(id: number): Promise<void>;
-  updateFlightPackageAutoRefreshConfig(id: number, config: { destinationAirport: string; departureAirports: string[]; markup: number }, enabled: boolean): Promise<void>;
+  updateFlightPackageAutoRefreshConfig(id: number, config: { destinationAirport: string; departureAirports: string[]; markup: number; flightType?: "roundtrip" | "openjaw" }, enabled: boolean): Promise<void>;
   
   // Site settings helper
   getSiteSettings(): Promise<SiteSetting | null>;
@@ -1688,7 +1688,7 @@ export class MemStorage implements IStorage {
 
   async updateFlightPackageAutoRefreshConfig(
     id: number, 
-    config: { destinationAirport: string; departureAirports: string[]; markup: number }, 
+    config: { destinationAirport: string; departureAirports: string[]; markup: number; flightType?: "roundtrip" | "openjaw" }, 
     enabled: boolean
   ): Promise<void> {
     try {

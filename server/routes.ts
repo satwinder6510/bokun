@@ -3383,14 +3383,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // ===== OPEN-JAW: Search outbound + return one-way flights separately =====
           console.log(`[BokunFlights] Open-jaw mode: searching one-way flights`);
           
-          // Calculate return date range (departure date + duration nights)
-          const returnDates: string[] = [];
+          // Calculate return date for each departure date using a map for correct pairing
+          const returnDateMap: Record<string, string> = {};
+          const allReturnDates: string[] = [];
           for (const depDate of uniqueDates) {
             const returnDate = new Date(depDate);
             returnDate.setDate(returnDate.getDate() + duration);
-            returnDates.push(returnDate.toISOString().split("T")[0]);
+            const returnDateIso = returnDate.toISOString().split("T")[0];
+            returnDateMap[depDate] = returnDateIso;
+            allReturnDates.push(returnDateIso);
           }
-          const sortedReturnDates = [...returnDates].sort();
+          const sortedReturnDates = Array.from(new Set(allReturnDates)).sort();
           const returnStartDate = formatDateForApi(sortedReturnDates[0]);
           const returnEndDate = formatDateForApi(sortedReturnDates[sortedReturnDates.length - 1]);
           
@@ -3509,10 +3512,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // 5. Combine outbound + return for each departure date
-          for (let i = 0; i < uniqueDates.length; i++) {
-            const depDate = uniqueDates[i];
-            const returnDate = returnDates[uniqueDates.indexOf(depDate)];
+          // 5. Combine outbound + return for each departure date using the map
+          for (const depDate of uniqueDates) {
+            const returnDate = returnDateMap[depDate];
+            if (!returnDate) continue;
             
             const outbound = outboundPrices[depDate] || {};
             const returns = returnPrices[returnDate] || {};

@@ -1124,7 +1124,7 @@ export default function PackageDetail() {
                       <CardHeader>
                         <CardTitle>Other Information</CardTitle>
                       </CardHeader>
-                      <CardContent>
+                      <CardContent className="space-y-4">
                         {pkg.otherInfo ? (
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
@@ -1135,6 +1135,17 @@ export default function PackageDetail() {
                             Please contact us for terms and conditions, visa requirements, and other details.
                           </p>
                         )}
+                        <p className="text-sm text-muted-foreground border-t pt-4">
+                          Please note that it is your responsibility to check and comply with entry requirements for the destination(s) you plan to visit. We suggest you use the FCDO foreign travel advice{' '}
+                          <a 
+                            href="https://www.gov.uk/foreign-travel-advice" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-secondary hover:underline"
+                          >
+                            site
+                          </a>.
+                        </p>
                       </CardContent>
                     </Card>
 
@@ -1345,7 +1356,7 @@ export default function PackageDetail() {
                     <CardHeader>
                       <CardTitle>Other Information</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                       {pkg.otherInfo ? (
                         <div 
                           className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
@@ -1357,6 +1368,17 @@ export default function PackageDetail() {
                           Please contact us for terms and conditions, visa requirements, and other details.
                         </p>
                       )}
+                      <p className="text-sm text-muted-foreground border-t pt-4" data-testid="fcdo-disclaimer">
+                        Please note that it is your responsibility to check and comply with entry requirements for the destination(s) you plan to visit. We suggest you use the FCDO foreign travel advice{' '}
+                        <a 
+                          href="https://www.gov.uk/foreign-travel-advice" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-secondary hover:underline"
+                        >
+                          site
+                        </a>.
+                      </p>
                     </CardContent>
                   </Card>
                 </TabsContent>

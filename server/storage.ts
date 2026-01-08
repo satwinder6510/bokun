@@ -168,6 +168,11 @@ export interface IStorage {
   getDepartureRateFlights(rateIds: number[]): Promise<BokunDepartureRateFlight[]>;
   clearDepartureRateFlights(rateId: number): Promise<void>;
   
+  // Auto-refresh methods for scheduled flight price updates
+  getPackagesWithAutoRefresh(): Promise<FlightPackage[]>;
+  updateFlightPackageRefreshTimestamp(id: number): Promise<void>;
+  updateFlightPackageAutoRefreshConfig(id: number, config: { destinationAirport: string; departureAirports: string[]; markup: number }, enabled: boolean): Promise<void>;
+  
   // Site settings helper
   getSiteSettings(): Promise<SiteSetting | null>;
 }
@@ -1654,6 +1659,48 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error getting site settings:", error);
       return null;
+    }
+  }
+
+  async getPackagesWithAutoRefresh(): Promise<FlightPackage[]> {
+    try {
+      const results = await db.select().from(flightPackages)
+        .where(and(
+          eq(flightPackages.autoRefreshEnabled, true),
+          eq(flightPackages.pricingModule, "bokun_departures")
+        ));
+      return results;
+    } catch (error) {
+      console.error("Error getting packages with auto-refresh:", error);
+      return [];
+    }
+  }
+
+  async updateFlightPackageRefreshTimestamp(id: number): Promise<void> {
+    try {
+      await db.update(flightPackages)
+        .set({ lastFlightRefreshAt: new Date() })
+        .where(eq(flightPackages.id, id));
+    } catch (error) {
+      console.error("Error updating flight package refresh timestamp:", error);
+    }
+  }
+
+  async updateFlightPackageAutoRefreshConfig(
+    id: number, 
+    config: { destinationAirport: string; departureAirports: string[]; markup: number }, 
+    enabled: boolean
+  ): Promise<void> {
+    try {
+      await db.update(flightPackages)
+        .set({ 
+          flightRefreshConfig: config,
+          autoRefreshEnabled: enabled,
+          updatedAt: new Date()
+        })
+        .where(eq(flightPackages.id, id));
+    } catch (error) {
+      console.error("Error updating flight package auto-refresh config:", error);
     }
   }
 }

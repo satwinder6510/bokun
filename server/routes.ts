@@ -3484,10 +3484,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`[BokunFlights] Upserted ${updatedCount} departure rate flight entries`);
       
+      // Save auto-refresh config for scheduled weekly updates
+      const autoRefreshEnabled = req.body.autoRefreshEnabled !== false;
+      try {
+        await storage.updateFlightPackageAutoRefreshConfig(
+          packageId,
+          {
+            destinationAirport,
+            departureAirports,
+            markup: typeof markup === 'number' ? markup : 0
+          },
+          autoRefreshEnabled
+        );
+        console.log(`[BokunFlights] Auto-refresh config saved for package ${packageId}, enabled: ${autoRefreshEnabled}`);
+      } catch (configError: any) {
+        console.error(`[BokunFlights] Failed to save auto-refresh config:`, configError.message);
+        // Continue without failing the entire request - flight prices were already saved
+      }
+      
       res.json({ 
         success: true, 
         updated: updatedCount,
-        flightDates: Object.keys(flightPrices).length 
+        flightDates: Object.keys(flightPrices).length,
+        autoRefreshEnabled
       });
     } catch (error: any) {
       console.error("Error fetching Bokun departure flights:", error);

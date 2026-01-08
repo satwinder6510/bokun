@@ -3329,7 +3329,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fetch flight prices for all Bokun departure rates
   app.post("/api/admin/packages/fetch-bokun-departure-flights", async (req, res) => {
     try {
-      const { packageId, destinationAirport, departureAirports, duration: requestDuration, markup } = req.body;
+      const { 
+        packageId, 
+        destinationAirport, 
+        departureAirports, 
+        duration: requestDuration, 
+        markup,
+        flightType = "roundtrip" // "roundtrip" or "openjaw"
+      } = req.body;
       
       if (!packageId || !destinationAirport || !departureAirports || departureAirports.length === 0) {
         return res.status(400).json({ error: "Missing required parameters" });
@@ -3346,7 +3353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const storedDuration = departures[0]?.durationNights;
       const duration = requestDuration || storedDuration || 7;
       
-      console.log(`[BokunFlights] Fetching flights for package ${packageId}`);
+      console.log(`[BokunFlights] Fetching ${flightType} flights for package ${packageId}`);
       console.log(`[BokunFlights] Destination: ${destinationAirport}, Duration: ${duration} nights (stored: ${storedDuration}, requested: ${requestDuration}), Markup: ${markup}%`);
       console.log(`[BokunFlights] UK Airports: ${departureAirports.join(", ")}`);
       
@@ -3372,77 +3379,233 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const airportList = departureAirports.join("|");
       
       try {
-        // Call Sunshine European Flight API
-        const flightApiUrl = new URL("http://87.102.127.86:8119/search/searchoffers.dll");
-        flightApiUrl.searchParams.set("agtid", "122");
-        flightApiUrl.searchParams.set("page", "FLTDATE");
-        flightApiUrl.searchParams.set("platform", "WEB");
-        flightApiUrl.searchParams.set("depart", airportList);
-        flightApiUrl.searchParams.set("arrive", destinationAirport);
-        flightApiUrl.searchParams.set("Startdate", startDate);
-        flightApiUrl.searchParams.set("EndDate", endDate);
-        flightApiUrl.searchParams.set("duration", duration.toString());
-        flightApiUrl.searchParams.set("output", "JSON");
-        
-        console.log(`[BokunFlights] Calling Sunshine API: ${flightApiUrl.toString()}`);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-        
-        const response = await fetch(flightApiUrl.toString(), {
-          method: "GET",
-          headers: { "Accept": "application/json" },
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) {
-          throw new Error(`Sunshine API returned ${response.status}`);
-        }
-        
-        const rawText = await response.text();
-        
-        // Check for XML error response
-        if (rawText.startsWith("<?xml") || rawText.includes("<Error>")) {
-          const errorMatch = rawText.match(/<Error>(.*?)<\/Error>/i);
-          throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine API");
-        }
-        
-        const data = JSON.parse(rawText);
-        const offers = data.Offers || [];
-        
-        console.log(`[BokunFlights] Sunshine API returned ${offers.length} flight offers`);
-        
-        // Parse offers and find cheapest per date/airport
-        for (const offer of offers) {
-          // Extract departure date (DD/MM/YYYY from outdep like "06/02/2026 10:30")
-          const outdepParts = offer.outdep?.split(" ") || [];
-          const datePart = outdepParts[0]; // DD/MM/YYYY
+        if (flightType === "openjaw") {
+          // ===== OPEN-JAW: Search outbound + return one-way flights separately =====
+          console.log(`[BokunFlights] Open-jaw mode: searching one-way flights`);
           
-          if (!datePart) continue;
+          // Calculate return date range (departure date + duration nights)
+          const returnDates: string[] = [];
+          for (const depDate of uniqueDates) {
+            const returnDate = new Date(depDate);
+            returnDate.setDate(returnDate.getDate() + duration);
+            returnDates.push(returnDate.toISOString().split("T")[0]);
+          }
+          const sortedReturnDates = [...returnDates].sort();
+          const returnStartDate = formatDateForApi(sortedReturnDates[0]);
+          const returnEndDate = formatDateForApi(sortedReturnDates[sortedReturnDates.length - 1]);
           
-          // Convert DD/MM/YYYY to YYYY-MM-DD
-          const [day, month, year] = datePart.split("/");
-          const isoDate = `${year}-${month}-${day}`;
+          // 1. Fetch OUTBOUND one-way flights (UK → destination)
+          const outboundUrl = new URL("http://87.102.127.86:8119/owflights/owflights.dll");
+          outboundUrl.searchParams.set("agtid", "122");
+          outboundUrl.searchParams.set("depart", airportList);
+          outboundUrl.searchParams.set("Arrive", destinationAirport);
+          outboundUrl.searchParams.set("startdate", startDate);
+          outboundUrl.searchParams.set("enddate", endDate);
           
-          // Check if this date is in our list
-          if (!uniqueDates.includes(isoDate)) continue;
+          console.log(`[BokunFlights] Outbound API: ${outboundUrl.toString()}`);
           
-          const airport = offer.depapt; // Departure airport code
-          const price = parseFloat(offer.fltnetpricepp); // Flight price per person
+          const outboundController = new AbortController();
+          const outboundTimeout = setTimeout(() => outboundController.abort(), 60000);
           
-          if (!airport || isNaN(price)) continue;
+          const outboundResponse = await fetch(outboundUrl.toString(), {
+            method: "GET",
+            headers: { "Accept": "application/json" },
+            signal: outboundController.signal,
+          });
           
-          // Initialize date object if needed
-          if (!flightPrices[isoDate]) {
-            flightPrices[isoDate] = {};
+          clearTimeout(outboundTimeout);
+          
+          if (!outboundResponse.ok) {
+            throw new Error(`Outbound API returned ${outboundResponse.status}`);
           }
           
-          // Keep cheapest price per date/airport
-          if (!flightPrices[isoDate][airport] || price < flightPrices[isoDate][airport]) {
-            flightPrices[isoDate][airport] = price;
-            console.log(`[BokunFlights] ${airport} -> ${destinationAirport} on ${isoDate}: £${price}`);
+          const outboundRaw = await outboundResponse.text();
+          if (outboundRaw.startsWith("<?xml") || outboundRaw.includes("<Error>")) {
+            const errorMatch = outboundRaw.match(/<Error>(.*?)<\/Error>/i);
+            throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine outbound API");
+          }
+          
+          const outboundData = JSON.parse(outboundRaw);
+          const outboundFlights = outboundData.Flights || [];
+          console.log(`[BokunFlights] Found ${outboundFlights.length} outbound one-way flights`);
+          
+          // 2. Fetch RETURN one-way flights (destination → UK)
+          const returnUrl = new URL("http://87.102.127.86:8119/owflights/owflights.dll");
+          returnUrl.searchParams.set("agtid", "122");
+          returnUrl.searchParams.set("depart", destinationAirport);
+          returnUrl.searchParams.set("Arrive", airportList);
+          returnUrl.searchParams.set("startdate", returnStartDate);
+          returnUrl.searchParams.set("enddate", returnEndDate);
+          
+          console.log(`[BokunFlights] Return API: ${returnUrl.toString()}`);
+          
+          const returnController = new AbortController();
+          const returnTimeout = setTimeout(() => returnController.abort(), 60000);
+          
+          const returnResponse = await fetch(returnUrl.toString(), {
+            method: "GET",
+            headers: { "Accept": "application/json" },
+            signal: returnController.signal,
+          });
+          
+          clearTimeout(returnTimeout);
+          
+          if (!returnResponse.ok) {
+            throw new Error(`Return API returned ${returnResponse.status}`);
+          }
+          
+          const returnRaw = await returnResponse.text();
+          if (returnRaw.startsWith("<?xml") || returnRaw.includes("<Error>")) {
+            const errorMatch = returnRaw.match(/<Error>(.*?)<\/Error>/i);
+            throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine return API");
+          }
+          
+          const returnData = JSON.parse(returnRaw);
+          const returnFlights = returnData.Flights || [];
+          console.log(`[BokunFlights] Found ${returnFlights.length} return one-way flights`);
+          
+          // 3. Build cheapest outbound prices per date/airport
+          // Structure: { departureDate -> { ukAirport -> cheapestPrice } }
+          const outboundPrices: Record<string, Record<string, number>> = {};
+          for (const flight of outboundFlights) {
+            const datePart = flight.Depart?.split(" ")[0]; // DD/MM/YYYY
+            if (!datePart) continue;
+            
+            const [day, month, year] = datePart.split("/");
+            const isoDate = `${year}-${month}-${day}`;
+            
+            if (!uniqueDates.includes(isoDate)) continue;
+            
+            const airport = flight.Depapt; // UK departure airport
+            const price = parseFloat(flight.Fltprice);
+            
+            if (!airport || isNaN(price)) continue;
+            
+            if (!outboundPrices[isoDate]) outboundPrices[isoDate] = {};
+            if (!outboundPrices[isoDate][airport] || price < outboundPrices[isoDate][airport]) {
+              outboundPrices[isoDate][airport] = price;
+            }
+          }
+          
+          // 4. Build cheapest return prices per date/airport
+          // Structure: { returnDate -> { ukAirport -> cheapestPrice } }
+          const returnPrices: Record<string, Record<string, number>> = {};
+          for (const flight of returnFlights) {
+            const datePart = flight.Depart?.split(" ")[0]; // DD/MM/YYYY
+            if (!datePart) continue;
+            
+            const [day, month, year] = datePart.split("/");
+            const isoDate = `${year}-${month}-${day}`;
+            
+            // Return airport (where they arrive in UK)
+            const airport = flight.Arrapt;
+            const price = parseFloat(flight.Fltprice);
+            
+            if (!airport || isNaN(price)) continue;
+            
+            if (!returnPrices[isoDate]) returnPrices[isoDate] = {};
+            if (!returnPrices[isoDate][airport] || price < returnPrices[isoDate][airport]) {
+              returnPrices[isoDate][airport] = price;
+            }
+          }
+          
+          // 5. Combine outbound + return for each departure date
+          for (let i = 0; i < uniqueDates.length; i++) {
+            const depDate = uniqueDates[i];
+            const returnDate = returnDates[uniqueDates.indexOf(depDate)];
+            
+            const outbound = outboundPrices[depDate] || {};
+            const returns = returnPrices[returnDate] || {};
+            
+            // For each UK airport, combine outbound + return prices
+            for (const airport of departureAirports) {
+              const outPrice = outbound[airport];
+              const retPrice = returns[airport];
+              
+              if (outPrice !== undefined && retPrice !== undefined) {
+                const totalFlightPrice = outPrice + retPrice;
+                
+                if (!flightPrices[depDate]) flightPrices[depDate] = {};
+                flightPrices[depDate][airport] = totalFlightPrice;
+                
+                console.log(`[BokunFlights] Open-jaw ${airport}: out £${outPrice} + ret £${retPrice} = £${totalFlightPrice} on ${depDate}`);
+              }
+            }
+          }
+          
+        } else {
+          // ===== ROUND-TRIP: Use existing searchoffers.dll endpoint =====
+          const flightApiUrl = new URL("http://87.102.127.86:8119/search/searchoffers.dll");
+          flightApiUrl.searchParams.set("agtid", "122");
+          flightApiUrl.searchParams.set("page", "FLTDATE");
+          flightApiUrl.searchParams.set("platform", "WEB");
+          flightApiUrl.searchParams.set("depart", airportList);
+          flightApiUrl.searchParams.set("arrive", destinationAirport);
+          flightApiUrl.searchParams.set("Startdate", startDate);
+          flightApiUrl.searchParams.set("EndDate", endDate);
+          flightApiUrl.searchParams.set("duration", duration.toString());
+          flightApiUrl.searchParams.set("output", "JSON");
+          
+          console.log(`[BokunFlights] Calling Sunshine API: ${flightApiUrl.toString()}`);
+          
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 60000);
+          
+          const response = await fetch(flightApiUrl.toString(), {
+            method: "GET",
+            headers: { "Accept": "application/json" },
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            throw new Error(`Sunshine API returned ${response.status}`);
+          }
+          
+          const rawText = await response.text();
+          
+          // Check for XML error response
+          if (rawText.startsWith("<?xml") || rawText.includes("<Error>")) {
+            const errorMatch = rawText.match(/<Error>(.*?)<\/Error>/i);
+            throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine API");
+          }
+          
+          const data = JSON.parse(rawText);
+          const offers = data.Offers || [];
+          
+          console.log(`[BokunFlights] Sunshine API returned ${offers.length} flight offers`);
+          
+          // Parse offers and find cheapest per date/airport
+          for (const offer of offers) {
+            // Extract departure date (DD/MM/YYYY from outdep like "06/02/2026 10:30")
+            const outdepParts = offer.outdep?.split(" ") || [];
+            const datePart = outdepParts[0]; // DD/MM/YYYY
+            
+            if (!datePart) continue;
+            
+            // Convert DD/MM/YYYY to YYYY-MM-DD
+            const [day, month, year] = datePart.split("/");
+            const isoDate = `${year}-${month}-${day}`;
+            
+            // Check if this date is in our list
+            if (!uniqueDates.includes(isoDate)) continue;
+            
+            const airport = offer.depapt; // Departure airport code
+            const price = parseFloat(offer.fltnetpricepp); // Flight price per person
+            
+            if (!airport || isNaN(price)) continue;
+            
+            // Initialize date object if needed
+            if (!flightPrices[isoDate]) {
+              flightPrices[isoDate] = {};
+            }
+            
+            // Keep cheapest price per date/airport
+            if (!flightPrices[isoDate][airport] || price < flightPrices[isoDate][airport]) {
+              flightPrices[isoDate][airport] = price;
+              console.log(`[BokunFlights] ${airport} -> ${destinationAirport} on ${isoDate}: £${price}`);
+            }
           }
         }
       } catch (err: any) {
@@ -3492,11 +3655,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           {
             destinationAirport,
             departureAirports,
-            markup: typeof markup === 'number' ? markup : 0
+            markup: typeof markup === 'number' ? markup : 0,
+            flightType: flightType as "roundtrip" | "openjaw"
           },
           autoRefreshEnabled
         );
-        console.log(`[BokunFlights] Auto-refresh config saved for package ${packageId}, enabled: ${autoRefreshEnabled}`);
+        console.log(`[BokunFlights] Auto-refresh config saved for package ${packageId}, enabled: ${autoRefreshEnabled}, flightType: ${flightType}`);
       } catch (configError: any) {
         console.error(`[BokunFlights] Failed to save auto-refresh config:`, configError.message);
         // Continue without failing the entire request - flight prices were already saved

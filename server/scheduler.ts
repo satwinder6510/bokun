@@ -1,7 +1,8 @@
 import cron from "node-cron";
 import { storage } from "./storage";
 
-const SUNSHINE_API_URL = "http://87.102.127.86:8119/search/searchoffers.dll";
+const SUNSHINE_ROUNDTRIP_URL = "http://87.102.127.86:8119/search/searchoffers.dll";
+const SUNSHINE_ONEWAY_URL = "http://87.102.127.86:8119/owflights/owflights.dll";
 
 function smartRound(price: number): number {
   if (price <= 0) return 0;
@@ -28,8 +29,9 @@ async function refreshPackageFlights(pkg: any): Promise<{ success: boolean; upda
     
     const storedDuration = departures[0]?.durationNights || 7;
     const uniqueDates = Array.from(new Set(departures.map(d => d.departureDate)));
+    const flightType = config.flightType || "roundtrip";
     
-    console.log(`[AutoRefresh] Found ${uniqueDates.length} unique dates, duration: ${storedDuration} nights`);
+    console.log(`[AutoRefresh] Found ${uniqueDates.length} unique dates, duration: ${storedDuration} nights, type: ${flightType}`);
     
     const formatDateForApi = (isoDate: string): string => {
       const [year, month, day] = isoDate.split("-");
@@ -41,70 +43,219 @@ async function refreshPackageFlights(pkg: any): Promise<{ success: boolean; upda
     const endDate = formatDateForApi(sortedDates[sortedDates.length - 1]);
     const airportList = config.departureAirports.join("|");
     
-    const flightApiUrl = new URL(SUNSHINE_API_URL);
-    flightApiUrl.searchParams.set("agtid", "122");
-    flightApiUrl.searchParams.set("page", "FLTDATE");
-    flightApiUrl.searchParams.set("platform", "WEB");
-    flightApiUrl.searchParams.set("depart", airportList);
-    flightApiUrl.searchParams.set("arrive", config.destinationAirport);
-    flightApiUrl.searchParams.set("Startdate", startDate);
-    flightApiUrl.searchParams.set("EndDate", endDate);
-    flightApiUrl.searchParams.set("duration", storedDuration.toString());
-    flightApiUrl.searchParams.set("output", "JSON");
-    
-    console.log(`[AutoRefresh] Calling Sunshine API: ${flightApiUrl.toString()}`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
-    
-    const response = await fetch(flightApiUrl.toString(), {
-      method: "GET",
-      headers: { "Accept": "application/json" },
-      signal: controller.signal,
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`Sunshine API returned ${response.status}`);
-    }
-    
-    const rawText = await response.text();
-    
-    if (rawText.startsWith("<?xml") || rawText.includes("<Error>")) {
-      const errorMatch = rawText.match(/<Error>(.*?)<\/Error>/i);
-      throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine API");
-    }
-    
-    const data = JSON.parse(rawText);
-    const offers = data.Offers || [];
-    
-    console.log(`[AutoRefresh] Received ${offers.length} flight offers`);
-    
     const flightPrices: Record<string, Record<string, number>> = {};
     
-    for (const offer of offers) {
-      const outdepParts = offer.outdep?.split(" ") || [];
-      const datePart = outdepParts[0];
+    if (flightType === "openjaw") {
+      // ===== OPEN-JAW: Search outbound + return one-way flights separately =====
+      console.log(`[AutoRefresh] Open-jaw mode: searching one-way flights`);
       
-      if (!datePart) continue;
+      // Calculate return date range
+      const returnDates: string[] = [];
+      for (const depDate of uniqueDates) {
+        const returnDate = new Date(depDate);
+        returnDate.setDate(returnDate.getDate() + storedDuration);
+        returnDates.push(returnDate.toISOString().split("T")[0]);
+      }
+      const sortedReturnDates = [...returnDates].sort();
+      const returnStartDate = formatDateForApi(sortedReturnDates[0]);
+      const returnEndDate = formatDateForApi(sortedReturnDates[sortedReturnDates.length - 1]);
       
-      const [day, month, year] = datePart.split("/");
-      const isoDate = `${year}-${month}-${day}`;
+      // 1. Fetch OUTBOUND one-way flights (UK → destination)
+      const outboundUrl = new URL(SUNSHINE_ONEWAY_URL);
+      outboundUrl.searchParams.set("agtid", "122");
+      outboundUrl.searchParams.set("depart", airportList);
+      outboundUrl.searchParams.set("Arrive", config.destinationAirport);
+      outboundUrl.searchParams.set("startdate", startDate);
+      outboundUrl.searchParams.set("enddate", endDate);
       
-      if (!uniqueDates.includes(isoDate)) continue;
+      console.log(`[AutoRefresh] Outbound API: ${outboundUrl.toString()}`);
       
-      const airport = offer.depapt;
-      const price = parseFloat(offer.fltnetpricepp);
+      const outboundController = new AbortController();
+      const outboundTimeout = setTimeout(() => outboundController.abort(), 60000);
       
-      if (!airport || isNaN(price)) continue;
+      const outboundResponse = await fetch(outboundUrl.toString(), {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        signal: outboundController.signal,
+      });
       
-      if (!flightPrices[isoDate]) {
-        flightPrices[isoDate] = {};
+      clearTimeout(outboundTimeout);
+      
+      if (!outboundResponse.ok) {
+        throw new Error(`Outbound API returned ${outboundResponse.status}`);
       }
       
-      if (!flightPrices[isoDate][airport] || price < flightPrices[isoDate][airport]) {
-        flightPrices[isoDate][airport] = price;
+      const outboundRaw = await outboundResponse.text();
+      if (outboundRaw.startsWith("<?xml") || outboundRaw.includes("<Error>")) {
+        const errorMatch = outboundRaw.match(/<Error>(.*?)<\/Error>/i);
+        throw new Error(errorMatch ? errorMatch[1] : "Unknown error from outbound API");
+      }
+      
+      const outboundData = JSON.parse(outboundRaw);
+      const outboundFlights = outboundData.Flights || [];
+      console.log(`[AutoRefresh] Found ${outboundFlights.length} outbound one-way flights`);
+      
+      // 2. Fetch RETURN one-way flights (destination → UK)
+      const returnUrl = new URL(SUNSHINE_ONEWAY_URL);
+      returnUrl.searchParams.set("agtid", "122");
+      returnUrl.searchParams.set("depart", config.destinationAirport);
+      returnUrl.searchParams.set("Arrive", airportList);
+      returnUrl.searchParams.set("startdate", returnStartDate);
+      returnUrl.searchParams.set("enddate", returnEndDate);
+      
+      console.log(`[AutoRefresh] Return API: ${returnUrl.toString()}`);
+      
+      const returnController = new AbortController();
+      const returnTimeout = setTimeout(() => returnController.abort(), 60000);
+      
+      const returnResponse = await fetch(returnUrl.toString(), {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        signal: returnController.signal,
+      });
+      
+      clearTimeout(returnTimeout);
+      
+      if (!returnResponse.ok) {
+        throw new Error(`Return API returned ${returnResponse.status}`);
+      }
+      
+      const returnRaw = await returnResponse.text();
+      if (returnRaw.startsWith("<?xml") || returnRaw.includes("<Error>")) {
+        const errorMatch = returnRaw.match(/<Error>(.*?)<\/Error>/i);
+        throw new Error(errorMatch ? errorMatch[1] : "Unknown error from return API");
+      }
+      
+      const returnData = JSON.parse(returnRaw);
+      const returnFlights = returnData.Flights || [];
+      console.log(`[AutoRefresh] Found ${returnFlights.length} return one-way flights`);
+      
+      // 3. Build cheapest outbound prices per date/airport
+      const outboundPrices: Record<string, Record<string, number>> = {};
+      for (const flight of outboundFlights) {
+        const datePart = flight.Depart?.split(" ")[0];
+        if (!datePart) continue;
+        
+        const [day, month, year] = datePart.split("/");
+        const isoDate = `${year}-${month}-${day}`;
+        
+        if (!uniqueDates.includes(isoDate)) continue;
+        
+        const airport = flight.Depapt;
+        const price = parseFloat(flight.Fltprice);
+        
+        if (!airport || isNaN(price)) continue;
+        
+        if (!outboundPrices[isoDate]) outboundPrices[isoDate] = {};
+        if (!outboundPrices[isoDate][airport] || price < outboundPrices[isoDate][airport]) {
+          outboundPrices[isoDate][airport] = price;
+        }
+      }
+      
+      // 4. Build cheapest return prices per date/airport
+      const returnPrices: Record<string, Record<string, number>> = {};
+      for (const flight of returnFlights) {
+        const datePart = flight.Depart?.split(" ")[0];
+        if (!datePart) continue;
+        
+        const [day, month, year] = datePart.split("/");
+        const isoDate = `${year}-${month}-${day}`;
+        
+        const airport = flight.Arrapt;
+        const price = parseFloat(flight.Fltprice);
+        
+        if (!airport || isNaN(price)) continue;
+        
+        if (!returnPrices[isoDate]) returnPrices[isoDate] = {};
+        if (!returnPrices[isoDate][airport] || price < returnPrices[isoDate][airport]) {
+          returnPrices[isoDate][airport] = price;
+        }
+      }
+      
+      // 5. Combine outbound + return for each departure date
+      for (let i = 0; i < uniqueDates.length; i++) {
+        const depDate = uniqueDates[i];
+        const returnDate = returnDates[uniqueDates.indexOf(depDate)];
+        
+        const outbound = outboundPrices[depDate] || {};
+        const returns = returnPrices[returnDate] || {};
+        
+        for (const airport of config.departureAirports) {
+          const outPrice = outbound[airport];
+          const retPrice = returns[airport];
+          
+          if (outPrice !== undefined && retPrice !== undefined) {
+            if (!flightPrices[depDate]) flightPrices[depDate] = {};
+            flightPrices[depDate][airport] = outPrice + retPrice;
+          }
+        }
+      }
+      
+    } else {
+      // ===== ROUND-TRIP: Use existing searchoffers.dll endpoint =====
+      const flightApiUrl = new URL(SUNSHINE_ROUNDTRIP_URL);
+      flightApiUrl.searchParams.set("agtid", "122");
+      flightApiUrl.searchParams.set("page", "FLTDATE");
+      flightApiUrl.searchParams.set("platform", "WEB");
+      flightApiUrl.searchParams.set("depart", airportList);
+      flightApiUrl.searchParams.set("arrive", config.destinationAirport);
+      flightApiUrl.searchParams.set("Startdate", startDate);
+      flightApiUrl.searchParams.set("EndDate", endDate);
+      flightApiUrl.searchParams.set("duration", storedDuration.toString());
+      flightApiUrl.searchParams.set("output", "JSON");
+      
+      console.log(`[AutoRefresh] Calling Sunshine API: ${flightApiUrl.toString()}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      
+      const response = await fetch(flightApiUrl.toString(), {
+        method: "GET",
+        headers: { "Accept": "application/json" },
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Sunshine API returned ${response.status}`);
+      }
+      
+      const rawText = await response.text();
+      
+      if (rawText.startsWith("<?xml") || rawText.includes("<Error>")) {
+        const errorMatch = rawText.match(/<Error>(.*?)<\/Error>/i);
+        throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine API");
+      }
+      
+      const data = JSON.parse(rawText);
+      const offers = data.Offers || [];
+      
+      console.log(`[AutoRefresh] Received ${offers.length} flight offers`);
+      
+      for (const offer of offers) {
+        const outdepParts = offer.outdep?.split(" ") || [];
+        const datePart = outdepParts[0];
+        
+        if (!datePart) continue;
+        
+        const [day, month, year] = datePart.split("/");
+        const isoDate = `${year}-${month}-${day}`;
+        
+        if (!uniqueDates.includes(isoDate)) continue;
+        
+        const airport = offer.depapt;
+        const price = parseFloat(offer.fltnetpricepp);
+        
+        if (!airport || isNaN(price)) continue;
+        
+        if (!flightPrices[isoDate]) {
+          flightPrices[isoDate] = {};
+        }
+        
+        if (!flightPrices[isoDate][airport] || price < flightPrices[isoDate][airport]) {
+          flightPrices[isoDate][airport] = price;
+        }
       }
     }
     

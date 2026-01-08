@@ -433,6 +433,7 @@ export const flightPackages = pgTable("flight_packages", {
     destinationAirport: string;
     departureAirports: string[];
     markup: number;
+    flightType?: "roundtrip" | "openjaw"; // Default to roundtrip for backward compatibility
   }>(),
   
   createdAt: timestamp("created_at").notNull().defaultNow(),

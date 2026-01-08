@@ -52,7 +52,7 @@ The platform supports dynamic combined pricing for Bokun land tours and external
 
 1.  **Manual Pricing Module:** Direct price entry per departure airport and date.
 2.  **Open-Jaw Seasonal Pricing Module:** Inline season management (name, date range, land/hotel cost) with a choice between European Flight API and SERP API (Google Flights) for flight pricing. Supports round-trip, open-jaw, and open-jaw + internal flight types.
-3.  **Bokun Departures + Flights Module:** Syncs Bokun departure dates and rates, auto-detects tour duration, and stores multiple rates per departure. Flight prices are stored per rate per UK airport, allowing calculation of combined prices with smart rounding. Uses the Sunshine European Flight API (http://87.102.127.86:8119) for flight pricing.
+3.  **Bokun Departures + Flights Module:** Syncs Bokun departure dates and rates, auto-detects tour duration, and stores multiple rates per departure. Flight prices are stored per rate per UK airport, allowing calculation of combined prices with smart rounding. Uses the Sunshine European Flight API (http://87.102.127.86:8119) for flight pricing. Supports both **round-trip** flights (via `/search/searchoffers.dll`) and **open-jaw** flights (via `/owflights/owflights.dll`) where outbound and return are priced separately and combined.
 
 The pricing calculation logic considers flight API data, internal flights, seasonal land/hotel costs, and a markup, with a 6am threshold for effective arrival date calculation.
 

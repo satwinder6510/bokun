@@ -1629,7 +1629,7 @@ export class MemStorage implements IStorage {
       if (rateIds.length === 0) return [];
       
       const flights = await db.select().from(bokunDepartureRateFlights)
-        .where(sql`${bokunDepartureRateFlights.rateId} = ANY(${rateIds})`);
+        .where(inArray(bokunDepartureRateFlights.rateId, rateIds));
       
       return flights;
     } catch (error) {

@@ -4692,10 +4692,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Get the GBP price from the cached products
+      // Get the GBP price from the cached products or convert USD to GBP
       // The search endpoint properly returns GBP prices (unlike availability which may return USD
       // depending on booking channel currency settings)
       let importPrice = 0;
+      let priceIsGBP = false;
+      const exchangeRate = await storage.getExchangeRate(); // e.g., 0.79
+      
       try {
         // Use the cached GBP products from storage
         const cachedProducts = await storage.getCachedProducts('GBP');
@@ -4707,21 +4710,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Found product in cache: ${matchingProduct.title}, price: ${matchingProduct.price}`);
           if (matchingProduct.price) {
             importPrice = matchingProduct.price;
+            priceIsGBP = true;
             console.log(`Got GBP price from cache: £${importPrice}`);
-          } else {
-            console.log(`Product found but has no price in cache`);
-            // Fall back to product details price
-            importPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
           }
-        } else {
-          console.log(`Product ID ${productId} not found in cache`);
-          // Fall back to product details price (may be in USD)
-          importPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
-          console.log(`Using product details price: ${importPrice} (may not be GBP)`);
+        }
+        
+        // If not in cache or no price, use USD price and convert
+        if (!priceIsGBP) {
+          const usdPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
+          if (usdPrice > 0) {
+            importPrice = Math.round(usdPrice * exchangeRate * 100) / 100;
+            console.log(`Product not in GBP cache - converting USD to GBP: $${usdPrice} * ${exchangeRate} = £${importPrice}`);
+          } else {
+            console.log(`No price found in Bokun product details`);
+          }
         }
       } catch (priceError) {
         console.error("Could not fetch GBP pricing:", priceError);
-        importPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
+        const usdPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
+        if (usdPrice > 0) {
+          importPrice = Math.round(usdPrice * exchangeRate * 100) / 100;
+          console.log(`Error fallback - converting USD to GBP: $${usdPrice} * ${exchangeRate} = £${importPrice}`);
+        }
       }
       
       // Extract room type prices from rates array

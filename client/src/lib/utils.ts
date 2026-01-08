@@ -37,56 +37,55 @@ export function stripHtmlToText(html: string): string {
 export function cleanFragmentedHtmlArray(items: string[]): string[] {
   if (!items || items.length === 0) return [];
   
-  // Check if this looks like fragmented HTML (contains style fragments)
-  const isFragmented = items.some(item => 
-    /^(size:|height:|top:|bottom:|font|color:rgb|margin)/.test(item) ||
-    item.includes('style="') ||
-    /^\d+(\.\d+)?(px|em|rem|%)/.test(item)
-  );
-  
-  if (!isFragmented) {
-    // Not fragmented, just clean each item
-    return items.map(item => stripHtmlToText(item)).filter(item => item.length > 0);
-  }
-  
-  // Join all fragments back together
-  const combined = items.join('');
-  
-  // Parse as HTML safely using DOMParser (doesn't execute scripts or event handlers)
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(combined, 'text/html');
-  const temp = doc.body;
-  
-  // Extract meaningful list items and paragraphs
   const results: string[] = [];
   
-  // Get all list items
-  const listItems = temp.querySelectorAll('li');
-  listItems.forEach(li => {
-    const text = (li.textContent || '').trim();
-    if (text.length > 0) {
-      results.push(text);
+  // Process each item individually to preserve plain text items
+  for (const item of items) {
+    // Check if this specific item is plain text (no HTML tags)
+    const isPlainText = !/<[^>]+>/.test(item);
+    
+    if (isPlainText) {
+      // Plain text item - clean and add directly
+      const cleaned = item.trim();
+      if (cleaned.length > 0) {
+        results.push(cleaned);
+      }
+      continue;
     }
-  });
-  
-  // If no list items found, try paragraphs with strong tags (headers)
-  if (results.length === 0) {
-    const paragraphs = temp.querySelectorAll('p');
-    paragraphs.forEach(p => {
-      const text = (p.textContent || '').trim();
+    
+    // Check if this looks like a fragmented CSS snippet (orphan style values)
+    const isOrphanedCss = /^(size:|height:|top:|bottom:|font|color:rgb|margin)/.test(item) ||
+      /^\d+(\.\d+)?(px|em|rem|%)/.test(item);
+    
+    if (isOrphanedCss) {
+      // Skip orphaned CSS fragments
+      continue;
+    }
+    
+    // Parse HTML content safely using DOMParser
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(item, 'text/html');
+    const temp = doc.body;
+    
+    // Extract list items
+    const listItems = temp.querySelectorAll('li');
+    listItems.forEach(li => {
+      const text = (li.textContent || '').trim();
       if (text.length > 0) {
         results.push(text);
       }
     });
-  }
-  
-  // If still nothing, fall back to text content split by line breaks
-  if (results.length === 0) {
-    const text = (temp.textContent || '').trim();
-    if (text.length > 0) {
-      // Split by common delimiters and filter
-      const lines = text.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
-      results.push(...lines);
+    
+    // If no list items, try paragraphs (but skip header-like paragraphs followed by lists)
+    if (listItems.length === 0) {
+      const paragraphs = temp.querySelectorAll('p');
+      paragraphs.forEach(p => {
+        const text = (p.textContent || '').trim();
+        // Skip header-like entries that end with colon (these are section headers)
+        if (text.length > 0 && !text.endsWith(':')) {
+          results.push(text);
+        }
+      });
     }
   }
   

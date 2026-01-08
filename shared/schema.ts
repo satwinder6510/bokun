@@ -609,6 +609,83 @@ export const insertPackageSeasonSchema = createInsertSchema(packageSeasons).omit
 export type PackageSeason = typeof packageSeasons.$inferSelect;
 export type InsertPackageSeason = z.infer<typeof insertPackageSeasonSchema>;
 
+// Bokun Departures - stores actual departure dates synced from Bokun availability API
+export const bokunDepartures = pgTable("bokun_departures", {
+  id: serial("id").primaryKey(),
+  packageId: integer("package_id").notNull().references(() => flightPackages.id, { onDelete: 'cascade' }),
+  bokunProductId: text("bokun_product_id").notNull(),
+  
+  // Departure details from Bokun
+  departureDate: text("departure_date").notNull(), // YYYY-MM-DD
+  startTime: text("start_time"), // e.g., "09:00"
+  
+  // Overall availability for this departure date
+  totalCapacity: integer("total_capacity"), // Total spots available
+  availableSpots: integer("available_spots"), // Remaining spots
+  isSoldOut: boolean("is_sold_out").notNull().default(false),
+  
+  // Sync metadata
+  lastSyncedAt: timestamp("last_synced_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Bokun Departure Rates - multiple rates per departure (room type x hotel category)
+export const bokunDepartureRates = pgTable("bokun_departure_rates", {
+  id: serial("id").primaryKey(),
+  departureId: integer("departure_id").notNull().references(() => bokunDepartures.id, { onDelete: 'cascade' }),
+  
+  // Bokun rate identifiers
+  rateId: text("rate_id"), // Bokun rate ID
+  rateTitle: text("rate_title").notNull(), // Full rate name from Bokun
+  pricingCategoryId: text("pricing_category_id"), // Bokun pricing category
+  
+  // Parsed rate categories
+  roomCategory: text("room_category").notNull().default("twin"), // "twin", "single", "triple"
+  hotelCategory: text("hotel_category"), // e.g., "3-star", "4-star", "5-star", "Standard", "Deluxe"
+  minPerBooking: integer("min_per_booking").default(1), // Minimum people required (2 = twin share)
+  maxPerBooking: integer("max_per_booking"), // Maximum people allowed
+  
+  // Pricing from Bokun
+  originalPrice: real("original_price").notNull(), // Original Bokun price per person
+  originalCurrency: text("original_currency").notNull().default("USD"),
+  priceGbp: real("price_gbp").notNull(), // Converted to GBP per person
+  
+  // Rate-specific availability
+  availableForRate: integer("available_for_rate"), // Spots for this specific rate
+  
+  // Combined pricing (land + flight) - calculated when flight prices are fetched
+  flightPriceGbp: real("flight_price_gbp"), // Flight cost per person
+  departureAirport: text("departure_airport"), // UK departure airport
+  combinedPriceGbp: real("combined_price_gbp"), // Land + flight total per person
+  
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertBokunDepartureSchema = createInsertSchema(bokunDepartures).omit({ 
+  id: true, 
+  createdAt: true,
+  lastSyncedAt: true
+}).extend({
+  packageId: z.number().positive("Package ID is required"),
+  bokunProductId: z.string().min(1, "Bokun Product ID is required"),
+  departureDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Departure date must be in YYYY-MM-DD format"),
+});
+
+export const insertBokunDepartureRateSchema = createInsertSchema(bokunDepartureRates).omit({ 
+  id: true, 
+  createdAt: true 
+}).extend({
+  departureId: z.number().positive("Departure ID is required"),
+  rateTitle: z.string().min(1, "Rate title is required"),
+  priceGbp: z.number().positive("Price must be positive"),
+  originalPrice: z.number().positive("Original price must be positive"),
+});
+
+export type BokunDeparture = typeof bokunDepartures.$inferSelect;
+export type InsertBokunDeparture = z.infer<typeof insertBokunDepartureSchema>;
+export type BokunDepartureRate = typeof bokunDepartureRates.$inferSelect;
+export type InsertBokunDepartureRate = z.infer<typeof insertBokunDepartureRateSchema>;
+
 // Pricing Export History - track generated CSVs
 export const pricingExports = pgTable("pricing_exports", {
   id: serial("id").primaryKey(),

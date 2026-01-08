@@ -3279,10 +3279,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
               
               if (cheapestPrice) {
-                // Apply markup
-                const markedUpPrice = Math.round(cheapestPrice * (1 + (markup || 0) / 100));
-                flightPrices[date][ukAirport] = markedUpPrice;
-                console.log(`[BokunFlights] ${ukAirport} -> ${destinationAirport} on ${date}: £${cheapestPrice} (with markup: £${markedUpPrice})`);
+                // Store raw flight price (markup applied to total later)
+                flightPrices[date][ukAirport] = cheapestPrice;
+                console.log(`[BokunFlights] ${ukAirport} -> ${destinationAirport} on ${date}: £${cheapestPrice}`);
               }
             }
           } catch (err: any) {
@@ -3300,17 +3299,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         for (const rate of departure.rates || []) {
           // For each UK airport that has a price for this date
           for (const [airport, flightPrice] of Object.entries(dateFlights)) {
-            // Calculate combined price (land tour + flight)
-            const combinedPrice = Math.round((rate.priceGbp || 0) + flightPrice);
+            // Calculate total before markup (land tour + flight)
+            const subtotal = (rate.priceGbp || 0) + (flightPrice as number);
+            
+            // Apply markup to TOTAL combined price
+            const withMarkup = subtotal * (1 + (markup || 0) / 100);
             
             // Apply smart rounding to combined price (x49, x69, x99)
-            const smartRoundedPrice = smartRound(combinedPrice);
+            const smartRoundedPrice = smartRound(withMarkup);
             
             // Upsert into the child table (one row per rate/airport combination)
             await storage.upsertDepartureRateFlight(
               rate.id,
               airport,
-              flightPrice,
+              flightPrice as number,
               smartRoundedPrice,
               markup,
               "serp"

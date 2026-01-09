@@ -2686,7 +2686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           for (const [airportCode, pricing] of rateFlights) {
             prices.push({
               departureDate: departure.departureDate,
-              rateTitle: rate.title || "Standard Rate",
+              rateTitle: rate.rateTitle || "Standard Rate",
               rateId: rate.id,
               landPrice: rate.priceGbp || 0,
               airportCode,

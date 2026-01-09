@@ -3829,6 +3829,51 @@ export default function AdminPackages() {
                                 </Button>
                               </div>
                               
+                              {/* Download Bokun Prices Button */}
+                              {bokunDepartures.length > 0 && (
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      // Generate CSV of Bokun land prices
+                                      const headers = ["Date", "Rate", "Room", "Hotel", "Land Price (GBP)"];
+                                      const rows: string[][] = [];
+                                      
+                                      bokunDepartures.forEach((departure: any) => {
+                                        departure.rates?.forEach((rate: any) => {
+                                          rows.push([
+                                            departure.departureDate,
+                                            rate.rateTitle || "",
+                                            rate.roomCategory || "",
+                                            rate.hotelCategory || "",
+                                            rate.priceGbp?.toFixed(2) || "0"
+                                          ]);
+                                        });
+                                      });
+                                      
+                                      const csvContent = [
+                                        headers.join(","),
+                                        ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+                                      ].join("\n");
+                                      
+                                      const blob = new Blob([csvContent], { type: "text/csv" });
+                                      const url = URL.createObjectURL(blob);
+                                      const a = document.createElement("a");
+                                      a.href = url;
+                                      a.download = `bokun-prices-${formData.bokunProductId || "package"}.csv`;
+                                      a.click();
+                                      URL.revokeObjectURL(url);
+                                    }}
+                                    data-testid="button-download-bokun-prices"
+                                  >
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Download Bokun Prices (CSV)
+                                  </Button>
+                                </div>
+                              )}
+                              
                               {/* Departures Table */}
                               {isLoadingDepartures ? (
                                 <div className="flex items-center justify-center py-8">

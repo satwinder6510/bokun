@@ -960,8 +960,8 @@ export default function AdminPackages() {
   };
   
   const handleFetchSerpFlightPrices = async () => {
-    // Validate based on flight type
-    const isOpenJaw = formData.flightApiSource === "serp" && flightType === "open_jaw";
+    // Validate based on flight type - now works for both European and SERP APIs
+    const isOpenJaw = flightType === "open_jaw";
     
     if (isOpenJaw) {
       if (!editingPackage || !openJawArriveAirport || !openJawDepartAirport || flightDepartAirports.length === 0 || !flightStartDate || !flightEndDate) {
@@ -3472,41 +3472,39 @@ export default function AdminPackages() {
                                 
                                 <Separator />
                                 
-                                {/* Flight Type Selector - SERP API only */}
-                                {formData.flightApiSource === "serp" && (
-                                  <div>
-                                    <Label className="mb-2 block">Flight Type</Label>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        type="button"
-                                        variant={flightType === "round_trip" ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => {
-                                          setFlightType("round_trip");
-                                          setHasInternalFlight(false);
-                                        }}
-                                        data-testid="button-flight-roundtrip"
-                                      >
-                                        Round-Trip
-                                      </Button>
-                                      <Button
-                                        type="button"
-                                        variant={flightType === "open_jaw" ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => setFlightType("open_jaw")}
-                                        data-testid="button-flight-openjaw"
-                                      >
-                                        Open-Jaw
-                                      </Button>
-                                    </div>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {flightType === "round_trip" 
-                                        ? "Fly into and return from the same airport"
-                                        : "Fly into one city, return from another (e.g., London → Delhi, Mumbai → London)"
-                                      }
-                                    </p>
+                                {/* Flight Type Selector - Both API sources */}
+                                <div>
+                                  <Label className="mb-2 block">Flight Type</Label>
+                                  <div className="flex gap-2">
+                                    <Button
+                                      type="button"
+                                      variant={flightType === "round_trip" ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => {
+                                        setFlightType("round_trip");
+                                        setHasInternalFlight(false);
+                                      }}
+                                      data-testid="button-flight-roundtrip"
+                                    >
+                                      Round-Trip
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant={flightType === "open_jaw" ? "default" : "outline"}
+                                      size="sm"
+                                      onClick={() => setFlightType("open_jaw")}
+                                      data-testid="button-flight-openjaw"
+                                    >
+                                      Open-Jaw
+                                    </Button>
                                   </div>
-                                )}
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {flightType === "round_trip" 
+                                      ? "Fly into and return from the same airport"
+                                      : "Fly into one city, return from another (e.g., London → Delhi, Mumbai → London)"
+                                    }
+                                  </p>
+                                </div>
                                 
                                 {packageSeasons.length === 0 ? (
                                   <div className="p-4 bg-amber-50 dark:bg-amber-950 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
@@ -3515,7 +3513,7 @@ export default function AdminPackages() {
                                 ) : (
                                   <>
                                     {/* Round-trip destination OR Open-jaw airports */}
-                                    {formData.flightApiSource === "serp" && flightType === "open_jaw" ? (
+                                    {flightType === "open_jaw" ? (
                                       <div className="space-y-4">
                                         <div className="grid grid-cols-2 gap-4">
                                           <div>
@@ -3523,24 +3521,26 @@ export default function AdminPackages() {
                                             <Input
                                               value={openJawArriveAirport}
                                               onChange={(e) => setOpenJawArriveAirport(e.target.value.toUpperCase())}
-                                              placeholder="e.g., DEL (Delhi)"
-                                              maxLength={3}
+                                              placeholder={formData.flightApiSource === "european" ? "e.g. DEL or IST|SAW" : "e.g., DEL (Delhi)"}
                                               className="mt-1 font-mono uppercase"
                                               data-testid="input-openjaw-arrive"
                                             />
-                                            <p className="text-xs text-muted-foreground mt-1">Where outbound flight lands</p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              Where outbound flight lands{formData.flightApiSource === "european" ? ". Use | for multiple (e.g. IST|SAW)" : ""}
+                                            </p>
                                           </div>
                                           <div>
                                             <Label>Departure Airport (Return)</Label>
                                             <Input
                                               value={openJawDepartAirport}
                                               onChange={(e) => setOpenJawDepartAirport(e.target.value.toUpperCase())}
-                                              placeholder="e.g., BOM (Mumbai)"
-                                              maxLength={3}
+                                              placeholder={formData.flightApiSource === "european" ? "e.g. BOM or IST|SAW" : "e.g., BOM (Mumbai)"}
                                               className="mt-1 font-mono uppercase"
                                               data-testid="input-openjaw-depart"
                                             />
-                                            <p className="text-xs text-muted-foreground mt-1">Where return flight departs</p>
+                                            <p className="text-xs text-muted-foreground mt-1">
+                                              Where return flight departs{formData.flightApiSource === "european" ? ". Use | for multiple (e.g. IST|SAW)" : ""}
+                                            </p>
                                           </div>
                                         </div>
                                         
@@ -3727,7 +3727,7 @@ export default function AdminPackages() {
                                         flightDepartAirports.length === 0 || 
                                         !flightStartDate || 
                                         !flightEndDate ||
-                                        (formData.flightApiSource === "serp" && flightType === "open_jaw" 
+                                        (flightType === "open_jaw" 
                                           ? (!openJawArriveAirport || !openJawDepartAirport)
                                           : !flightDestAirport
                                         )

@@ -4090,7 +4090,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         internalFlightOffsetDays = 1,
       } = req.body;
 
-      const isOpenJaw = flightApiSource === "serp" && flightType === "open_jaw";
+      const isOpenJaw = flightType === "open_jaw";
       
       if (isOpenJaw) {
         if (!packageId || !openJawArriveAirport || !openJawDepartAirport || !departureAirports?.length || !startDate || !endDate) {
@@ -4349,74 +4349,263 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       } else {
-        // Use European Flight API
-        console.log(`[FetchFlightPrices] Using European API for ${departureAirports.join('|')} -> ${destinationAirport}`);
+        // Use European Flight API (Sunshine)
+        if (isOpenJaw) {
+          // OPEN-JAW: Search outbound + return one-way flights separately using Sunshine API
+          console.log(`[FetchFlightPrices] Using European API OPEN-JAW for ${departureAirports.join('|')} -> ${openJawArriveAirport}, ${openJawDepartAirport} -> UK`);
+          
+          const SUNSHINE_ONEWAY_URL = "http://87.102.127.86:8119/owflights/owflights.dll";
+          const airportList = departureAirports.join("|");
+          
+          // Calculate return date range based on duration
+          const calculateReturnDates = (startDateStr: string, endDateStr: string, nights: number) => {
+            const parseInputDate = (d: string) => {
+              if (d.includes('/')) {
+                const [day, month, year] = d.split('/');
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+              }
+              return new Date(d);
+            };
+            const start = parseInputDate(startDateStr);
+            const end = parseInputDate(endDateStr);
+            const returnStart = new Date(start);
+            const returnEnd = new Date(end);
+            returnStart.setDate(returnStart.getDate() + nights);
+            returnEnd.setDate(returnEnd.getDate() + nights);
+            
+            const formatApiDate = (d: Date) => {
+              const day = String(d.getDate()).padStart(2, '0');
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const year = d.getFullYear();
+              return `${day}/${month}/${year}`;
+            };
+            
+            return {
+              returnStartDate: formatApiDate(returnStart),
+              returnEndDate: formatApiDate(returnEnd)
+            };
+          };
+          
+          const { returnStartDate, returnEndDate } = calculateReturnDates(startDate, endDate, duration);
+          
+          try {
+            // 1. Fetch OUTBOUND one-way flights (UK → arrival airport)
+            const outboundUrl = new URL(SUNSHINE_ONEWAY_URL);
+            outboundUrl.searchParams.set("agtid", "122");
+            outboundUrl.searchParams.set("depart", airportList);
+            outboundUrl.searchParams.set("Arrive", openJawArriveAirport);
+            outboundUrl.searchParams.set("startdate", startDate);
+            outboundUrl.searchParams.set("enddate", endDate);
+            
+            console.log(`[FetchFlightPrices] Outbound API: ${outboundUrl.toString()}`);
+            
+            const outboundResponse = await fetch(outboundUrl.toString(), {
+              method: "GET",
+              headers: { "Accept": "application/json" },
+            });
+            
+            if (!outboundResponse.ok) {
+              throw new Error(`Outbound API returned ${outboundResponse.status}`);
+            }
+            
+            const outboundRaw = await outboundResponse.text();
+            if (outboundRaw.startsWith("<?xml") || outboundRaw.includes("<Error>")) {
+              const errorMatch = outboundRaw.match(/<Error>(.*?)<\/Error>/i);
+              throw new Error(errorMatch ? errorMatch[1] : "Unknown error from outbound API");
+            }
+            
+            const outboundData = JSON.parse(outboundRaw);
+            const outboundFlights = outboundData.Flights || [];
+            console.log(`[FetchFlightPrices] Found ${outboundFlights.length} outbound one-way flights`);
+            
+            // 2. Fetch RETURN one-way flights (departure airport → UK)
+            const returnUrl = new URL(SUNSHINE_ONEWAY_URL);
+            returnUrl.searchParams.set("agtid", "122");
+            returnUrl.searchParams.set("depart", openJawDepartAirport);
+            returnUrl.searchParams.set("Arrive", airportList);
+            returnUrl.searchParams.set("startdate", returnStartDate);
+            returnUrl.searchParams.set("enddate", returnEndDate);
+            
+            console.log(`[FetchFlightPrices] Return API: ${returnUrl.toString()}`);
+            
+            const returnResponse = await fetch(returnUrl.toString(), {
+              method: "GET",
+              headers: { "Accept": "application/json" },
+            });
+            
+            if (!returnResponse.ok) {
+              throw new Error(`Return API returned ${returnResponse.status}`);
+            }
+            
+            const returnRaw = await returnResponse.text();
+            if (returnRaw.startsWith("<?xml") || returnRaw.includes("<Error>")) {
+              const errorMatch = returnRaw.match(/<Error>(.*?)<\/Error>/i);
+              throw new Error(errorMatch ? errorMatch[1] : "Unknown error from return API");
+            }
+            
+            const returnData = JSON.parse(returnRaw);
+            const returnFlights = returnData.Flights || [];
+            console.log(`[FetchFlightPrices] Found ${returnFlights.length} return one-way flights`);
+            
+            // 3. Build cheapest outbound prices per date/airport
+            const outboundPrices: Record<string, Record<string, number>> = {};
+            for (const flight of outboundFlights) {
+              const datePart = flight.Depart?.split(" ")[0];
+              if (!datePart) continue;
+              
+              const [day, month, year] = datePart.split("/");
+              const isoDate = `${year}-${month}-${day}`;
+              
+              const airport = flight.Depapt;
+              const price = parseFloat(flight.Fltprice);
+              
+              if (!airport || isNaN(price)) continue;
+              
+              if (!outboundPrices[isoDate]) outboundPrices[isoDate] = {};
+              if (!outboundPrices[isoDate][airport] || price < outboundPrices[isoDate][airport]) {
+                outboundPrices[isoDate][airport] = price;
+              }
+            }
+            
+            // 4. Build cheapest return prices per date/airport using Map for correct pairing
+            const returnPricesMap: Record<string, Record<string, number>> = {};
+            for (const flight of returnFlights) {
+              const datePart = flight.Depart?.split(" ")[0];
+              if (!datePart) continue;
+              
+              const [day, month, year] = datePart.split("/");
+              const returnIsoDate = `${year}-${month}-${day}`;
+              
+              const returnToAirport = flight.Arrapt;
+              const price = parseFloat(flight.Fltprice);
+              
+              if (!returnToAirport || isNaN(price)) continue;
+              
+              if (!returnPricesMap[returnIsoDate]) returnPricesMap[returnIsoDate] = {};
+              if (!returnPricesMap[returnIsoDate][returnToAirport] || price < returnPricesMap[returnIsoDate][returnToAirport]) {
+                returnPricesMap[returnIsoDate][returnToAirport] = price;
+              }
+            }
+            
+            // 5. Combine outbound + return for each outbound date/airport
+            for (const outboundDate of Object.keys(outboundPrices)) {
+              // Calculate the return date for this outbound date
+              const outDate = new Date(outboundDate);
+              outDate.setDate(outDate.getDate() + duration);
+              const returnDate = outDate.toISOString().split("T")[0];
+              
+              for (const airport of Object.keys(outboundPrices[outboundDate])) {
+                const outPrice = outboundPrices[outboundDate][airport];
+                const returnPrice = returnPricesMap[returnDate]?.[airport];
+                
+                if (!returnPrice) {
+                  console.log(`[FetchFlightPrices] No return flight for ${airport} on ${returnDate}`);
+                  continue;
+                }
+                
+                const totalFlightPrice = outPrice + returnPrice;
+                
+                const season = findSeasonForDate(outboundDate);
+                if (!season) {
+                  console.log(`[FetchFlightPrices] No season for ${outboundDate}, skipping`);
+                  continue;
+                }
+                
+                // Combined price = (flight + baggage + land cost + hotel cost) * (1 + markup%)
+                const rawTotal = totalFlightPrice + BAGGAGE_SURCHARGE_GBP + season.landCost + season.hotelCost;
+                const withMarkup = rawTotal * (1 + (markup || 0) / 100);
+                const finalPrice = smartRound(withMarkup);
+                
+                console.log(`[FetchFlightPrices] ${airport} ${outboundDate}: Out £${outPrice} + Return £${returnPrice} + Baggage £${BAGGAGE_SURCHARGE_GBP} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice}`);
+                
+                pricingEntries.push({
+                  packageId,
+                  departureAirport: airport,
+                  departureAirportName: UK_AIRPORTS_MAP[airport] || airport,
+                  departureDate: outboundDate,
+                  price: finalPrice,
+                  flightPricePerPerson: totalFlightPrice,
+                  internalFlightPricePerPerson: null,
+                  landPricePerPerson: season.landCost + season.hotelCost,
+                  currency: 'GBP',
+                  isAvailable: true,
+                });
+              }
+            }
+          } catch (apiError: any) {
+            console.error("[FetchFlightPrices] European Open-Jaw API error:", apiError.message);
+            return res.status(500).json({ error: `Flight API error: ${apiError.message}` });
+          }
+        } else {
+          // ROUND-TRIP: Use standard European API
+          console.log(`[FetchFlightPrices] Using European API for ${departureAirports.join('|')} -> ${destinationAirport}`);
 
-        try {
-          const flightOffers = await searchFlights({
-            departAirports: departureAirports.join('|'),
-            arriveAirport: destinationAirport,
-            nights: duration,
-            startDate: startDate, // European API uses DD/MM/YYYY
-            endDate: endDate,
-          });
+          try {
+            const flightOffers = await searchFlights({
+              departAirports: departureAirports.join('|'),
+              arriveAirport: destinationAirport,
+              nights: duration,
+              startDate: startDate, // European API uses DD/MM/YYYY
+              endDate: endDate,
+            });
 
-          console.log(`[FetchFlightPrices] European API returned ${flightOffers.length} flight offers`);
+            console.log(`[FetchFlightPrices] European API returned ${flightOffers.length} flight offers`);
 
-          // Group by date and airport, get cheapest
-          const cheapestByDateAirport = new Map<string, { price: number; airport: string; airportName: string; date: string }>();
+            // Group by date and airport, get cheapest
+            const cheapestByDateAirport = new Map<string, { price: number; airport: string; airportName: string; date: string }>();
 
-          for (const offer of flightOffers) {
-            // outdep format is "DD/MM/YYYY HH:mm", extract just the date part
-            const datePart = offer.outdep.split(" ")[0];
-            const [day, month, year] = datePart.split("/");
-            const isoDate = `${year}-${month}-${day}`;
-            const key = `${isoDate}|${offer.depapt}`;
+            for (const offer of flightOffers) {
+              // outdep format is "DD/MM/YYYY HH:mm", extract just the date part
+              const datePart = offer.outdep.split(" ")[0];
+              const [day, month, year] = datePart.split("/");
+              const isoDate = `${year}-${month}-${day}`;
+              const key = `${isoDate}|${offer.depapt}`;
 
-            // Parse price from string
-            const flightPrice = parseFloat(offer.fltSellpricepp) || 0;
+              // Parse price from string
+              const flightPrice = parseFloat(offer.fltSellpricepp) || 0;
 
-            const existing = cheapestByDateAirport.get(key);
-            if (!existing || flightPrice < existing.price) {
-              cheapestByDateAirport.set(key, {
-                price: flightPrice,
-                airport: offer.depapt,
-                airportName: offer.depname || UK_AIRPORTS_MAP[offer.depapt] || offer.depapt,
-                date: isoDate,
+              const existing = cheapestByDateAirport.get(key);
+              if (!existing || flightPrice < existing.price) {
+                cheapestByDateAirport.set(key, {
+                  price: flightPrice,
+                  airport: offer.depapt,
+                  airportName: offer.depname || UK_AIRPORTS_MAP[offer.depapt] || offer.depapt,
+                  date: isoDate,
+                });
+              }
+            }
+
+            for (const [key, flight] of Array.from(cheapestByDateAirport.entries())) {
+              const season = findSeasonForDate(flight.date);
+              if (!season) {
+                console.log(`[FetchFlightPrices] No season found for date ${flight.date}, skipping`);
+                continue;
+              }
+
+              // Combined price = (flight + baggage + land cost + hotel cost) * (1 + markup%)
+              const rawTotal = flight.price + BAGGAGE_SURCHARGE_GBP + season.landCost + season.hotelCost;
+              const withMarkup = rawTotal * (1 + (markup || 0) / 100);
+              const finalPrice = smartRound(withMarkup);
+
+              console.log(`[FetchFlightPrices] ${flight.airport} ${flight.date}: Flight £${flight.price} + Baggage £${BAGGAGE_SURCHARGE_GBP} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice}`);
+
+              pricingEntries.push({
+                packageId,
+                departureAirport: flight.airport,
+                departureAirportName: flight.airportName,
+                departureDate: flight.date,
+                price: finalPrice,
+                flightPricePerPerson: flight.price,
+                internalFlightPricePerPerson: null,
+                landPricePerPerson: season.landCost + season.hotelCost,
+                currency: 'GBP',
+                isAvailable: true,
               });
             }
+          } catch (apiError: any) {
+            console.error("[FetchFlightPrices] European API error:", apiError.message);
+            return res.status(500).json({ error: `Flight API error: ${apiError.message}` });
           }
-
-          for (const [key, flight] of Array.from(cheapestByDateAirport.entries())) {
-            const season = findSeasonForDate(flight.date);
-            if (!season) {
-              console.log(`[FetchFlightPrices] No season found for date ${flight.date}, skipping`);
-              continue;
-            }
-
-            // Combined price = (flight + baggage + land cost + hotel cost) * (1 + markup%)
-            const rawTotal = flight.price + BAGGAGE_SURCHARGE_GBP + season.landCost + season.hotelCost;
-            const withMarkup = rawTotal * (1 + (markup || 0) / 100);
-            const finalPrice = smartRound(withMarkup);
-
-            console.log(`[FetchFlightPrices] ${flight.airport} ${flight.date}: Flight £${flight.price} + Baggage £${BAGGAGE_SURCHARGE_GBP} + Land £${season.landCost} + Hotel £${season.hotelCost} = £${rawTotal} -> £${finalPrice}`);
-
-            pricingEntries.push({
-              packageId,
-              departureAirport: flight.airport,
-              departureAirportName: flight.airportName,
-              departureDate: flight.date,
-              price: finalPrice,
-              flightPricePerPerson: flight.price,
-              internalFlightPricePerPerson: null, // No internal flight for European API
-              landPricePerPerson: season.landCost + season.hotelCost,
-              currency: 'GBP',
-              isAvailable: true,
-            });
-          }
-        } catch (apiError: any) {
-          console.error("[FetchFlightPrices] European API error:", apiError.message);
-          return res.status(500).json({ error: `Flight API error: ${apiError.message}` });
         }
       }
 

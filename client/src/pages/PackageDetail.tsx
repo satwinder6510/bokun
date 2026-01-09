@@ -485,6 +485,10 @@ export default function PackageDetail() {
   const [, newParams] = useRoute("/Holidays/:country/:slug");
   const slug = newParams?.slug || oldParams?.slug;
   const countrySlug = newParams?.country;
+  
+  // Check if coming from a solo collection via URL param (will also check package collections after data loads)
+  const urlParams = new URLSearchParams(window.location.search);
+  const isSoloFromUrl = urlParams.get('collection')?.toLowerCase() === 'solo';
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string>("");
@@ -598,6 +602,11 @@ export default function PackageDetail() {
         .sort((a, b) => a.minPrice - b.minPrice)
     : [];
 
+  // Check if this is a solo package (from URL param OR package is tagged with "solo")
+  const isSoloPackage = isSoloFromUrl || 
+    (pkg?.tags && Array.isArray(pkg.tags) && 
+     pkg.tags.some((t: string) => t.toLowerCase() === 'solo'));
+
   // Get unique rates FOR THE SELECTED AIRPORT, sorted to prefer Twin + Standard
   // Rates show airport-specific combined prices (land + flight for that airport)
   const bokunRates = bokunPricing?.enabled && bokunPricing.prices.length > 0 && selectedBokunAirport
@@ -613,20 +622,25 @@ export default function PackageDetail() {
           );
           const price = rateEntry?.combinedPrice || 0;
           const landPrice = rateEntry?.landPrice || 0;
-          // Check if this is a "double" or "twin" rate (preferred defaults)
+          // Check room types for sorting preference
+          const isSingle = /single/i.test(title);
           const isDouble = /double/i.test(title);
           const isTwin = /twin/i.test(title);
           const isStandard = /standard/i.test(title);
-          const isPreferred = isDouble || isTwin;
-          return { title, price, landPrice, isPreferred, isDouble, isTwin, isStandard };
+          return { title, price, landPrice, isSingle, isDouble, isTwin, isStandard };
         })
         .sort((a, b) => {
-          // Prefer Double first, then Twin
-          if (a.isDouble && !b.isDouble) return -1;
-          if (!a.isDouble && b.isDouble) return 1;
-          // Then prefer Twin
-          if (a.isTwin && !b.isTwin) return -1;
-          if (!a.isTwin && b.isTwin) return 1;
+          // If solo package, prefer Single Room first
+          if (isSoloPackage) {
+            if (a.isSingle && !b.isSingle) return -1;
+            if (!a.isSingle && b.isSingle) return 1;
+          } else {
+            // Otherwise prefer Double first, then Twin
+            if (a.isDouble && !b.isDouble) return -1;
+            if (!a.isDouble && b.isDouble) return 1;
+            if (a.isTwin && !b.isTwin) return -1;
+            if (!a.isTwin && b.isTwin) return 1;
+          }
           // Then by price
           return a.price - b.price;
         })

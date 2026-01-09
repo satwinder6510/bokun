@@ -486,9 +486,6 @@ export default function PackageDetail() {
   const slug = newParams?.slug || oldParams?.slug;
   const countrySlug = newParams?.country;
   
-  // Check if coming from a solo collection via URL param (will also check package collections after data loads)
-  const urlParams = new URLSearchParams(window.location.search);
-  const isSoloFromUrl = urlParams.get('collection')?.toLowerCase() === 'solo';
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string>("");
@@ -602,12 +599,7 @@ export default function PackageDetail() {
         .sort((a, b) => a.minPrice - b.minPrice)
     : [];
 
-  // Check if this is a solo package (from URL param OR package is tagged with "solo")
-  const isSoloPackage = isSoloFromUrl || 
-    (pkg?.tags && Array.isArray(pkg.tags) && 
-     pkg.tags.some((t: string) => t.toLowerCase() === 'solo'));
-
-  // Get unique rates FOR THE SELECTED AIRPORT, sorted to prefer Twin + Standard
+  // Get unique rates FOR THE SELECTED AIRPORT, sorted to prefer Double/Twin first
   // Rates show airport-specific combined prices (land + flight for that airport)
   const bokunRates = bokunPricing?.enabled && bokunPricing.prices.length > 0 && selectedBokunAirport
     ? Array.from(new Set(
@@ -630,17 +622,11 @@ export default function PackageDetail() {
           return { title, price, landPrice, isSingle, isDouble, isTwin, isStandard };
         })
         .sort((a, b) => {
-          // If solo package, prefer Single Room first
-          if (isSoloPackage) {
-            if (a.isSingle && !b.isSingle) return -1;
-            if (!a.isSingle && b.isSingle) return 1;
-          } else {
-            // Otherwise prefer Double first, then Twin
-            if (a.isDouble && !b.isDouble) return -1;
-            if (!a.isDouble && b.isDouble) return 1;
-            if (a.isTwin && !b.isTwin) return -1;
-            if (!a.isTwin && b.isTwin) return 1;
-          }
+          // Prefer Double first, then Twin
+          if (a.isDouble && !b.isDouble) return -1;
+          if (!a.isDouble && b.isDouble) return 1;
+          if (a.isTwin && !b.isTwin) return -1;
+          if (!a.isTwin && b.isTwin) return 1;
           // Then by price
           return a.price - b.price;
         })

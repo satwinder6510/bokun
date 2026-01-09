@@ -59,8 +59,13 @@ function formatGBP(price: number): string {
   }).format(price);
 }
 
-function FlightPackageCard({ pkg }: { pkg: FlightPackage }) {
+function FlightPackageCard({ pkg, showSinglePrice = false }: { pkg: FlightPackage; showSinglePrice?: boolean }) {
   const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+  // For solo collection, prefer single price; otherwise prefer double/twin price
+  const displayPrice = showSinglePrice 
+    ? (pkg.singlePrice || pkg.price) 
+    : (pkg.price || pkg.singlePrice);
+  
   return (
     <Link href={`/Holidays/${countrySlug}/${pkg.slug}`}>
       <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
@@ -95,7 +100,7 @@ function FlightPackageCard({ pkg }: { pkg: FlightPackage }) {
             <div>
               <span className="text-sm text-muted-foreground">From</span>
               <p className="text-xl font-bold text-primary">
-                {(pkg.price || pkg.singlePrice) ? formatGBP(pkg.price || pkg.singlePrice || 0) : "Price on request"}
+                {displayPrice ? formatGBP(displayPrice) : "Price on request"}
               </p>
               <span className="text-xs text-muted-foreground">per person</span>
             </div>
@@ -212,7 +217,11 @@ export default function CollectionDetail() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {data.flightPackages.map((pkg) => (
-                      <FlightPackageCard key={pkg.id} pkg={pkg} />
+                      <FlightPackageCard 
+                        key={pkg.id} 
+                        pkg={pkg} 
+                        showSinglePrice={tagSlug === "solo-travellers"} 
+                      />
                     ))}
                   </div>
                 </section>

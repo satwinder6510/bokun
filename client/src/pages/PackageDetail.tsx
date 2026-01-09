@@ -581,22 +581,43 @@ export default function PackageDetail() {
     enabled: !!pkg?.id,
   });
 
-  // Bokun pricing state
+  // Bokun pricing state - Airport is primary selection, rates are secondary
   const [selectedBokunAirport, setSelectedBokunAirport] = useState<string>("");
   const [selectedBokunRate, setSelectedBokunRate] = useState<string>("");
   const [selectedBokunDate, setSelectedBokunDate] = useState<Date | undefined>();
 
-  // Get unique rates from Bokun pricing, sorted to prefer Twin + Standard
-  const bokunRates = bokunPricing?.enabled && bokunPricing.prices.length > 0
-    ? Array.from(new Set(bokunPricing.prices.map(p => p.rateTitle)))
+  // Get unique airports from ALL Bokun pricing, sorted by cheapest price (any rate)
+  const bokunAirports = bokunPricing?.enabled && bokunPricing.prices.length > 0
+    ? Array.from(new Set(bokunPricing.prices.map(p => p.airportCode)))
+        .map(code => {
+          const airportPrices = bokunPricing.prices.filter(p => p.airportCode === code);
+          const entry = airportPrices[0];
+          const minPrice = Math.min(...airportPrices.map(p => p.combinedPrice));
+          return { code, name: entry?.airportName || code, minPrice };
+        })
+        .sort((a, b) => a.minPrice - b.minPrice)
+    : [];
+
+  // Get unique rates FOR THE SELECTED AIRPORT, sorted to prefer Twin + Standard
+  // Rates show airport-specific combined prices (land + flight for that airport)
+  const bokunRates = bokunPricing?.enabled && bokunPricing.prices.length > 0 && selectedBokunAirport
+    ? Array.from(new Set(
+        bokunPricing.prices
+          .filter(p => p.airportCode === selectedBokunAirport)
+          .map(p => p.rateTitle)
+      ))
         .map(title => {
-          const rateEntries = bokunPricing.prices.filter(p => p.rateTitle === title);
-          const minPrice = Math.min(...rateEntries.map(p => p.combinedPrice));
+          // Get price for this rate at the selected airport
+          const rateEntry = bokunPricing.prices.find(p => 
+            p.rateTitle === title && p.airportCode === selectedBokunAirport
+          );
+          const price = rateEntry?.combinedPrice || 0;
+          const landPrice = rateEntry?.landPrice || 0;
           // Check if this is a "twin" and "standard" rate (preferred default)
           const isTwin = /twin/i.test(title);
           const isStandard = /standard/i.test(title);
           const isPreferred = isTwin && isStandard;
-          return { title, minPrice, isPreferred, isTwin, isStandard };
+          return { title, price, landPrice, isPreferred, isTwin, isStandard };
         })
         .sort((a, b) => {
           // Prefer Twin + Standard first
@@ -606,34 +627,26 @@ export default function PackageDetail() {
           if (a.isTwin && !b.isTwin) return -1;
           if (!a.isTwin && b.isTwin) return 1;
           // Then by price
-          return a.minPrice - b.minPrice;
+          return a.price - b.price;
         })
     : [];
 
-  // Auto-select preferred rate (Twin Standard)
+  // Auto-select cheapest Bokun airport
   useEffect(() => {
-    if (bokunRates.length > 0 && !selectedBokunRate) {
-      setSelectedBokunRate(bokunRates[0].title);
+    if (bokunAirports.length > 0 && !selectedBokunAirport) {
+      setSelectedBokunAirport(bokunAirports[0].code);
+    }
+  }, [bokunAirports, selectedBokunAirport]);
+
+  // Auto-select preferred rate (Twin Standard) when airport changes
+  useEffect(() => {
+    if (bokunRates.length > 0) {
+      const isValidRate = bokunRates.some(r => r.title === selectedBokunRate);
+      if (!selectedBokunRate || !isValidRate) {
+        setSelectedBokunRate(bokunRates[0].title);
+      }
     }
   }, [bokunRates, selectedBokunRate]);
-
-  // Get unique airports from Bokun pricing filtered by selected rate, sorted by cheapest price
-  const bokunAirports = bokunPricing?.enabled && bokunPricing.prices.length > 0
-    ? Array.from(new Set(
-        bokunPricing.prices
-          .filter(p => !selectedBokunRate || p.rateTitle === selectedBokunRate)
-          .map(p => p.airportCode)
-      ))
-        .map(code => {
-          const relevantPrices = bokunPricing.prices.filter(p => 
-            p.airportCode === code && (!selectedBokunRate || p.rateTitle === selectedBokunRate)
-          );
-          const entry = relevantPrices[0];
-          const minPrice = Math.min(...relevantPrices.map(p => p.combinedPrice));
-          return { code, name: entry?.airportName || code, minPrice };
-        })
-        .sort((a, b) => a.minPrice - b.minPrice)
-    : [];
 
   // Filter Bokun pricing by selected airport AND rate
   const filteredBokunPricing = bokunPricing?.prices
@@ -1288,29 +1301,7 @@ export default function PackageDetail() {
                   <p className="font-medium">Select Departure Date</p>
                 </div>
                 
-                {/* Room Type Selector - only show if multiple rates */}
-                {bokunRates.length > 1 && (
-                  <div>
-                    <Label className="text-sm text-muted-foreground mb-1 block">Room Type</Label>
-                    <select
-                      value={selectedBokunRate}
-                      onChange={(e) => {
-                        setSelectedBokunRate(e.target.value);
-                        setSelectedBokunAirport("");
-                        setSelectedBokunDate(undefined);
-                      }}
-                      className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
-                      data-testid="select-bokun-rate-mobile"
-                    >
-                      {bokunRates.map(rate => (
-                        <option key={rate.title} value={rate.title}>
-                          {rate.title} (from {formatPrice(rate.minPrice)})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
+                {/* Airport Selector - Primary selection */}
                 {bokunAirports.length > 0 && (
                   <div>
                     <Label className="text-sm text-muted-foreground mb-1 block">Flying from</Label>
@@ -1318,6 +1309,7 @@ export default function PackageDetail() {
                       value={selectedBokunAirport}
                       onChange={(e) => {
                         setSelectedBokunAirport(e.target.value);
+                        setSelectedBokunRate("");
                         setSelectedBokunDate(undefined);
                       }}
                       className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
@@ -1326,6 +1318,28 @@ export default function PackageDetail() {
                       {bokunAirports.map(airport => (
                         <option key={airport.code} value={airport.code}>
                           {airport.name} (from {formatPrice(airport.minPrice)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Room Type Selector - only show if multiple rates for selected airport */}
+                {bokunRates.length > 1 && selectedBokunAirport && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground mb-1 block">Room Type</Label>
+                    <select
+                      value={selectedBokunRate}
+                      onChange={(e) => {
+                        setSelectedBokunRate(e.target.value);
+                        setSelectedBokunDate(undefined);
+                      }}
+                      className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
+                      data-testid="select-bokun-rate-mobile"
+                    >
+                      {bokunRates.map(rate => (
+                        <option key={rate.title} value={rate.title}>
+                          {rate.title} ({formatPrice(rate.price)})
                         </option>
                       ))}
                     </select>
@@ -2073,29 +2087,7 @@ export default function PackageDetail() {
                             </div>
                           </div>
                           
-                          {/* Room Type Selector - only show if multiple rates */}
-                          {bokunRates.length > 1 && (
-                            <div>
-                              <Label className="text-sm text-muted-foreground mb-1 block">Room Type</Label>
-                              <select
-                                value={selectedBokunRate}
-                                onChange={(e) => {
-                                  setSelectedBokunRate(e.target.value);
-                                  setSelectedBokunAirport("");
-                                  setSelectedBokunDate(undefined);
-                                }}
-                                className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
-                                data-testid="select-bokun-rate"
-                              >
-                                {bokunRates.map(rate => (
-                                  <option key={rate.title} value={rate.title}>
-                                    {rate.title} (from {formatPrice(rate.minPrice)})
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-
+                          {/* Airport Selector - Primary selection */}
                           {bokunAirports.length > 0 && (
                             <div>
                               <Label className="text-sm text-muted-foreground mb-1 block">Flying from</Label>
@@ -2103,6 +2095,7 @@ export default function PackageDetail() {
                                 value={selectedBokunAirport}
                                 onChange={(e) => {
                                   setSelectedBokunAirport(e.target.value);
+                                  setSelectedBokunRate("");
                                   setSelectedBokunDate(undefined);
                                 }}
                                 className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
@@ -2111,6 +2104,28 @@ export default function PackageDetail() {
                                 {bokunAirports.map(airport => (
                                   <option key={airport.code} value={airport.code}>
                                     {airport.name} (from {formatPrice(airport.minPrice)})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+
+                          {/* Room Type Selector - only show if multiple rates for selected airport */}
+                          {bokunRates.length > 1 && selectedBokunAirport && (
+                            <div>
+                              <Label className="text-sm text-muted-foreground mb-1 block">Room Type</Label>
+                              <select
+                                value={selectedBokunRate}
+                                onChange={(e) => {
+                                  setSelectedBokunRate(e.target.value);
+                                  setSelectedBokunDate(undefined);
+                                }}
+                                className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
+                                data-testid="select-bokun-rate"
+                              >
+                                {bokunRates.map(rate => (
+                                  <option key={rate.title} value={rate.title}>
+                                    {rate.title} ({formatPrice(rate.price)})
                                   </option>
                                 ))}
                               </select>

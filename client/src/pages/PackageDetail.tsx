@@ -651,10 +651,14 @@ export default function PackageDetail() {
       })
     : undefined;
 
-  // Auto-select cheapest Bokun airport
+  // Auto-select cheapest Bokun airport and revalidate when airports list changes
   useEffect(() => {
-    if (bokunAirports.length > 0 && !selectedBokunAirport) {
-      setSelectedBokunAirport(bokunAirports[0].code);
+    if (bokunAirports.length > 0) {
+      const isValidAirport = bokunAirports.some(a => a.code === selectedBokunAirport);
+      if (!selectedBokunAirport || !isValidAirport) {
+        setSelectedBokunAirport(bokunAirports[0].code);
+        setSelectedBokunDate(undefined);
+      }
     }
   }, [bokunAirports, selectedBokunAirport]);
 
@@ -1292,6 +1296,7 @@ export default function PackageDetail() {
                       value={selectedBokunRate}
                       onChange={(e) => {
                         setSelectedBokunRate(e.target.value);
+                        setSelectedBokunAirport("");
                         setSelectedBokunDate(undefined);
                       }}
                       className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"
@@ -2076,6 +2081,7 @@ export default function PackageDetail() {
                                 value={selectedBokunRate}
                                 onChange={(e) => {
                                   setSelectedBokunRate(e.target.value);
+                                  setSelectedBokunAirport("");
                                   setSelectedBokunDate(undefined);
                                 }}
                                 className="w-full p-2 border rounded-md bg-white dark:bg-gray-900 text-foreground text-sm"

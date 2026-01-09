@@ -5611,8 +5611,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         featuredImage: details.keyPhoto?.derived?.find((d: any) => d.name === 'large')?.url || 
                        details.keyPhoto?.originalUrl || '',
         gallery,
-        // Additional info from Bokun
-        excluded: details.excluded || null,
+        // Additional info from Bokun - filter out flight-related text since we're adding flights
+        excluded: (() => {
+          if (!details.excluded) return null;
+          // Remove lines mentioning flights (domestic/international) from "what's not included"
+          const flightPatterns = [
+            /domestic\s*(and|&|or)?\s*international\s*flights?/gi,
+            /international\s*(and|&|or)?\s*domestic\s*flights?/gi,
+            /flights?\s*\(domestic\s*(and|&|or)?\s*international\)/gi,
+            /flights?\s*\(international\s*(and|&|or)?\s*domestic\)/gi,
+            /domestic\s*flights?/gi,
+            /international\s*flights?/gi,
+            /\bflights?\b/gi,
+          ];
+          let cleaned = details.excluded;
+          // If it's HTML, filter by line/paragraph
+          if (cleaned.includes('<')) {
+            // Split by common HTML separators and filter
+            const lines = cleaned.split(/<(?:li|p|br|div)[^>]*>/gi);
+            const filteredLines = lines.filter((line: string) => {
+              const plainText = line.replace(/<[^>]*>/g, '').trim();
+              return !flightPatterns.some(pattern => pattern.test(plainText));
+            });
+            cleaned = filteredLines.join('');
+          } else {
+            // Plain text - split by newlines or bullet points
+            const lines = cleaned.split(/[\n\r]+|(?:^|\n)\s*[-•*]\s*/);
+            const filteredLines = lines.filter((line: string) => {
+              return !flightPatterns.some(pattern => pattern.test(line.trim()));
+            });
+            cleaned = filteredLines.join('\n').trim();
+          }
+          return cleaned || null;
+        })(),
         requirements: details.requirements || null,
         attention: details.attention || null,
         // Include raw Bokun response for debugging (only in dev)

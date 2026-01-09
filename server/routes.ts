@@ -4783,26 +4783,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price: number;
         currency: string;
         isAvailable: boolean;
+        flightPricePerPerson?: number | null;
+        internalFlightPricePerPerson?: number | null;
+        landPricePerPerson?: number | null;
+        airlineName?: string | null;
       }> = [];
       
       // Check header to determine format
       const header = parseRow(lines[0]).map(h => h.toLowerCase());
       
       // Simple row format: departure_airport,date,price[,optional columns]
+      // Also supports generated format with selling_price column
       const isSimpleFormat = header.includes('departure_airport') || 
                              header.includes('airport') ||
                              (header[0] === 'departure_airport' || header[0] === 'airport');
       
       if (isSimpleFormat) {
-        // Find column indices
+        // Find column indices - support both manual format (price) and generated format (selling_price)
         const airportIdx = header.findIndex(h => h === 'departure_airport' || h === 'airport');
         const dateIdx = header.findIndex(h => h === 'date');
-        const priceIdx = header.findIndex(h => h === 'price' || h === 'your price (gbp)');
+        const priceIdx = header.findIndex(h => h === 'price' || h === 'your price (gbp)' || h === 'selling_price');
+        
+        // Also look for optional breakdown columns from generated format
+        const flightCostIdx = header.findIndex(h => h === 'flight_cost');
+        const internalFlightCostIdx = header.findIndex(h => h === 'internal_flight_cost');
+        const landCostIdx = header.findIndex(h => h === 'land_cost');
+        const airlineIdx = header.findIndex(h => h === 'airline');
+        const airportNameIdx = header.findIndex(h => h === 'airport_name');
+        const currencyIdx = header.findIndex(h => h === 'currency');
+        const isAvailableIdx = header.findIndex(h => h === 'is_available');
         
         if (dateIdx === -1 || priceIdx === -1) {
           return res.status(400).json({ 
             error: "CSV missing required columns",
-            details: "Expected columns: departure_airport (or airport), date, price"
+            details: "Expected columns: departure_airport (or airport), date, price (or selling_price)"
           });
         }
         
@@ -4841,7 +4855,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue;
           }
           
-          const airportName = UK_AIRPORTS_MAP[airportCode] || airportCode;
+          // Use airport_name from CSV if available, otherwise lookup
+          const airportName = (airportNameIdx >= 0 && row[airportNameIdx]) 
+            ? row[airportNameIdx].replace(/^"|"$/g, '') 
+            : (UK_AIRPORTS_MAP[airportCode] || airportCode);
+          
+          // Parse optional breakdown columns
+          const flightCost = flightCostIdx >= 0 ? parseFloat(row[flightCostIdx]?.replace(/[^0-9.]/g, '') || '') : null;
+          const internalFlightCost = internalFlightCostIdx >= 0 ? parseFloat(row[internalFlightCostIdx]?.replace(/[^0-9.]/g, '') || '') : null;
+          const landCost = landCostIdx >= 0 ? parseFloat(row[landCostIdx]?.replace(/[^0-9.]/g, '') || '') : null;
+          const airline = airlineIdx >= 0 ? (row[airlineIdx]?.replace(/^"|"$/g, '') || null) : null;
+          const currency = currencyIdx >= 0 ? (row[currencyIdx]?.replace(/^"|"$/g, '') || 'GBP') : 'GBP';
+          const isAvailable = isAvailableIdx >= 0 ? (row[isAvailableIdx]?.toLowerCase() !== 'false') : true;
           
           pricingEntries.push({
             packageId,
@@ -4849,8 +4874,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             departureAirportName: airportName,
             departureDate: isoDate,
             price,
-            currency: 'GBP',
-            isAvailable: true,
+            currency,
+            isAvailable,
+            flightPricePerPerson: !isNaN(flightCost!) ? flightCost : null,
+            internalFlightPricePerPerson: !isNaN(internalFlightCost!) ? internalFlightCost : null,
+            landPricePerPerson: !isNaN(landCost!) ? landCost : null,
+            airlineName: airline,
           });
         }
       } else {

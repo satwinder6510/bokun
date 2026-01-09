@@ -11,10 +11,8 @@ import { smartRoundPrice, type CombinedPriceResult } from "./flightApi";
 
 const SERPAPI_BASE = "https://serpapi.com/search";
 
-// Hold baggage surcharge - SERP API only supports carry-on bag filtering,
-// so we add a fixed amount to cover typical hold/checked baggage costs
-// Flat baggage surcharge for all flight types (shown as separate line item)
-export const BAGGAGE_SURCHARGE_GBP = 150;
+// Baggage surcharge removed - no longer applied to pricing
+export const BAGGAGE_SURCHARGE_GBP = 0;
 
 // Goa has 2 airports - automatically expand searches to include both
 const GOA_AIRPORTS = ["GOI", "GOX"]; // GOI = Dabolim, GOX = Mopa

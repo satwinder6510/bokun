@@ -4711,8 +4711,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No pricing entries to download" });
       }
       
-      // Build CSV content with breakdown columns (baggage is flat £150 per person)
-      const headers = ['departure_airport', 'airport_name', 'date', 'airline', 'flight_cost', 'internal_flight_cost', 'baggage_cost', 'land_cost', 'selling_price', 'currency', 'is_available'];
+      // Build CSV content with breakdown columns
+      const headers = ['departure_airport', 'airport_name', 'date', 'airline', 'flight_cost', 'internal_flight_cost', 'land_cost', 'selling_price', 'currency', 'is_available'];
       const rows = pricing.map(entry => [
         entry.departureAirport,
         entry.departureAirportName || '',
@@ -4720,7 +4720,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entry.airlineName || '',
         entry.flightPricePerPerson?.toFixed(2) || '',
         entry.internalFlightPricePerPerson?.toFixed(2) || '', // Internal/domestic flight cost
-        BAGGAGE_SURCHARGE_GBP.toFixed(2), // Flat £150 baggage surcharge
         entry.landPricePerPerson?.toFixed(2) || '',
         entry.price.toString(),
         entry.currency || 'GBP',

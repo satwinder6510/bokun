@@ -565,6 +565,8 @@ export const packagePricing = pgTable("package_pricing", {
   internalFlightPricePerPerson: real("internal_flight_price_per_person"), // Internal/domestic flight cost (GBP)
   landPricePerPerson: real("land_price_per_person"), // Bokun tour price per person with markup (GBP)
   airlineName: text("airline_name"), // Airline operating the flight
+  rateTitle: text("rate_title").default("Twin Room - Standard"), // Room type/hotel category (e.g., "Twin Room - Standard", "Single Room - Superior")
+  rateId: text("rate_id"), // Optional Bokun rate ID for reference
   currency: text("currency").notNull().default("GBP"),
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -583,6 +585,8 @@ export const insertPackagePricingSchema = createInsertSchema(packagePricing).omi
   internalFlightPricePerPerson: z.number().optional().nullable(),
   landPricePerPerson: z.number().optional().nullable(),
   airlineName: z.string().optional().nullable(),
+  rateTitle: z.string().optional().nullable(),
+  rateId: z.string().optional().nullable(),
 });
 
 export type PackagePricing = typeof packagePricing.$inferSelect;

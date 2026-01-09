@@ -613,16 +613,17 @@ export default function PackageDetail() {
           );
           const price = rateEntry?.combinedPrice || 0;
           const landPrice = rateEntry?.landPrice || 0;
-          // Check if this is a "twin" and "standard" rate (preferred default)
+          // Check if this is a "double" or "twin" rate (preferred defaults)
+          const isDouble = /double/i.test(title);
           const isTwin = /twin/i.test(title);
           const isStandard = /standard/i.test(title);
-          const isPreferred = isTwin && isStandard;
-          return { title, price, landPrice, isPreferred, isTwin, isStandard };
+          const isPreferred = isDouble || isTwin;
+          return { title, price, landPrice, isPreferred, isDouble, isTwin, isStandard };
         })
         .sort((a, b) => {
-          // Prefer Twin + Standard first
-          if (a.isPreferred && !b.isPreferred) return -1;
-          if (!a.isPreferred && b.isPreferred) return 1;
+          // Prefer Double first, then Twin
+          if (a.isDouble && !b.isDouble) return -1;
+          if (!a.isDouble && b.isDouble) return 1;
           // Then prefer Twin
           if (a.isTwin && !b.isTwin) return -1;
           if (!a.isTwin && b.isTwin) return 1;

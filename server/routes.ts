@@ -4772,7 +4772,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const parseRow = (line: string): string[] => {
-        return line.split(',').map(cell => cell.trim());
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim().replace(/^"|"$/g, ''));
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim().replace(/^"|"$/g, ''));
+        return result;
       };
       
       const pricingEntries: Array<{
@@ -4831,15 +4847,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Skip rows without required data
           if (!airportCode || !dateStr || !priceStr) continue;
           
-          // Parse date - supports DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD
+          // Parse date - supports DD/MM/YYYY, DD-MM-YYYY, DD/MM/YY, DD-MM-YY, or YYYY-MM-DD
           let isoDate: string;
-          const ukDateMatch = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+          const ukDateMatch4Digit = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+          const ukDateMatch2Digit = dateStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
           const isoDateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
           
-          if (ukDateMatch) {
-            const day = ukDateMatch[1].padStart(2, '0');
-            const month = ukDateMatch[2].padStart(2, '0');
-            const year = ukDateMatch[3];
+          if (ukDateMatch4Digit) {
+            const day = ukDateMatch4Digit[1].padStart(2, '0');
+            const month = ukDateMatch4Digit[2].padStart(2, '0');
+            const year = ukDateMatch4Digit[3];
+            isoDate = `${year}-${month}-${day}`;
+          } else if (ukDateMatch2Digit) {
+            const day = ukDateMatch2Digit[1].padStart(2, '0');
+            const month = ukDateMatch2Digit[2].padStart(2, '0');
+            const shortYear = parseInt(ukDateMatch2Digit[3]);
+            // Assume 2000s for years 00-99
+            const year = shortYear >= 0 && shortYear <= 99 ? `20${ukDateMatch2Digit[3]}` : ukDateMatch2Digit[3];
             isoDate = `${year}-${month}-${day}`;
           } else if (isoDateMatch) {
             isoDate = dateStr;

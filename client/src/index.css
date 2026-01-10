@@ -1,3 +1,12 @@
+/* CaslonGraphiqueEF Font for Headings */
+@font-face {
+  font-family: 'CaslonGraphiqueEF';
+  src: url('/fonts/CaslonGraphiqueEF Regular/CaslonGraphiqueEF Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Benton Sans Font Family - Google Fonts loaded via HTML with preconnect */
 @font-face {
   font-family: 'Benton Sans';
@@ -94,7 +103,7 @@ html, body {
 
   --sidebar-border: 220 13% 92%;
 
-  --sidebar-primary: 183 69% 40%;
+  --sidebar-primary: 33 100% 53%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
@@ -102,7 +111,7 @@ html, body {
 
   --sidebar-accent-foreground: 222 15% 15%;
 
-  --sidebar-ring: 183 69% 40%;
+  --sidebar-ring: 33 100% 53%;
 
   --popover: 0 0% 97%;
 
@@ -110,11 +119,11 @@ html, body {
 
   --popover-border: 220 13% 93%;
 
-  --primary: 183 69% 40%;
+  --primary: 33 100% 53%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 30 100% 50%;
+  --secondary: 184 69% 40%;
 
   --secondary-foreground: 0 0% 100%;
 
@@ -131,8 +140,8 @@ html, body {
   --destructive-foreground: 0 0% 100%;
 
   --input: 220 13% 85%;
-  --ring: 183 69% 40%;
-  --chart-1: 183 69% 40%;
+  --ring: 33 100% 53%;
+  --chart-1: 33 100% 53%;
   --chart-2: 142 76% 36%;
   --chart-3: 262 83% 58%;
   --chart-4: 32 95% 55%;
@@ -213,7 +222,7 @@ html, body {
 
   --sidebar-border: 220 13% 16%;
 
-  --sidebar-primary: 183 69% 45%;
+  --sidebar-primary: 33 100% 53%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
@@ -221,7 +230,7 @@ html, body {
 
   --sidebar-accent-foreground: 0 0% 95%;
 
-  --sidebar-ring: 183 69% 45%;
+  --sidebar-ring: 33 100% 53%;
 
   --popover: 222 14% 11%;
 
@@ -229,11 +238,11 @@ html, body {
 
   --popover-border: 220 13% 15%;
 
-  --primary: 183 69% 45%;
+  --primary: 33 100% 53%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 30 100% 55%;
+  --secondary: 184 69% 40%;
 
   --secondary-foreground: 0 0% 100%;
 
@@ -250,8 +259,8 @@ html, body {
   --destructive-foreground: 0 0% 100%;
 
   --input: 220 13% 25%;
-  --ring: 183 69% 45%;
-  --chart-1: 183 69% 50%;
+  --ring: 33 100% 53%;
+  --chart-1: 33 100% 58%;
   --chart-2: 142 76% 50%;
   --chart-3: 262 83% 68%;
   --chart-4: 32 95% 65%;

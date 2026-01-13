@@ -21,6 +21,7 @@ import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import * as mediaService from "./mediaService";
 import * as stockImageService from "./stockImageService";
 import { runWeeklyBokunCacheRefresh } from "./scheduler";
+import { buildPackageIndex, getPackageIndex, scorePackageWithIndex, isIndexBuilt } from "./keywordIndex";
 
 // Password hashing constants
 const SALT_ROUNDS = 12;
@@ -2586,13 +2587,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!matchesDest) continue;
         }
         
-        // Holiday type filter - enhanced keyword matching
+        // Holiday type scoring - use keyword index if available
         let typeScore = 0;
-        let matchedTypes = 0;
         const packageTags = pkg.tags || [];
-        const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.excerpt || ""}`.toLowerCase();
         
-        if (typeFilters.length > 0) {
+        // Try to use the pre-built keyword index for more accurate scoring
+        const packageIndex = getPackageIndex(pkg.id);
+        if (packageIndex && typeFilters.length > 0) {
+          // Use indexed scoring - more accurate with pre-extracted keywords
+          typeScore = scorePackageWithIndex(packageIndex, typeFilters);
+        } else if (typeFilters.length > 0) {
+          // Fall back to inline keyword matching
+          let matchedTypes = 0;
+          const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.excerpt || ""}`.toLowerCase();
+          
           for (const typeFilter of typeFilters) {
             let typeMatched = false;
             
@@ -2608,19 +2616,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (searchText.includes(keyword)) {
                 typeScore += 5;
                 typeMatched = true;
-                break; // Only count once per type
+                break;
               }
             }
             
             if (typeMatched) matchedTypes++;
           }
           
-          // Bonus for matching multiple selected types
           if (matchedTypes > 1) {
             typeScore += matchedTypes * 5;
           }
         } else {
-          typeScore = 10; // No filter = decent base score
+          // No filters - use index to show variety if available
+          if (packageIndex) {
+            // Give bonus for packages with strong holiday type matches
+            const topMatch = packageIndex.holidayTypeMatches[0];
+            typeScore = topMatch ? Math.min(topMatch.score, 30) : 10;
+          } else {
+            typeScore = 10;
+          }
         }
         
         // Solo traveller boost
@@ -2628,6 +2642,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (packageTags.some((t: string) => t.toLowerCase().includes("solo"))) {
             typeScore += 15;
           }
+          const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.excerpt || ""}`.toLowerCase();
           if (searchText.includes("solo")) {
             typeScore += 5;
           }
@@ -2802,9 +2817,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let combinedResults: typeof results = [];
       
       if (hasFilters) {
-        // When filters are active, truly sort by score (relevance)
-        // High-scoring tours should appear alongside packages
-        combinedResults = results.slice(0, 24);
+        // When filters are active, ensure balanced results with relevant tours
+        // Separate and sort by score within each type
+        const packageResults = results.filter(r => r.type === "package").sort((a, b) => b.score - a.score);
+        const tourResults = results.filter(r => r.type === "tour").sort((a, b) => b.score - a.score);
+        
+        // Always include top 6 tours (sorted by score) to ensure variety
+        // No score threshold - just take the best matching tours
+        const maxPackages = Math.min(18, packageResults.length);
+        const maxTours = Math.min(6, tourResults.length);
+        
+        const selectedPackages = packageResults.slice(0, maxPackages);
+        const selectedTours = tourResults.slice(0, maxTours);
+        
+        // Combine and sort by score for final ordering
+        combinedResults = [...selectedPackages, ...selectedTours].sort((a, b) => b.score - a.score);
+        
+        // If we still have room (under 24) and more packages, add them
+        if (combinedResults.length < 24) {
+          const remaining = packageResults.slice(maxPackages, maxPackages + (24 - combinedResults.length));
+          combinedResults = [...combinedResults, ...remaining].sort((a, b) => b.score - a.score);
+        }
       } else {
         // No filters: show a balanced mix of packages and tours
         const packageResults = results.filter(r => r.type === "package");
@@ -9349,6 +9382,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Build keyword index for AI search on startup
+  (async () => {
+    try {
+      const packages = await storage.getPublishedFlightPackages();
+      buildPackageIndex(packages);
+    } catch (error) {
+      console.error('[Keyword Index] Failed to build index on startup:', error);
+    }
+  })();
+  
   // Periodic cleanup of expired sessions (runs every hour)
   setInterval(async () => {
     try {

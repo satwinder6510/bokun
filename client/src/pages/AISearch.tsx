@@ -200,22 +200,25 @@ export default function AISearch() {
   const maxPrice = filterOptions?.maxPrice || 10000;
   const maxDuration = filterOptions?.maxDuration || 21;
 
-  const searchParams = new URLSearchParams();
-  if (destination !== "all") searchParams.set("destination", destination);
-  searchParams.set("maxDuration", duration[0].toString());
-  searchParams.set("maxBudget", budget[0].toString());
-  searchParams.set("travelers", travelers.toString());
-  if (holidayTypes.length > 0) searchParams.set("holidayTypes", holidayTypes.join(","));
+  const buildSearchParams = () => {
+    const params = new URLSearchParams();
+    if (destination !== "all") params.set("destination", destination);
+    params.set("maxDuration", duration[0].toString());
+    params.set("maxBudget", budget[0].toString());
+    params.set("travelers", travelers.toString());
+    if (holidayTypes.length > 0) params.set("holidayTypes", holidayTypes.join(","));
+    return params.toString();
+  };
 
   const { data, isLoading, refetch } = useQuery<AISearchResponse>({
     queryKey: ["/api/ai-search", destination, duration[0], budget[0], travelers, holidayTypes.join(",")],
     queryFn: async () => {
-      const res = await fetch(`/api/ai-search?${searchParams.toString()}`);
+      const res = await fetch(`/api/ai-search?${buildSearchParams()}`);
       if (!res.ok) throw new Error("Search failed");
       return res.json();
     },
     enabled: hasSearched,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0, // Always fetch fresh data when filters change
   });
 
   const handleSearch = () => {

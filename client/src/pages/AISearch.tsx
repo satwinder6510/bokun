@@ -37,7 +37,6 @@ interface AISearchResponse {
 }
 
 const HOLIDAY_TYPES = [
-  { value: "all", label: "Any Type" },
   { value: "beach", label: "Beach & Relaxation" },
   { value: "adventure", label: "Adventure" },
   { value: "cultural", label: "Cultural & Heritage" },
@@ -47,6 +46,8 @@ const HOLIDAY_TYPES = [
   { value: "luxury", label: "Luxury" },
   { value: "wildlife", label: "Wildlife & Safari" },
 ];
+
+const MAX_HOLIDAY_TYPES = 3;
 
 function ResultCard({ result }: { result: AISearchResult }) {
   const countrySlug = result.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
@@ -163,8 +164,20 @@ export default function AISearch() {
   const [destination, setDestination] = useState<string>("all");
   const [duration, setDuration] = useState<number[]>([14]);
   const [budget, setBudget] = useState<number[]>([3000]);
-  const [holidayType, setHolidayType] = useState<string>("all");
+  const [holidayTypes, setHolidayTypes] = useState<string[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+
+  const toggleHolidayType = (value: string) => {
+    setHolidayTypes(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(t => t !== value);
+      }
+      if (prev.length >= MAX_HOLIDAY_TYPES) {
+        return prev;
+      }
+      return [...prev, value];
+    });
+  };
 
   useEffect(() => {
     setMetaTags(
@@ -186,10 +199,10 @@ export default function AISearch() {
   if (destination !== "all") searchParams.set("destination", destination);
   searchParams.set("maxDuration", duration[0].toString());
   searchParams.set("maxBudget", budget[0].toString());
-  if (holidayType !== "all") searchParams.set("holidayType", holidayType);
+  if (holidayTypes.length > 0) searchParams.set("holidayTypes", holidayTypes.join(","));
 
   const { data, isLoading, refetch } = useQuery<AISearchResponse>({
-    queryKey: ["/api/ai-search", destination, duration[0], budget[0], holidayType],
+    queryKey: ["/api/ai-search", destination, duration[0], budget[0], holidayTypes.join(",")],
     queryFn: async () => {
       const res = await fetch(`/api/ai-search?${searchParams.toString()}`);
       if (!res.ok) throw new Error("Search failed");
@@ -303,22 +316,46 @@ export default function AISearch() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium flex items-center gap-2">
-                    <SlidersHorizontal className="w-4 h-4 text-primary" />
-                    Holiday Type
-                  </Label>
-                  <Select value={holidayType} onValueChange={setHolidayType}>
-                    <SelectTrigger data-testid="select-holiday-type">
-                      <SelectValue placeholder="Choose type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HOLIDAY_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-primary" />
+                  Holiday Type
+                  <span className="text-xs text-muted-foreground font-normal ml-1">
+                    (select up to {MAX_HOLIDAY_TYPES})
+                  </span>
+                </Label>
+                <div className="flex flex-wrap gap-2" data-testid="holiday-type-selector">
+                  {HOLIDAY_TYPES.map((type) => {
+                    const isSelected = holidayTypes.includes(type.value);
+                    const isDisabled = !isSelected && holidayTypes.length >= MAX_HOLIDAY_TYPES;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => toggleHolidayType(type.value)}
+                        disabled={isDisabled}
+                        className={`
+                          px-3 py-1.5 rounded-full text-sm font-medium transition-all
+                          ${isSelected 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          }
+                          ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                        `}
+                        data-testid={`toggle-holiday-${type.value}`}
+                      >
+                        {type.label}
+                      </button>
+                    );
+                  })}
                 </div>
+                {holidayTypes.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    No type selected - showing all holiday types
+                  </p>
+                )}
               </div>
 
               <div className="flex justify-center">
@@ -368,7 +405,7 @@ export default function AISearch() {
                   setDestination("all");
                   setDuration([14]);
                   setBudget([5000]);
-                  setHolidayType("all");
+                  setHolidayTypes([]);
                 }}
                 data-testid="button-reset-filters"
               >

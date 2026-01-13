@@ -2508,15 +2508,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // AI Search endpoint - filter by destination, duration, budget, holiday type
+  // AI Search endpoint - filter by destination, duration, budget, holiday types
   app.get("/api/ai-search", async (req, res) => {
     try {
-      const { destination, maxDuration, maxBudget, holidayType } = req.query;
+      const { destination, maxDuration, maxBudget, holidayTypes } = req.query;
       
       const budgetLimit = parseInt(maxBudget as string) || 10000;
       const durationLimit = parseInt(maxDuration as string) || 21;
       const destFilter = destination as string | undefined;
-      const typeFilter = holidayType as string | undefined;
+      const typeFilters = holidayTypes ? (holidayTypes as string).split(",").filter(Boolean) : [];
       
       // Fetch packages and cached tours
       const [packages, cachedTours] = await Promise.all([
@@ -2574,21 +2574,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!matchesDest) continue;
         }
         
-        // Holiday type filter
+        // Holiday type filter (supports multiple types)
         let typeScore = 0;
-        if (typeFilter && typeFilter !== "all" && typeKeywords[typeFilter]) {
-          const keywords = typeKeywords[typeFilter];
+        if (typeFilters.length > 0) {
           const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.tags?.join(" ") || ""}`.toLowerCase();
           
-          for (const keyword of keywords) {
-            if (searchText.includes(keyword)) {
-              typeScore += 1;
+          for (const typeFilter of typeFilters) {
+            if (typeKeywords[typeFilter]) {
+              const keywords = typeKeywords[typeFilter];
+              for (const keyword of keywords) {
+                if (searchText.includes(keyword)) {
+                  typeScore += 1;
+                }
+              }
+              // Also check tags directly
+              if (pkg.tags?.some((t: string) => t.toLowerCase().includes(typeFilter))) {
+                typeScore += 2;
+              }
             }
-          }
-          
-          // Also check tags directly
-          if (pkg.tags?.some((t: string) => t.toLowerCase().includes(typeFilter))) {
-            typeScore += 2;
           }
         } else {
           typeScore = 1; // No filter = include all
@@ -2643,15 +2646,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (tourCountry?.toLowerCase() !== destFilter.toLowerCase()) continue;
         }
         
-        // Holiday type filter
+        // Holiday type filter (supports multiple types)
         let typeScore = 0;
-        if (typeFilter && typeFilter !== "all" && typeKeywords[typeFilter]) {
-          const keywords = typeKeywords[typeFilter];
+        if (typeFilters.length > 0) {
           const searchText = `${tour.title} ${tour.excerpt || ""} ${tour.summary || ""}`.toLowerCase();
           
-          for (const keyword of keywords) {
-            if (searchText.includes(keyword)) {
-              typeScore += 1;
+          for (const typeFilter of typeFilters) {
+            if (typeKeywords[typeFilter]) {
+              const keywords = typeKeywords[typeFilter];
+              for (const keyword of keywords) {
+                if (searchText.includes(keyword)) {
+                  typeScore += 1;
+                }
+              }
             }
           }
         } else {

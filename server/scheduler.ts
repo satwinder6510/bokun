@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { storage } from "./storage";
+import { searchBokunProducts } from "./bokun";
 
 const SUNSHINE_ROUNDTRIP_URL = "http://87.102.127.86:8119/search/searchoffers.dll";
 const SUNSHINE_ONEWAY_URL = "http://87.102.127.86:8119/owflights/owflights.dll";
@@ -339,16 +340,80 @@ async function runWeeklyFlightRefresh(): Promise<void> {
   }
 }
 
-export function initScheduler(): void {
-  console.log("[Scheduler] Initializing weekly flight price refresh (Sundays at 3:00 AM UK time)");
+async function runWeeklyBokunCacheRefresh(): Promise<void> {
+  console.log(`\n========================================`);
+  console.log(`[BokunCache] Starting weekly Bokun product cache refresh - ${new Date().toISOString()}`);
+  console.log(`========================================\n`);
   
+  const currencies = ["GBP", "USD", "EUR"];
+  
+  for (const currency of currencies) {
+    try {
+      console.log(`[BokunCache] Fetching ALL ${currency} products from Bokun API...`);
+      
+      let allProducts: any[] = [];
+      let page = 1;
+      const pageSize = 100;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const data = await searchBokunProducts(page, pageSize, currency);
+        const items = data.items || [];
+        allProducts = allProducts.concat(items);
+        
+        console.log(`[BokunCache] Fetched page ${page}: ${items.length} products (total: ${allProducts.length})`);
+        
+        hasMore = items.length === pageSize;
+        page++;
+        
+        // Safety limit to prevent infinite loops (50 pages = 5000 products max)
+        if (page > 50) {
+          console.log(`[BokunCache] Reached safety limit of 50 pages`);
+          break;
+        }
+        
+        // Small delay between pages to avoid overwhelming the API
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      // Deduplicate products by ID
+      const uniqueProducts = Array.from(
+        new Map(allProducts.map(p => [p.id, p])).values()
+      );
+      
+      // Store in cache
+      await storage.setCachedProducts(uniqueProducts, currency);
+      
+      console.log(`[BokunCache] Cached ${uniqueProducts.length} unique ${currency} products`);
+      
+    } catch (error: any) {
+      console.error(`[BokunCache] Error refreshing ${currency} products:`, error.message);
+    }
+  }
+  
+  console.log(`\n[BokunCache] Weekly cache refresh completed - ${new Date().toISOString()}\n`);
+}
+
+export function initScheduler(): void {
+  console.log("[Scheduler] Initializing scheduled tasks:");
+  console.log("  - Flight price refresh: Sundays at 3:00 AM UK time");
+  console.log("  - Bokun product cache: Sundays at 8:00 PM UK time");
+  
+  // Flight price refresh - Sundays at 3:00 AM UK time
   cron.schedule("0 3 * * 0", () => {
     runWeeklyFlightRefresh();
   }, {
     timezone: "Europe/London"
   });
   
-  console.log("[Scheduler] Scheduler initialized successfully");
+  // Bokun product cache refresh - Sundays at 8:00 PM UK time
+  cron.schedule("0 20 * * 0", () => {
+    runWeeklyBokunCacheRefresh();
+  }, {
+    timezone: "Europe/London"
+  });
+  
+  console.log("[Scheduler] All schedulers initialized successfully");
 }
 
-export { runWeeklyFlightRefresh };
+export { runWeeklyFlightRefresh, runWeeklyBokunCacheRefresh };

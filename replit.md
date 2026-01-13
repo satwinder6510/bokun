@@ -69,7 +69,15 @@ The platform includes an AI-Powered Search at `/ai-search` that filters both fli
 - **Holiday type multi-select:** Toggle buttons for Beach, Adventure, Cultural, City Break, Cruise, River Cruise, Safari, Wildlife, Luxury, Multi-Centre, Island, Solo Travellers (up to 3 selections)
 - **Travelers selector:** 1-6+ travelers with solo traveler boost
 
-The search uses a scoring algorithm that prioritizes flight packages (base score 100) over Bokun tours (base score 50), with additional points for type matches and budget optimization. Results are balanced with max 16 packages + 8 tours to ensure variety. The search falls back to USD cache if GBP cache is empty.
+**Keyword Index System (server/keywordIndex.ts):**
+An in-memory keyword index is built at server startup that scans all package content (title, description, excerpt, highlights, itinerary) and maps keywords to holiday types using synonym expansion (e.g., "Beach" matches beaches, seaside, coastal, tropical, oceanfront). This enables more accurate holiday type matching than simple tag-based filtering.
+
+**Scoring Algorithm:**
+- Packages base score: 80, Tours base score: 60
+- Holiday type matches add +50 (direct match) or +8-20 (keyword match) based on relevance
+- Results are balanced with max 18 packages + 6 tours when filters are active
+- No filters: 2:1 interleave pattern (2 packages, 1 tour) for variety
+- Falls back to USD cache if GBP cache is empty
 
 ## External Dependencies
 

@@ -2441,6 +2441,258 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return 1 - (distance / maxLength);
   }
 
+  // ============= AI SEARCH ROUTES =============
+  
+  // Get filter options for AI search
+  app.get("/api/ai-search/filters", async (req, res) => {
+    try {
+      // Get all packages and tours to determine filter ranges
+      const [packages, cachedTours] = await Promise.all([
+        storage.getPublishedFlightPackages(),
+        storage.getCachedProducts("GBP"),
+      ]);
+      
+      // Extract unique destinations from packages
+      const destinationSet = new Set<string>();
+      let maxPrice = 0;
+      let maxDuration = 0;
+      
+      for (const pkg of packages) {
+        if (pkg.category) destinationSet.add(pkg.category);
+        if (pkg.countries) {
+          pkg.countries.forEach((c: string) => destinationSet.add(c));
+        }
+        if (pkg.price && pkg.price > maxPrice) maxPrice = pkg.price;
+        
+        // Parse duration
+        const durationMatch = pkg.duration?.match(/(\d+)/);
+        if (durationMatch) {
+          const days = parseInt(durationMatch[1]);
+          if (days > maxDuration) maxDuration = days;
+        }
+      }
+      
+      // Add tour destinations
+      for (const tour of cachedTours) {
+        const country = tour.locationCode?.country || tour.googlePlace?.country;
+        if (country) destinationSet.add(country);
+        
+        if (tour.price && tour.price > maxPrice) maxPrice = tour.price;
+        
+        const durationMatch = tour.durationText?.match(/(\d+)/);
+        if (durationMatch) {
+          const days = parseInt(durationMatch[1]);
+          if (days > maxDuration) maxDuration = days;
+        }
+      }
+      
+      // Sort destinations alphabetically
+      const destinations = Array.from(destinationSet).sort();
+      
+      // Round up maxPrice to nearest 1000
+      maxPrice = Math.ceil(maxPrice / 1000) * 1000;
+      if (maxPrice < 5000) maxPrice = 5000;
+      
+      // Cap duration at reasonable max
+      if (maxDuration < 21) maxDuration = 21;
+      if (maxDuration > 30) maxDuration = 30;
+      
+      res.json({
+        destinations,
+        maxPrice,
+        maxDuration,
+      });
+    } catch (error: any) {
+      console.error("Error fetching AI search filters:", error);
+      res.status(500).json({ error: "Failed to fetch filters" });
+    }
+  });
+  
+  // AI Search endpoint - filter by destination, duration, budget, holiday type
+  app.get("/api/ai-search", async (req, res) => {
+    try {
+      const { destination, maxDuration, maxBudget, holidayType } = req.query;
+      
+      const budgetLimit = parseInt(maxBudget as string) || 10000;
+      const durationLimit = parseInt(maxDuration as string) || 21;
+      const destFilter = destination as string | undefined;
+      const typeFilter = holidayType as string | undefined;
+      
+      // Fetch packages and cached tours
+      const [packages, cachedTours] = await Promise.all([
+        storage.getPublishedFlightPackages(),
+        storage.getCachedProducts("GBP"),
+      ]);
+      
+      // Holiday type keywords mapping
+      const typeKeywords: Record<string, string[]> = {
+        beach: ["beach", "island", "coastal", "resort", "sea", "ocean", "tropical", "maldives", "caribbean", "bali"],
+        adventure: ["adventure", "trek", "hiking", "safari", "expedition", "explore", "mountain", "active"],
+        cultural: ["cultural", "heritage", "history", "temple", "ancient", "museum", "art", "traditional"],
+        city: ["city", "urban", "metropolitan", "capital", "town"],
+        honeymoon: ["honeymoon", "romantic", "romance", "couples", "luxury", "intimate", "wedding"],
+        family: ["family", "kids", "children", "fun", "theme park", "disney"],
+        luxury: ["luxury", "premium", "5 star", "exclusive", "boutique", "spa", "villa"],
+        wildlife: ["wildlife", "safari", "nature", "animals", "national park", "jungle", "forest"],
+      };
+      
+      // Convert to searchable format and score
+      interface AISearchItem {
+        id: number | string;
+        type: "package" | "tour";
+        title: string;
+        description?: string;
+        category?: string;
+        countries?: string[];
+        tags?: string[];
+        price?: number;
+        duration?: string;
+        durationDays?: number;
+        image?: string;
+        slug?: string;
+        score: number;
+      }
+      
+      const results: AISearchItem[] = [];
+      
+      // Process packages (priority)
+      for (const pkg of packages) {
+        // Parse duration
+        let durationDays = 7;
+        const durationMatch = pkg.duration?.match(/(\d+)/);
+        if (durationMatch) durationDays = parseInt(durationMatch[1]);
+        
+        // Check filters
+        if (pkg.price && pkg.price > budgetLimit) continue;
+        if (durationDays > durationLimit) continue;
+        
+        // Destination filter
+        if (destFilter && destFilter !== "all") {
+          const matchesDest = 
+            pkg.category?.toLowerCase() === destFilter.toLowerCase() ||
+            pkg.countries?.some((c: string) => c.toLowerCase() === destFilter.toLowerCase());
+          if (!matchesDest) continue;
+        }
+        
+        // Holiday type filter
+        let typeScore = 0;
+        if (typeFilter && typeFilter !== "all" && typeKeywords[typeFilter]) {
+          const keywords = typeKeywords[typeFilter];
+          const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.tags?.join(" ") || ""}`.toLowerCase();
+          
+          for (const keyword of keywords) {
+            if (searchText.includes(keyword)) {
+              typeScore += 1;
+            }
+          }
+          
+          // Also check tags directly
+          if (pkg.tags?.some((t: string) => t.toLowerCase().includes(typeFilter))) {
+            typeScore += 2;
+          }
+        } else {
+          typeScore = 1; // No filter = include all
+        }
+        
+        // Calculate relevance score
+        let score = 100; // Base score for packages (priority)
+        score += typeScore * 5;
+        
+        // Prefer items closer to budget (more value)
+        if (pkg.price && budgetLimit > 0) {
+          const budgetRatio = pkg.price / budgetLimit;
+          if (budgetRatio > 0.5 && budgetRatio <= 1) {
+            score += 10; // Good value - using more of budget
+          }
+        }
+        
+        results.push({
+          id: pkg.id,
+          type: "package",
+          title: pkg.title,
+          description: pkg.excerpt || pkg.description || undefined,
+          category: pkg.category,
+          countries: pkg.countries || [],
+          tags: pkg.tags || [],
+          price: pkg.price,
+          duration: pkg.duration || undefined,
+          durationDays,
+          image: pkg.featuredImage || undefined,
+          slug: pkg.slug,
+          score,
+        });
+      }
+      
+      // Process tours
+      for (const tour of cachedTours) {
+        // Parse duration
+        let durationDays = 1;
+        const durationMatch = tour.durationText?.match(/(\d+)/);
+        if (durationMatch) durationDays = parseInt(durationMatch[1]);
+        
+        // Get price (convert from USD if needed)
+        const price = tour.price ? tour.price * 0.8 : undefined; // Rough USD to GBP
+        
+        // Check filters
+        if (price && price > budgetLimit) continue;
+        if (durationDays > durationLimit) continue;
+        
+        // Destination filter
+        const tourCountry = tour.locationCode?.country || tour.googlePlace?.country;
+        if (destFilter && destFilter !== "all") {
+          if (tourCountry?.toLowerCase() !== destFilter.toLowerCase()) continue;
+        }
+        
+        // Holiday type filter
+        let typeScore = 0;
+        if (typeFilter && typeFilter !== "all" && typeKeywords[typeFilter]) {
+          const keywords = typeKeywords[typeFilter];
+          const searchText = `${tour.title} ${tour.excerpt || ""} ${tour.summary || ""}`.toLowerCase();
+          
+          for (const keyword of keywords) {
+            if (searchText.includes(keyword)) {
+              typeScore += 1;
+            }
+          }
+        } else {
+          typeScore = 1;
+        }
+        
+        // Calculate score (lower than packages)
+        let score = 50;
+        score += typeScore * 5;
+        
+        results.push({
+          id: tour.id,
+          type: "tour",
+          title: tour.title,
+          description: tour.excerpt || tour.summary,
+          category: tourCountry,
+          countries: tourCountry ? [tourCountry] : [],
+          price,
+          duration: tour.durationText,
+          durationDays,
+          image: tour.keyPhoto?.originalUrl,
+          score,
+        });
+      }
+      
+      // Sort by score (packages first, then by relevance)
+      results.sort((a, b) => b.score - a.score);
+      
+      // Limit results
+      const limitedResults = results.slice(0, 24);
+      
+      res.json({
+        results: limitedResults,
+        total: results.length,
+      });
+    } catch (error: any) {
+      console.error("AI Search error:", error);
+      res.status(500).json({ error: "Search failed" });
+    }
+  });
+
   // ============= FLIGHT INCLUSIVE PACKAGES ROUTES =============
 
   // Get all published packages (public)

@@ -76,6 +76,7 @@ import DestinationDetail from "@/pages/DestinationDetail";
 import SpecialOffers from "@/pages/SpecialOffers";
 import HeroConcepts from "@/pages/HeroConcepts";
 import SearchResults from "@/pages/SearchResults";
+import AISearch from "@/pages/AISearch";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -87,6 +88,7 @@ function Router() {
       <Route path="/packages" component={Packages} />
       <Route path="/packages/:slug" component={PackageDetail} />
       <Route path="/search" component={SearchResults} />
+      <Route path="/ai-search" component={AISearch} />
       <Route path="/special-offers" component={SpecialOffers} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/booking/:reference" component={BookingConfirmation} />

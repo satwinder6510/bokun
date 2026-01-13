@@ -34,12 +34,6 @@ interface AISearchResult {
 interface AISearchResponse {
   results: AISearchResult[];
   total: number;
-  filters: {
-    destinations: string[];
-    holidayTypes: string[];
-    maxPrice: number;
-    maxDuration: number;
-  };
 }
 
 const HOLIDAY_TYPES = [

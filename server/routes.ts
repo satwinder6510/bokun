@@ -2612,8 +2612,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Process tours
       for (const tour of cachedTours) {
-        const country = tour.locationCode?.country || tour.googlePlace?.country;
-        if (country) {
+        // Prefer full country name from googlePlace, fall back to locationCode
+        const country = tour.googlePlace?.country || tour.locationCode?.country;
+        // Skip 2-letter country codes - only use full names
+        if (country && country.length > 2) {
           destinationSet.add(country);
           
           if (!destinationHolidayTypes.has(country)) {
@@ -2645,16 +2647,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Convert to serializable format, applying regional constraints
+      // Normalize country names to avoid duplicates
+      const countryNormalization: Record<string, string> = {
+        "Sri lanka": "Sri Lanka",
+        "Türkiye": "Turkey",
+      };
+      
+      // Convert to serializable format, applying regional constraints and normalization
       const holidayTypesByDestination: Record<string, string[]> = {};
       for (const [dest, types] of destinationHolidayTypes) {
+        if (dest.length <= 2) continue; // Skip country codes
+        const normalizedDest = countryNormalization[dest] || dest;
         // Filter out impossible holiday types for this destination
-        const validTypes = Array.from(types).filter(t => isValidHolidayTypeForCountry(t, dest));
-        holidayTypesByDestination[dest] = validTypes.sort();
+        const validTypes = Array.from(types).filter(t => isValidHolidayTypeForCountry(t, normalizedDest));
+        // Merge with existing if normalized name already exists
+        if (holidayTypesByDestination[normalizedDest]) {
+          const existing = new Set(holidayTypesByDestination[normalizedDest]);
+          validTypes.forEach(t => existing.add(t));
+          holidayTypesByDestination[normalizedDest] = Array.from(existing).sort();
+        } else {
+          holidayTypesByDestination[normalizedDest] = validTypes.sort();
+        }
       }
       
-      // Sort destinations alphabetically
-      const destinations = Array.from(destinationSet).sort();
+      // Sort destinations alphabetically, filtering out 2-letter country codes and normalizing names
+      const normalizedDestinations = new Set<string>();
+      for (const dest of destinationSet) {
+        if (dest.length > 2) {
+          const normalized = countryNormalization[dest] || dest;
+          normalizedDestinations.add(normalized);
+        }
+      }
+      const destinations = Array.from(normalizedDestinations).sort();
       
       // Round up maxPrice to nearest 1000
       maxPrice = Math.ceil(maxPrice / 1000) * 1000;

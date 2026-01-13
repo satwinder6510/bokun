@@ -60,6 +60,17 @@ The pricing calculation logic considers flight API data, internal flights, seaso
 
 Packages using the Bokun Departures + Flights module can have their flight prices automatically refreshed every Sunday at 3:00 AM UK time. When flight prices are fetched for a package, the system saves the configuration (destination airport, UK departure airports, markup) and enables auto-refresh. The scheduler uses node-cron and the Sunshine European Flight API to keep prices up to date.
 
+### AI-Powered Search Feature
+
+The platform includes an AI-Powered Search at `/ai-search` that filters both flight packages and Bokun tours. Features include:
+- **Destination dropdown:** Filter by destination country
+- **Duration slider:** 1-21 days range
+- **Budget slider:** Up to £10,000
+- **Holiday type multi-select:** Toggle buttons for Beach, Adventure, Cultural, City Break, Cruise, River Cruise, Safari, Wildlife, Luxury, Multi-Centre, Island, Solo Travellers (up to 3 selections)
+- **Travelers selector:** 1-6+ travelers with solo traveler boost
+
+The search uses a scoring algorithm that prioritizes flight packages (base score 100) over Bokun tours (base score 50), with additional points for type matches and budget optimization. Results are balanced with max 16 packages + 8 tours to ensure variety. The search falls back to USD cache if GBP cache is empty.
+
 ## External Dependencies
 
 ### Third-Party Services

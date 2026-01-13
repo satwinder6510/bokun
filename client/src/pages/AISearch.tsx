@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { setMetaTags } from "@/lib/meta-tags";
-import { MapPin, Clock, Plane, Sparkles, Package, Search, SlidersHorizontal } from "lucide-react";
+import { MapPin, Clock, Plane, Sparkles, Package, Search, SlidersHorizontal, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,14 +37,18 @@ interface AISearchResponse {
 }
 
 const HOLIDAY_TYPES = [
-  { value: "beach", label: "Beach & Relaxation" },
-  { value: "adventure", label: "Adventure" },
-  { value: "cultural", label: "Cultural & Heritage" },
-  { value: "city", label: "City Break" },
-  { value: "honeymoon", label: "Honeymoon & Romance" },
-  { value: "family", label: "Family Friendly" },
-  { value: "luxury", label: "Luxury" },
-  { value: "wildlife", label: "Wildlife & Safari" },
+  { value: "Beach", label: "Beach" },
+  { value: "Adventure", label: "Adventure" },
+  { value: "Cultural", label: "Cultural" },
+  { value: "City Break", label: "City Break" },
+  { value: "Cruise", label: "Cruise" },
+  { value: "River Cruise", label: "River Cruise" },
+  { value: "Safari", label: "Safari" },
+  { value: "Wildlife", label: "Wildlife" },
+  { value: "Luxury", label: "Luxury" },
+  { value: "Multi-Centre", label: "Multi-Centre" },
+  { value: "Island", label: "Island" },
+  { value: "Solo Travellers", label: "Solo Travellers" },
 ];
 
 const MAX_HOLIDAY_TYPES = 3;
@@ -164,6 +168,7 @@ export default function AISearch() {
   const [destination, setDestination] = useState<string>("all");
   const [duration, setDuration] = useState<number[]>([14]);
   const [budget, setBudget] = useState<number[]>([3000]);
+  const [travelers, setTravelers] = useState<number>(2);
   const [holidayTypes, setHolidayTypes] = useState<string[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
 
@@ -199,10 +204,11 @@ export default function AISearch() {
   if (destination !== "all") searchParams.set("destination", destination);
   searchParams.set("maxDuration", duration[0].toString());
   searchParams.set("maxBudget", budget[0].toString());
+  searchParams.set("travelers", travelers.toString());
   if (holidayTypes.length > 0) searchParams.set("holidayTypes", holidayTypes.join(","));
 
   const { data, isLoading, refetch } = useQuery<AISearchResponse>({
-    queryKey: ["/api/ai-search", destination, duration[0], budget[0], holidayTypes.join(",")],
+    queryKey: ["/api/ai-search", destination, duration[0], budget[0], travelers, holidayTypes.join(",")],
     queryFn: async () => {
       const res = await fetch(`/api/ai-search?${searchParams.toString()}`);
       if (!res.ok) throw new Error("Search failed");
@@ -253,7 +259,7 @@ export default function AISearch() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
           <Card className="shadow-lg border-0">
             <CardContent className="p-6 sm:p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
                 <div className="space-y-3">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-primary" />
@@ -316,6 +322,25 @@ export default function AISearch() {
                   </div>
                 </div>
 
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Users className="w-4 h-4 text-primary" />
+                    Travellers
+                  </Label>
+                  <Select value={travelers.toString()} onValueChange={(v) => setTravelers(parseInt(v))}>
+                    <SelectTrigger data-testid="select-travelers">
+                      <SelectValue placeholder="Number of travellers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Traveller (Solo)</SelectItem>
+                      <SelectItem value="2">2 Travellers</SelectItem>
+                      <SelectItem value="3">3 Travellers</SelectItem>
+                      <SelectItem value="4">4 Travellers</SelectItem>
+                      <SelectItem value="5">5 Travellers</SelectItem>
+                      <SelectItem value="6">6+ Travellers</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -405,6 +430,7 @@ export default function AISearch() {
                   setDestination("all");
                   setDuration([14]);
                   setBudget([5000]);
+                  setTravelers(2);
                   setHolidayTypes([]);
                 }}
                 data-testid="button-reset-filters"

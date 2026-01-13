@@ -20,6 +20,7 @@ import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import * as mediaService from "./mediaService";
 import * as stockImageService from "./stockImageService";
+import { runWeeklyBokunCacheRefresh } from "./scheduler";
 
 // Password hashing constants
 const SALT_ROUNDS = 12;
@@ -2508,33 +2509,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // AI Search endpoint - filter by destination, duration, budget, holiday types
+  // AI Search endpoint - filter by destination, duration, budget, holiday types, travelers
   app.get("/api/ai-search", async (req, res) => {
     try {
-      const { destination, maxDuration, maxBudget, holidayTypes } = req.query;
+      const { destination, maxDuration, maxBudget, holidayTypes, travelers } = req.query;
       
       const budgetLimit = parseInt(maxBudget as string) || 10000;
       const durationLimit = parseInt(maxDuration as string) || 21;
+      const travelerCount = parseInt(travelers as string) || 2;
       const destFilter = destination as string | undefined;
       const typeFilters = holidayTypes ? (holidayTypes as string).split(",").filter(Boolean) : [];
       
-      // Fetch packages and cached tours
-      const [packages, cachedTours] = await Promise.all([
-        storage.getPublishedFlightPackages(),
-        storage.getCachedProducts("GBP"),
-      ]);
+      // Fetch packages and cached tours (try GBP first, fall back to USD)
+      const packages = await storage.getPublishedFlightPackages();
+      let cachedTours = await storage.getCachedProducts("GBP");
       
-      // Holiday type keywords mapping
-      const typeKeywords: Record<string, string[]> = {
-        beach: ["beach", "island", "coastal", "resort", "sea", "ocean", "tropical", "maldives", "caribbean", "bali"],
-        adventure: ["adventure", "trek", "hiking", "safari", "expedition", "explore", "mountain", "active"],
-        cultural: ["cultural", "heritage", "history", "temple", "ancient", "museum", "art", "traditional"],
-        city: ["city", "urban", "metropolitan", "capital", "town"],
-        honeymoon: ["honeymoon", "romantic", "romance", "couples", "luxury", "intimate", "wedding"],
-        family: ["family", "kids", "children", "fun", "theme park", "disney"],
-        luxury: ["luxury", "premium", "5 star", "exclusive", "boutique", "spa", "villa"],
-        wildlife: ["wildlife", "safari", "nature", "animals", "national park", "jungle", "forest"],
-      };
+      // Fall back to USD cache if GBP is empty
+      if (cachedTours.length === 0) {
+        cachedTours = await storage.getCachedProducts("USD");
+        console.log(`[AI Search] GBP cache empty, using USD cache (${cachedTours.length} tours)`);
+      }
+      
+      console.log(`[AI Search] Found ${packages.length} packages, ${cachedTours.length} cached tours`);
       
       // Convert to searchable format and score
       interface AISearchItem {
@@ -2574,27 +2570,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!matchesDest) continue;
         }
         
-        // Holiday type filter (supports multiple types)
+        // Holiday type filter - direct tag matching from database
         let typeScore = 0;
         if (typeFilters.length > 0) {
-          const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.tags?.join(" ") || ""}`.toLowerCase();
-          
+          const packageTags = pkg.tags || [];
           for (const typeFilter of typeFilters) {
-            if (typeKeywords[typeFilter]) {
-              const keywords = typeKeywords[typeFilter];
-              for (const keyword of keywords) {
-                if (searchText.includes(keyword)) {
-                  typeScore += 1;
-                }
-              }
-              // Also check tags directly
-              if (pkg.tags?.some((t: string) => t.toLowerCase().includes(typeFilter))) {
-                typeScore += 2;
-              }
+            // Direct match with package tags (case-insensitive)
+            if (packageTags.some((t: string) => t.toLowerCase() === typeFilter.toLowerCase())) {
+              typeScore += 5; // Strong match for exact tag
+            }
+            // Also check title/description for related keywords
+            const searchText = `${pkg.title} ${pkg.description || ""}`.toLowerCase();
+            if (searchText.includes(typeFilter.toLowerCase())) {
+              typeScore += 2;
             }
           }
         } else {
           typeScore = 1; // No filter = include all
+        }
+        
+        // Solo traveller boost
+        if (travelerCount === 1 && pkg.tags?.some((t: string) => t.toLowerCase().includes("solo"))) {
+          typeScore += 3;
         }
         
         // Calculate relevance score
@@ -2646,19 +2643,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (tourCountry?.toLowerCase() !== destFilter.toLowerCase()) continue;
         }
         
-        // Holiday type filter (supports multiple types)
+        // Holiday type filter - keyword matching for tours
         let typeScore = 0;
         if (typeFilters.length > 0) {
           const searchText = `${tour.title} ${tour.excerpt || ""} ${tour.summary || ""}`.toLowerCase();
           
           for (const typeFilter of typeFilters) {
-            if (typeKeywords[typeFilter]) {
-              const keywords = typeKeywords[typeFilter];
-              for (const keyword of keywords) {
-                if (searchText.includes(keyword)) {
-                  typeScore += 1;
-                }
-              }
+            // Check if tour matches the type filter
+            if (searchText.includes(typeFilter.toLowerCase())) {
+              typeScore += 3;
+            }
+            // Activity categories from Bokun
+            if (tour.activityCategories?.some((c: string) => c.toLowerCase().includes(typeFilter.toLowerCase()))) {
+              typeScore += 5;
             }
           }
         } else {
@@ -2684,14 +2681,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Sort by score (packages first, then by relevance)
-      results.sort((a, b) => b.score - a.score);
+      // Separate packages and tours, sort each by score
+      const packageResults = results.filter(r => r.type === "package").sort((a, b) => b.score - a.score);
+      const tourResults = results.filter(r => r.type === "tour").sort((a, b) => b.score - a.score);
       
-      // Limit results
-      const limitedResults = results.slice(0, 24);
+      // Interleave results: prioritize packages but include tours
+      // Take top packages first, then mix in tours
+      const maxPackages = Math.min(16, packageResults.length); // Max 16 packages
+      const maxTours = Math.min(8, tourResults.length); // Max 8 tours
+      
+      // If we have fewer packages, allow more tours
+      const adjustedMaxPackages = Math.min(maxPackages, 24 - Math.min(tourResults.length, 8));
+      const adjustedMaxTours = Math.min(24 - adjustedMaxPackages, tourResults.length);
+      
+      const selectedPackages = packageResults.slice(0, adjustedMaxPackages);
+      const selectedTours = tourResults.slice(0, adjustedMaxTours);
+      
+      // Combine and sort by score for final ordering
+      const combinedResults = [...selectedPackages, ...selectedTours].sort((a, b) => b.score - a.score);
+      
+      console.log(`[AI Search] Returning ${selectedPackages.length} packages, ${selectedTours.length} tours out of ${packageResults.length} packages, ${tourResults.length} tours total`);
       
       res.json({
-        results: limitedResults,
+        results: combinedResults,
         total: results.length,
       });
     } catch (error: any) {
@@ -6575,6 +6587,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error initializing settings:", error);
       res.status(500).json({ error: "Failed to initialize settings" });
+    }
+  });
+
+  // Trigger Bokun product cache refresh (admin)
+  app.post("/api/admin/refresh-bokun-cache", async (req, res) => {
+    try {
+      // Run the cache refresh in the background
+      runWeeklyBokunCacheRefresh().catch(err => {
+        console.error("[Admin] Bokun cache refresh failed:", err);
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Bokun product cache refresh started. This may take several minutes." 
+      });
+    } catch (error: any) {
+      console.error("Error starting Bokun cache refresh:", error);
+      res.status(500).json({ error: "Failed to start cache refresh" });
     }
   });
 

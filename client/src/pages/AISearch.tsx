@@ -192,13 +192,45 @@ export default function AISearch() {
     );
   }, []);
 
-  const { data: filterOptions } = useQuery<{ destinations: string[]; maxPrice: number; maxDuration: number }>({
+  const { data: filterOptions } = useQuery<{ 
+    destinations: string[]; 
+    maxPrice: number; 
+    maxDuration: number;
+    holidayTypesByDestination: Record<string, string[]>;
+  }>({
     queryKey: ["/api/ai-search/filters"],
   });
 
   const destinations = filterOptions?.destinations || [];
   const maxPrice = filterOptions?.maxPrice || 10000;
   const maxDuration = filterOptions?.maxDuration || 21;
+  const holidayTypesByDestination = filterOptions?.holidayTypesByDestination || {};
+  
+  // Get available holiday types for selected destination
+  const getAvailableHolidayTypes = () => {
+    if (destination === "all") {
+      // Show all holiday types when no destination selected
+      return HOLIDAY_TYPES;
+    }
+    const availableTypes = holidayTypesByDestination[destination] || [];
+    if (availableTypes.length === 0) {
+      // Fallback to all types if no data for destination
+      return HOLIDAY_TYPES;
+    }
+    return HOLIDAY_TYPES.filter(type => availableTypes.includes(type.value));
+  };
+  
+  const availableHolidayTypes = getAvailableHolidayTypes();
+  
+  // Clear selected holiday types that are no longer available when destination changes
+  useEffect(() => {
+    if (destination !== "all") {
+      const available = holidayTypesByDestination[destination] || [];
+      if (available.length > 0) {
+        setHolidayTypes(prev => prev.filter(t => available.includes(t)));
+      }
+    }
+  }, [destination, holidayTypesByDestination]);
 
   const buildSearchParams = () => {
     const params = new URLSearchParams();
@@ -355,7 +387,7 @@ export default function AISearch() {
                   </span>
                 </Label>
                 <div className="flex flex-wrap gap-2" data-testid="holiday-type-selector">
-                  {HOLIDAY_TYPES.map((type) => {
+                  {availableHolidayTypes.map((type) => {
                     const isSelected = holidayTypes.includes(type.value);
                     const isDisabled = !isSelected && holidayTypes.length >= MAX_HOLIDAY_TYPES;
                     return (

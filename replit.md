@@ -79,6 +79,14 @@ An in-memory keyword index is built at server startup that scans all package con
 - No filters: 2:1 interleave pattern (2 packages, 1 tour) for variety
 - Falls back to USD cache if GBP cache is empty
 
+**Destination-Aware Holiday Types:**
+Holiday type options are dynamically filtered based on the selected destination using regional constraints:
+- Safari: Only shown for African countries (Kenya, Tanzania, South Africa, etc.) + Sri Lanka, India
+- Beach: Only shown for coastal/island destinations (Thailand, Greece, Spain, etc.)
+- River Cruise: Only shown for countries with major river routes (Germany, France, Austria, etc.)
+- Island: Only shown for archipelago destinations
+The `/api/ai-search/filters` endpoint returns `holidayTypesByDestination` mapping auto-detected from actual package/tour content with regional filtering applied.
+
 ## External Dependencies
 
 ### Third-Party Services

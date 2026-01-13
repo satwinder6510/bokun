@@ -2449,24 +2449,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ai-search/filters", async (req, res) => {
     try {
       // Get all packages and tours to determine filter ranges
-      const [packages, cachedTours] = await Promise.all([
+      let [packages, cachedTours] = await Promise.all([
         storage.getPublishedFlightPackages(),
         storage.getCachedProducts("GBP"),
       ]);
       
-      // Extract unique destinations from packages
+      // Fall back to USD if GBP cache empty
+      if (cachedTours.length === 0) {
+        cachedTours = await storage.getCachedProducts("USD");
+      }
+      
+      // Holiday type keywords for detecting from content
+      const holidayTypeKeywords: Record<string, string[]> = {
+        "Beach": ["beach", "beaches", "seaside", "coastal", "oceanfront", "tropical", "island", "resort", "sun", "sand"],
+        "Adventure": ["adventure", "hiking", "trekking", "climbing", "rafting", "expedition", "active", "extreme"],
+        "Cultural": ["cultural", "culture", "heritage", "history", "museum", "temple", "ancient", "ruins"],
+        "City Break": ["city", "urban", "metropolitan", "capital", "shopping", "nightlife"],
+        "Cruise": ["cruise", "cruising", "ship", "sailing", "yacht", "sea voyage"],
+        "River Cruise": ["river cruise", "river", "riverboat", "barge", "danube", "rhine", "nile", "mekong"],
+        "Safari": ["safari", "game drive", "big five", "game reserve", "savanna", "bush"],
+        "Wildlife": ["wildlife", "animals", "bird", "whale", "dolphin", "gorilla", "elephant", "national park"],
+        "Luxury": ["luxury", "luxurious", "premium", "exclusive", "5-star", "boutique", "villa", "spa"],
+        "Multi-Centre": ["multi-centre", "multi-center", "twin centre", "combination", "multiple"],
+        "Island": ["island", "islands", "archipelago", "isle", "caribbean", "maldives"],
+        "Solo Travellers": ["solo", "single traveller", "individual"],
+      };
+      
+      // Bokun category mappings
+      const bokunCategoryMappings: Record<string, string[]> = {
+        "Beach": ["beach", "sun_and_beach", "water_sports"],
+        "Adventure": ["adventure", "hiking", "outdoor", "extreme_sports"],
+        "Cultural": ["arts_and_culture", "cultural", "heritage", "museum"],
+        "City Break": ["city_break", "city_tour", "urban", "short_break"],
+        "Cruise": ["cruise", "sailing", "boat_tour"],
+        "River Cruise": ["river_cruise", "barge"],
+        "Safari": ["safari_and_wildlife", "safari", "game_drive"],
+        "Wildlife": ["safari_and_wildlife", "nature", "bird_watching", "wildlife"],
+        "Luxury": ["luxury", "premium", "exclusive"],
+        "Multi-Centre": ["multi_centre", "combination"],
+        "Island": ["island", "island_hopping"],
+        "Solo Travellers": ["solo", "individual"],
+      };
+      
+      // Regional constraints - which holiday types are actually possible in which regions
+      // This overrides keyword detection for impossible combinations
+      const beachCountries = new Set([
+        "Thailand", "TH", "Indonesia", "ID", "Maldives", "MV", "Sri Lanka", "Sri lanka", "LK",
+        "Greece", "GR", "Spain", "ES", "Portugal", "PT", "Italy", "IT", "Croatia", "HR",
+        "Turkey", "TR", "Türkiye", "Cyprus", "CY", "Malta", "MT", "Egypt", "EG",
+        "Morocco", "MA", "Tunisia", "TN", "Mexico", "MX", "Costa Rica", "CR",
+        "Brazil", "BR", "Australia", "AU", "New Zealand", "NZ", "Fiji", "FJ",
+        "Philippines", "PH", "Vietnam", "VN", "Malaysia", "MY", "Singapore", "SG",
+        "Mauritius", "MU", "Seychelles", "SC", "South Africa", "ZA",
+        "USA", "US", "Caribbean", "Barbados", "Jamaica", "Cuba", "Dominican Republic",
+        "Bali", "Sardinia", "Sicily", "Crete", "Santorini", "Mykonos",
+        "India", "IN", "Goa", "Kerala"
+      ]);
+      
+      const safariCountries = new Set([
+        "Kenya", "KE", "Tanzania", "TZ", "South Africa", "ZA", "Botswana", "BW",
+        "Namibia", "NA", "Zimbabwe", "ZW", "Zambia", "ZM", "Uganda", "UG",
+        "Rwanda", "RW", "Malawi", "MW", "Mozambique", "MZ",
+        "Sri Lanka", "Sri lanka", "LK", "India", "IN" // Have wildlife safaris
+      ]);
+      
+      const riverCruiseCountries = new Set([
+        "Germany", "DE", "Austria", "AT", "Hungary", "HU", "France", "FR",
+        "Netherlands", "NL", "Belgium", "BE", "Switzerland", "CH",
+        "Portugal", "PT", "Spain", "ES", "Czech Republic", "CZ", "Slovakia", "SK",
+        "Vietnam", "VN", "Cambodia", "KH", "Myanmar", "MM", "Egypt", "EG",
+        "Peru", "PE", "Brazil", "BR", "USA", "US", "China", "CN"
+      ]);
+      
+      const islandCountries = new Set([
+        "Maldives", "MV", "Mauritius", "MU", "Seychelles", "SC", "Fiji", "FJ",
+        "Indonesia", "ID", "Philippines", "PH", "Sri Lanka", "Sri lanka", "LK",
+        "Greece", "GR", "Italy", "IT", "Spain", "ES", "Portugal", "PT",
+        "Thailand", "TH", "Malaysia", "MY", "Japan", "JP",
+        "Caribbean", "Barbados", "Jamaica", "Cuba", "Dominican Republic",
+        "Cyprus", "CY", "Malta", "MT", "Croatia", "HR"
+      ]);
+      
+      // Function to check if holiday type is valid for a country
+      const isValidHolidayTypeForCountry = (holidayType: string, country: string): boolean => {
+        switch (holidayType) {
+          case "Beach":
+            return beachCountries.has(country);
+          case "Safari":
+            return safariCountries.has(country);
+          case "River Cruise":
+            return riverCruiseCountries.has(country);
+          case "Island":
+            return islandCountries.has(country);
+          default:
+            return true; // Other types are universally applicable
+        }
+      };
+      
+      // Build destination -> holiday types mapping
+      const destinationHolidayTypes = new Map<string, Set<string>>();
       const destinationSet = new Set<string>();
       let maxPrice = 0;
       let maxDuration = 0;
       
-      for (const pkg of packages) {
-        if (pkg.category) destinationSet.add(pkg.category);
-        if (pkg.countries) {
-          pkg.countries.forEach((c: string) => destinationSet.add(c));
+      // Helper to detect holiday types from text content
+      const detectHolidayTypes = (text: string): string[] => {
+        const textLower = text.toLowerCase();
+        const detected: string[] = [];
+        for (const [holidayType, keywords] of Object.entries(holidayTypeKeywords)) {
+          for (const keyword of keywords) {
+            if (textLower.includes(keyword)) {
+              detected.push(holidayType);
+              break;
+            }
+          }
         }
-        if (pkg.price && pkg.price > maxPrice) maxPrice = pkg.price;
+        return detected;
+      };
+      
+      // Process packages
+      for (const pkg of packages) {
+        const destinations: string[] = [];
+        if (pkg.category) destinations.push(pkg.category);
+        if (pkg.countries) destinations.push(...pkg.countries);
         
-        // Parse duration
+        destinations.forEach(dest => destinationSet.add(dest));
+        
+        // Detect holiday types from tags and content
+        const detectedTypes = new Set<string>();
+        
+        // From tags (direct match)
+        if (pkg.tags) {
+          for (const tag of pkg.tags) {
+            const tagLower = tag.toLowerCase();
+            for (const holidayType of Object.keys(holidayTypeKeywords)) {
+              if (tagLower === holidayType.toLowerCase()) {
+                detectedTypes.add(holidayType);
+              }
+            }
+          }
+        }
+        
+        // From content
+        const searchText = `${pkg.title || ""} ${pkg.description || ""} ${pkg.excerpt || ""}`;
+        detectHolidayTypes(searchText).forEach(t => detectedTypes.add(t));
+        
+        // Map detected types to each destination
+        for (const dest of destinations) {
+          if (!destinationHolidayTypes.has(dest)) {
+            destinationHolidayTypes.set(dest, new Set());
+          }
+          detectedTypes.forEach(t => destinationHolidayTypes.get(dest)!.add(t));
+        }
+        
+        if (pkg.price && pkg.price > maxPrice) maxPrice = pkg.price;
         const durationMatch = pkg.duration?.match(/(\d+)/);
         if (durationMatch) {
           const days = parseInt(durationMatch[1]);
@@ -2474,18 +2610,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Add tour destinations
+      // Process tours
       for (const tour of cachedTours) {
         const country = tour.locationCode?.country || tour.googlePlace?.country;
-        if (country) destinationSet.add(country);
+        if (country) {
+          destinationSet.add(country);
+          
+          if (!destinationHolidayTypes.has(country)) {
+            destinationHolidayTypes.set(country, new Set());
+          }
+          
+          // Detect from Bokun activity categories
+          const activityCategories = tour.activityCategories || [];
+          for (const [holidayType, mappedCats] of Object.entries(bokunCategoryMappings)) {
+            for (const category of activityCategories) {
+              const catLower = category.toLowerCase();
+              if (mappedCats.some(m => catLower.includes(m.toLowerCase()))) {
+                destinationHolidayTypes.get(country)!.add(holidayType);
+                break;
+              }
+            }
+          }
+          
+          // Detect from content
+          const searchText = `${tour.title || ""} ${tour.excerpt || ""} ${tour.summary || ""}`;
+          detectHolidayTypes(searchText).forEach(t => destinationHolidayTypes.get(country)!.add(t));
+        }
         
         if (tour.price && tour.price > maxPrice) maxPrice = tour.price;
-        
         const durationMatch = tour.durationText?.match(/(\d+)/);
         if (durationMatch) {
           const days = parseInt(durationMatch[1]);
           if (days > maxDuration) maxDuration = days;
         }
+      }
+      
+      // Convert to serializable format, applying regional constraints
+      const holidayTypesByDestination: Record<string, string[]> = {};
+      for (const [dest, types] of destinationHolidayTypes) {
+        // Filter out impossible holiday types for this destination
+        const validTypes = Array.from(types).filter(t => isValidHolidayTypeForCountry(t, dest));
+        holidayTypesByDestination[dest] = validTypes.sort();
       }
       
       // Sort destinations alphabetically
@@ -2503,6 +2668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         destinations,
         maxPrice,
         maxDuration,
+        holidayTypesByDestination,
       });
     } catch (error: any) {
       console.error("Error fetching AI search filters:", error);
@@ -2593,12 +2759,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Try to use the pre-built keyword index for more accurate scoring
         const packageIndex = getPackageIndex(pkg.id);
+        let matchedTypes = 0;
+        
         if (packageIndex && typeFilters.length > 0) {
           // Use indexed scoring - more accurate with pre-extracted keywords
           typeScore = scorePackageWithIndex(packageIndex, typeFilters);
+          // Check if any filter was matched - score > 0 means at least one match
+          matchedTypes = typeScore > 0 ? 1 : 0;
+          
+          // Also check package tags for direct matches
+          for (const typeFilter of typeFilters) {
+            if (packageTags.some((t: string) => t.toLowerCase() === typeFilter.toLowerCase())) {
+              matchedTypes++;
+              typeScore += 50; // Strong bonus for direct tag match
+            }
+          }
         } else if (typeFilters.length > 0) {
           // Fall back to inline keyword matching
-          let matchedTypes = 0;
           const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.excerpt || ""}`.toLowerCase();
           
           for (const typeFilter of typeFilters) {
@@ -2606,7 +2783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Direct match with package tags (case-insensitive) - highest score
             if (packageTags.some((t: string) => t.toLowerCase() === typeFilter.toLowerCase())) {
-              typeScore += 20;
+              typeScore += 50;
               typeMatched = true;
             }
             
@@ -2614,7 +2791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const keywords = holidayTypeKeywords[typeFilter] || [typeFilter.toLowerCase()];
             for (const keyword of keywords) {
               if (searchText.includes(keyword)) {
-                typeScore += 5;
+                typeScore += 10;
                 typeMatched = true;
                 break;
               }
@@ -2626,7 +2803,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (matchedTypes > 1) {
             typeScore += matchedTypes * 5;
           }
-        } else {
+        }
+        
+        // IMPORTANT: Skip packages that don't match ANY of the selected holiday types
+        if (typeFilters.length > 0 && matchedTypes === 0) continue;
+        
+        if (typeFilters.length === 0) {
           // No filters - use index to show variety if available
           if (packageIndex) {
             // Give bonus for packages with strong holiday type matches
@@ -2756,6 +2938,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             if (typeMatched) matchedTypes++;
           }
+          
+          // IMPORTANT: Skip tours that don't match ANY of the selected holiday types
+          if (matchedTypes === 0) continue;
           
           // Bonus for matching multiple types
           if (matchedTypes > 1) {

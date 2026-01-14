@@ -167,7 +167,7 @@ function ResultSkeleton() {
 export default function AISearch() {
   const [destination, setDestination] = useState<string>("all");
   const [duration, setDuration] = useState<number[]>([14]);
-  const [budget, setBudget] = useState<number[]>([3000]);
+  const [budget, setBudget] = useState<number[]>([1000]);
   const [travelers, setTravelers] = useState<number>(2);
   const [holidayTypes, setHolidayTypes] = useState<string[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -338,7 +338,7 @@ export default function AISearch() {
                 <div className="space-y-3">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <span className="text-primary font-bold">£</span>
-                    Budget (up to {formatBudget(budget[0])})
+                    Budget per person (up to {formatBudget(budget[0])})
                   </Label>
                   <div className="pt-2">
                     <Slider

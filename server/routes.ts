@@ -2460,33 +2460,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Holiday type keywords for detecting from content
+      // Be strict - only use phrases that clearly indicate the holiday type
       const holidayTypeKeywords: Record<string, string[]> = {
-        "Beach": ["beach", "beaches", "seaside", "coastal", "oceanfront", "tropical", "island", "resort", "sun", "sand"],
-        "Adventure": ["adventure", "hiking", "trekking", "climbing", "rafting", "expedition", "active", "extreme"],
-        "Cultural": ["cultural", "culture", "heritage", "history", "museum", "temple", "ancient", "ruins"],
-        "City Break": ["city", "urban", "metropolitan", "capital", "shopping", "nightlife"],
-        "Cruise": ["cruise", "cruising", "ship", "sailing", "yacht", "sea voyage"],
-        "River Cruise": ["river cruise", "river", "riverboat", "barge", "danube", "rhine", "nile", "mekong"],
-        "Safari": ["safari", "game drive", "big five", "game reserve", "savanna", "bush"],
-        "Wildlife": ["wildlife", "animals", "bird", "whale", "dolphin", "gorilla", "elephant", "national park"],
-        "Luxury": ["luxury", "luxurious", "premium", "exclusive", "5-star", "boutique", "villa", "spa"],
-        "Multi-Centre": ["multi-centre", "multi-center", "twin centre", "combination", "multiple"],
-        "Island": ["island", "islands", "archipelago", "isle", "caribbean", "maldives"],
-        "Solo Travellers": ["solo", "single traveller", "individual"],
+        "Beach": ["beach", "beaches", "seaside", "coastal", "oceanfront", "beachfront"],
+        "Adventure": ["adventure", "hiking", "trekking", "climbing", "rafting", "expedition"],
+        "Cultural": ["cultural", "culture", "heritage", "museum", "temple", "ancient", "ruins"],
+        "City Break": ["city break", "city tour"], // Very strict - only explicit city break phrases
+        "Cruise": ["cruise", "cruising", "ship cruise"], // More strict - "ship" alone is too broad
+        "River Cruise": ["river cruise", "riverboat", "barge cruise", "danube cruise", "rhine cruise", "nile cruise", "mekong cruise"],
+        "Safari": ["safari", "game drive", "big five", "game reserve"],
+        "Wildlife": ["wildlife", "game viewing", "whale watching", "bird watching", "gorilla trekking"],
+        "Luxury": ["luxury", "luxurious", "5-star", "five star", "boutique hotel"],
+        "Multi-Centre": ["multi-centre", "multi-center", "twin centre", "twin center"],
+        "Island": ["island hopping", "island escape", "island paradise"],
+        "Solo Travellers": ["solo traveller", "solo traveler", "single traveller"],
       };
       
-      // Bokun category mappings
+      // Bokun category mappings - matches the actual Bokun categories
+      // Bokun uses uppercase snake_case: SUN_AND_BEACH, SAFARI_AND_WILDLIFE, MINI_CRUISE, etc.
       const bokunCategoryMappings: Record<string, string[]> = {
-        "Beach": ["beach", "sun_and_beach", "water_sports"],
-        "Adventure": ["adventure", "hiking", "outdoor", "extreme_sports"],
-        "Cultural": ["arts_and_culture", "cultural", "heritage", "museum"],
+        "Beach": ["sun_and_beach", "island_hopping", "water_sports", "beach"],
+        "Adventure": ["adventure", "hiking", "outdoor", "extreme_sports", "rafting", "trekking"],
+        "Cultural": ["arts_and_culture", "cultural", "heritage", "museum", "archaeological", "pilgrimage_or_religion"],
         "City Break": ["city_break", "city_tour", "urban", "short_break"],
-        "Cruise": ["cruise", "sailing", "boat_tour"],
+        "Cruise": ["cruise", "mini_cruise", "sailing", "boat_tour"],
         "River Cruise": ["river_cruise", "barge"],
         "Safari": ["safari_and_wildlife", "safari", "game_drive"],
         "Wildlife": ["safari_and_wildlife", "nature", "bird_watching", "wildlife"],
-        "Luxury": ["luxury", "premium", "exclusive"],
-        "Multi-Centre": ["multi_centre", "combination"],
+        "Luxury": ["luxury", "premium", "exclusive", "private_roundtrip", "private_roundrip"],
+        "Multi-Centre": ["multi_centre", "combination", "seat_in_coach_tour"],
         "Island": ["island", "island_hopping"],
         "Solo Travellers": ["solo", "individual"],
       };
@@ -2530,6 +2532,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Cyprus", "CY", "Malta", "MT", "Croatia", "HR"
       ]);
       
+      // City Break is NOT appropriate for island-only or wilderness destinations
+      const noCityBreakCountries = new Set([
+        "Maldives", "MV", "Seychelles", "SC", "Fiji", "FJ", // Island-only nations
+        "Mauritius", "MU", "Cape Verde", "CV", // Island nations
+        "Bhutan", "BT", // Remote Himalayan kingdom
+        "Namibia", "NA", // Wilderness/safari focused
+        "Botswana", "BW", "Zambia", "ZM", "Zimbabwe", "ZW", // Safari nations
+        "Rwanda", "RW", "Uganda", "UG", "Tanzania", "TZ", // Safari nations
+        "Kenya", "KE", // Safari focused
+        "Nepal", "NP", // Mountain/adventure focused
+        "Costa Rica", "CR", // Nature/adventure focused
+        "Ecuador", "EC", // Nature/Galapagos focused
+      ]);
+      
       // Function to check if holiday type is valid for a country
       const isValidHolidayTypeForCountry = (holidayType: string, country: string): boolean => {
         switch (holidayType) {
@@ -2541,6 +2557,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return riverCruiseCountries.has(country);
           case "Island":
             return islandCountries.has(country);
+          case "City Break":
+            return !noCityBreakCountries.has(country);
           default:
             return true; // Other types are universally applicable
         }
@@ -2712,19 +2730,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const typeFilters = holidayTypes ? (holidayTypes as string).split(",").filter(Boolean) : [];
       
       // Enhanced keyword mappings for better matching
+      // Note: These are used for SCORING, not filtering - can be a bit broader than filters keywords
       const holidayTypeKeywords: Record<string, string[]> = {
-        "Beach": ["beach", "beaches", "seaside", "coastal", "oceanfront", "beachfront", "sand", "sea", "ocean", "island", "tropical", "resort", "sun", "swimming"],
-        "Adventure": ["adventure", "hiking", "trekking", "climbing", "rafting", "kayak", "expedition", "explore", "outdoor", "active", "extreme", "adrenaline", "zip", "jungle"],
-        "Cultural": ["cultural", "culture", "heritage", "history", "historical", "museum", "art", "architecture", "temple", "ancient", "ruins", "tradition", "local", "authentic"],
-        "City Break": ["city", "urban", "metropolitan", "downtown", "capital", "citybreak", "city break", "shopping", "nightlife"],
-        "Cruise": ["cruise", "cruising", "ship", "sailing", "yacht", "boat", "sea voyage", "ocean liner"],
-        "River Cruise": ["river cruise", "river", "riverboat", "barge", "canal", "danube", "rhine", "nile", "mekong", "amazon"],
-        "Safari": ["safari", "game drive", "big five", "wildlife reserve", "game reserve", "savanna", "savannah", "bush", "african wildlife"],
-        "Wildlife": ["wildlife", "animals", "nature", "bird", "birding", "whale", "dolphin", "gorilla", "elephant", "lion", "tiger", "national park", "sanctuary", "conservation"],
-        "Luxury": ["luxury", "luxurious", "premium", "exclusive", "5-star", "five star", "boutique", "villa", "private", "vip", "spa", "wellness"],
-        "Multi-Centre": ["multi-centre", "multi-center", "multi centre", "multi center", "multiple destinations", "combination", "twin centre", "twin center"],
-        "Island": ["island", "islands", "archipelago", "isle", "islet", "caribbean", "maldives", "seychelles", "mauritius", "fiji", "bali"],
-        "Solo Travellers": ["solo", "single", "alone", "individual", "independent", "solo traveller", "solo traveler"],
+        "Beach": ["beach", "beaches", "seaside", "coastal", "oceanfront", "beachfront", "tropical beach", "white sand"],
+        "Adventure": ["adventure", "hiking", "trekking", "climbing", "rafting", "kayak", "expedition", "extreme"],
+        "Cultural": ["cultural", "culture", "heritage", "history", "historical", "museum", "temple", "ancient", "ruins"],
+        "City Break": ["city break", "city tour", "citybreak"], // Strict - only explicit city break phrases
+        "Cruise": ["cruise", "cruising", "mini cruise", "sea cruise"],
+        "River Cruise": ["river cruise", "riverboat", "barge cruise", "danube cruise", "rhine cruise", "nile cruise", "mekong cruise"],
+        "Safari": ["safari", "game drive", "big five", "game reserve", "wildlife reserve"],
+        "Wildlife": ["wildlife", "game viewing", "whale watching", "bird watching", "gorilla trekking", "national park"],
+        "Luxury": ["luxury", "luxurious", "5-star", "five star", "boutique hotel", "premium"],
+        "Multi-Centre": ["multi-centre", "multi-center", "multi centre", "multi center", "twin centre", "twin center"],
+        "Island": ["island hopping", "island escape", "island paradise", "island tour"],
+        "Solo Travellers": ["solo traveller", "solo traveler", "single traveller"],
       };
       
       // Fetch packages and cached tours (try GBP first, fall back to USD)
@@ -2907,10 +2926,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (price && price > budgetLimit) continue;
         if (durationDays > durationLimit) continue;
         
-        // Destination filter
-        const tourCountry = tour.locationCode?.country || tour.googlePlace?.country;
+        // Destination filter - prefer full country name from googlePlace
+        const tourCountryRaw = tour.googlePlace?.country || tour.locationCode?.country;
+        
+        // Normalize country name
+        const countryNormalization: Record<string, string> = {
+          "Sri lanka": "Sri Lanka",
+          "Türkiye": "Turkey",
+        };
+        const tourCountry = tourCountryRaw && tourCountryRaw.length > 2 
+          ? (countryNormalization[tourCountryRaw] || tourCountryRaw) 
+          : null;
+        
         if (destFilter && destFilter !== "all") {
-          if (tourCountry?.toLowerCase() !== destFilter.toLowerCase()) continue;
+          // Skip tours that don't have a proper country name to match
+          if (!tourCountry) continue;
+          if (tourCountry.toLowerCase() !== destFilter.toLowerCase()) continue;
         }
         
         // Holiday type filter - enhanced keyword matching for tours
@@ -2920,17 +2951,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const activityCategories = tour.activityCategories || [];
         
         // Map Bokun activity categories to our holiday types
+        // Bokun uses uppercase snake_case: SUN_AND_BEACH, SAFARI_AND_WILDLIFE, etc.
         const bokunCategoryMappings: Record<string, string[]> = {
-          "Beach": ["beach", "island_hopping", "water_sports"],
-          "Adventure": ["adventure", "hiking", "outdoor", "extreme_sports", "rafting"],
-          "Cultural": ["arts_and_culture", "cultural", "heritage", "museum", "archaeological"],
+          "Beach": ["sun_and_beach", "island_hopping", "water_sports", "beach"],
+          "Adventure": ["adventure", "hiking", "outdoor", "extreme_sports", "rafting", "trekking"],
+          "Cultural": ["arts_and_culture", "cultural", "heritage", "museum", "archaeological", "pilgrimage_or_religion"],
           "City Break": ["city_break", "city_tour", "urban", "short_break"],
-          "Cruise": ["cruise", "sailing", "boat_tour"],
+          "Cruise": ["cruise", "mini_cruise", "sailing", "boat_tour"],
           "River Cruise": ["river_cruise", "barge"],
           "Safari": ["safari_and_wildlife", "safari", "game_drive"],
           "Wildlife": ["safari_and_wildlife", "nature", "bird_watching", "wildlife"],
-          "Luxury": ["luxury", "premium", "exclusive"],
-          "Multi-Centre": ["multi_centre", "combination"],
+          "Luxury": ["luxury", "premium", "exclusive", "private_roundtrip", "private_roundrip"],
+          "Multi-Centre": ["multi_centre", "combination", "seat_in_coach_tour"],
           "Island": ["island", "island_hopping"],
           "Solo Travellers": ["solo", "individual"],
         };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD, generateOrganizationSchema } from "@/lib/meta-tags";
@@ -6,15 +6,18 @@ import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { getProxiedImageUrl, getHeroImageUrl, getCardImageUrl } from "@/lib/imageProxy";
-import { Search, X, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone, Map as MapIcon, ArrowRight } from "lucide-react";
+import { Search, X, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone, Map as MapIcon, ArrowRight, Sparkles, SlidersHorizontal } from "lucide-react";
 import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { GlobalSearch } from "@/components/GlobalSearch";
-import { captureDestinationViewed, captureSearch, captureFilterApplied, captureNewsletterSignup } from "@/lib/posthog";
+import { captureDestinationViewed, captureSearch, captureFilterApplied, captureNewsletterSignup, captureAISearch } from "@/lib/posthog";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
 import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } from "@shared/schema";
@@ -53,6 +56,45 @@ const fallbackTestimonials = [
   }
 ];
 
+// AI Search interfaces and constants
+interface AISearchResult {
+  id: number | string;
+  type: "package" | "tour";
+  title: string;
+  description?: string;
+  category?: string;
+  countries?: string[];
+  price?: number;
+  duration?: string;
+  durationDays?: number;
+  image?: string;
+  slug?: string;
+  score: number;
+  tags?: string[];
+}
+
+interface AISearchResponse {
+  results: AISearchResult[];
+  total: number;
+}
+
+const HOLIDAY_TYPES = [
+  { value: "Beach", label: "Beach" },
+  { value: "Adventure", label: "Adventure" },
+  { value: "Cultural", label: "Cultural" },
+  { value: "City Break", label: "City Break" },
+  { value: "Cruise", label: "Cruise" },
+  { value: "River Cruise", label: "River Cruise" },
+  { value: "Safari", label: "Safari" },
+  { value: "Wildlife", label: "Wildlife" },
+  { value: "Luxury", label: "Luxury" },
+  { value: "Multi-Centre", label: "Multi-Centre" },
+  { value: "Island", label: "Island" },
+  { value: "Solo Travellers", label: "Solo Travellers" },
+];
+
+const MAX_HOLIDAY_TYPES = 3;
+
 // Why Book With Us features
 const trustFeatures = [
   {
@@ -89,6 +131,27 @@ export default function Homepage() {
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [testimonialSlide, setTestimonialSlide] = useState(0);
+
+  // AI Search state
+  const [aiDestination, setAiDestination] = useState<string>("all");
+  const [aiDuration, setAiDuration] = useState<number[]>([14]);
+  const [aiBudget, setAiBudget] = useState<number[]>([1000]);
+  const [aiTravelers, setAiTravelers] = useState<number>(2);
+  const [aiHolidayTypes, setAiHolidayTypes] = useState<string[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  const lastTrackedSearch = useRef<string>("");
+
+  const toggleHolidayType = (value: string) => {
+    setAiHolidayTypes(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(t => t !== value);
+      }
+      if (prev.length >= MAX_HOLIDAY_TYPES) {
+        return prev;
+      }
+      return [...prev, value];
+    });
+  };
 
   // Fetch homepage settings
   interface HomepageSettings {
@@ -142,6 +205,115 @@ export default function Homepage() {
   
   // Top 6 destinations for homepage display
   const topDestinations = destinations.slice(0, 6);
+
+  // AI Search: Fetch filter options
+  const { data: aiFilterOptions } = useQuery<{ 
+    destinations: string[]; 
+    maxPrice: number; 
+    maxDuration: number;
+    holidayTypesByDestination: Record<string, string[]>;
+  }>({
+    queryKey: ["/api/ai-search/filters"],
+  });
+
+  const aiDestinations = aiFilterOptions?.destinations || [];
+  const aiMaxPrice = aiFilterOptions?.maxPrice || 10000;
+  const aiMaxDuration = aiFilterOptions?.maxDuration || 21;
+  const holidayTypesByDestination = aiFilterOptions?.holidayTypesByDestination || {};
+
+  // Get available holiday types for selected destination
+  const getAvailableHolidayTypes = () => {
+    if (aiDestination === "all") {
+      return HOLIDAY_TYPES;
+    }
+    const availableTypes = holidayTypesByDestination[aiDestination] || [];
+    if (availableTypes.length === 0) {
+      return HOLIDAY_TYPES;
+    }
+    return HOLIDAY_TYPES.filter(type => availableTypes.includes(type.value));
+  };
+  
+  const availableHolidayTypes = getAvailableHolidayTypes();
+
+  // Clear selected holiday types that are no longer available when destination changes
+  useEffect(() => {
+    if (aiDestination !== "all") {
+      const available = holidayTypesByDestination[aiDestination] || [];
+      if (available.length > 0) {
+        setAiHolidayTypes(prev => prev.filter(t => available.includes(t)));
+      }
+    }
+  }, [aiDestination, holidayTypesByDestination]);
+
+  const buildAiSearchParams = () => {
+    const params = new URLSearchParams();
+    if (aiDestination !== "all") params.set("destination", aiDestination);
+    params.set("maxDuration", aiDuration[0].toString());
+    params.set("maxBudget", aiBudget[0].toString());
+    params.set("travelers", aiTravelers.toString());
+    if (aiHolidayTypes.length > 0) params.set("holidayTypes", aiHolidayTypes.join(","));
+    return params.toString();
+  };
+
+  const { data: aiSearchData, isLoading: aiSearchLoading, refetch: refetchAiSearch } = useQuery<AISearchResponse>({
+    queryKey: ["/api/ai-search", aiDestination, aiDuration[0], aiBudget[0], aiTravelers, aiHolidayTypes.join(",")],
+    queryFn: async () => {
+      const res = await fetch(`/api/ai-search?${buildAiSearchParams()}`);
+      if (!res.ok) throw new Error("Search failed");
+      return res.json();
+    },
+    enabled: hasSearched,
+    staleTime: 0,
+  });
+
+  // Track AI searches in PostHog
+  useEffect(() => {
+    if (aiSearchData && hasSearched) {
+      const searchKey = `${aiDestination}-${aiDuration[0]}-${aiBudget[0]}-${aiTravelers}-${aiHolidayTypes.join(",")}`;
+      if (searchKey !== lastTrackedSearch.current) {
+        lastTrackedSearch.current = searchKey;
+        const packagesCount = aiSearchData.results.filter(r => r.type === "package").length;
+        const toursCount = aiSearchData.results.filter(r => r.type === "tour").length;
+        captureAISearch({
+          destination: aiDestination === "all" ? "All Destinations" : aiDestination,
+          duration: aiDuration[0],
+          budget: aiBudget[0],
+          travelers: aiTravelers,
+          holiday_types: aiHolidayTypes,
+          results_count: aiSearchData.results.length,
+          packages_count: packagesCount,
+          tours_count: toursCount,
+        });
+      }
+    }
+  }, [aiSearchData, hasSearched, aiDestination, aiDuration, aiBudget, aiTravelers, aiHolidayTypes]);
+
+  const handleAiSearch = () => {
+    setHasSearched(true);
+    refetchAiSearch();
+  };
+
+  const aiResults = aiSearchData?.results || [];
+
+  const formatAiBudget = (value: number) => {
+    if (value >= aiMaxPrice) return `£${(value / 1000).toFixed(0)}k+`;
+    return `£${value.toLocaleString()}`;
+  };
+
+  const formatAiDuration = (days: number) => {
+    if (days >= aiMaxDuration) return `${days}+ days`;
+    if (days === 1) return "1 day";
+    return `${days} days`;
+  };
+
+  const formatAiPrice = (price: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
 
   // Fetch initial batch of products for quick display (12 items)
   const { 
@@ -426,50 +598,292 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Floating Search Bar - positioned after hero */}
+      {/* AI-Powered Search - positioned after hero */}
       <section className="relative z-20 -mt-8 md:-mt-10 mb-8">
         <div className="container mx-auto px-4 md:px-8">
-          <div className="bg-white rounded-xl shadow-xl border border-stone-200 p-4 md:p-6 max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row gap-3 md:gap-4 items-stretch">
-              <div className="flex-1">
-                <GlobalSearch 
-                  placeholder="Search destinations, tours, packages..." 
-                  className="h-12 md:h-14 text-base md:text-lg"
-                  variant="hero"
-                />
+          <Card className="shadow-xl border-0 max-w-6xl mx-auto">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium text-primary">AI-Powered Search</span>
               </div>
-              <a href="/packages" className="shrink-0">
-                <Button size="lg" className="w-full md:w-auto h-12 md:h-14 px-8 text-base font-semibold" data-testid="button-search-packages">
-                  <Plane className="w-4 h-4 mr-2" />
-                  View All Packages
-                </Button>
-              </a>
-            </div>
-            
-            {/* Quick destination links */}
-            <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-stone-100">
-              <span className="text-sm text-muted-foreground mr-2">Popular:</span>
-              {[
-                { name: 'Italy', href: '/Holidays/Italy', type: 'destination' as const },
-                { name: 'Greece', href: '/Holidays/Greece', type: 'destination' as const },
-                { name: 'River Cruises', href: '/holidays/river-cruise', type: 'collection' as const },
-                { name: 'India', href: '/Holidays/India', type: 'destination' as const },
-                { name: 'Thailand', href: '/Holidays/Thailand', type: 'destination' as const },
-              ].map((item) => (
-                <a 
-                  key={item.name}
-                  href={item.href}
-                  className="text-sm text-slate-600 hover:text-primary hover:underline transition-colors"
-                  onClick={() => captureDestinationViewed(item.name)}
-                  data-testid={`link-quick-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-                >
-                  {item.name}
-                </a>
-              ))}
-            </div>
-          </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    Destination
+                  </Label>
+                  <Select value={aiDestination} onValueChange={setAiDestination}>
+                    <SelectTrigger data-testid="select-ai-destination">
+                      <SelectValue placeholder="Choose destination" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any Destination</SelectItem>
+                      {aiDestinations.map((dest) => (
+                        <SelectItem key={dest} value={dest}>{dest}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-primary" />
+                    Duration (up to {formatAiDuration(aiDuration[0])})
+                  </Label>
+                  <div className="pt-2">
+                    <Slider
+                      value={aiDuration}
+                      onValueChange={setAiDuration}
+                      min={3}
+                      max={aiMaxDuration}
+                      step={1}
+                      className="w-full"
+                      data-testid="slider-ai-duration"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>3 days</span>
+                      <span>{aiMaxDuration}+ days</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <span className="text-primary font-bold">£</span>
+                    Budget per person
+                  </Label>
+                  <div className="pt-2">
+                    <Slider
+                      value={aiBudget}
+                      onValueChange={setAiBudget}
+                      min={500}
+                      max={aiMaxPrice}
+                      step={100}
+                      className="w-full"
+                      data-testid="slider-ai-budget"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                      <span>£500</span>
+                      <span>£{(aiMaxPrice / 1000).toFixed(0)}k+</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Users className="w-4 h-4 text-primary" />
+                    Travellers
+                  </Label>
+                  <Select value={aiTravelers.toString()} onValueChange={(v) => setAiTravelers(parseInt(v))}>
+                    <SelectTrigger data-testid="select-ai-travelers">
+                      <SelectValue placeholder="Number of travellers" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Traveller (Solo)</SelectItem>
+                      <SelectItem value="2">2 Travellers</SelectItem>
+                      <SelectItem value="3">3 Travellers</SelectItem>
+                      <SelectItem value="4">4 Travellers</SelectItem>
+                      <SelectItem value="5">5 Travellers</SelectItem>
+                      <SelectItem value="6">6+ Travellers</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-primary" />
+                  Holiday Type
+                  <span className="text-xs text-muted-foreground font-normal ml-1">
+                    (select up to {MAX_HOLIDAY_TYPES})
+                  </span>
+                </Label>
+                <div className="flex flex-wrap gap-2" data-testid="holiday-type-selector">
+                  {availableHolidayTypes.map((type) => {
+                    const isSelected = aiHolidayTypes.includes(type.value);
+                    const isDisabled = !isSelected && aiHolidayTypes.length >= MAX_HOLIDAY_TYPES;
+                    return (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => toggleHolidayType(type.value)}
+                        disabled={isDisabled}
+                        className={`
+                          px-3 py-1.5 rounded-full text-sm font-medium transition-all
+                          ${isSelected 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                          }
+                          ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                        `}
+                        data-testid={`toggle-holiday-${type.value}`}
+                      >
+                        {type.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleAiSearch} 
+                size="lg" 
+                className="w-full md:w-auto px-8"
+                disabled={aiSearchLoading}
+                data-testid="button-ai-search"
+              >
+                {aiSearchLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    Find Holidays
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </section>
+
+      {/* AI Search Results */}
+      {hasSearched && (
+        <section className="py-8 md:py-12 bg-stone-50">
+          <div className="container mx-auto px-4 md:px-8">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-secondary">
+                  {aiSearchLoading ? "Searching..." : `${aiResults.length} Holidays Found`}
+                </h2>
+                {aiResults.length > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setHasSearched(false);
+                      setAiDestination("all");
+                      setAiDuration([14]);
+                      setAiBudget([1000]);
+                      setAiTravelers(2);
+                      setAiHolidayTypes([]);
+                    }}
+                    data-testid="button-clear-search"
+                  >
+                    <X className="w-4 h-4 mr-1" />
+                    Clear
+                  </Button>
+                )}
+              </div>
+
+              {aiSearchLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <div key={i} className="relative overflow-hidden rounded-xl aspect-[3/4] bg-muted">
+                      <Skeleton className="w-full h-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : aiResults.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-xl">
+                  <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No holidays found</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Try adjusting your filters to see more results
+                  </p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      setAiBudget([5000]);
+                      setAiDuration([21]);
+                      setAiHolidayTypes([]);
+                      refetchAiSearch();
+                    }}
+                    data-testid="button-reset-filters"
+                  >
+                    Reset Filters
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {aiResults.map((result) => {
+                    const countrySlug = result.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+                    const href = result.type === "package" 
+                      ? `/Holidays/${countrySlug}/${result.slug}` 
+                      : `/tour/${result.id}`;
+                    
+                    return (
+                      <Link key={`${result.type}-${result.id}`} href={href}>
+                        <div 
+                          className="relative overflow-hidden rounded-xl aspect-[3/4] group cursor-pointer"
+                          data-testid={`card-ai-result-${result.type}-${result.id}`}
+                        >
+                          <div className="absolute inset-0">
+                            {result.image ? (
+                              <img
+                                src={getProxiedImageUrl(result.image, 'card')}
+                                alt={result.title}
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20" />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                          </div>
+
+                          <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                              result.type === "package" 
+                                ? "bg-primary text-primary-foreground" 
+                                : "bg-secondary text-secondary-foreground"
+                            }`}>
+                              {result.type === "package" ? "Flight Package" : "Land Tour"}
+                            </span>
+                            {result.duration && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 text-slate-700">
+                                {result.duration}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2 leading-tight">
+                              {result.title}
+                            </h3>
+                            {result.category && (
+                              <p className="text-xs text-white/70 mb-2 flex items-center gap-1">
+                                <MapPin className="w-3 h-3" />
+                                {result.category}
+                              </p>
+                            )}
+                            {result.price && (
+                              <div className="flex items-baseline gap-1 mb-2">
+                                <span className="text-xs text-white/80">from</span>
+                                <span className="text-xl font-bold text-white">
+                                  {formatAiPrice(result.price)}
+                                </span>
+                                <span className="text-[10px] text-white/60">pp</span>
+                              </div>
+                            )}
+                            <Button variant="secondary" size="sm" className="w-full text-xs">
+                              View Details
+                            </Button>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Featured Flight Packages Section */}
       <section className="py-16 md:py-24 bg-white border-y border-stone-200">

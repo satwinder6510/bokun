@@ -135,7 +135,7 @@ export default function Homepage() {
   // AI Search state
   const [aiDestination, setAiDestination] = useState<string>("all");
   const [aiDuration, setAiDuration] = useState<number[]>([14]);
-  const [aiBudget, setAiBudget] = useState<number[]>([1000]);
+  const [aiBudget, setAiBudget] = useState<number[]>([10000]); // Default to max, updated when API returns
   const [aiTravelers, setAiTravelers] = useState<number>(2);
   const [aiHolidayTypes, setAiHolidayTypes] = useState<string[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
@@ -234,6 +234,15 @@ export default function Homepage() {
   };
   
   const availableHolidayTypes = getAvailableHolidayTypes();
+
+  // Set budget to max when filter options load (so users see all results by default)
+  const budgetInitialized = useRef(false);
+  useEffect(() => {
+    if (aiFilterOptions?.maxPrice && !budgetInitialized.current) {
+      setAiBudget([aiFilterOptions.maxPrice]);
+      budgetInitialized.current = true;
+    }
+  }, [aiFilterOptions?.maxPrice]);
 
   // Clear selected holiday types that are no longer available when destination changes
   useEffect(() => {
@@ -768,7 +777,7 @@ export default function Homepage() {
                       setHasSearched(false);
                       setAiDestination("all");
                       setAiDuration([14]);
-                      setAiBudget([1000]);
+                      setAiBudget([aiMaxPrice]);
                       setAiTravelers(2);
                       setAiHolidayTypes([]);
                     }}
@@ -798,8 +807,8 @@ export default function Homepage() {
                   <Button 
                     variant="outline"
                     onClick={() => {
-                      setAiBudget([5000]);
-                      setAiDuration([21]);
+                      setAiBudget([aiMaxPrice]);
+                      setAiDuration([aiMaxDuration]);
                       setAiHolidayTypes([]);
                       refetchAiSearch();
                     }}

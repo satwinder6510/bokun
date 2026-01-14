@@ -2459,6 +2459,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cachedTours = await storage.getCachedProducts("USD");
       }
       
+      // Get all Bokun product IDs that are linked to flight packages
+      // These tours should be excluded from the filters as they're shown as packages instead
+      const linkedBokunIds = new Set<string>();
+      for (const pkg of packages) {
+        if (pkg.bokunProductId) {
+          linkedBokunIds.add(pkg.bokunProductId);
+        }
+      }
+      
+      // Filter out tours that are already linked to flight packages
+      cachedTours = cachedTours.filter(tour => !linkedBokunIds.has(String(tour.id)));
+      
       // Holiday type keywords for detecting from content
       // Be strict - only use phrases that clearly indicate the holiday type
       const holidayTypeKeywords: Record<string, string[]> = {
@@ -2756,7 +2768,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`[AI Search] GBP cache empty, using USD cache (${cachedTours.length} tours)`);
       }
       
-      console.log(`[AI Search] Found ${packages.length} packages, ${cachedTours.length} cached tours`);
+      // Get all Bokun product IDs that are linked to flight packages
+      // These tours should not appear separately as "land tours"
+      const linkedBokunIds = new Set<string>();
+      for (const pkg of packages) {
+        if (pkg.bokunProductId) {
+          linkedBokunIds.add(pkg.bokunProductId);
+        }
+      }
+      
+      // Filter out tours that are already linked to flight packages
+      const filteredTours = cachedTours.filter(tour => !linkedBokunIds.has(String(tour.id)));
+      
+      console.log(`[AI Search] Found ${packages.length} packages, ${cachedTours.length} cached tours (${linkedBokunIds.size} linked to packages, ${filteredTours.length} available as land tours)`);
       
       // Convert to searchable format and score
       interface AISearchItem {
@@ -2912,8 +2936,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Process tours
-      for (const tour of cachedTours) {
+      // Process tours (excluding those linked to flight packages)
+      for (const tour of filteredTours) {
         // Parse duration
         let durationDays = 1;
         const durationMatch = tour.durationText?.match(/(\d+)/);

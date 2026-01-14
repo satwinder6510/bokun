@@ -338,7 +338,7 @@ export default function AISearch() {
                 <div className="space-y-3">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <span className="text-primary font-bold">£</span>
-                    Budget per person (up to {formatBudget(budget[0])})
+                    Budget per person
                   </Label>
                   <div className="pt-2">
                     <Slider

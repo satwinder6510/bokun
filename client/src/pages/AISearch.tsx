@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { setMetaTags } from "@/lib/meta-tags";
+import { captureAISearch } from "@/lib/posthog";
 import { MapPin, Clock, Plane, Sparkles, Package, Search, SlidersHorizontal, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -252,6 +253,29 @@ export default function AISearch() {
     enabled: hasSearched,
     staleTime: 0, // Always fetch fresh data when filters change
   });
+
+  // Track searches in PostHog
+  const lastTrackedSearch = useRef<string>("");
+  useEffect(() => {
+    if (data && hasSearched) {
+      const searchKey = `${destination}-${duration[0]}-${budget[0]}-${travelers}-${holidayTypes.join(",")}`;
+      if (searchKey !== lastTrackedSearch.current) {
+        lastTrackedSearch.current = searchKey;
+        const packagesCount = data.results.filter(r => r.type === "package").length;
+        const toursCount = data.results.filter(r => r.type === "tour").length;
+        captureAISearch({
+          destination: destination === "all" ? "All Destinations" : destination,
+          duration: duration[0],
+          budget: budget[0],
+          travelers,
+          holiday_types: holidayTypes,
+          results_count: data.results.length,
+          packages_count: packagesCount,
+          tours_count: toursCount,
+        });
+      }
+    }
+  }, [data, hasSearched, destination, duration, budget, travelers, holidayTypes]);
 
   const handleSearch = () => {
     setHasSearched(true);

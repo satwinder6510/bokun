@@ -138,6 +138,22 @@ export function captureSearch(properties: SearchProperties): void {
   captureEvent('search_performed', { ...properties });
 }
 
+export function captureAISearch(properties: {
+  destination: string;
+  duration: number;
+  budget: number;
+  travelers: number;
+  holiday_types: string[];
+  results_count: number;
+  packages_count: number;
+  tours_count: number;
+}): void {
+  captureEvent('ai_search_performed', {
+    ...properties,
+    page_type: 'ai_search',
+  });
+}
+
 export function captureSearchResultClicked(properties: {
   search_query: string;
   result_type: 'package' | 'tour';

@@ -243,31 +243,144 @@ export default function SearchPlayground() {
 
   const parseUserIntent = (input: string): string => {
     const lower = input.toLowerCase();
+    const detected: string[] = [];
     
-    if (lower.includes("beach") || lower.includes("sun")) {
-      setHolidayTypes(["Beach"]);
-    }
-    if (lower.includes("adventure") || lower.includes("hiking")) {
-      setHolidayTypes(["Adventure"]);
-    }
-    if (lower.includes("safari") || lower.includes("africa")) {
-      setHolidayTypes(["Safari"]);
-      setDestination("Kenya");
-    }
-    if (lower.includes("spain") || lower.includes("barcelona")) {
-      setDestination("Spain");
-    }
-    if (lower.includes("italy") || lower.includes("rome")) {
-      setDestination("Italy");
-    }
-    if (lower.includes("week")) {
-      setDuration([7]);
-    }
-    if (lower.includes("2 weeks") || lower.includes("two weeks") || lower.includes("fortnight")) {
+    // Parse duration - days or nights
+    // "7 days" = 7 days, "6 nights" = 7 days (nights + 1)
+    const daysMatch = lower.match(/(\d+)\s*(?:day|days)/);
+    const nightsMatch = lower.match(/(\d+)\s*(?:night|nights)/);
+    const weekMatch = lower.match(/(\d+)\s*(?:week|weeks)/);
+    
+    if (daysMatch) {
+      const days = parseInt(daysMatch[1]);
+      setDuration([Math.min(days, 21)]);
+      detected.push(`${days} days`);
+    } else if (nightsMatch) {
+      const nights = parseInt(nightsMatch[1]);
+      const days = nights + 1; // nights to days conversion
+      setDuration([Math.min(days, 21)]);
+      detected.push(`${nights} nights (${days} days)`);
+    } else if (weekMatch) {
+      const weeks = parseInt(weekMatch[1]);
+      setDuration([Math.min(weeks * 7, 21)]);
+      detected.push(`${weeks} week${weeks > 1 ? 's' : ''}`);
+    } else if (lower.includes("fortnight")) {
       setDuration([14]);
+      detected.push("2 weeks");
+    } else if (lower.includes("long weekend")) {
+      setDuration([4]);
+      detected.push("4 days");
     }
     
-    return `I found some great options for you! Here are holidays matching your preferences. You can refine your search using the filters below.`;
+    // Parse budget
+    const budgetPatterns = [
+      /under\s*£?\s*(\d+(?:,\d{3})*(?:k)?)/i,
+      /up\s*to\s*£?\s*(\d+(?:,\d{3})*(?:k)?)/i,
+      /max(?:imum)?\s*£?\s*(\d+(?:,\d{3})*(?:k)?)/i,
+      /budget\s*(?:of)?\s*£?\s*(\d+(?:,\d{3})*(?:k)?)/i,
+      /£\s*(\d+(?:,\d{3})*(?:k)?)/i,
+    ];
+    
+    for (const pattern of budgetPatterns) {
+      const match = lower.match(pattern);
+      if (match) {
+        let amount = match[1].replace(/,/g, '');
+        if (amount.toLowerCase().includes('k')) {
+          amount = String(parseInt(amount) * 1000);
+        }
+        const budgetValue = Math.min(parseInt(amount), 10000);
+        setBudget([budgetValue]);
+        detected.push(`budget up to £${budgetValue.toLocaleString()}`);
+        break;
+      }
+    }
+    
+    // Parse travelers
+    if (lower.includes("solo") || lower.match(/\b1\s*person\b/) || lower.includes("just me") || lower.includes("myself")) {
+      setTravelers(1);
+      detected.push("solo traveler");
+    } else if (lower.includes("couple") || lower.match(/\b2\s*(?:people|persons|of us)\b/)) {
+      setTravelers(2);
+      detected.push("2 travelers");
+    } else if (lower.includes("family") || lower.match(/\b[3-6]\s*(?:people|persons|of us)\b/)) {
+      const familyMatch = lower.match(/\b([3-6])\s*(?:people|persons|of us)\b/);
+      setTravelers(familyMatch ? parseInt(familyMatch[1]) : 4);
+      detected.push(`${familyMatch ? familyMatch[1] : '4'} travelers`);
+    }
+    
+    // Parse destinations (using available destinations list)
+    const destinationKeywords: Record<string, string[]> = {
+      "Spain": ["spain", "spanish", "barcelona", "madrid", "seville", "malaga", "ibiza", "majorca", "tenerife", "canary"],
+      "Italy": ["italy", "italian", "rome", "venice", "florence", "milan", "tuscany", "amalfi", "sicily", "naples"],
+      "Greece": ["greece", "greek", "athens", "santorini", "mykonos", "crete", "rhodes", "corfu"],
+      "Portugal": ["portugal", "portuguese", "lisbon", "porto", "algarve", "madeira"],
+      "France": ["france", "french", "paris", "nice", "provence", "bordeaux", "marseille"],
+      "Turkey": ["turkey", "turkish", "istanbul", "cappadocia", "antalya", "bodrum"],
+      "Thailand": ["thailand", "thai", "bangkok", "phuket", "chiang mai", "krabi", "koh samui"],
+      "Vietnam": ["vietnam", "vietnamese", "hanoi", "ho chi minh", "saigon", "halong"],
+      "India": ["india", "indian", "delhi", "mumbai", "goa", "kerala", "rajasthan", "jaipur", "taj mahal"],
+      "Sri Lanka": ["sri lanka", "sri lankan", "colombo", "kandy", "sigiriya"],
+      "Maldives": ["maldives", "maldivian", "male", "atoll", "overwater"],
+      "Kenya": ["kenya", "kenyan", "nairobi", "masai mara", "mombasa"],
+      "Tanzania": ["tanzania", "tanzanian", "serengeti", "zanzibar", "kilimanjaro"],
+      "South Africa": ["south africa", "cape town", "johannesburg", "kruger", "garden route"],
+      "Morocco": ["morocco", "moroccan", "marrakech", "fez", "casablanca", "sahara"],
+      "Egypt": ["egypt", "egyptian", "cairo", "luxor", "nile", "pyramids"],
+      "Dubai": ["dubai", "uae", "abu dhabi", "emirates"],
+      "Japan": ["japan", "japanese", "tokyo", "kyoto", "osaka", "mount fuji"],
+      "Peru": ["peru", "peruvian", "lima", "cusco", "machu picchu"],
+      "Costa Rica": ["costa rica", "costa rican", "arenal", "monteverde"],
+      "Mexico": ["mexico", "mexican", "cancun", "riviera maya", "tulum"],
+      "Croatia": ["croatia", "croatian", "dubrovnik", "split", "adriatic"],
+      "Cuba": ["cuba", "cuban", "havana"],
+    };
+    
+    for (const [dest, keywords] of Object.entries(destinationKeywords)) {
+      if (keywords.some(kw => lower.includes(kw))) {
+        if (destinations.includes(dest)) {
+          setDestination(dest);
+          detected.push(dest);
+          break;
+        }
+      }
+    }
+    
+    // Parse holiday types
+    const detectedTypes: string[] = [];
+    const holidayTypeKeywords: Record<string, string[]> = {
+      "Beach": ["beach", "beaches", "seaside", "coastal", "sun", "swimming", "relaxing", "sunbathing"],
+      "Adventure": ["adventure", "adventurous", "hiking", "trekking", "climbing", "active", "exciting", "thrill"],
+      "Cultural": ["cultural", "culture", "history", "historical", "museums", "temples", "ancient", "heritage"],
+      "City Break": ["city break", "city trip", "citybreak", "urban", "city"],
+      "Cruise": ["cruise", "cruising", "ocean cruise", "ship"],
+      "River Cruise": ["river cruise", "riverboat", "barge", "danube", "rhine", "nile"],
+      "Safari": ["safari", "game drive", "big five", "wildlife reserve", "game reserve"],
+      "Wildlife": ["wildlife", "animals", "nature", "bird watching", "whale watching", "gorilla"],
+      "Luxury": ["luxury", "luxurious", "5 star", "five star", "premium", "exclusive", "high end", "upscale"],
+      "Multi-Centre": ["multi-centre", "multi-center", "twin centre", "multiple destinations", "two countries"],
+      "Island": ["island", "islands", "island hopping", "archipelago"],
+      "Solo Travellers": ["solo", "alone", "single traveler", "single traveller"],
+    };
+    
+    for (const [type, keywords] of Object.entries(holidayTypeKeywords)) {
+      if (keywords.some(kw => lower.includes(kw))) {
+        if (detectedTypes.length < 3) {
+          detectedTypes.push(type);
+        }
+      }
+    }
+    
+    if (detectedTypes.length > 0) {
+      setHolidayTypes(detectedTypes);
+      detected.push(detectedTypes.join(", "));
+    }
+    
+    // Build response
+    if (detected.length > 0) {
+      return `I found holidays matching: ${detected.join(" | ")}. Here are your results:`;
+    }
+    
+    return `I'll show you our best holiday options. Try being more specific - for example: "Beach holiday in Spain for 7 nights under £2000"`;
   };
 
   const results = data?.results || [];

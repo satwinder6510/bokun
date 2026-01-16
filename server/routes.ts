@@ -2872,8 +2872,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // IMPORTANT: Skip packages that don't match ANY of the selected holiday types
-        if (typeFilters.length > 0 && matchedTypes === 0) continue;
+        // IMPORTANT: Skip packages that don't match ALL of the selected holiday types
+        // For "Luxury Solo" we need BOTH luxury AND solo to match
+        if (typeFilters.length > 0 && matchedTypes < typeFilters.length) continue;
         
         if (typeFilters.length === 0) {
           // No filters - use index to show variety if available
@@ -3019,8 +3020,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (typeMatched) matchedTypes++;
           }
           
-          // IMPORTANT: Skip tours that don't match ANY of the selected holiday types
-          if (matchedTypes === 0) continue;
+          // IMPORTANT: Skip tours that don't match ALL of the selected holiday types
+          // For "Luxury Solo" we need BOTH luxury AND solo to match
+          if (matchedTypes < typeFilters.length) continue;
           
           // Bonus for matching multiple types
           if (matchedTypes > 1) {

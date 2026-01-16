@@ -614,6 +614,22 @@ export default function PackageDetail() {
         .sort((a, b) => a.minPrice - b.minPrice)
     : [];
 
+  // Calculate min price respecting solo pricing preference (for header display)
+  const bokunDisplayMinPrice = useMemo(() => {
+    if (!bokunPricing?.enabled || bokunPricing.prices.length === 0) {
+      return bokunPricing?.minPrice || 0;
+    }
+    if (preferSoloPricing) {
+      // Filter to single room rates only
+      const singleRatePrices = bokunPricing.prices.filter(p => /single/i.test(p.rateTitle));
+      if (singleRatePrices.length > 0) {
+        return Math.min(...singleRatePrices.map(p => p.combinedPrice));
+      }
+    }
+    // Default to API's minPrice
+    return bokunPricing.minPrice;
+  }, [bokunPricing, preferSoloPricing]);
+
   // Get unique rates FOR THE SELECTED AIRPORT, sorted to prefer Double/Twin first
   // Rates show airport-specific combined prices (land + flight for that airport)
   const bokunRates = bokunPricing?.enabled && bokunPricing.prices.length > 0 && selectedBokunAirport
@@ -1312,7 +1328,7 @@ export default function PackageDetail() {
                   </div>
                   <div className="text-right">
                     <span className="text-xs text-muted-foreground">From</span>
-                    <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatPrice(bokunPricing.minPrice)}</p>
+                    <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{formatPrice(bokunDisplayMinPrice)}</p>
                     <span className="text-xs text-muted-foreground">per person</span>
                   </div>
                 </div>
@@ -2103,7 +2119,7 @@ export default function PackageDetail() {
                             <div>
                               <p className="font-medium text-blue-600 dark:text-blue-400">Flight + Tour Package</p>
                               <p className="text-xs text-muted-foreground">
-                                From {formatPrice(bokunPricing.minPrice)} pp
+                                From {formatPrice(bokunDisplayMinPrice)} pp
                                 {bokunPricing.durationNights && ` · ${bokunPricing.durationNights} nights`}
                               </p>
                             </div>

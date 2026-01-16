@@ -77,7 +77,6 @@ import SpecialOffers from "@/pages/SpecialOffers";
 import HeroConcepts from "@/pages/HeroConcepts";
 import SearchResults from "@/pages/SearchResults";
 import AISearch from "@/pages/AISearch";
-import SearchPlayground from "@/pages/SearchPlayground";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -90,7 +89,6 @@ function Router() {
       <Route path="/packages/:slug" component={PackageDetail} />
       <Route path="/search" component={SearchResults} />
       <Route path="/ai-search" component={AISearch} />
-      <Route path="/search-playground" component={SearchPlayground} />
       <Route path="/special-offers" component={SpecialOffers} />
       <Route path="/checkout" component={Checkout} />
       <Route path="/booking/:reference" component={BookingConfirmation} />

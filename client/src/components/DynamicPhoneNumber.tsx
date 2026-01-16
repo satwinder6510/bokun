@@ -10,9 +10,23 @@ interface DynamicPhoneNumberProps {
 
 const DEFAULT_PHONE = "0208 183 0518";
 
-function getTrackingTag(): string | null {
-  if (typeof window === "undefined") {
+function getReferrerDomain(): string | null {
+  if (typeof window === "undefined" || !document.referrer) {
     return null;
+  }
+  
+  try {
+    const url = new URL(document.referrer);
+    // Return the hostname (e.g., "google.com", "facebook.com")
+    return url.hostname.replace(/^www\./, '');
+  } catch {
+    return null;
+  }
+}
+
+function getTrackingInfo(): { tag: string | null; domain: string | null } {
+  if (typeof window === "undefined") {
+    return { tag: null, domain: null };
   }
   
   // Check for tag in URL - looks for any query param that has no value (e.g., ?tzl)
@@ -34,35 +48,49 @@ function getTrackingTag(): string | null {
     }
   }
   
-  // Check session storage for previously stored tag
+  // Check session storage for previously stored tag and domain
   const storedTag = sessionStorage.getItem("tracking_tag");
+  const storedDomain = sessionStorage.getItem("tracking_domain");
+  
+  // Get referrer domain (only captured on first page load)
+  const referrerDomain = getReferrerDomain();
   
   // Use current URL tag if present, otherwise use stored tag
   const finalTag = tag || storedTag;
   
-  // Store the tag in session storage so it persists during browsing
+  // Use referrer domain if present, otherwise use stored domain
+  const finalDomain = referrerDomain || storedDomain;
+  
+  // Store in session storage so they persist during browsing
   if (tag) {
     sessionStorage.setItem("tracking_tag", tag);
   }
+  if (referrerDomain) {
+    sessionStorage.setItem("tracking_domain", referrerDomain);
+  }
   
-  return finalTag;
+  return { tag: finalTag, domain: finalDomain };
 }
 
-function useTrackingTag() {
+function useTrackingInfo() {
   const [initialized, setInitialized] = useState(false);
-  const [tag, setTag] = useState<string | null>(null);
+  const [trackingInfo, setTrackingInfo] = useState<{ tag: string | null; domain: string | null }>({ tag: null, domain: null });
   
   useEffect(() => {
-    const foundTag = getTrackingTag();
-    setTag(foundTag);
+    const info = getTrackingInfo();
+    setTrackingInfo(info);
     setInitialized(true);
   }, []);
   
-  return { tag, initialized };
+  return { ...trackingInfo, initialized };
 }
 
-async function fetchTrackingNumber(tag: string | null): Promise<{ phoneNumber: string; id: number | null }> {
-  const url = tag ? `/api/tracking-number?tag=${encodeURIComponent(tag)}` : "/api/tracking-number";
+async function fetchTrackingNumber(tag: string | null, domain: string | null): Promise<{ phoneNumber: string; id: number | null }> {
+  const params = new URLSearchParams();
+  if (tag) params.set("tag", tag);
+  if (domain) params.set("domain", domain);
+  
+  const url = params.toString() ? `/api/tracking-number?${params.toString()}` : "/api/tracking-number";
   const response = await fetch(url);
   if (!response.ok) {
     return { phoneNumber: DEFAULT_PHONE, id: null };
@@ -71,13 +99,19 @@ async function fetchTrackingNumber(tag: string | null): Promise<{ phoneNumber: s
 }
 
 export function DynamicPhoneNumber({ className = "", showIcon = true, iconClassName = "w-4 h-4" }: DynamicPhoneNumberProps) {
-  const { tag, initialized } = useTrackingTag();
+  const { tag, domain, initialized } = useTrackingInfo();
   
-  const queryKey = useMemo(() => tag ? `/api/tracking-number:${tag}` : "/api/tracking-number", [tag]);
+  // Create a unique query key based on both tag and domain
+  const queryKey = useMemo(() => {
+    const parts = ["/api/tracking-number"];
+    if (tag) parts.push(`tag:${tag}`);
+    if (domain) parts.push(`domain:${domain}`);
+    return parts.join(":");
+  }, [tag, domain]);
 
   const { data, isFetching } = useQuery<{ phoneNumber: string; id: number | null }>({
     queryKey: [queryKey],
-    queryFn: () => fetchTrackingNumber(tag),
+    queryFn: () => fetchTrackingNumber(tag, domain),
     enabled: initialized,
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 24,
@@ -98,13 +132,19 @@ export function DynamicPhoneNumber({ className = "", showIcon = true, iconClassN
 }
 
 export function useDynamicPhoneNumber(): string {
-  const { tag, initialized } = useTrackingTag();
+  const { tag, domain, initialized } = useTrackingInfo();
   
-  const queryKey = useMemo(() => tag ? `/api/tracking-number:${tag}` : "/api/tracking-number", [tag]);
+  // Create a unique query key based on both tag and domain
+  const queryKey = useMemo(() => {
+    const parts = ["/api/tracking-number"];
+    if (tag) parts.push(`tag:${tag}`);
+    if (domain) parts.push(`domain:${domain}`);
+    return parts.join(":");
+  }, [tag, domain]);
 
   const { data, isFetching } = useQuery<{ phoneNumber: string; id: number | null }>({
     queryKey: [queryKey],
-    queryFn: () => fetchTrackingNumber(tag),
+    queryFn: () => fetchTrackingNumber(tag, domain),
     enabled: initialized,
     staleTime: 1000 * 60 * 60,
     gcTime: 1000 * 60 * 60 * 24,

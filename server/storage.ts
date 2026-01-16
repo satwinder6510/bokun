@@ -108,11 +108,12 @@ export interface IStorage {
   updateReview(id: number, review: UpdateReview): Promise<Review | undefined>;
   deleteReview(id: number): Promise<boolean>;
   
-  // Tracking number methods (DNI) - simplified tag-based matching
+  // Tracking number methods (DNI) - tag and domain-based matching
   getAllTrackingNumbers(): Promise<TrackingNumber[]>;
   getActiveTrackingNumbers(): Promise<TrackingNumber[]>;
   getTrackingNumberById(id: number): Promise<TrackingNumber | undefined>;
   getTrackingNumberByTag(tag: string): Promise<TrackingNumber | undefined>;
+  getTrackingNumberByDomain(domain: string): Promise<TrackingNumber | undefined>;
   getDefaultTrackingNumber(): Promise<TrackingNumber | undefined>;
   createTrackingNumber(number: InsertTrackingNumber): Promise<TrackingNumber>;
   updateTrackingNumber(id: number, updates: UpdateTrackingNumber): Promise<TrackingNumber | undefined>;
@@ -1051,11 +1052,43 @@ export class MemStorage implements IStorage {
         return results[0];
       }
       
-      // Fall back to default
-      return this.getDefaultTrackingNumber();
+      // Don't fall back - let caller handle priority chain
+      return undefined;
     } catch (error) {
       console.error("Error finding tracking number by tag:", error);
-      return this.getDefaultTrackingNumber();
+      return undefined;
+    }
+  }
+
+  async getTrackingNumberByDomain(domain: string): Promise<TrackingNumber | undefined> {
+    try {
+      // Normalize domain - strip www. prefix for matching
+      const normalizedDomain = domain.replace(/^www\./, '').toLowerCase();
+      
+      // Find active tracking number with matching referrer domain
+      // Check for exact match or partial match (e.g., "google" matches "google.com")
+      const allActive = await db.select().from(trackingNumbers)
+        .where(and(
+          eq(trackingNumbers.isActive, true),
+          sql`${trackingNumbers.referrerDomain} IS NOT NULL`
+        ));
+      
+      // Try exact match first (case-insensitive)
+      const exactMatch = allActive.find(n => 
+        n.referrerDomain?.toLowerCase().replace(/^www\./, '') === normalizedDomain
+      );
+      if (exactMatch) return exactMatch;
+      
+      // Try partial match (domain contains configured value, e.g., "google" in "google.com")
+      const partialMatch = allActive.find(n => 
+        n.referrerDomain && normalizedDomain.includes(n.referrerDomain.toLowerCase())
+      );
+      if (partialMatch) return partialMatch;
+      
+      return undefined;
+    } catch (error) {
+      console.error("Error finding tracking number by domain:", error);
+      return undefined;
     }
   }
 

@@ -46,6 +46,7 @@ type TrackingNumberFormData = {
   phoneNumber: string;
   label: string;
   tag: string;
+  referrerDomain: string;
   isDefault: boolean;
   isActive: boolean;
 };
@@ -54,6 +55,7 @@ const emptyForm: TrackingNumberFormData = {
   phoneNumber: "",
   label: "",
   tag: "",
+  referrerDomain: "",
   isDefault: false,
   isActive: true,
 };
@@ -133,6 +135,7 @@ export default function AdminTrackingNumbers() {
       phoneNumber: number.phoneNumber,
       label: number.label || "",
       tag: number.tag || "",
+      referrerDomain: number.referrerDomain || "",
       isDefault: number.isDefault,
       isActive: number.isActive,
     });
@@ -144,6 +147,7 @@ export default function AdminTrackingNumbers() {
       phoneNumber: formData.phoneNumber,
       label: formData.label || null,
       tag: formData.tag || null,
+      referrerDomain: formData.referrerDomain || null,
       isDefault: formData.isDefault,
       isActive: formData.isActive,
     };
@@ -237,7 +241,7 @@ export default function AdminTrackingNumbers() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Phone Number</TableHead>
-                      <TableHead>Tag</TableHead>
+                      <TableHead>Tag / Domain</TableHead>
                       <TableHead>Label</TableHead>
                       <TableHead className="text-center">Active</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
@@ -253,21 +257,29 @@ export default function AdminTrackingNumbers() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {number.tag ? (
-                            <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="font-mono">?{number.tag}</Badge>
-                              <a 
-                                href={`/?${number.tag}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-muted-foreground hover:text-foreground"
-                              >
-                                <ExternalLink className="w-3 h-3" />
-                              </a>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                          <div className="space-y-1">
+                            {number.tag && (
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="font-mono">?{number.tag}</Badge>
+                                <a 
+                                  href={`/?${number.tag}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <ExternalLink className="w-3 h-3" />
+                                </a>
+                              </div>
+                            )}
+                            {number.referrerDomain && (
+                              <Badge variant="secondary" className="font-mono text-xs">
+                                from: {number.referrerDomain}
+                              </Badge>
+                            )}
+                            {!number.tag && !number.referrerDomain && (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {number.label || <span className="text-muted-foreground">—</span>}
@@ -337,18 +349,26 @@ export default function AdminTrackingNumbers() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <p>
-              Show different phone numbers based on a simple tag in the URL. 
-              When visitors arrive via a tagged link, they'll see the matching phone number throughout the site.
+              Show different phone numbers based on URL tags or the referring website.
+              The system checks in order: URL tag → Referrer domain → Default number.
             </p>
             <div className="space-y-3">
-              <h4 className="font-semibold text-foreground">Example:</h4>
+              <h4 className="font-semibold text-foreground">Option 1: URL Tag</h4>
               <div className="bg-muted rounded-lg p-4 space-y-2">
                 <p>1. Create a tracking number with tag <code className="bg-background px-1 rounded">tzl</code></p>
                 <p>2. Share the URL: <code className="bg-background px-1 rounded">tours.flightsandpackages.com/?tzl</code></p>
                 <p>3. Visitors from that link see your campaign phone number</p>
               </div>
+              
+              <h4 className="font-semibold text-foreground mt-4">Option 2: Referrer Domain</h4>
+              <div className="bg-muted rounded-lg p-4 space-y-2">
+                <p>1. Create a tracking number with domain <code className="bg-background px-1 rounded">google.com</code></p>
+                <p>2. Visitors arriving from Google see that phone number automatically</p>
+                <p>3. No URL tagging needed - works with any link from that domain</p>
+              </div>
+              
               <p className="text-xs">
-                The tag is remembered during the visitor's session, so they'll see the same number as they browse the site.
+                Both the tag and referrer are remembered during the session. URL tags take priority over referrer domains.
               </p>
             </div>
           </CardContent>
@@ -381,7 +401,7 @@ export default function AdminTrackingNumbers() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="tag">Tag</Label>
+              <Label htmlFor="tag">URL Tag</Label>
               <Input
                 id="tag"
                 value={formData.tag}
@@ -392,6 +412,21 @@ export default function AdminTrackingNumbers() {
               />
               <p className="text-xs text-muted-foreground">
                 URL will be: tours.flightsandpackages.com/?{formData.tag || "tag"}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="referrerDomain">Referrer Domain</Label>
+              <Input
+                id="referrerDomain"
+                value={formData.referrerDomain}
+                onChange={(e) => setFormData({ ...formData, referrerDomain: e.target.value.toLowerCase().replace(/^www\./, '').trim() })}
+                placeholder="e.g., google.com, facebook.com"
+                className="font-mono"
+                data-testid="input-referrer-domain"
+              />
+              <p className="text-xs text-muted-foreground">
+                Show this number when visitor comes from this domain (no URL tag needed)
               </p>
             </div>
             

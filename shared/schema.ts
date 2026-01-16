@@ -794,6 +794,7 @@ export const trackingNumbers = pgTable("tracking_numbers", {
   phoneNumber: text("phone_number").notNull(),
   label: text("label"), // Optional label for admin reference, e.g., "TikTok Campaign"
   tag: text("tag"), // Simple tag like "tzl" - matches ?tzl in URL
+  referrerDomain: text("referrer_domain"), // Domain like "google.com" - matches document.referrer
   isDefault: boolean("is_default").notNull().default(false), // Fallback number when no tag matches
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -808,6 +809,7 @@ export const insertTrackingNumberSchema = createInsertSchema(trackingNumbers).om
   phoneNumber: z.string().min(1, "Phone number is required").max(30),
   label: z.string().max(100).optional().nullable(),
   tag: z.string().max(50).optional().nullable(),
+  referrerDomain: z.string().max(100).optional().nullable(), // e.g., "google.com", "facebook.com"
   isDefault: z.boolean().default(false),
   isActive: z.boolean().default(true),
 });

@@ -6855,18 +6855,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ===== TRACKING NUMBERS (DNI) =====
   
-  // Get tracking number for visitor (public) - based on tag in URL
-  // Example: ?tzl in URL → tag=tzl
+  // Get tracking number for visitor (public) - based on tag in URL or referrer domain
+  // Priority: 1. URL tag (?tzl) → 2. Referrer domain (google.com) → 3. Default number
   app.get("/api/tracking-number", async (req, res) => {
     try {
-      const { tag } = req.query;
+      const { tag, domain } = req.query;
       
       let number;
+      
+      // Priority 1: Check for URL tag first
       if (tag) {
-        // Find matching number by tag
         number = await storage.getTrackingNumberByTag(tag as string);
-      } else {
-        // No tag, get default number
+      }
+      
+      // Priority 2: If no tag match, try referrer domain
+      if (!number && domain) {
+        number = await storage.getTrackingNumberByDomain(domain as string);
+      }
+      
+      // Priority 3: Fall back to default number
+      if (!number) {
         number = await storage.getDefaultTrackingNumber();
       }
       

@@ -2820,67 +2820,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!matchesDest) continue;
         }
         
-        // Holiday type scoring - use keyword index if available
+        // Holiday type filtering - STRICT: only match on explicit tags
+        // Keywords are for SCORING only, not for filtering
         let typeScore = 0;
         const packageTags = pkg.tags || [];
-        
-        // Try to use the pre-built keyword index for more accurate scoring
-        const packageIndex = getPackageIndex(pkg.id);
         let matchedTypes = 0;
         
-        if (packageIndex && typeFilters.length > 0) {
-          // Use indexed scoring - more accurate with pre-extracted keywords
-          typeScore = scorePackageWithIndex(packageIndex, typeFilters);
-          // Check if any filter was matched - score > 0 means at least one match
-          matchedTypes = typeScore > 0 ? 1 : 0;
-          
-          // Also check package tags for direct matches
+        if (typeFilters.length > 0) {
+          // STRICT FILTERING: Only count matches from explicit package tags
           for (const typeFilter of typeFilters) {
-            if (packageTags.some((t: string) => t.toLowerCase() === typeFilter.toLowerCase())) {
+            const tagMatched = packageTags.some((t: string) => 
+              t.toLowerCase() === typeFilter.toLowerCase() ||
+              t.toLowerCase().includes(typeFilter.toLowerCase())
+            );
+            if (tagMatched) {
               matchedTypes++;
-              typeScore += 50; // Strong bonus for direct tag match
-            }
-          }
-        } else if (typeFilters.length > 0) {
-          // Fall back to inline keyword matching
-          const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.excerpt || ""}`.toLowerCase();
-          
-          for (const typeFilter of typeFilters) {
-            let typeMatched = false;
-            
-            // Direct match with package tags (case-insensitive) - highest score
-            if (packageTags.some((t: string) => t.toLowerCase() === typeFilter.toLowerCase())) {
               typeScore += 50;
-              typeMatched = true;
             }
-            
-            // Check using expanded keywords
-            const keywords = holidayTypeKeywords[typeFilter] || [typeFilter.toLowerCase()];
-            for (const keyword of keywords) {
-              if (searchText.includes(keyword)) {
-                typeScore += 10;
-                typeMatched = true;
-                break;
-              }
-            }
-            
-            if (typeMatched) matchedTypes++;
           }
           
-          if (matchedTypes > 1) {
-            typeScore += matchedTypes * 5;
+          // IMPORTANT: Skip packages that don't have ALL selected holiday type tags
+          // For "Luxury Solo" the package must be TAGGED as both Luxury AND Solo
+          if (matchedTypes < typeFilters.length) continue;
+          
+          // Bonus scoring from keyword index (for ranking, not filtering)
+          const packageIndex = getPackageIndex(pkg.id);
+          if (packageIndex) {
+            const keywordScore = scorePackageWithIndex(packageIndex, typeFilters);
+            typeScore += Math.min(keywordScore, 20); // Cap keyword bonus
           }
         }
         
-        // IMPORTANT: Skip packages that don't match ALL of the selected holiday types
-        // For "Luxury Solo" we need BOTH luxury AND solo to match
-        if (typeFilters.length > 0 && matchedTypes < typeFilters.length) continue;
-        
         if (typeFilters.length === 0) {
           // No filters - use index to show variety if available
-          if (packageIndex) {
+          const pkgIndex = getPackageIndex(pkg.id);
+          if (pkgIndex) {
             // Give bonus for packages with strong holiday type matches
-            const topMatch = packageIndex.holidayTypeMatches[0];
+            const topMatch = pkgIndex.holidayTypeMatches[0];
             typeScore = topMatch ? Math.min(topMatch.score, 30) : 10;
           } else {
             typeScore = 10;
@@ -2993,10 +2969,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         if (typeFilters.length > 0) {
+          // STRICT FILTERING: Only count matches from Bokun activity categories
+          // Keywords in description are for SCORING only, not filtering
           for (const typeFilter of typeFilters) {
             let typeMatched = false;
             
-            // Check Bokun activity categories first
+            // Check Bokun activity categories - this is the ONLY way to match for filtering
             const mappedCategories = bokunCategoryMappings[typeFilter] || [];
             for (const category of activityCategories) {
               const catLower = category.toLowerCase();
@@ -3007,26 +2985,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
             
-            // Check using expanded keywords in text
-            const keywords = holidayTypeKeywords[typeFilter] || [typeFilter.toLowerCase()];
-            for (const keyword of keywords) {
-              if (tourSearchText.includes(keyword)) {
-                typeScore += 8;
-                typeMatched = true;
-                break;
-              }
-            }
-            
             if (typeMatched) matchedTypes++;
           }
           
-          // IMPORTANT: Skip tours that don't match ALL of the selected holiday types
-          // For "Luxury Solo" we need BOTH luxury AND solo to match
+          // IMPORTANT: Skip tours that don't have ALL selected holiday types in their categories
+          // For "Luxury Solo" the tour must have BOTH luxury AND solo categories
           if (matchedTypes < typeFilters.length) continue;
           
-          // Bonus for matching multiple types
-          if (matchedTypes > 1) {
-            typeScore += matchedTypes * 5;
+          // Bonus scoring from keywords (for ranking, not filtering)
+          const keywords = holidayTypeKeywords[typeFilters[0]] || [];
+          for (const keyword of keywords) {
+            if (tourSearchText.includes(keyword)) {
+              typeScore += 5; // Small bonus for keyword matches
+              break;
+            }
           }
         } else {
           typeScore = 10; // No filter = decent base score

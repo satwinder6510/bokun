@@ -595,13 +595,20 @@ export default function PackageDetail() {
   const [selectedBokunRate, setSelectedBokunRate] = useState<string>("");
   const [selectedBokunDate, setSelectedBokunDate] = useState<Date | undefined>();
 
-  // Get unique airports from ALL Bokun pricing, sorted by cheapest price (any rate)
+  // Get unique airports from Bokun pricing, sorted by cheapest price
+  // When preferSoloPricing, only consider single room rates for pricing
   const bokunAirports = bokunPricing?.enabled && bokunPricing.prices.length > 0
     ? Array.from(new Set(bokunPricing.prices.map(p => p.airportCode)))
         .map(code => {
           const airportPrices = bokunPricing.prices.filter(p => p.airportCode === code);
           const entry = airportPrices[0];
-          const minPrice = Math.min(...airportPrices.map(p => p.combinedPrice));
+          // Filter by rate type if preferSoloPricing
+          const relevantPrices = preferSoloPricing
+            ? airportPrices.filter(p => /single/i.test(p.rateTitle))
+            : airportPrices;
+          // Fall back to all prices if no matching rates found
+          const pricesToUse = relevantPrices.length > 0 ? relevantPrices : airportPrices;
+          const minPrice = Math.min(...pricesToUse.map(p => p.combinedPrice));
           return { code, name: entry?.airportName || code, minPrice };
         })
         .sort((a, b) => a.minPrice - b.minPrice)

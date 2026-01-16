@@ -4195,7 +4195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine outbound API");
             }
             
-            if (outboundRaw.includes("upstream") || outboundRaw.includes("502") || outboundRaw.includes("503")) {
+            if (!outboundRaw.startsWith("{") && (outboundRaw.includes("upstream") || outboundRaw.includes("Bad Gateway") || outboundRaw.includes("Service Unavailable"))) {
               console.error(`[BokunFlights] Proxy error from outbound API:`, outboundRaw.substring(0, 200));
               throw new Error("Flight API temporarily unavailable. Please try again in a few seconds.");
             }
@@ -4272,7 +4272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine return API");
             }
             
-            if (returnRaw.includes("upstream") || returnRaw.includes("502") || returnRaw.includes("503")) {
+            if (!returnRaw.startsWith("{") && (returnRaw.includes("upstream") || returnRaw.includes("Bad Gateway") || returnRaw.includes("Service Unavailable"))) {
               console.error(`[BokunFlights] Proxy error from return API:`, returnRaw.substring(0, 200));
               throw new Error("Flight API temporarily unavailable. Please try again in a few seconds.");
             }
@@ -4421,8 +4421,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine API");
             }
             
-            // Check for upstream/proxy error responses (IIS errors)
-            if (rawText.includes("upstream") || rawText.includes("502") || rawText.includes("503")) {
+            // Check for upstream/proxy error responses (IIS errors) - but not valid JSON with Offers
+            if (!rawText.startsWith("{") && (rawText.includes("upstream") || rawText.includes("Bad Gateway") || rawText.includes("Service Unavailable"))) {
               console.error(`[BokunFlights] Proxy error from Sunshine API:`, rawText.substring(0, 200));
               throw new Error("Flight API temporarily unavailable. Please try again in a few seconds.");
             }

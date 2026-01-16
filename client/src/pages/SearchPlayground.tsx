@@ -35,6 +35,7 @@ interface AISearchResult {
 interface AISearchResponse {
   results: AISearchResult[];
   total: number;
+  exactMatches?: boolean;
 }
 
 const HOLIDAY_TYPES = [
@@ -384,6 +385,7 @@ export default function SearchPlayground() {
   };
 
   const results = data?.results || [];
+  const exactMatches = data?.exactMatches !== false; // Default to true if undefined
 
   const formatBudget = (value: number) => {
     if (value >= maxPrice) return `£${(value / 1000).toFixed(0)}k+`;
@@ -478,10 +480,19 @@ export default function SearchPlayground() {
                     ))}
                   </div>
                 ) : results.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {results.slice(0, 8).map(result => (
-                      <ResultCard key={`${result.type}-${result.id}`} result={result} />
-                    ))}
+                  <div>
+                    {!exactMatches && holidayTypes.length > 0 && (
+                      <div className="mb-4 p-4 bg-muted rounded-lg border border-border">
+                        <p className="text-sm text-muted-foreground">
+                          Sorry, no exact matches for "{holidayTypes.join(" + ")}". Here are the closest alternatives:
+                        </p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {results.slice(0, 8).map(result => (
+                        <ResultCard key={`${result.type}-${result.id}`} result={result} />
+                      ))}
+                    </div>
                   </div>
                 ) : hasSearched ? (
                   <div className="text-center py-12 text-muted-foreground">
@@ -564,10 +575,19 @@ export default function SearchPlayground() {
                   ))}
                 </div>
               ) : results.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {results.map(result => (
-                    <ResultCard key={`${result.type}-${result.id}`} result={result} />
-                  ))}
+                <div>
+                  {!exactMatches && holidayTypes.length > 0 && (
+                    <div className="mb-6 p-4 bg-muted rounded-lg border border-border">
+                      <p className="text-muted-foreground">
+                        Sorry, no exact matches for "{holidayTypes.join(" + ")}". Here are the closest alternatives:
+                      </p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {results.map(result => (
+                      <ResultCard key={`${result.type}-${result.id}`} result={result} />
+                    ))}
+                  </div>
                 </div>
               ) : hasSearched ? (
                 <div className="text-center py-16 text-muted-foreground">
@@ -655,10 +675,19 @@ export default function SearchPlayground() {
               )}
 
               {!isLoading && results.length > 0 && (
-                <div className="space-y-4">
-                  {results.slice(0, 6).map(result => (
-                    <ResultCard key={`${result.type}-${result.id}`} result={result} />
-                  ))}
+                <div>
+                  {!exactMatches && holidayTypes.length > 0 && (
+                    <div className="mb-6 p-4 bg-muted rounded-lg border border-border text-center">
+                      <p className="text-muted-foreground">
+                        Sorry, no exact matches for "{holidayTypes.join(" + ")}". Here are the closest alternatives:
+                      </p>
+                    </div>
+                  )}
+                  <div className="space-y-4">
+                    {results.slice(0, 6).map(result => (
+                      <ResultCard key={`${result.type}-${result.id}`} result={result} />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

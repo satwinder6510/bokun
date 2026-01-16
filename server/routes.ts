@@ -2799,7 +2799,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         score: number;
       }
       
-      const results: AISearchItem[] = [];
+      let results: AISearchItem[] = [];
+      let exactMatches = true; // Track if we found exact matches
       
       // Process packages (priority)
       for (const pkg of packages) {
@@ -3049,6 +3050,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Sort all results by score first
       results.sort((a, b) => b.score - a.score);
       
+      // FALLBACK: If no exact matches found with holiday type filters, 
+      // show closest matches using looser keyword matching
+      if (results.length === 0 && typeFilters.length > 0) {
+        exactMatches = false;
+        console.log(`[AI Search] No exact matches for ${typeFilters.join(", ")}, showing closest matches`);
+        
+        // Re-run with loose matching - check keywords in description
+        for (const pkg of packages) {
+          let durationDays = 7;
+          const durationMatch = pkg.duration?.match(/(\d+)/);
+          if (durationMatch) durationDays = parseInt(durationMatch[1]);
+          
+          if (pkg.price && pkg.price > budgetLimit) continue;
+          if (durationDays > durationLimit) continue;
+          
+          if (destFilter && destFilter !== "all") {
+            const matchesDest = 
+              pkg.category?.toLowerCase() === destFilter.toLowerCase() ||
+              pkg.countries?.some((c: string) => c.toLowerCase() === destFilter.toLowerCase());
+            if (!matchesDest) continue;
+          }
+          
+          // Loose matching: check keywords in description for scoring
+          let typeScore = 0;
+          const searchText = `${pkg.title} ${pkg.description || ""} ${pkg.excerpt || ""}`.toLowerCase();
+          
+          for (const typeFilter of typeFilters) {
+            const keywords = holidayTypeKeywords[typeFilter] || [typeFilter.toLowerCase()];
+            for (const keyword of keywords) {
+              if (searchText.includes(keyword)) {
+                typeScore += 15;
+                break;
+              }
+            }
+          }
+          
+          // Only include if at least some relevance
+          if (typeScore > 0) {
+            results.push({
+              id: pkg.id,
+              type: "package",
+              title: pkg.title,
+              description: pkg.excerpt,
+              category: pkg.category,
+              countries: pkg.countries,
+              tags: pkg.tags,
+              price: pkg.price,
+              duration: pkg.duration,
+              durationDays,
+              image: pkg.heroImage,
+              slug: pkg.slug,
+              score: 50 + typeScore,
+            });
+          }
+        }
+        
+        // Also check tours with loose matching
+        for (const tour of filteredTours) {
+          let durationDays = 7;
+          const durMatch = tour.durationText?.match(/(\d+)/);
+          if (durMatch) durationDays = parseInt(durMatch[1]);
+          
+          const price = tour.price;
+          if (price && price > budgetLimit) continue;
+          if (durationDays > durationLimit) continue;
+          
+          const tourSearchText = `${tour.title} ${tour.excerpt || ""} ${tour.summary || ""}`.toLowerCase();
+          
+          let typeScore = 0;
+          for (const typeFilter of typeFilters) {
+            const keywords = holidayTypeKeywords[typeFilter] || [typeFilter.toLowerCase()];
+            for (const keyword of keywords) {
+              if (tourSearchText.includes(keyword)) {
+                typeScore += 10;
+                break;
+              }
+            }
+          }
+          
+          if (typeScore > 0) {
+            const tourCountry = tour.googlePlace?.country || null;
+            results.push({
+              id: tour.id,
+              type: "tour",
+              title: tour.title,
+              description: tour.excerpt || tour.summary,
+              category: tourCountry,
+              countries: tourCountry ? [tourCountry] : [],
+              price,
+              duration: tour.durationText,
+              durationDays,
+              image: tour.keyPhoto?.originalUrl,
+              score: 40 + typeScore,
+            });
+          }
+        }
+        
+        results.sort((a, b) => b.score - a.score);
+      }
+      
       // Take top 24 results but ensure variety
       // If we have holiday type filters, prioritize items that matched
       const hasFilters = typeFilters.length > 0;
@@ -3111,11 +3212,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const packageCount = combinedResults.filter(r => r.type === "package").length;
       const tourCount = combinedResults.filter(r => r.type === "tour").length;
       
-      console.log(`[AI Search] Returning ${packageCount} packages, ${tourCount} tours (filters: ${typeFilters.join(", ") || "none"})`);
+      console.log(`[AI Search] Returning ${packageCount} packages, ${tourCount} tours (filters: ${typeFilters.join(", ") || "none"}, exact: ${exactMatches})`);
       
       res.json({
         results: combinedResults,
         total: results.length,
+        exactMatches,
       });
     } catch (error: any) {
       console.error("AI Search error:", error);

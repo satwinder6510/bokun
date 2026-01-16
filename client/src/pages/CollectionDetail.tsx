@@ -66,8 +66,13 @@ function FlightPackageCard({ pkg, showSinglePrice = false }: { pkg: FlightPackag
     ? (pkg.singlePrice || pkg.price) 
     : (pkg.price || pkg.singlePrice);
   
+  // Add ?pricing=solo when linking from solo collection
+  const packageUrl = showSinglePrice 
+    ? `/Holidays/${countrySlug}/${pkg.slug}?pricing=solo`
+    : `/Holidays/${countrySlug}/${pkg.slug}`;
+  
   return (
-    <Link href={`/Holidays/${countrySlug}/${pkg.slug}`}>
+    <Link href={packageUrl}>
       <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
         <div className="relative aspect-[4/3] overflow-hidden">
           <img 

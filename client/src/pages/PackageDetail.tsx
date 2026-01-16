@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { useRoute, Link } from "wouter";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useRoute, Link, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
@@ -480,6 +480,14 @@ function BokunPriceCalendarWidget({
 export default function PackageDetail() {
   const { toast } = useToast();
   const phoneNumber = useDynamicPhoneNumber();
+  const searchString = useSearch();
+  
+  // Parse URL params - check for ?pricing=solo to default to solo pricing
+  const preferSoloPricing = useMemo(() => {
+    const params = new URLSearchParams(searchString);
+    return params.get("pricing") === "solo";
+  }, [searchString]);
+  
   // Support both old route (/packages/:slug) and new route (/Holidays/:country/:slug)
   const [, oldParams] = useRoute("/packages/:slug");
   const [, newParams] = useRoute("/Holidays/:country/:slug");
@@ -622,11 +630,17 @@ export default function PackageDetail() {
           return { title, price, landPrice, isSingle, isDouble, isTwin, isStandard };
         })
         .sort((a, b) => {
-          // Prefer Double first, then Twin
-          if (a.isDouble && !b.isDouble) return -1;
-          if (!a.isDouble && b.isDouble) return 1;
-          if (a.isTwin && !b.isTwin) return -1;
-          if (!a.isTwin && b.isTwin) return 1;
+          // If preferSoloPricing, prefer Single first
+          if (preferSoloPricing) {
+            if (a.isSingle && !b.isSingle) return -1;
+            if (!a.isSingle && b.isSingle) return 1;
+          } else {
+            // Default: Prefer Double first, then Twin
+            if (a.isDouble && !b.isDouble) return -1;
+            if (!a.isDouble && b.isDouble) return 1;
+            if (a.isTwin && !b.isTwin) return -1;
+            if (!a.isTwin && b.isTwin) return 1;
+          }
           // Then by price
           return a.price - b.price;
         })

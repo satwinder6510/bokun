@@ -4146,7 +4146,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine outbound API");
           }
           
-          const outboundData = JSON.parse(outboundRaw);
+          // Check for upstream/proxy error responses
+          if (outboundRaw.includes("upstream") || outboundRaw.includes("502") || outboundRaw.includes("503")) {
+            console.error(`[BokunFlights] Proxy error from outbound API:`, outboundRaw.substring(0, 200));
+            throw new Error("Flight API temporarily unavailable. Please try again in a few seconds.");
+          }
+          
+          let outboundData;
+          try {
+            outboundData = JSON.parse(outboundRaw);
+          } catch (parseErr) {
+            console.error(`[BokunFlights] Invalid JSON from outbound API:`, outboundRaw.substring(0, 200));
+            throw new Error("Flight API returned invalid data. Please try again.");
+          }
           const outboundFlights = outboundData.Flights || [];
           console.log(`[BokunFlights] Found ${outboundFlights.length} outbound one-way flights`);
           
@@ -4183,7 +4195,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine return API");
           }
           
-          const returnData = JSON.parse(returnRaw);
+          // Check for upstream/proxy error responses
+          if (returnRaw.includes("upstream") || returnRaw.includes("502") || returnRaw.includes("503")) {
+            console.error(`[BokunFlights] Proxy error from return API:`, returnRaw.substring(0, 200));
+            throw new Error("Flight API temporarily unavailable. Please try again in a few seconds.");
+          }
+          
+          let returnData;
+          try {
+            returnData = JSON.parse(returnRaw);
+          } catch (parseErr) {
+            console.error(`[BokunFlights] Invalid JSON from return API:`, returnRaw.substring(0, 200));
+            throw new Error("Flight API returned invalid data. Please try again.");
+          }
           const returnFlights = returnData.Flights || [];
           console.log(`[BokunFlights] Found ${returnFlights.length} return one-way flights`);
           
@@ -4294,7 +4318,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             throw new Error(errorMatch ? errorMatch[1] : "Unknown error from Sunshine API");
           }
           
-          const data = JSON.parse(rawText);
+          // Check for upstream/proxy error responses (IIS errors)
+          if (rawText.includes("upstream") || rawText.includes("502") || rawText.includes("503")) {
+            console.error(`[BokunFlights] Proxy error from Sunshine API:`, rawText.substring(0, 200));
+            throw new Error("Flight API temporarily unavailable. Please try again in a few seconds.");
+          }
+          
+          // Try to parse JSON, with better error message
+          let data;
+          try {
+            data = JSON.parse(rawText);
+          } catch (parseErr) {
+            console.error(`[BokunFlights] Invalid JSON from Sunshine API:`, rawText.substring(0, 200));
+            throw new Error("Flight API returned invalid data. Please try again.");
+          }
           const offers = data.Offers || [];
           
           console.log(`[BokunFlights] Sunshine API returned ${offers.length} flight offers`);

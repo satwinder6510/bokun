@@ -1,0 +1,62 @@
+Implement this change in my existing Replit monorepo (holidays.flightsandpackages.com). We already have server-side SEO injection working that outputs: H1, overview/description, destination, duration, price. We need to improve AI-friendliness by also server-rendering key “answerable” sections that are currently client-only.
+
+HARD RULES
+- Do NOT touch checkout, payments, admin, auth, Stripe flows.
+- Do NOT migrate frameworks.
+- Keep SPA hydration exactly as-is.
+- All new behavior behind existing SEO flags; if anything fails, fall back to current HTML injection output.
+- Do not add heavy runtime network calls; use the same DB/Bokun cached data source already used for tour pages. Cache server-rendered fragments.
+
+GOAL
+For tour pages (and destination pages if data exists), extend the server HTML response so it includes, BEFORE hydration:
+1) “What’s included” (top 5–7 bullets)
+2) “What’s not included” (top 5–7 bullets)
+3) FAQs (top 3–5 Q&As)
+4) “Who this tour is best for” + “Not suitable for” (top 3–6 bullets each)
+5) Optional: 2–3 related tours links (same destination), plain <a> tags only
+
+STRICT CONTENT RULES
+- Output plain semantic HTML (h2/h3, p, ul/li, a). No accordions/carousels/tabs.
+- Use the EXACT same source fields as the client uses so content matches (no paraphrasing).
+- Keep it short to avoid bloat: cap bullets and FAQs as above.
+- Only include sections if data exists. If missing, omit the section entirely.
+- Ensure all JSON-LD matches visible content (no hidden schema).
+
+WHERE TO CHANGE
+- Locate the current server SEO injection code (e.g., server/seo/inject.ts or equivalent).
+- There should be a function building the server-rendered “body content” or injecting HTML into index.html.
+- Add a new fragment builder, e.g. server/seo/fragments.ts:
+  - buildInclusionsHtml(tour)
+  - buildFaqHtml(tour)
+  - buildSuitabilityHtml(tour)
+  - buildRelatedToursHtml(tour, relatedTours)
+- Add safe escaping for text fields to prevent broken HTML.
+- Add caching for the fragment output per tour slug (TTL ~5–15 min), reuse your existing cache utility.
+
+JSON-LD UPDATES
+- If FAQs are rendered, add/update FAQPage JSON-LD on tour pages using those same questions/answers.
+- Keep existing Product/TouristTrip schema; do not invent fields.
+- Do not add AggregateRating unless it is displayed on the page.
+
+ROUTING
+- Apply only to tour detail pages (whatever your real prefix is: /Holidays/:country/:slug or /tours/:slug).
+- Do NOT apply to checkout/account/admin routes.
+- Keep destination pages unchanged unless you already have “FAQs/Includes” equivalents; if you do, add only FAQs + related links.
+
+ACCEPTANCE TESTS (MUST SHOW RESULTS)
+Pick 1 real tour URL and confirm:
+1) View Source contains:
+   - H1
+   - Overview paragraph
+   - “What’s included” UL (if data exists)
+   - “What’s not included” UL (if data exists)
+   - FAQ section with 3–5 Q&As (if data exists)
+   - Best for / Not suitable lists (if data exists)
+2) View Source contains JSON-LD with FAQPage that matches the visible FAQs.
+3) If data is missing, sections are omitted (no empty headings).
+4) SPA still hydrates and booking flow still works unchanged.
+
+DELIVERABLE
+- Provide list of changed files and brief description.
+- Provide the example tour URL used for acceptance tests and paste the relevant View Source snippets showing the new sections.
+Proceed now.

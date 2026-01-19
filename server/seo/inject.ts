@@ -2,10 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { getCached, setCache } from './cache';
 import { generateTourMeta, generateDestinationMeta } from './meta';
-import { generateTourJsonLd, generateDestinationJsonLd, generateBreadcrumbJsonLd, generateOrganizationJsonLd } from './jsonld';
+import { generateTourJsonLd, generateDestinationJsonLd, generateBreadcrumbJsonLd, generateOrganizationJsonLd, generateFaqPageJsonLd } from './jsonld';
 import { getCanonicalUrl } from './canonical';
 import { storage } from '../storage';
 import type { FlightPackage } from '@shared/schema';
+import { buildAllFragments, type FaqItem } from './fragments';
 
 const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';
 
@@ -245,7 +246,35 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
       { name: pkg.title, url: getCanonicalUrl(requestPath) }
     ]);
     
-    let html = injectIntoHead(template, metaTags + jsonLd + breadcrumbs);
+    // Get FAQs (top 5 general FAQs for now)
+    let faqs: FaqItem[] = [];
+    try {
+      const allFaqs = await storage.getPublishedFaqs();
+      faqs = allFaqs.slice(0, 5).map(f => ({ question: f.question, answer: f.answer }));
+    } catch (e) {
+      // FAQs optional, continue without them
+    }
+    
+    // Get related packages (same destination)
+    let relatedPackages: FlightPackage[] = [];
+    try {
+      const allPackages = await storage.getAllFlightPackages();
+      relatedPackages = allPackages.filter((p: FlightPackage) => 
+        p.category?.toLowerCase() === pkg.category?.toLowerCase() &&
+        p.isPublished &&
+        p.slug !== pkg.slug
+      ).slice(0, 3);
+    } catch (e) {
+      // Related packages optional
+    }
+    
+    // Generate FAQ JSON-LD if FAQs exist
+    const faqJsonLd = generateFaqPageJsonLd(faqs);
+    
+    let html = injectIntoHead(template, metaTags + jsonLd + breadcrumbs + faqJsonLd);
+    
+    // Build enhanced content fragments
+    const fragments = buildAllFragments(pkg, faqs, relatedPackages);
     
     const previewContent = `
       <div style="display:none" aria-hidden="true">
@@ -254,6 +283,7 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
         ${pkg.category ? `<p>Destination: ${pkg.category}</p>` : ''}
         ${pkg.duration ? `<p>Duration: ${pkg.duration}</p>` : ''}
         ${pkg.price ? `<p>From £${pkg.price}</p>` : ''}
+        ${fragments}
       </div>
     `;
     html = injectIntoBody(html, previewContent);

@@ -136,3 +136,27 @@ export function generateOrganizationJsonLd(): string {
   
   return `<script type="application/ld+json">${JSON.stringify(jsonLd, null, 0)}</script>`;
 }
+
+export interface FaqItem {
+  question: string;
+  answer: string;
+}
+
+export function generateFaqPageJsonLd(faqs: FaqItem[]): string {
+  if (!faqs || faqs.length === 0) return '';
+  
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.question,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.answer.replace(/<[^>]*>/g, '').trim()
+      }
+    }))
+  };
+  
+  return `<script type="application/ld+json">${JSON.stringify(jsonLd, null, 0)}</script>`;
+}

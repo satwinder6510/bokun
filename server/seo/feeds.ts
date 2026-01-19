@@ -55,7 +55,11 @@ export async function generateToursFeed(): Promise<TourFeedItem[]> {
       });
     }
     
-    const cachedProducts = await storage.getCachedProducts('GBP');
+    // Try GBP cache first, fall back to USD if empty
+    let cachedProducts = await storage.getCachedProducts('GBP');
+    if (!cachedProducts || cachedProducts.length === 0) {
+      cachedProducts = await storage.getCachedProducts('USD');
+    }
     for (const product of cachedProducts) {
       const keyPhotoUrl = product.keyPhoto?.originalUrl || null;
       const destination = product.googlePlace?.country || product.locationCode?.country || '';

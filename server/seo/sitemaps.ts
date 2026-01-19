@@ -89,7 +89,11 @@ export async function generateToursSitemap(): Promise<string> {
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
   
   try {
-    const cachedProducts = await storage.getCachedProducts('GBP');
+    // Try GBP cache first, fall back to USD if empty
+    let cachedProducts = await storage.getCachedProducts('GBP');
+    if (!cachedProducts || cachedProducts.length === 0) {
+      cachedProducts = await storage.getCachedProducts('USD');
+    }
     const uniqueProducts = Array.from(
       new Map(cachedProducts.map(p => [p.id, p])).values()
     );

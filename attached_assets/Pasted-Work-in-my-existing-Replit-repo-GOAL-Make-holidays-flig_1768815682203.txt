@@ -1,0 +1,81 @@
+Work in my existing Replit repo.
+
+GOAL
+Make holidays.flightsandpackages.com fully indexable and AI-friendly without breaking the SPA.
+
+HARD RULES
+- Do NOT touch checkout, payments, admin, or auth flows.
+- Do NOT migrate to Next.js.
+- All changes must be behind env flags and have SPA fallback.
+- If anything fails, serve the current index.html unchanged.
+
+STACK
+React 18 + Vite + Wouter
+Express + TypeScript
+Drizzle ORM + Neon
+Bokun API
+
+ENV FLAGS (ADD)
+SEO_ENABLED
+PRERENDER_ENABLED
+SITEMAP_ENABLED
+FEEDS_ENABLED
+CANONICAL_HOST=https://holidays.flightsandpackages.com
+
+IMPLEMENT IN THIS ORDER
+
+1) SEO INJECTION (SERVER-SIDE)
+Create:
+- server/seo/inject.ts
+- server/seo/meta.ts
+- server/seo/jsonld.ts
+- server/seo/canonical.ts
+- server/seo/cache.ts
+
+Behavior:
+- For routes starting with /tours or /destinations:
+  - Inject <title>, meta description, canonical
+  - Inject JSON-LD
+- Cache per path (TTL ~5 min)
+- If injection fails, return original index.html
+
+2) ROBOTS + SITEMAPS
+Create routes:
+- GET /robots.txt
+- GET /sitemap.xml
+- GET /sitemaps/tours.xml
+- GET /sitemaps/destinations.xml
+
+Build sitemap entries from DB (fallback to Bokun if needed).
+Include <lastmod>.
+
+3) PRERENDER (SAFE)
+Create scripts/prerender.ts:
+- Fetch tours + destinations from DB
+- Generate static HTML per slug
+- Include real text content + same SEO meta + JSON-LD
+- Output to /prerendered/
+
+Create server/routes/prerender.ts:
+- If PRERENDER_ENABLED and file exists → serve it
+- Else → fall back to SEO injection or SPA
+
+4) FEEDS
+Create:
+- GET /feed/tours.json
+- GET /feed/destinations.json
+
+Fields:
+id, slug, title, summary, destination, duration, price_from, currency, image_url, page_url, last_updated
+
+5) ACCEPTANCE TESTS
+For one tour and one destination URL:
+- View-source shows H1, title, meta description, canonical, JSON-LD
+- /robots.txt and /sitemap.xml return 200
+- Unknown slug returns 404
+- SPA navigation and booking still work
+
+OUTPUT
+- List of files changed
+- Env vars added
+- How to enable/disable

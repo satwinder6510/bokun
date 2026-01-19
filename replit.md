@@ -16,7 +16,34 @@ The platform features a clean, minimal design with a red/orange accent color (#E
 
 ### SEO Implementation
 
-The platform includes comprehensive SEO optimization with dynamic meta tags, canonical URLs, Open Graph, and Twitter Cards managed via a central utility. Structured data (JSON-LD) is implemented for various content types, including `BreadcrumbList`, `TouristTrip`, `Article`, `FAQPage`, `TravelAgency`, `TouristDestination`, and `CollectionPage`. A content marketing blog is available at `/blog` with SEO-optimized URLs and content.
+The platform includes comprehensive SEO optimization managed via a modular server-side SEO system (`server/seo/`).
+
+**Server-Side SEO Injection:**
+- Dynamic meta tags, canonical URLs, Open Graph, and Twitter Cards are injected server-side for search engine crawlers
+- Routes for `/packages/:slug`, `/destinations/:slug`, `/Holidays/:country`, `/Holidays/:country/:slug`, and `/tour/:id` receive SEO-injected HTML
+- The `X-SEO-Injected: true` header indicates successful injection
+- Environment variables control features: `SEO_ENABLED`, `SITEMAP_ENABLED`, `FEEDS_ENABLED`, `PRERENDER_ENABLED`, `CANONICAL_HOST`
+
+**Structured Data (JSON-LD):**
+- `TouristTrip` schema for tours and packages with pricing, duration, and itinerary
+- `BreadcrumbList` for navigation hierarchy
+- `Organization` and `TravelAgency` schemas for business identity
+- `TouristDestination` and `CollectionPage` for destination pages
+
+**Sitemaps:**
+- Multi-sitemap architecture via `/sitemap.xml` (sitemap index)
+- Individual sitemaps: `/sitemaps/pages.xml`, `/sitemaps/tours.xml`, `/sitemaps/packages.xml`, `/sitemaps/destinations.xml`, `/sitemaps/blog.xml`
+
+**AI-Friendly JSON Feeds:**
+- `/feed/tours.json` - All Bokun tours with metadata
+- `/feed/packages.json` - All flight packages with pricing
+- `/feed/destinations.json` - Destination listing with package counts
+
+**Caching:**
+- SEO-injected HTML is cached in-memory for performance
+- 1-hour TTL for dynamic content caching
+
+A content marketing blog is available at `/blog` with SEO-optimized URLs and content.
 
 ### URL Structure (Migration-Compatible)
 

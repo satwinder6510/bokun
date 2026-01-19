@@ -44,6 +44,11 @@ waitForPort = 5000
 [userenv.shared]
 PRIVATE_OBJECT_DIR = "/replit-objstore"
 PUBLIC_OBJECT_SEARCH_PATHS = "/replit-objstore/public"
+SEO_ENABLED = "true"
+SITEMAP_ENABLED = "true"
+FEEDS_ENABLED = "true"
+PRERENDER_ENABLED = "false"
+CANONICAL_HOST = "https://holidays.flightsandpackages.com"
 
 [agent]
 integrations = ["stripe:1.0.0"]

@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { initScheduler } from "./scheduler";
+import { registerSeoRoutes } from "./seo/routes";
 
 const app = express();
 
@@ -52,6 +53,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Register SEO routes first (robots.txt, sitemaps, feeds)
+  registerSeoRoutes(app);
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

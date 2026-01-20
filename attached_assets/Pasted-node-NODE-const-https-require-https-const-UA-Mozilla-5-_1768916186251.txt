@@ -1,0 +1,98 @@
+node - <<'NODE'
+const https = require("https");
+
+const UA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+const SITEMAPS = [
+  "https://holidays.flightsandpackages.com/sitemaps/pages.xml",
+  "https://holidays.flightsandpackages.com/sitemaps/tours.xml",
+  "https://holidays.flightsandpackages.com/sitemaps/packages.xml",
+  "https://holidays.flightsandpackages.com/sitemaps/destinations.xml",
+  "https://holidays.flightsandpackages.com/sitemaps/blog.xml"
+];
+
+function fetch(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, { headers: { "User-Agent": UA, "Accept": "text/html,application/xhtml+xml" } }, res => {
+      let data = "";
+      res.on("data", c => data += c);
+      res.on("end", () => resolve({ status: res.statusCode, headers: res.headers, body: data }));
+    }).on("error", reject);
+  });
+}
+
+function extractLocs(xml) {
+  return [...xml.matchAll(/<loc>(.*?)<\/loc>/g)].map(m => m[1].trim());
+}
+
+function pickSample(arr, n) {
+  if (arr.length <= n) return arr;
+  const step = Math.floor(arr.length / n);
+  const out = [];
+  for (let i = 0; i < arr.length && out.length < n; i += Math.max(1, step)) out.push(arr[i]);
+  return out.slice(0, n);
+}
+
+function parsePage(html) {
+  const title = (html.match(/<title>([\s\S]*?)<\/title>/i) || [,""])[1].trim();
+  const canonical = (html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i) || [,""])[1].trim();
+  const robots = (html.match(/<meta[^>]+name=["']robots["'][^>]+content=["']([^"']+)["']/i) || [,""])[1].trim();
+  const noindex = /noindex/i.test(robots);
+  const jsonld = (html.match(/application\/ld\+json/gi) || []).length;
+  const hasSeo = /id=["']seo-content["']|<noscript>[\s\S]*related tours|<noscript>[\s\S]*breadcrumb/i.test(html);
+  return { title, canonical, robots, noindex, jsonld, hasSeo };
+}
+
+(async () => {
+  const results = [];
+  for (const sm of SITEMAPS) {
+    const smRes = await fetch(sm);
+    if (smRes.status !== 200) {
+      console.log(JSON.stringify({ type: "sitemap_error", sitemap: sm, status: smRes.status }));
+      continue;
+    }
+    const urls = extractLocs(smRes.body);
+    const sample = pickSample(urls, 25);
+    for (const url of sample) {
+      const r = await fetch(url);
+      const p = parsePage(r.body || "");
+      results.push({
+        sitemap: sm,
+        url,
+        status: r.status,
+        title_ok: !!p.title,
+        noindex: p.noindex,
+        canonical: p.canonical,
+        canonical_ok: p.canonical ? (p.canonical === url) : false,
+        jsonld: p.jsonld,
+        hasSeo: p.hasSeo
+      });
+    }
+  }
+
+  // Summaries
+  const bySitemap = {};
+  for (const row of results) {
+    bySitemap[row.sitemap] ??= { total: 0, badStatus: 0, noindex: 0, canonMismatch: 0, noSeo: 0, lowJsonld: 0 };
+    const s = bySitemap[row.sitemap];
+    s.total++;
+    if (row.status !== 200) s.badStatus++;
+    if (row.noindex) s.noindex++;
+    if (!row.canonical_ok) s.canonMismatch++;
+    if (!row.hasSeo) s.noSeo++;
+    if (row.jsonld === 0) s.lowJsonld++;
+  }
+
+  console.log("\n=== Summary (sampled) ===");
+  for (const [sm, s] of Object.entries(bySitemap)) {
+    console.log(sm);
+    console.log(s);
+  }
+
+  // Print suspicious rows
+  const suspicious = results.filter(r =>
+    r.status !== 200 || r.noindex || !r.canonical_ok || !r.hasSeo
+  );
+  console.log("\n=== Suspicious (sampled) ===");
+  suspicious.slice(0, 80).forEach(r => console.log(JSON.stringify(r)));
+})();
+NODE

@@ -89,3 +89,36 @@ export function generateDestinationMeta(destination: {
     path
   });
 }
+
+// Generate noindex meta tag for pages that shouldn't be indexed
+export function generateNoIndexMeta(title: string, description: string, path: string): string {
+  const canonicalUrl = getCanonicalUrl(path);
+  const safeTitle = escapeHtml(title);
+  const safeDescription = escapeHtml(description);
+  
+  return `
+    <title>${safeTitle}</title>
+    <meta name="description" content="${safeDescription}" />
+    <link rel="canonical" href="${canonicalUrl}" />
+    <meta name="robots" content="noindex, follow" />`;
+}
+
+// Check if a URL should be noindexed
+export function shouldNoIndex(path: string, queryString?: string): boolean {
+  const noIndexPaths = ['/ai-search', '/checkout', '/admin', '/2fa-setup'];
+  
+  // Check path-based noindex
+  if (noIndexPaths.some(p => path.startsWith(p))) {
+    return true;
+  }
+  
+  // Check for heavy query params that indicate non-indexable content
+  if (queryString) {
+    const heavyParams = ['utm_', 'fbclid', 'gclid', 'ref=', 'source=', 'campaign='];
+    if (heavyParams.some(p => queryString.includes(p))) {
+      return true;
+    }
+  }
+  
+  return false;
+}

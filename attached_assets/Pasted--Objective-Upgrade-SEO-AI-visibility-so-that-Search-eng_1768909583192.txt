@@ -1,0 +1,230 @@
+🎯 Objective
+
+Upgrade SEO + AI visibility so that:
+
+Search engines and AI crawlers receive fully populated HTML
+
+React SPA behavior remains unchanged
+
+No migration to Next.js or SSR frameworks
+
+Add llm.txt / ai.txt for AI crawler discovery
+
+Fix the current SEO injection flaw without breaking hydration
+
+🚫 Hard Constraints (Do Not Violate)
+
+Do NOT inject SEO HTML inside <div id="root">
+
+Do NOT change client routing (App.tsx)
+
+Do NOT modify booking, Bokun, or pricing logic
+
+Do NOT redesign UI
+
+Do NOT add heavy runtime dependencies
+
+Changes must be additive and reversible
+
+🧠 Architecture Context (Known)
+
+HTML shell served by Express
+
+React SPA hydrates into <div id="root"></div>
+
+SEO injection occurs server-side via server/seo/inject.ts
+
+SEO fragments, JSON-LD, sitemaps, feeds already exist
+
+Current flaw: crawlable content is injected inside #root, which React overwrites
+
+✅ Phase 1 — Fix SEO injection safely (CRITICAL)
+Replace body injection strategy
+
+Stop using the existing injectIntoBody() that injects inside #root.
+
+Implement a new function in server/seo/inject.ts:
+
+Inject crawlable HTML above <div id="root"></div>
+
+Keep #root empty for React hydration
+
+Add <noscript> fallback
+
+Hide SEO content for humans, show for bots
+
+Required behavior
+
+Bots see visible SEO text + links
+
+Humans do not see duplicate content
+
+React hydration remains unaffected
+
+Implementation requirements
+
+Use a dedicated container (e.g. <div id="seo-content">)
+
+Insert before the root div
+
+Detect bots via User-Agent (Googlebot, Bingbot, GPTBot, ClaudeBot, Perplexity, etc.)
+
+Do NOT inject inside #root
+
+✅ Phase 2 — Ensure complete <head> metadata per route
+
+For all indexable routes:
+
+/
+
+/packages
+
+/destinations/:slug
+
+/Holidays/:country/:slug
+
+/tour/:id
+
+Ensure injected <head> always includes:
+
+<title>
+
+<meta name="description">
+
+<link rel="canonical">
+
+OpenGraph tags
+
+Twitter tags
+
+JSON-LD scripts
+
+⚠️ Do NOT remove existing tags unless you are guaranteed to re-insert them.
+
+✅ Phase 3 — Structured data (JSON-LD)
+
+Using existing generators:
+
+Organization (sitewide)
+
+BreadcrumbList (all detail/list pages)
+
+Package / Tour entities (no fake ratings)
+
+FAQPage where applicable
+
+Inject JSON-LD into <head> only.
+
+✅ Phase 4 — Add AI crawler support (NEW)
+Implement:
+
+GET /llm.txt
+
+GET /ai.txt
+
+Rules:
+
+Serve as text/plain
+
+Fast, static output (no DB calls)
+
+Registered inside registerSeoRoutes(app)
+
+Content:
+
+Declare crawl permissions
+
+Point to:
+
+/sitemap.xml
+
+/feeds/packages.json
+
+/feeds/destinations.json
+
+/feeds/tours.json
+
+Allow summarization and indexing
+
+Require attribution
+
+Prefer PUBLIC_BASE_URL env var for absolute URLs.
+
+✅ Phase 5 — Indexation control
+
+Apply server-side rules:
+
+noindex,follow for:
+
+/ai-search
+
+query-param heavy URLs
+
+internal/debug routes
+
+Canonicalize clean URLs (strip utm_*, tracking params)
+
+✅ Phase 6 — Internal linking for crawl depth
+
+Ensure SEO fragments contain:
+
+H1
+
+150–400 words of descriptive text
+
+Real <a href> links to:
+
+related destinations
+
+related packages
+
+country/category pages
+
+Breadcrumb links
+
+No JS-only navigation in SEO fragments.
+
+🧪 Mandatory Tests (Must Pass)
+
+SPA loads normally in browser
+
+No hydration warnings
+
+Bokun tour pages still function
+
+curl -A "Googlebot" returns:
+
+visible SEO text
+
+metadata
+
+JSON-LD
+
+view-source: shows content outside #root
+
+/llm.txt, /ai.txt, /robots.txt, /sitemap.xml all return 200
+
+📦 Deliverables
+
+Code changes:
+
+new SEO body injection method
+
+safe head injection
+
+llm.txt + ai.txt routes
+
+noindex/canonical rules
+
+Short documentation:
+
+how SEO injection works
+
+how to add new route fragments
+
+how to test bot rendering
+
+🔑 Non-Negotiable Rule (MOST IMPORTANT)
+
+Never inject SEO content inside <div id="root">.
+React owns that node and will destroy your SEO output.

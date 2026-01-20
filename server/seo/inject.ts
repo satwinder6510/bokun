@@ -10,10 +10,25 @@ import { buildAllFragments, type FaqItem } from './fragments';
 
 const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';
 
+// Bot User-Agent patterns for SEO content injection
+const BOT_USER_AGENTS = [
+  'googlebot', 'bingbot', 'yandex', 'baiduspider', 'duckduckbot',
+  'slurp', 'facebookexternalhit', 'linkedinbot', 'twitterbot',
+  'applebot', 'semrushbot', 'ahrefsbot', 'mj12bot', 'dotbot',
+  'gptbot', 'claudebot', 'perplexitybot', 'chatgpt', 'anthropic',
+  'cohere-ai', 'you.com', 'bytespider', 'petalbot', 'ia_archiver'
+];
+
 interface InjectionResult {
   html: string;
   fromCache: boolean;
   error?: string;
+}
+
+export function isBot(userAgent: string | undefined): boolean {
+  if (!userAgent) return false;
+  const ua = userAgent.toLowerCase();
+  return BOT_USER_AGENTS.some(bot => ua.includes(bot));
 }
 
 async function getBaseTemplate(): Promise<string> {
@@ -46,8 +61,34 @@ function injectIntoHead(html: string, content: string): string {
   return result.replace('</head>', `${content}\n</head>`);
 }
 
+/**
+ * CRITICAL FIX: Inject SEO content BEFORE #root, not inside it.
+ * React owns #root and will overwrite any content inside it during hydration.
+ * This places crawlable content in a separate container that React won't touch.
+ */
+function injectSeoContentBeforeRoot(html: string, content: string): string {
+  // Create a dedicated SEO container BEFORE the React root
+  // This content is visible to crawlers but hidden from humans via CSS
+  const seoContainer = `
+<!-- SEO Content - Visible to crawlers, hidden from users -->
+<div id="seo-content" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+${content}
+</div>
+<noscript>
+<div id="noscript-content">
+${content}
+</div>
+</noscript>
+`;
+  
+  // Insert BEFORE <div id="root">, NOT inside it
+  return html.replace('<div id="root"></div>', `${seoContainer}\n    <div id="root"></div>`);
+}
+
+// Legacy function - kept for reference, DO NOT USE
 function injectIntoBody(html: string, content: string): string {
-  return html.replace('<div id="root"></div>', `<div id="root">${content}</div>`);
+  console.warn('[SEO] WARNING: injectIntoBody is deprecated. Use injectSeoContentBeforeRoot instead.');
+  return injectSeoContentBeforeRoot(html, content);
 }
 
 function parseDuration(durationStr: string | null | undefined): number | undefined {
@@ -118,16 +159,24 @@ export async function injectTourSeo(tourId: string, requestPath: string): Promis
     const tourDuration = tour.durationDays || parseDuration(tour.duration);
     const tourPrice = tour.priceFrom || tour.price;
     
-    const previewContent = `
-      <div style="display:none" aria-hidden="true">
-        <h1>${tourTitle}</h1>
-        <p>${tourDescription}</p>
-        ${tourDestination ? `<p>Destination: ${tourDestination}</p>` : ''}
-        ${tourDuration ? `<p>Duration: ${tourDuration} days</p>` : ''}
-        ${tourPrice ? `<p>From £${tourPrice}</p>` : ''}
-      </div>
-    `;
-    html = injectIntoBody(html, previewContent);
+    // Build SEO content with proper structure for crawlers
+    const seoContent = `
+<article itemscope itemtype="https://schema.org/TouristTrip">
+  <h1 itemprop="name">${tourTitle}</h1>
+  <p itemprop="description">${tourDescription}</p>
+  ${tourDestination ? `<p>Destination: <span itemprop="touristType">${tourDestination}</span></p>` : ''}
+  ${tourDuration ? `<p>Duration: ${tourDuration} days</p>` : ''}
+  ${tourPrice ? `<p>Price: From <span itemprop="offers" itemscope itemtype="https://schema.org/Offer"><span itemprop="priceCurrency">GBP</span> <span itemprop="price">${tourPrice}</span></span></p>` : ''}
+  <nav aria-label="Breadcrumb">
+    <ol>
+      <li><a href="${CANONICAL_HOST}/">Home</a></li>
+      <li><a href="${CANONICAL_HOST}/tours">Tours</a></li>
+      <li>${tourTitle}</li>
+    </ol>
+  </nav>
+</article>
+`;
+    html = injectSeoContentBeforeRoot(html, seoContent);
     
     setCache(cacheKey, html);
     return { html, fromCache: false };
@@ -181,16 +230,31 @@ export async function injectDestinationSeo(destinationSlug: string, requestPath:
     
     let html = injectIntoHead(template, metaTags + jsonLd + breadcrumbs);
     
-    const previewContent = `
-      <div style="display:none" aria-hidden="true">
-        <h1>${destinationName} Holidays</h1>
-        <p>Explore our ${destinationPackages.length} holiday packages to ${destinationName}.</p>
-        <ul>
-          ${destinationPackages.slice(0, 10).map((p: FlightPackage) => `<li>${p.title} - From £${p.price || 'TBC'}</li>`).join('')}
-        </ul>
-      </div>
-    `;
-    html = injectIntoBody(html, previewContent);
+    // Build SEO content with internal links for crawl depth
+    const packageLinks = destinationPackages.slice(0, 10).map((p: FlightPackage) => 
+      `<li><a href="${CANONICAL_HOST}/Holidays/${destinationSlug.toLowerCase()}/${p.slug}">${p.title}</a> - From £${p.price || 'TBC'}</li>`
+    ).join('\n      ');
+    
+    const seoContent = `
+<article itemscope itemtype="https://schema.org/TouristDestination">
+  <h1 itemprop="name">${destinationName} Holidays</h1>
+  <p itemprop="description">Explore our ${destinationPackages.length} holiday packages to ${destinationName}. Discover amazing tours, experiences, and adventures with Flights and Packages.</p>
+  <section aria-label="Available Packages">
+    <h2>Holiday Packages to ${destinationName}</h2>
+    <ul>
+      ${packageLinks}
+    </ul>
+  </section>
+  <nav aria-label="Breadcrumb">
+    <ol>
+      <li><a href="${CANONICAL_HOST}/">Home</a></li>
+      <li><a href="${CANONICAL_HOST}/destinations">Destinations</a></li>
+      <li>${destinationName}</li>
+    </ol>
+  </nav>
+</article>
+`;
+    html = injectSeoContentBeforeRoot(html, seoContent);
     
     setCache(cacheKey, html);
     return { html, fromCache: false };
@@ -276,17 +340,26 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
     // Build enhanced content fragments
     const fragments = buildAllFragments(pkg, faqs, relatedPackages);
     
-    const previewContent = `
-      <div style="display:none" aria-hidden="true">
-        <h1>${pkg.title}</h1>
-        <p>${pkg.excerpt || pkg.description?.substring(0, 300) || ''}</p>
-        ${pkg.category ? `<p>Destination: ${pkg.category}</p>` : ''}
-        ${pkg.duration ? `<p>Duration: ${pkg.duration}</p>` : ''}
-        ${pkg.price ? `<p>From £${pkg.price}</p>` : ''}
-        ${fragments}
-      </div>
-    `;
-    html = injectIntoBody(html, previewContent);
+    // Build SEO content with proper structure - BEFORE #root, not inside it
+    const seoContent = `
+<article itemscope itemtype="https://schema.org/TouristTrip">
+  <h1 itemprop="name">${pkg.title}</h1>
+  <p itemprop="description">${pkg.excerpt || pkg.description?.substring(0, 300) || ''}</p>
+  ${pkg.category ? `<p>Destination: <span itemprop="touristType">${pkg.category}</span></p>` : ''}
+  ${pkg.duration ? `<p>Duration: ${pkg.duration}</p>` : ''}
+  ${pkg.price ? `<p>Price: From <span itemprop="offers" itemscope itemtype="https://schema.org/Offer"><span itemprop="priceCurrency">GBP</span> <span itemprop="price">${pkg.price}</span></span></p>` : ''}
+  ${fragments}
+  <nav aria-label="Breadcrumb">
+    <ol>
+      <li><a href="${CANONICAL_HOST}/">Home</a></li>
+      <li><a href="${CANONICAL_HOST}/packages">Packages</a></li>
+      ${pkg.category ? `<li><a href="${CANONICAL_HOST}/Holidays/${pkg.category.toLowerCase()}">${pkg.category} Holidays</a></li>` : ''}
+      <li>${pkg.title}</li>
+    </ol>
+  </nav>
+</article>
+`;
+    html = injectSeoContentBeforeRoot(html, seoContent);
     
     setCache(cacheKey, html);
     return { html, fromCache: false };

@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { injectTourSeo, injectDestinationSeo, injectPackageSeo } from './inject';
+import { injectTourSeo, injectDestinationSeo, injectPackageSeo, isBot } from './inject';
+import { shouldNoIndex, generateNoIndexMeta } from './meta';
 import {
   generateSitemapIndex,
   generatePagesSitemap,
@@ -49,6 +50,40 @@ export function registerSeoRoutes(app: Express): void {
   console.log(`[SEO] CANONICAL_HOST: ${CANONICAL_HOST}`);
   
   if (SEO_ENABLED) {
+    // Handle noindex routes - /ai-search
+    app.get('/ai-search', async (req: Request, res: Response, next) => {
+      try {
+        // Check if this should be noindexed
+        if (shouldNoIndex(req.path, req.url)) {
+          const templatePath = process.env.NODE_ENV === 'production'
+            ? path.resolve(process.cwd(), 'dist', 'public', 'index.html')
+            : path.resolve(process.cwd(), 'client', 'index.html');
+          
+          let html = await fs.promises.readFile(templatePath, 'utf-8');
+          
+          // Inject noindex meta tags
+          const noindexMeta = generateNoIndexMeta(
+            'AI-Powered Holiday Search | Flights and Packages',
+            'Find your perfect holiday with our AI-powered search.',
+            req.path
+          );
+          
+          // Remove existing meta and add noindex
+          html = html.replace(/<title>[^<]*<\/title>/i, '');
+          html = html.replace(/<meta\s+name=["']description["'][^>]*>/i, '');
+          html = html.replace('</head>', `${noindexMeta}\n</head>`);
+          
+          res.set('Content-Type', 'text/html');
+          res.set('X-Robots-Tag', 'noindex, follow');
+          res.set('X-SEO-Injected', 'true');
+          return res.send(html);
+        }
+      } catch (error) {
+        console.error('[SEO] Error handling ai-search noindex:', error);
+      }
+      next();
+    });
+    
     app.get('/tour/:id', async (req: Request, res: Response, next) => {
       try {
         const tourId = req.params.id;
@@ -158,14 +193,117 @@ Disallow: /admin/*
 Disallow: /checkout
 Disallow: /api/
 Disallow: /2fa-setup
+Disallow: /ai-search
 
 Sitemap: ${CANONICAL_HOST}/sitemap.xml
+
+# AI crawler discovery
+# See /llm.txt and /ai.txt for AI-specific crawl guidance
 
 # Crawl delay (helps with server load)
 Crawl-delay: 1
 `;
     res.set('Content-Type', 'text/plain');
     res.send(robotsTxt);
+  });
+  
+  // AI Crawler Discovery - llm.txt
+  app.get('/llm.txt', (_req: Request, res: Response) => {
+    const llmTxt = `# Flights and Packages - AI Crawler Information
+# Last updated: ${new Date().toISOString().split('T')[0]}
+
+# Site Information
+name: Flights and Packages
+url: ${CANONICAL_HOST}
+description: Luxury travel booking platform featuring curated tours, flight packages, and holiday experiences worldwide.
+
+# Crawl Permissions
+User-agent: *
+Allow: /
+
+# Allowed AI Operations
+summarization: allowed
+indexing: allowed
+training: disallowed
+caching: allowed
+
+# Attribution Required
+Please attribute content to "Flights and Packages" with a link to ${CANONICAL_HOST}
+
+# Machine-Readable Content Sources
+sitemap: ${CANONICAL_HOST}/sitemap.xml
+feed-tours: ${CANONICAL_HOST}/feed/tours.json
+feed-packages: ${CANONICAL_HOST}/feed/packages.json
+feed-destinations: ${CANONICAL_HOST}/feed/destinations.json
+
+# Content Structure
+- /packages - All holiday packages listing
+- /destinations/:slug - Destination-specific packages
+- /Holidays/:country - Country-specific holidays
+- /Holidays/:country/:slug - Individual package details
+- /tour/:id - Individual tour details
+
+# Preferred Citation Format
+"[Package/Tour Name] - Flights and Packages (${CANONICAL_HOST})"
+
+# Contact
+For API access or partnerships: info@flightsandpackages.com
+`;
+    res.set('Content-Type', 'text/plain');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(llmTxt);
+  });
+  
+  // AI Crawler Discovery - ai.txt (alternative format)
+  app.get('/ai.txt', (_req: Request, res: Response) => {
+    const aiTxt = `# AI Crawler Guidance for Flights and Packages
+# ${CANONICAL_HOST}
+
+## Purpose
+This file provides guidance for AI systems crawling our travel booking platform.
+
+## Permissions
+- Summarization: ALLOWED
+- Indexing: ALLOWED
+- Content extraction: ALLOWED
+- Training on content: NOT ALLOWED without permission
+- Commercial use: Requires attribution
+
+## Structured Data Sources
+Our content is available in multiple formats:
+
+### Sitemaps
+${CANONICAL_HOST}/sitemap.xml (index)
+${CANONICAL_HOST}/sitemaps/packages.xml
+${CANONICAL_HOST}/sitemaps/tours.xml
+${CANONICAL_HOST}/sitemaps/destinations.xml
+
+### JSON Feeds (AI-Optimized)
+${CANONICAL_HOST}/feed/tours.json
+${CANONICAL_HOST}/feed/packages.json
+${CANONICAL_HOST}/feed/destinations.json
+
+## Content Types
+- Holiday packages with flights included
+- Multi-day guided tours
+- Destination guides
+- Travel itineraries
+
+## Attribution
+When citing our content, please include:
+- Source: Flights and Packages
+- URL: ${CANONICAL_HOST}
+- Access date
+
+## Rate Limiting
+Please respect a crawl delay of 1 second between requests.
+
+## Contact
+For AI/LLM partnerships: info@flightsandpackages.com
+`;
+    res.set('Content-Type', 'text/plain');
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.send(aiTxt);
   });
   
   if (SITEMAP_ENABLED) {

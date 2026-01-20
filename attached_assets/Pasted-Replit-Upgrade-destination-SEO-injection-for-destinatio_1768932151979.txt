@@ -1,0 +1,172 @@
+Replit: Upgrade destination SEO injection for /destinations/:slug to generate “guide-grade” destination content from our own packages (no external facts), without changing the React UI.
+
+Context
+
+/destinations/:slug renders a destination listing page (React). The server already injects basic TouristDestination JSON-LD and a list of package links in #seo-content + <noscript>.
+
+Destination membership rule:
+
+destination slug = category.toLowerCase() (with spaces → hyphens if any)
+
+packages for /destinations/:slug are those where package.category normalizes to that slug.
+
+Goal
+
+Keep the package list, but add a unique, inventory-driven destination guide section + FAQs, and enrich JSON-LD. This must be non-duplicative by deriving content only from our own package fields.
+
+1) Build a destination aggregate from packages
+
+For the destination’s published packages, compute:
+
+packageCount
+
+priceMin, priceMedian, priceMax (GBP only for now; ignore other currencies)
+
+topTags (frequency from tags[], pick top 8)
+
+durationBuckets from duration nights parsed from strings like “8 Days / 7 Nights”:
+
+1–4, 5–7, 8–10, 11–14, 15+
+
+topInclusions (frequency from whatsIncluded[], normalize: trim, collapse spaces, case-insensitive; pick top 10)
+
+topHotels (frequency from accommodations[0].name, pick top 5)
+
+featuredPackages (top 10 by updatedAt desc or displayOrder if used)
+
+Add helpers:
+
+normalizeSlug(str)
+
+parseNights(durationStr)
+
+median(numbers)
+
+2) Inject “destination guide” content into SEO body
+
+In #seo-content (and optional shorter <noscript>), insert BEFORE the package list:
+
+Sections to inject (semantic HTML)
+
+Overview paragraph (inventory-based)
+Must avoid generic guidebook facts. Use patterns like:
+
+“Explore {packageCount} {Destination} holiday packages, with trips commonly lasting {topDurationBuckets}. Popular styles in our {Destination} collection include {topTags}. Prices start from £{priceMin} (GBP).”
+
+Popular styles
+
+bullet list of top tags
+
+Typical trip lengths
+
+bullet list of duration buckets that have counts (e.g., “5–7 nights: 34 packages”)
+
+What’s commonly included
+
+top inclusions list
+
+wording must be frequency-aware:
+
+if inclusion appears in >=60% of packages → “Many packages include…”
+
+if 20–59% → “Some packages include…”
+
+if <20% → omit from the “common” list
+
+Where you’ll stay (optional)
+
+topHotels list (if present)
+
+FAQs
+Generate 10–12 FAQs as <details> blocks.
+Rules:
+
+Only use inventory + site policy text; no external destination facts.
+
+Include questions on:
+
+number of packages
+
+typical duration
+
+starting price
+
+what’s included (based on topInclusions)
+
+flights/transfers inclusion (only if frequency supports it)
+
+travel insurance (from policy)
+
+local taxes (from policy)
+
+booking/confirmation (use your email holidayenq@flightsandpackages.com
+)
+
+customisation (generic: “Contact us to tailor”)
+
+Keep the existing “Holiday Packages to {Destination}” <ul> list and breadcrumb.
+
+3) Update meta title/description for destination pages
+
+Keep existing title/description if already set manually; otherwise fallback:
+
+Title fallback: "{Destination} Holidays & Packages | Flights and Packages"
+
+Description fallback: inventory-based summary including packageCount + priceMin + 1–2 top tags + top duration bucket.
+
+4) Enrich JSON-LD for destination pages (head)
+
+Currently you output TouristDestination + BreadcrumbList.
+
+Add:
+
+FAQPage JSON-LD matching the FAQs.
+
+ItemList JSON-LD for featuredPackages (name, url, Offer price GBP if available).
+
+Improve TouristDestination description to the inventory-based summary.
+
+Constraints:
+
+Ensure each JSON-LD type appears only once per page (TouristDestination, BreadcrumbList, FAQPage, ItemList).
+
+Use absolute URLs.
+
+Keep canonical correct.
+
+5) Acceptance tests (run via curl)
+
+Exactly one DOCTYPE
+
+TouristDestination JSON-LD count = 1
+
+BreadcrumbList JSON-LD count = 1
+
+FAQPage JSON-LD count = 1
+
+#seo-content contains:
+
+a guide overview paragraph
+
+duration bucket section
+
+inclusions section
+
+at least 10 FAQs
+
+Notes / Do not do
+
+Do NOT add external facts about the country (weather, history, geography).
+
+Do NOT scrape or pull from Wikipedia or competitors.
+
+Do NOT change React UI components.
+
+Only change server-side SEO injection and related SEO helpers.
+
+Optional (nice-to-have)
+
+Shorten <noscript> by including only:
+
+overview + featured package links + breadcrumb
+(avoid duplicating the full long guide content in noscript)

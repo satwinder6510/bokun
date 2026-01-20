@@ -98,6 +98,10 @@ export function registerSeoRoutes(app: Express): void {
       next();
     });
     
+    // SEO Routes for dynamic content (Tours, Packages, Destinations, Blog)
+    // These routes use NEXT() if SEO is not needed or fails, allowing the static server/Vite to pick it up.
+    // However, if the result is successful, they return and end the request.
+
     app.get('/tour/:id', async (req: Request, res: Response, next) => {
       try {
         const tourId = req.params.id;
@@ -552,6 +556,27 @@ export async function handleSeoRequest(
           res.send(result.html);
           return;
         }
+      }
+    }
+    
+    else if (path === '/' || ['/packages', '/tours', '/destinations', '/holidays', '/blog', '/contact', '/faq', '/special-offers', '/terms'].includes(path)) {
+      const result = await injectStaticPageSeo(path);
+      if (!result.error) {
+        res.set('Content-Type', 'text/html');
+        res.set('X-SEO-Injected', 'true');
+        res.send(result.html);
+        return;
+      }
+    }
+    
+    else if (path.startsWith('/blog/') && !path.includes('/api/')) {
+      const slug = path.replace('/blog/', '');
+      const result = await injectBlogPostSeo(slug, path);
+      if (!result.error) {
+        res.set('Content-Type', 'text/html');
+        res.set('X-SEO-Injected', 'true');
+        res.send(result.html);
+        return;
       }
     }
   } catch (error) {

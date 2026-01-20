@@ -61,11 +61,12 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Register SEO routes first (robots.txt, sitemaps, feeds)
-  registerSeoRoutes(app);
-  
+  // IMPORTANT: Register routes that return HTML first to avoid duplication
   const server = await registerRoutes(app);
 
+  // Register SEO routes after main routes but before static/Vite
+  registerSeoRoutes(app);
+  
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

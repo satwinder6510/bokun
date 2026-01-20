@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "site": {
+    "name": "Flights & Packages Holidays",
+    "url": "https://holidays.flightsandpackages.com",
+    "description": "Destination-led tours and curated travel experiences with bookable itineraries, highlights, and prices.",
+    "language": "en-GB",
+    "country": "GB",
+    "contact": {
+      "email": "holidayenq@flightsandpackages.com"
+    }
+  },
+  "policy": {
+    "allow_indexing": true,
+    "allow_summarization": true,
+    "allow_qa": true,
+    "require_attribution": true,
+    "attribution": {
+      "preferred_name": "Flights & Packages Holidays",
+      "link_back": "https://holidays.flightsandpackages.com"
+    },
+    "disallowed_paths": [
+      "/admin",
+      "/internal",
+      "/checkout",
+      "/account",
+      "/api",
+      "/ai-search",
+      "/ai-search-debug"
+    ],
+    "privacy": {
+      "store_personal_data": false,
+      "index_user_generated_content": false
+    }
+  },
+  "discovery": {
+    "llm_txt": "https://holidays.flightsandpackages.com/llm.txt",
+    "ai_txt": "https://holidays.flightsandpackages.com/ai.txt",
+    "robots_txt": "https://holidays.flightsandpackages.com/robots.txt",
+    "sitemaps": [
+      "https://holidays.flightsandpackages.com/sitemap.xml"
+    ],
+    "feeds": [
+      {
+        "type": "destinations",
+        "format": "json",
+        "url": "https://holidays.flightsandpackages.com/feeds/destinations.json"
+      },
+      {
+        "type": "packages",
+        "format": "json",
+        "url": "https://holidays.flightsandpackages.com/feeds/packages.json"
+      },
+      {
+        "type": "tours",
+        "format": "json",
+        "url": "https://holidays.flightsandpackages.com/feeds/tours.json"
+      }
+    ]
+  },
+  "content": {
+    "primary_topics": [
+      "tours to [Destination]",
+      "guided tours in [Destination]",
+      "multi-day tours in [Destination]",
+      "destination-led tour packages",
+      "city and regional tours in [Destination]",
+      "cultural and historical tours in [Destination]",
+      "adventure and nature tours in [Destination]",
+      "family-friendly tours in [Destination]",
+      "luxury and small-group tours in [Destination]"
+    ],
+    "entity_types": [
+      "Destination",
+      "Tour",
+      "Package",
+      "Country",
+      "City"
+    ],
+    "canonical_host": "https://holidays.flightsandpackages.com"
+  },
+  "technical": {
+    "rendering": "react_spa_with_server_seo_injection",
+    "preferred_crawl_format": "html_with_metadata_and_jsonld",
+    "structured_data": [
+      "Organization",
+      "BreadcrumbList",
+      "ItemList",
+      "TouristTrip",
+      "Offer",
+      "FAQPage"
+    ]
+  },
+  "version": {
+    "generated_at": "2026-01-20",
+    "notes": "Destinations are intentionally not enumerated here. AI systems should discover destination entities via sitemaps, feeds, and injected HTML content."
+  }
+}

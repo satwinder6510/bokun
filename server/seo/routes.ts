@@ -49,6 +49,20 @@ export function registerSeoRoutes(app: Express): void {
   console.log(`[SEO] FEEDS_ENABLED: ${FEEDS_ENABLED}`);
   console.log(`[SEO] CANONICAL_HOST: ${CANONICAL_HOST}`);
   
+  // LLM Manifest - always available
+  app.get('/llm-manifest.json', async (_req: Request, res: Response) => {
+    try {
+      const manifestPath = path.resolve(process.cwd(), 'server', 'seo', 'llm-manifest.json');
+      const manifest = await fs.promises.readFile(manifestPath, 'utf-8');
+      res.set('Content-Type', 'application/json; charset=utf-8');
+      res.set('Cache-Control', 'public, max-age=3600');
+      res.send(manifest);
+    } catch (error) {
+      console.error('[SEO] Error serving llm-manifest.json:', error);
+      res.status(500).json({ error: 'Failed to load manifest' });
+    }
+  });
+  
   if (SEO_ENABLED) {
     // Handle noindex routes - /ai-search
     app.get('/ai-search', async (req: Request, res: Response, next) => {

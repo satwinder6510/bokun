@@ -203,7 +203,7 @@ export function registerSeoRoutes(app: Express): void {
     });
     
     // Static pages SEO
-    const staticPages = ['/', '/packages', '/tours', '/destinations', '/holidays', '/blog', '/contact', '/faq', '/special-offers', '/terms'];
+    const staticPages = ['/', '/packages', '/tours', '/destinations', '/collections', '/blog', '/contact', '/faq', '/special-offers', '/terms'];
     
     staticPages.forEach(pagePath => {
       app.get(pagePath, async (req: Request, res: Response, next) => {
@@ -559,7 +559,7 @@ export async function handleSeoRequest(
       }
     }
     
-    else if (path === '/' || ['/packages', '/tours', '/destinations', '/holidays', '/blog', '/contact', '/faq', '/special-offers', '/terms'].includes(path)) {
+    else if (path === '/' || ['/packages', '/tours', '/destinations', '/collections', '/blog', '/contact', '/faq', '/special-offers', '/terms'].includes(path)) {
       const result = await injectStaticPageSeo(path);
       if (!result.error) {
         res.set('Content-Type', 'text/html');

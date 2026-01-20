@@ -117,7 +117,7 @@ export function Header() {
             <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-tours">
               Land Tours
             </Link>
-            <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-collections">
+            <Link href="/collections" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-collections">
               Collections
             </Link>
             <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-destinations">
@@ -144,7 +144,7 @@ export function Header() {
                 <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-tours">
                   Land Tours
                 </Link>
-                <Link href="/holidays" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-collections">
+                <Link href="/collections" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-collections">
                   Collections
                 </Link>
                 <Link href="/destinations" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-destinations">

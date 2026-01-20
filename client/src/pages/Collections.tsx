@@ -54,7 +54,7 @@ export default function Collections() {
               {data.collections.map((collection) => (
                 <Link 
                   key={collection.slug}
-                  href={`/holidays/${collection.slug}`}
+                  href={`/collections/${collection.slug}`}
                 >
                   <div 
                     className="relative overflow-hidden rounded-lg h-64 cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl group"

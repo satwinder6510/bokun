@@ -95,8 +95,8 @@ function Router() {
       <Route path="/faq" component={FAQ} />
       <Route path="/blog" component={Blog} />
       <Route path="/blog/:slug" component={BlogPost} />
-      <Route path="/holidays" component={Collections} />
-      <Route path="/holidays/:tag" component={CollectionDetail} />
+      <Route path="/collections" component={Collections} />
+      <Route path="/collections/:tag" component={CollectionDetail} />
       <Route path="/destinations" component={Destinations} />
       <Route path="/destinations/:country" component={DestinationDetail} />
       <Route path="/Holidays" component={Destinations} />

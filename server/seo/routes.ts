@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { injectTourSeo, injectDestinationSeo, injectPackageSeo, isBot } from './inject';
+import { injectTourSeo, injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, isBot } from './inject';
 import { shouldNoIndex, generateNoIndexMeta } from './meta';
 import {
   generateSitemapIndex,
@@ -194,6 +194,41 @@ export function registerSeoRoutes(app: Express): void {
         }
       } catch (error) {
         console.error('[SEO] Error handling Holidays package SEO:', error);
+      }
+      next();
+    });
+    
+    // Static pages SEO
+    const staticPages = ['/', '/packages', '/tours', '/destinations', '/holidays', '/blog', '/contact', '/faq', '/special-offers', '/terms'];
+    
+    staticPages.forEach(pagePath => {
+      app.get(pagePath, async (req: Request, res: Response, next) => {
+        try {
+          const result = await injectStaticPageSeo(pagePath);
+          if (!result.error) {
+            res.set('Content-Type', 'text/html');
+            res.set('X-SEO-Injected', 'true');
+            return res.send(result.html);
+          }
+        } catch (error) {
+          console.error(`[SEO] Error handling static page SEO for ${pagePath}:`, error);
+        }
+        next();
+      });
+    });
+    
+    // Blog post SEO
+    app.get('/blog/:slug', async (req: Request, res: Response, next) => {
+      try {
+        const slug = req.params.slug;
+        const result = await injectBlogPostSeo(slug, req.path);
+        if (!result.error) {
+          res.set('Content-Type', 'text/html');
+          res.set('X-SEO-Injected', 'true');
+          return res.send(result.html);
+        }
+      } catch (error) {
+        console.error('[SEO] Error handling blog post SEO:', error);
       }
       next();
     });

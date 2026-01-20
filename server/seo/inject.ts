@@ -7,6 +7,7 @@ import { getCanonicalUrl } from './canonical';
 import { storage } from '../storage';
 import type { FlightPackage } from '@shared/schema';
 import { buildAllFragments, type FaqItem } from './fragments';
+import { getBokunProductDetails } from '../bokun';
 
 const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';
 
@@ -109,8 +110,22 @@ export async function injectTourSeo(tourId: string, requestPath: string): Promis
     
     let tour: any = null;
     
+    // Try GBP cache first, then USD (products are often cached in USD first)
     tour = await storage.getCachedProduct(tourId, 'GBP');
+    if (!tour) {
+      tour = await storage.getCachedProduct(tourId, 'USD');
+    }
     
+    // Fall back to fetching directly from Bokun API
+    if (!tour) {
+      try {
+        tour = await getBokunProductDetails(tourId, 'GBP');
+      } catch (e) {
+        console.log(`[SEO Inject] Could not fetch tour ${tourId} from Bokun:`, e);
+      }
+    }
+    
+    // Fall back to flight packages if not a Bokun tour
     if (!tour) {
       const packages = await storage.getAllFlightPackages();
       tour = packages.find((p: FlightPackage) => p.slug === tourId || p.id.toString() === tourId);
@@ -120,13 +135,18 @@ export async function injectTourSeo(tourId: string, requestPath: string): Promis
       return { html: template, fromCache: false, error: 'Tour not found' };
     }
     
+    // Handle keyPhoto which can be a string URL or an object with originalUrl
+    const keyPhotoUrl = typeof tour.keyPhoto === 'object' && tour.keyPhoto?.originalUrl 
+      ? tour.keyPhoto.originalUrl 
+      : (typeof tour.keyPhoto === 'string' ? tour.keyPhoto : tour.featuredImage);
+    
     const metaTags = generateTourMeta({
       title: tour.title || tour.name,
       excerpt: tour.excerpt,
       description: tour.description,
-      keyPhoto: tour.keyPhoto || tour.featuredImage,
-      destination: tour.destination || tour.category,
-      duration: tour.durationDays || parseDuration(tour.duration)
+      keyPhoto: keyPhotoUrl,
+      destination: tour.destination || tour.category || tour.googlePlace?.country,
+      duration: tour.durationDays || parseDuration(tour.durationText || tour.duration)
     }, requestPath);
     
     const jsonLd = generateTourJsonLd({
@@ -134,11 +154,11 @@ export async function injectTourSeo(tourId: string, requestPath: string): Promis
       title: tour.title || tour.name,
       description: tour.description,
       excerpt: tour.excerpt,
-      destination: tour.destination || tour.category,
-      duration: tour.durationDays || parseDuration(tour.duration),
+      destination: tour.destination || tour.category || tour.googlePlace?.country,
+      duration: tour.durationDays || parseDuration(tour.durationText || tour.duration),
       priceFrom: tour.priceFrom || tour.price,
       currency: 'GBP',
-      keyPhoto: tour.keyPhoto || tour.featuredImage,
+      keyPhoto: keyPhotoUrl,
       highlights: tour.highlights,
       itinerary: tour.itinerary
     }, requestPath);
@@ -365,6 +385,226 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
     return { html, fromCache: false };
   } catch (error: any) {
     console.error('[SEO Inject] Error injecting package SEO:', error);
+    const template = await getBaseTemplate();
+    return { html: template, fromCache: false, error: error.message };
+  }
+}
+
+// Static page SEO configurations
+const STATIC_PAGE_SEO: Record<string, { title: string; description: string; h1: string }> = {
+  '/': {
+    title: 'Flights and Packages - Book 700+ Tours Worldwide',
+    description: 'Discover and book 700+ unique tours worldwide with Flights and Packages. Explore destinations, compare prices, and find your perfect adventure.',
+    h1: 'Flights and Packages - Your Gateway to World Tours'
+  },
+  '/packages': {
+    title: 'Holiday Packages | Flights and Packages',
+    description: 'Browse our collection of flight-inclusive holiday packages to destinations worldwide. Find your perfect getaway with Flights and Packages.',
+    h1: 'Holiday Packages Worldwide'
+  },
+  '/tours': {
+    title: 'Tours | Flights and Packages',
+    description: 'Explore 700+ unique tours worldwide. From cultural experiences to adventure tours, find your perfect trip with Flights and Packages.',
+    h1: 'Tours Worldwide'
+  },
+  '/destinations': {
+    title: 'Destinations | Flights and Packages',
+    description: 'Discover holiday destinations worldwide. Browse packages by destination and find your perfect getaway.',
+    h1: 'Explore Our Destinations'
+  },
+  '/holidays': {
+    title: 'Holidays | Flights and Packages',
+    description: 'Browse our holiday packages by destination. Find flight-inclusive holidays to destinations worldwide.',
+    h1: 'Holiday Destinations'
+  },
+  '/blog': {
+    title: 'Travel Blog | Flights and Packages',
+    description: 'Read our travel blog for destination guides, travel tips, and holiday inspiration from Flights and Packages.',
+    h1: 'Travel Blog'
+  },
+  '/contact': {
+    title: 'Contact Us | Flights and Packages',
+    description: 'Get in touch with Flights and Packages. We\'re here to help you plan your perfect holiday.',
+    h1: 'Contact Us'
+  },
+  '/faq': {
+    title: 'FAQ | Flights and Packages',
+    description: 'Frequently asked questions about booking tours and holidays with Flights and Packages.',
+    h1: 'Frequently Asked Questions'
+  },
+  '/special-offers': {
+    title: 'Special Offers | Flights and Packages',
+    description: 'Browse our special offers and deals on holiday packages and tours worldwide.',
+    h1: 'Special Offers'
+  },
+  '/terms': {
+    title: 'Terms and Conditions | Flights and Packages',
+    description: 'Terms and conditions for booking with Flights and Packages.',
+    h1: 'Terms and Conditions'
+  }
+};
+
+export async function injectStaticPageSeo(path: string): Promise<InjectionResult> {
+  const cacheKey = `static:${path}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return { html: cached, fromCache: true };
+  }
+  
+  try {
+    const template = await getBaseTemplate();
+    const pageConfig = STATIC_PAGE_SEO[path];
+    
+    if (!pageConfig) {
+      return { html: template, fromCache: false, error: 'Unknown static page' };
+    }
+    
+    const metaTags = `
+    <title>${pageConfig.title}</title>
+    <meta name="description" content="${pageConfig.description}" />
+    <link rel="canonical" href="${CANONICAL_HOST}${path === '/' ? '' : path}" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="${pageConfig.title}" />
+    <meta property="og:description" content="${pageConfig.description}" />
+    <meta property="og:url" content="${CANONICAL_HOST}${path === '/' ? '' : path}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Flights and Packages" />
+    <meta property="og:image" content="${CANONICAL_HOST}/og-image.jpg" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${pageConfig.title}" />
+    <meta name="twitter:description" content="${pageConfig.description}" />
+    <meta name="twitter:image" content="${CANONICAL_HOST}/og-image.jpg" />`;
+    
+    const orgJsonLd = generateOrganizationJsonLd();
+    
+    let html = injectIntoHead(template, metaTags + orgJsonLd);
+    
+    // Build SEO content for crawlers
+    const seoContent = `
+<article>
+  <h1>${pageConfig.h1}</h1>
+  <p>${pageConfig.description}</p>
+  <nav aria-label="Main Navigation">
+    <ul>
+      <li><a href="${CANONICAL_HOST}/">Home</a></li>
+      <li><a href="${CANONICAL_HOST}/packages">Packages</a></li>
+      <li><a href="${CANONICAL_HOST}/tours">Tours</a></li>
+      <li><a href="${CANONICAL_HOST}/destinations">Destinations</a></li>
+      <li><a href="${CANONICAL_HOST}/blog">Blog</a></li>
+      <li><a href="${CANONICAL_HOST}/contact">Contact</a></li>
+    </ul>
+  </nav>
+</article>
+`;
+    html = injectSeoContentBeforeRoot(html, seoContent);
+    
+    setCache(cacheKey, html);
+    return { html, fromCache: false };
+  } catch (error: any) {
+    console.error('[SEO Inject] Error injecting static page SEO:', error);
+    const template = await getBaseTemplate();
+    return { html: template, fromCache: false, error: error.message };
+  }
+}
+
+export async function injectBlogPostSeo(slug: string, requestPath: string): Promise<InjectionResult> {
+  const cacheKey = `blog:${slug}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return { html: cached, fromCache: true };
+  }
+  
+  try {
+    const template = await getBaseTemplate();
+    const blogPost = await storage.getBlogPostBySlug(slug);
+    
+    if (!blogPost || !blogPost.isPublished) {
+      return { html: template, fromCache: false, error: 'Blog post not found' };
+    }
+    
+    const description = blogPost.excerpt || blogPost.content?.substring(0, 160) || '';
+    const imageUrl = blogPost.featuredImage || `${CANONICAL_HOST}/og-image.jpg`;
+    const publishedDate = blogPost.publishedAt ? new Date(blogPost.publishedAt).toISOString() : undefined;
+    const modifiedDate = blogPost.updatedAt ? new Date(blogPost.updatedAt).toISOString() : undefined;
+    
+    const metaTags = `
+    <title>${blogPost.title} | Flights and Packages Blog</title>
+    <meta name="description" content="${description}" />
+    <link rel="canonical" href="${CANONICAL_HOST}/blog/${slug}" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="${blogPost.title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:url" content="${CANONICAL_HOST}/blog/${slug}" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="Flights and Packages" />
+    <meta property="og:image" content="${imageUrl}" />
+    ${publishedDate ? `<meta property="article:published_time" content="${publishedDate}" />` : ''}
+    ${modifiedDate ? `<meta property="article:modified_time" content="${modifiedDate}" />` : ''}
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${blogPost.title}" />
+    <meta name="twitter:description" content="${description}" />
+    <meta name="twitter:image" content="${imageUrl}" />`;
+    
+    // Article JSON-LD
+    const articleJsonLd = `<script type="application/ld+json">${JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: blogPost.title,
+      description: description,
+      image: imageUrl,
+      url: `${CANONICAL_HOST}/blog/${slug}`,
+      datePublished: publishedDate,
+      dateModified: modifiedDate || publishedDate,
+      author: {
+        "@type": "Organization",
+        name: "Flights and Packages"
+      },
+      publisher: {
+        "@type": "Organization",
+        name: "Flights and Packages",
+        url: CANONICAL_HOST
+      }
+    })}</script>`;
+    
+    // Breadcrumb JSON-LD
+    const breadcrumbs = generateBreadcrumbJsonLd([
+      { name: 'Home', url: CANONICAL_HOST },
+      { name: 'Blog', url: `${CANONICAL_HOST}/blog` },
+      { name: blogPost.title, url: `${CANONICAL_HOST}/blog/${slug}` }
+    ]);
+    
+    const orgJsonLd = generateOrganizationJsonLd();
+    
+    let html = injectIntoHead(template, metaTags + articleJsonLd + breadcrumbs + orgJsonLd);
+    
+    // Build SEO content for crawlers
+    const seoContent = `
+<article itemscope itemtype="https://schema.org/Article">
+  <h1 itemprop="headline">${blogPost.title}</h1>
+  <p itemprop="description">${description}</p>
+  ${blogPost.destination ? `<p>Destination: ${blogPost.destination}</p>` : ''}
+  ${publishedDate ? `<time itemprop="datePublished" datetime="${publishedDate}">Published: ${new Date(publishedDate).toLocaleDateString()}</time>` : ''}
+  <nav aria-label="Breadcrumb">
+    <ol>
+      <li><a href="${CANONICAL_HOST}/">Home</a></li>
+      <li><a href="${CANONICAL_HOST}/blog">Blog</a></li>
+      <li>${blogPost.title}</li>
+    </ol>
+  </nav>
+</article>
+`;
+    html = injectSeoContentBeforeRoot(html, seoContent);
+    
+    setCache(cacheKey, html);
+    return { html, fromCache: false };
+  } catch (error: any) {
+    console.error('[SEO Inject] Error injecting blog post SEO:', error);
     const template = await getBaseTemplate();
     return { html: template, fromCache: false, error: error.message };
   }

@@ -1,5 +1,5 @@
-const BASE_URL = 'https://tours.flightsandpackages.com';
-const DEFAULT_OG_IMAGE = 'https://tours.flightsandpackages.com/og-image.jpg';
+const BASE_URL = 'https://holidays.flightsandpackages.com';
+const DEFAULT_OG_IMAGE = 'https://holidays.flightsandpackages.com/og-image.jpg';
 
 export function setMetaTags(
   title: string, 

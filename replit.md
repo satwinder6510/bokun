@@ -55,6 +55,22 @@ For priority destinations like India, the platform includes enhanced UK-focused 
 - Internal hub links from package pages back to destination pages
 - Configurable via `UK_INTENT_DESTINATIONS` map in `server/seo/ukIntentDestination.ts`
 
+**Collection Pages with Guide-Grade SEO:**
+The system includes a configurable collection SEO system in `server/seo/collectionSeo.ts` for themed holiday categories:
+- `/collections/river-cruises` - River Cruise Packages
+- `/collections/twin-centre` - Twin-Centre Holidays
+- `/collections/golden-triangle` - Golden Triangle Tours (India)
+- `/collections/multi-centre` - Multi-Centre Holidays
+- `/collections/solo-travel` - Solo Travel Packages
+
+Each collection page features:
+- Inventory-driven content (package counts, price ranges, top destinations)
+- 10-14 FAQs with contact email (holidayenq@flightsandpackages.com)
+- Complete JSON-LD schemas (BreadcrumbList, CollectionPage, ItemList, FAQPage)
+- UK-market-focused meta titles ("from the UK")
+- Package matching via tag/title/description keywords
+- Configurable via `COLLECTION_CONFIGS` in `server/seo/collectionSeo.ts`
+
 ### URL Structure (Migration-Compatible)
 
 The URL structure is designed for compatibility with existing sites, supporting both legacy and new SEO-friendly routes for packages, destinations, collections, tours, blog posts, and static pages.

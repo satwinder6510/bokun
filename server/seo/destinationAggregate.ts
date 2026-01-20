@@ -445,9 +445,10 @@ export function generateDestinationItemListJsonLd(agg: DestinationAggregate): ob
       "@type": "ListItem",
       "position": index + 1,
       "item": {
-        "@type": "Product",
+        "@type": "TouristTrip",
         "name": pkg.title,
         "url": `${CANONICAL_HOST}/Holidays/${destinationSlug.toLowerCase()}/${pkg.slug}`,
+        "touristType": "Leisure",
         ...(pkg.price ? {
           "offers": {
             "@type": "Offer",

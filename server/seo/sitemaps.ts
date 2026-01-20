@@ -1,5 +1,6 @@
 import { storage } from '../storage';
 import type { FlightPackage } from '@shared/schema';
+import { isUkIntentDestination } from './ukIntentDestination';
 
 const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';
 
@@ -174,6 +175,15 @@ export async function generateDestinationsSitemap(): Promise<string> {
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>\n`;
+      
+      if (isUkIntentDestination(slug)) {
+        xml += `  <url>
+    <loc>${CANONICAL_HOST}/destinations/${escapeXml(slug)}/holiday-deals</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>\n`;
+      }
     }
   } catch (error) {
     console.error('[Sitemap] Error generating destinations sitemap:', error);

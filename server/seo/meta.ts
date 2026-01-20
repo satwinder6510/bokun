@@ -78,12 +78,15 @@ export function generateDestinationMeta(destination: {
   description?: string;
   image?: string;
   packageCount?: number;
+  customTitle?: string;
 }, path: string): string {
   const description = destination.description?.substring(0, 160) || 
     `Explore our ${destination.packageCount || ''} holiday packages to ${destination.name}. Find the perfect tour with Flights and Packages.`;
   
+  const title = destination.customTitle || `${destination.name} Holidays | Flights and Packages`;
+  
   return generateMetaTags({
-    title: `${destination.name} Holidays | Flights and Packages`,
+    title,
     description,
     image: destination.image,
     type: 'website',

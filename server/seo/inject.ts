@@ -230,8 +230,28 @@ export async function injectDestinationSeo(destinationSlug: string, requestPath:
       generateDestinationItemListJsonLd
     } = await import('./destinationAggregate');
     
+    // Import UK-intent layer for specific destinations
+    const {
+      isUkIntentDestination,
+      buildUkIntentAggregate,
+      generateUkIntentFaqs,
+      buildUkIntentGuideHtml,
+      buildUkIntentH1,
+      buildUkIntentBreadcrumbHtml,
+      buildUkIntentNoscriptHtml,
+      generateUkIntentMetaFallback,
+      generateUkIntentDestinationJsonLd,
+      generateUkIntentItemListJsonLd,
+      generateUkIntentFaqPageJsonLd
+    } = await import('./ukIntentDestination');
+    
     const packages = await storage.getAllFlightPackages();
-    const agg = buildDestinationAggregate(packages, destinationSlug);
+    const isUkIntent = isUkIntentDestination(destinationSlug);
+    
+    // Use UK-intent aggregate for specific destinations (e.g., India)
+    const agg = isUkIntent 
+      ? buildUkIntentAggregate(packages, destinationSlug)
+      : buildDestinationAggregate(packages, destinationSlug);
     
     if (agg.packageCount === 0) {
       return { html: template, fromCache: false, error: 'No packages found for destination' };
@@ -239,43 +259,54 @@ export async function injectDestinationSeo(destinationSlug: string, requestPath:
     
     const destinationImage = agg.featuredPackages[0]?.featuredImage;
     
-    // Generate inventory-based meta tags
-    const metaFallback = generateDestinationMetaFallback(agg);
+    // Generate meta tags - use UK-intent version for specific destinations
+    const metaFallback = isUkIntent 
+      ? generateUkIntentMetaFallback(agg)
+      : generateDestinationMetaFallback(agg);
+    
     const metaTags = generateDestinationMeta({
-      name: agg.destinationName,
+      name: isUkIntent ? `${agg.destinationName} Holidays from the UK` : agg.destinationName,
       description: metaFallback.description,
       image: destinationImage || undefined,
-      packageCount: agg.packageCount
+      packageCount: agg.packageCount,
+      customTitle: metaFallback.title
     }, requestPath);
     
-    // Generate enhanced TouristDestination JSON-LD with inventory-based description
-    const enhancedDestinationJsonLd = generateEnhancedDestinationJsonLd(agg, requestPath);
+    // Generate enhanced TouristDestination JSON-LD
+    const enhancedDestinationJsonLd = isUkIntent
+      ? generateUkIntentDestinationJsonLd(agg, requestPath)
+      : generateEnhancedDestinationJsonLd(agg, requestPath);
     const destinationJsonLdScript = `<script type="application/ld+json">${JSON.stringify(enhancedDestinationJsonLd)}</script>`;
     
     const breadcrumbs = generateBreadcrumbJsonLd([
       { name: 'Home', url: CANONICAL_HOST },
       { name: 'Destinations', url: `${CANONICAL_HOST}/destinations` },
-      { name: agg.destinationName, url: getCanonicalUrl(requestPath) }
+      { name: isUkIntent ? `${agg.destinationName} Holidays` : agg.destinationName, url: getCanonicalUrl(requestPath) }
     ]);
     
-    // Generate FAQs from inventory data
-    const faqs = generateDestinationFaqs(agg);
-    const faqJsonLd = generateFaqPageJsonLd(faqs);
+    // Generate FAQs from inventory data - use UK-intent version for specific destinations
+    const faqs = isUkIntent ? generateUkIntentFaqs(agg) : generateDestinationFaqs(agg);
+    const faqJsonLd = isUkIntent
+      ? `<script type="application/ld+json">${JSON.stringify(generateUkIntentFaqPageJsonLd(faqs))}</script>`
+      : generateFaqPageJsonLd(faqs);
     
     // Generate ItemList JSON-LD for featured packages
-    const itemListJsonLd = generateDestinationItemListJsonLd(agg);
+    const itemListJsonLd = isUkIntent
+      ? generateUkIntentItemListJsonLd(agg)
+      : generateDestinationItemListJsonLd(agg);
     const itemListJsonLdScript = `<script type="application/ld+json">${JSON.stringify(itemListJsonLd)}</script>`;
     
     let html = injectIntoHead(template, metaTags + destinationJsonLdScript + breadcrumbs + faqJsonLd + itemListJsonLdScript);
     
     // Build comprehensive guide content for #seo-content
-    const guideHtml = buildDestinationGuideHtml(agg, faqs);
-    const packageListHtml = buildDestinationPackageListHtml(agg);
-    const breadcrumbHtml = buildDestinationBreadcrumbHtml(agg);
+    const h1Title = isUkIntent ? buildUkIntentH1(agg.destinationName) : `${agg.destinationName} Holidays`;
+    const guideHtml = isUkIntent ? buildUkIntentGuideHtml(agg, faqs) : buildDestinationGuideHtml(agg, faqs);
+    const packageListHtml = isUkIntent ? '' : buildDestinationPackageListHtml(agg); // UK-intent includes packages in guide
+    const breadcrumbHtml = isUkIntent ? buildUkIntentBreadcrumbHtml(agg) : buildDestinationBreadcrumbHtml(agg);
     
     const seoContent = `
 <article itemscope itemtype="https://schema.org/TouristDestination">
-  <h1 itemprop="name">${agg.destinationName} Holidays</h1>
+  <h1 itemprop="name">${h1Title}</h1>
 ${guideHtml}
 ${packageListHtml}
 ${breadcrumbHtml}
@@ -283,7 +314,7 @@ ${breadcrumbHtml}
 `;
     
     // Build shorter noscript content
-    const noscriptContent = buildDestinationNoscriptHtml(agg);
+    const noscriptContent = isUkIntent ? buildUkIntentNoscriptHtml(agg) : buildDestinationNoscriptHtml(agg);
     
     // Insert SEO content BEFORE #root with separate noscript
     const seoContainer = `
@@ -379,6 +410,13 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
     // Build enhanced content fragments including automated FAQs
     const fragments = buildAllFragments(pkg, automatedFaqs, relatedPackages);
     
+    // Check if this is a UK-intent destination package and add hub link
+    const { isUkIntentDestination, buildHubLinkSection } = await import('./ukIntentDestination');
+    const categorySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || '';
+    const hubLink = isUkIntentDestination(categorySlug) 
+      ? buildHubLinkSection(categorySlug, pkg.category || '')
+      : '';
+    
     // Build SEO content with proper structure - BEFORE #root, not inside it
     const seoContent = `
 <article itemscope itemtype="https://schema.org/TouristTrip">
@@ -388,11 +426,12 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
   ${pkg.duration ? `<p>Duration: ${pkg.duration}</p>` : ''}
   ${pkg.price ? `<p>Price: From <span itemprop="offers" itemscope itemtype="https://schema.org/Offer"><span itemprop="priceCurrency">GBP</span> <span itemprop="price">${pkg.price}</span></span></p>` : ''}
   ${fragments}
+  ${hubLink}
   <nav aria-label="Breadcrumb">
     <ol>
       <li><a href="${CANONICAL_HOST}/">Home</a></li>
       <li><a href="${CANONICAL_HOST}/packages">Packages</a></li>
-      ${pkg.category ? `<li><a href="${CANONICAL_HOST}/Holidays/${pkg.category.toLowerCase()}">${pkg.category} Holidays</a></li>` : ''}
+      ${pkg.category ? `<li><a href="${CANONICAL_HOST}/destinations/${pkg.category.toLowerCase()}">${pkg.category} Holidays</a></li>` : ''}
       <li>${pkg.title}</li>
     </ol>
   </nav>
@@ -624,6 +663,153 @@ export async function injectBlogPostSeo(slug: string, requestPath: string): Prom
     return { html, fromCache: false };
   } catch (error: any) {
     console.error('[SEO Inject] Error injecting blog post SEO:', error);
+    const template = await getBaseTemplate();
+    return { html: template, fromCache: false, error: error.message };
+  }
+}
+
+export async function injectHolidayDealsSeo(destinationSlug: string, requestPath: string): Promise<InjectionResult> {
+  const cacheKey = `holiday-deals:${destinationSlug}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return { html: cached, fromCache: true };
+  }
+  
+  try {
+    const template = await getBaseTemplate();
+    
+    const {
+      isUkIntentDestination,
+      buildUkIntentAggregate,
+      generateUkIntentFaqs,
+      generateUkIntentFaqPageJsonLd,
+      generateUkIntentItemListJsonLd
+    } = await import('./ukIntentDestination');
+    
+    if (!isUkIntentDestination(destinationSlug)) {
+      return { html: template, fromCache: false, error: 'Not a UK-intent destination' };
+    }
+    
+    const packages = await storage.getAllFlightPackages();
+    const agg = buildUkIntentAggregate(packages, destinationSlug);
+    
+    if (agg.packageCount === 0) {
+      return { html: template, fromCache: false, error: 'No packages found for destination' };
+    }
+    
+    const { destinationName, packageCount, priceMin, priceMedian, topTags, topDurationBuckets, featuredPackages } = agg;
+    const destinationImage = featuredPackages[0]?.featuredImage;
+    const CONTACT_EMAIL = 'holidayenq@flightsandpackages.com';
+    
+    const title = `${destinationName} Holiday Deals & Offers from the UK | Flights and Packages`;
+    const tagText = topTags.slice(0, 3).join(', ');
+    const description = `Find the best ${destinationName} holiday deals from the UK. ${packageCount} packages available. Popular styles: ${tagText}. Prices from £${priceMin?.toLocaleString() || 'TBC'}. Enquire at ${CONTACT_EMAIL}.`;
+    
+    const metaTags = `
+    <title>${title}</title>
+    <meta name="description" content="${description}" />
+    <link rel="canonical" href="${CANONICAL_HOST}${requestPath}" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="${title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:url" content="${CANONICAL_HOST}${requestPath}" />
+    <meta property="og:type" content="website" />
+    ${destinationImage ? `<meta property="og:image" content="${destinationImage}" />` : ''}
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${title}" />
+    <meta name="twitter:description" content="${description}" />`;
+    
+    const destinationJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "name": `${destinationName} Holiday Deals`,
+      "description": description,
+      "url": `${CANONICAL_HOST}${requestPath}`,
+      "mainEntity": {
+        "@type": "TouristDestination",
+        "name": destinationName
+      }
+    };
+    const destinationJsonLdScript = `<script type="application/ld+json">${JSON.stringify(destinationJsonLd)}</script>`;
+    
+    const breadcrumbs = generateBreadcrumbJsonLd([
+      { name: 'Home', url: CANONICAL_HOST },
+      { name: 'Destinations', url: `${CANONICAL_HOST}/destinations` },
+      { name: `${destinationName} Holidays`, url: `${CANONICAL_HOST}/destinations/${destinationSlug}` },
+      { name: 'Holiday Deals', url: `${CANONICAL_HOST}${requestPath}` }
+    ]);
+    
+    const faqs = generateUkIntentFaqs(agg).slice(0, 8);
+    const faqJsonLd = `<script type="application/ld+json">${JSON.stringify(generateUkIntentFaqPageJsonLd(faqs))}</script>`;
+    
+    const itemListJsonLd = generateUkIntentItemListJsonLd(agg);
+    const itemListJsonLdScript = `<script type="application/ld+json">${JSON.stringify(itemListJsonLd)}</script>`;
+    
+    let html = injectIntoHead(template, metaTags + destinationJsonLdScript + breadcrumbs + faqJsonLd + itemListJsonLdScript);
+    
+    const durText = topDurationBuckets.length > 0 ? topDurationBuckets.join(' or ') : 'various durations';
+    const priceText = priceMin != null ? `from £${priceMin.toLocaleString()}` : '';
+    
+    let seoContent = `
+<article itemscope itemtype="https://schema.org/CollectionPage">
+  <h1 itemprop="name">${destinationName} Holiday Deals & Offers from the UK</h1>
+  <section aria-label="Best ${destinationName} Deals">
+    <p>Looking for the best ${destinationName} holiday deals? Browse ${packageCount} ${destinationName} holiday packages from the UK, with prices starting ${priceText}. Popular trip styles include ${topTags.slice(0, 3).join(', ')}, with typical durations of ${durText}.</p>
+  </section>
+  
+  <section aria-label="Featured ${destinationName} Holiday Deals">
+    <h2>Featured ${destinationName} Deals</h2>
+    <ul>
+`;
+    
+    for (const pkg of featuredPackages) {
+      const url = `${CANONICAL_HOST}/Holidays/${destinationSlug.toLowerCase()}/${pkg.slug}`;
+      const priceTag = pkg.price ? `From £${pkg.price.toLocaleString()}` : 'Price on request';
+      seoContent += `      <li><a href="${url}">${pkg.title}</a> - ${priceTag}</li>\n`;
+    }
+    
+    seoContent += `    </ul>
+  </section>
+  
+  <section aria-label="${destinationName} Holiday FAQs">
+    <h2>Frequently Asked Questions</h2>
+`;
+    
+    for (const faq of faqs) {
+      seoContent += `    <details>
+      <summary>${faq.question}</summary>
+      <p>${faq.answer}</p>
+    </details>
+`;
+    }
+    
+    seoContent += `  </section>
+  
+  <section aria-label="Browse More">
+    <p><a href="${CANONICAL_HOST}/destinations/${destinationSlug}">See all ${destinationName} holidays and packages</a></p>
+    <p>For enquiries: <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a></p>
+  </section>
+  
+  <nav aria-label="Breadcrumb">
+    <ol>
+      <li><a href="${CANONICAL_HOST}/">Home</a></li>
+      <li><a href="${CANONICAL_HOST}/destinations">Destinations</a></li>
+      <li><a href="${CANONICAL_HOST}/destinations/${destinationSlug}">${destinationName} Holidays</a></li>
+      <li>Holiday Deals</li>
+    </ol>
+  </nav>
+</article>
+`;
+    
+    html = injectSeoContentBeforeRoot(html, seoContent);
+    
+    setCache(cacheKey, html);
+    return { html, fromCache: false };
+  } catch (error: any) {
+    console.error('[SEO Inject] Error injecting holiday deals SEO:', error);
     const template = await getBaseTemplate();
     return { html: template, fromCache: false, error: error.message };
   }

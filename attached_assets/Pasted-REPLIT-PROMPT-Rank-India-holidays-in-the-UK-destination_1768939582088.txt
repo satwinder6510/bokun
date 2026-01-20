@@ -1,0 +1,169 @@
+REPLIT PROMPT: Rank “India holidays” in the UK (destination hub + internal links + UK intent signals)
+
+Implement a UK-focused SEO upgrade for the India destination page at:
+
+/destinations/india
+
+Do not change React UI. Use the existing server-side SEO injection system (head + #seo-content + <noscript>). Content must be generated only from our own package inventory and our own policies (no external destination facts or scraped guide text).
+
+1) Make /destinations/india a UK-intent destination hub (guide-grade)
+Data source
+
+Use the packages that belong to India by our current destination rule:
+
+destination slug “india” maps to package.category === "India" (case-insensitive, slug-normalized).
+
+Compute aggregates (India packages only)
+
+packageCount
+
+priceMin, priceMedian, priceMax (GBP only for now)
+
+topTags (top 8 from tags[])
+
+durationBuckets from duration nights (1–4, 5–7, 8–10, 11–14, 15+)
+
+topInclusions from whatsIncluded[] (normalize strings, count frequency, select top 10)
+
+featuredPackages top 12 (by updatedAt desc or displayOrder)
+
+Inject additional “India Guide” content into #seo-content BEFORE the package list
+
+Add these sections with semantic HTML:
+
+H1: India Holidays & Packages from the UK
+
+Inventory-based overview paragraph (900–1,500 chars total across intro + sections)
+Must explicitly include UK-intent phrases:
+
+“India holidays from the UK”
+
+“India holiday packages”
+
+“India tours”
+Use only inventory-derived statements. Example style:
+
+“Explore {packageCount} India holiday packages from the UK…”
+
+“Typical trip lengths include {topDurationBuckets}…”
+
+“Popular styles include {topTags}…”
+
+“Prices start from £{priceMin}…”
+
+Popular trip styles (bullets from topTags)
+
+Typical trip lengths (bucket counts)
+
+What’s commonly included (topInclusions; use frequency-aware wording: “many/some”)
+
+Featured India holidays (list top 12 packages with absolute URLs + From £price)
+
+FAQs (India): add 10–14 FAQs using <details> blocks
+Questions must target UK search intent and conversion:
+
+“What’s included in India holiday packages from the UK?”
+
+“Do your India holidays include flights?”
+
+“How long are your India tours typically?”
+
+“What is the starting price for India holidays?”
+
+“Can I customise an India holiday package?”
+
+“Do I need travel insurance?”
+
+“Are local taxes included?”
+
+“How do I book and get confirmation?”
+Include contact line in at least one FAQ answer:
+
+“Email holidayenq@flightsandpackages.com
+”
+
+Keep the existing package link list and breadcrumb nav.
+
+2) Upgrade head meta for India (UK-intent)
+
+If no manual meta exists, set fallbacks:
+
+Title:
+India Holidays & India Holiday Packages from the UK | Flights and Packages
+
+Meta description (inventory-based + UK intent):
+Browse {packageCount} India holiday packages from the UK. Popular trip styles: {topTags[0..2]}. Typical stays: {topDurationBucket}. From £{priceMin}. Enquire at holidayenq@flightsandpackages.com.
+
+Canonical must remain:
+https://holidays.flightsandpackages.com/destinations/india
+
+3) Add/upgrade JSON-LD on /destinations/india
+
+Keep existing TouristDestination + BreadcrumbList, but enhance and add:
+
+TouristDestination.description should be the inventory-based UK-intent summary (not generic).
+
+Add ItemList JSON-LD for featuredPackages:
+
+name
+
+url (absolute)
+
+Offer with GBP price if available
+
+Add FAQPage JSON-LD matching the injected FAQs.
+
+Ensure each of these appears only once:
+
+TouristDestination (1)
+
+BreadcrumbList (1)
+
+ItemList (1)
+
+FAQPage (1)
+
+4) Add internal links to strengthen India hub authority
+On every India package page (/Holidays/india/:slug)
+
+In the injected SEO content, add a short “hub link” section:
+
+“See all India holidays and packages” linking to /destinations/india
+
+From homepage + collections
+
+Add a prominent internal link in injected SEO fragments (or nav if safe) to:
+
+/destinations/india
+
+5) Optional supporting page (high ROI, UK modifier)
+
+Create a lightweight supporting page:
+
+/destinations/india/holiday-deals
+This can reuse the same India aggregate, but focus on:
+
+lowest starting prices
+
+featured packages
+
+UK-intent FAQ
+Canonical to itself.
+
+Add it to sitemap.
+
+Acceptance tests
+
+curl -s <india-url> | grep -c "<!DOCTYPE html>" → 1
+
+curl -s <india-url> | grep -c '"@type":"FAQPage"\|"@type": "FAQPage"' → 1
+
+curl -s <india-url> | grep -c '"@type":"ItemList"\|"@type": "ItemList"' → 1
+
+curl -s <india-url> | grep -i "India holidays from the UK" | wc -l → >= 1
+
+India package pages contain an internal link to /destinations/india
+
+Do not introduce any external factual destination content or scraped text.
+
+If Replit asks where to put it: tell it to implement inside your existing server/seo pipeline (where destinations are injected today), and to add an India-only “UK intent layer” that overrides the generic destination template.

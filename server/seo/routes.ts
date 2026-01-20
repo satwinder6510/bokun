@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { injectTourSeo, injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, isBot } from './inject';
+import { injectTourSeo, injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, injectHolidayDealsSeo, isBot } from './inject';
 import { shouldNoIndex, generateNoIndexMeta } from './meta';
 import {
   generateSitemapIndex,
@@ -181,6 +181,26 @@ export function registerSeoRoutes(app: Express): void {
         }
       } catch (error) {
         console.error('[SEO] Error handling destination SEO:', error);
+      }
+      next();
+    });
+    
+    app.get('/destinations/:slug/holiday-deals', async (req: Request, res: Response, next) => {
+      if (!shouldInjectSeo(req)) {
+        return next();
+      }
+      
+      try {
+        const slug = req.params.slug;
+        
+        const result = await injectHolidayDealsSeo(slug, req.path);
+        if (!result.error) {
+          res.set('Content-Type', 'text/html');
+          res.set('X-SEO-Injected', 'true');
+          return res.send(result.html);
+        }
+      } catch (error) {
+        console.error('[SEO] Error handling holiday deals SEO:', error);
       }
       next();
     });

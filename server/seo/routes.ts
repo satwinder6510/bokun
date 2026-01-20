@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { injectTourSeo, injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, injectHolidayDealsSeo, injectRiverCruisesCollectionSeo, isBot } from './inject';
+import { injectTourSeo, injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, injectHolidayDealsSeo, injectCollectionSeo, isBot } from './inject';
+import { isConfiguredCollection, COLLECTION_CONFIGS } from './collectionSeo';
 import { shouldNoIndex, generateNoIndexMeta } from './meta';
 import {
   generateSitemapIndex,
@@ -253,23 +254,25 @@ export function registerSeoRoutes(app: Express): void {
       next();
     });
     
-    // River Cruises Collection SEO (must be before generic static pages handler)
-    app.get('/collections/river-cruises', async (req: Request, res: Response, next) => {
-      if (!shouldInjectSeo(req)) {
-        return next();
-      }
-      
-      try {
-        const result = await injectRiverCruisesCollectionSeo();
-        if (!result.error) {
-          res.set('Content-Type', 'text/html');
-          res.set('X-SEO-Injected', 'true');
-          return res.send(result.html);
+    // Collection SEO routes (must be before generic static pages handler)
+    Object.keys(COLLECTION_CONFIGS).forEach(collectionSlug => {
+      app.get(`/collections/${collectionSlug}`, async (req: Request, res: Response, next) => {
+        if (!shouldInjectSeo(req)) {
+          return next();
         }
-      } catch (error) {
-        console.error('[SEO] Error handling river cruises collection SEO:', error);
-      }
-      next();
+        
+        try {
+          const result = await injectCollectionSeo(collectionSlug);
+          if (!result.error) {
+            res.set('Content-Type', 'text/html');
+            res.set('X-SEO-Injected', 'true');
+            return res.send(result.html);
+          }
+        } catch (error) {
+          console.error(`[SEO] Error handling ${collectionSlug} collection SEO:`, error);
+        }
+        next();
+      });
     });
     
     // Static pages SEO

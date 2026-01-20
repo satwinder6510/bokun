@@ -815,8 +815,8 @@ export async function injectHolidayDealsSeo(destinationSlug: string, requestPath
   }
 }
 
-export async function injectRiverCruisesCollectionSeo(): Promise<InjectionResult> {
-  const cacheKey = 'collection:river-cruises';
+export async function injectCollectionSeo(collectionSlug: string): Promise<InjectionResult> {
+  const cacheKey = `collection:${collectionSlug}`;
   const cached = getCached(cacheKey);
   if (cached) {
     return { html: cached, fromCache: true };
@@ -826,31 +826,37 @@ export async function injectRiverCruisesCollectionSeo(): Promise<InjectionResult
     const template = await getBaseTemplate();
     
     const { 
-      buildRiverCruiseAggregate, 
-      generateRiverCruiseFaqs, 
-      buildRiverCruiseGuideHtml,
-      buildRiverCruiseNoscriptHtml,
-      generateRiverCruiseMetaTitle,
-      generateRiverCruiseMetaDescription,
-      generateRiverCruiseJsonLd
-    } = await import('./riverCruisesCollection');
+      getCollectionConfig,
+      buildCollectionAggregate, 
+      generateCollectionFaqs, 
+      buildCollectionGuideHtml,
+      buildCollectionNoscriptHtml,
+      generateCollectionMetaTitle,
+      generateCollectionMetaDescription,
+      generateCollectionJsonLd
+    } = await import('./collectionSeo');
+    
+    const config = getCollectionConfig(collectionSlug);
+    if (!config) {
+      return { html: template, fromCache: false, error: 'Collection not found' };
+    }
     
     const allPackages = await storage.getAllFlightPackages();
-    const agg = buildRiverCruiseAggregate(allPackages);
-    const faqs = generateRiverCruiseFaqs(agg);
+    const agg = buildCollectionAggregate(allPackages, config);
+    const faqs = generateCollectionFaqs(agg);
     
-    const metaTitle = generateRiverCruiseMetaTitle();
-    const metaDescription = generateRiverCruiseMetaDescription(agg);
+    const metaTitle = generateCollectionMetaTitle(config);
+    const metaDescription = generateCollectionMetaDescription(agg);
     
     const metaTags = `
     <title>${metaTitle}</title>
     <meta name="description" content="${metaDescription}" />
-    <link rel="canonical" href="${CANONICAL_HOST}/collections/river-cruises" />
+    <link rel="canonical" href="${CANONICAL_HOST}/collections/${config.slug}" />
     
     <!-- Open Graph -->
     <meta property="og:title" content="${metaTitle}" />
     <meta property="og:description" content="${metaDescription}" />
-    <meta property="og:url" content="${CANONICAL_HOST}/collections/river-cruises" />
+    <meta property="og:url" content="${CANONICAL_HOST}/collections/${config.slug}" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Flights and Packages" />
     
@@ -860,21 +866,21 @@ export async function injectRiverCruisesCollectionSeo(): Promise<InjectionResult
     <meta name="twitter:description" content="${metaDescription}" />
     `;
     
-    const jsonLd = generateRiverCruiseJsonLd(agg, faqs);
-    const guideHtml = buildRiverCruiseGuideHtml(agg, faqs);
-    const noscriptHtml = buildRiverCruiseNoscriptHtml(agg);
+    const jsonLd = generateCollectionJsonLd(agg, faqs);
+    const guideHtml = buildCollectionGuideHtml(agg, faqs);
+    const noscriptHtml = buildCollectionNoscriptHtml(agg);
     
     let html = injectIntoHead(template, metaTags + jsonLd);
     
     const seoContent = `
 <article itemscope itemtype="https://schema.org/CollectionPage">
-  <h1 itemprop="name">River Cruises</h1>
+  <h1 itemprop="name">${config.h1}</h1>
   ${guideHtml}
   <nav aria-label="Breadcrumb">
     <ol>
       <li><a href="${CANONICAL_HOST}/">Home</a></li>
       <li><a href="${CANONICAL_HOST}/collections">Collections</a></li>
-      <li>River Cruises</li>
+      <li>${config.name}</li>
     </ol>
   </nav>
 </article>
@@ -895,7 +901,7 @@ ${noscriptHtml}
     setCache(cacheKey, html);
     return { html, fromCache: false };
   } catch (error: any) {
-    console.error('[SEO Inject] Error injecting river cruises collection SEO:', error);
+    console.error(`[SEO Inject] Error injecting ${collectionSlug} collection SEO:`, error);
     const template = await getBaseTemplate();
     return { html: template, fromCache: false, error: error.message };
   }

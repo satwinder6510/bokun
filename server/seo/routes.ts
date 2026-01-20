@@ -20,6 +20,17 @@ const FEEDS_ENABLED = process.env.FEEDS_ENABLED === 'true';
 const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';
 
 const PRERENDERED_DIR = path.resolve(process.cwd(), 'prerendered');
+const IS_DEVELOPMENT = process.env.NODE_ENV !== 'production';
+
+// In development mode, only inject SEO for bot requests to avoid breaking Vite's React Fast Refresh
+function shouldInjectSeo(req: Request): boolean {
+  if (!IS_DEVELOPMENT) {
+    // In production, inject SEO for all requests
+    return true;
+  }
+  // In development, only inject for bots
+  return isBot(req.get('user-agent'));
+}
 
 async function servePrerendered(type: string, slug: string, res: Response): Promise<boolean> {
   if (!PRERENDER_ENABLED) return false;
@@ -103,6 +114,11 @@ export function registerSeoRoutes(app: Express): void {
     // However, if the result is successful, they return and end the request.
 
     app.get('/tour/:id', async (req: Request, res: Response, next) => {
+      // Skip SEO injection for regular browser requests in development
+      if (!shouldInjectSeo(req)) {
+        return next();
+      }
+      
       try {
         const tourId = req.params.id;
         
@@ -123,6 +139,10 @@ export function registerSeoRoutes(app: Express): void {
     });
     
     app.get('/packages/:slug', async (req: Request, res: Response, next) => {
+      if (!shouldInjectSeo(req)) {
+        return next();
+      }
+      
       try {
         const slug = req.params.slug;
         
@@ -143,6 +163,10 @@ export function registerSeoRoutes(app: Express): void {
     });
     
     app.get('/destinations/:slug', async (req: Request, res: Response, next) => {
+      if (!shouldInjectSeo(req)) {
+        return next();
+      }
+      
       try {
         const slug = req.params.slug;
         
@@ -163,6 +187,10 @@ export function registerSeoRoutes(app: Express): void {
     });
     
     app.get('/Holidays/:country', async (req: Request, res: Response, next) => {
+      if (!shouldInjectSeo(req)) {
+        return next();
+      }
+      
       try {
         const slug = req.params.country;
         
@@ -183,6 +211,10 @@ export function registerSeoRoutes(app: Express): void {
     });
     
     app.get('/Holidays/:country/:slug', async (req: Request, res: Response, next) => {
+      if (!shouldInjectSeo(req)) {
+        return next();
+      }
+      
       try {
         const packageSlug = req.params.slug;
         
@@ -207,6 +239,10 @@ export function registerSeoRoutes(app: Express): void {
     
     staticPages.forEach(pagePath => {
       app.get(pagePath, async (req: Request, res: Response, next) => {
+        if (!shouldInjectSeo(req)) {
+          return next();
+        }
+        
         try {
           const result = await injectStaticPageSeo(pagePath);
           if (!result.error) {
@@ -223,6 +259,10 @@ export function registerSeoRoutes(app: Express): void {
     
     // Blog post SEO
     app.get('/blog/:slug', async (req: Request, res: Response, next) => {
+      if (!shouldInjectSeo(req)) {
+        return next();
+      }
+      
       try {
         const slug = req.params.slug;
         const result = await injectBlogPostSeo(slug, req.path);

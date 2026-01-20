@@ -1,0 +1,80 @@
+Replit: Upgrade the collection page /collections/river-cruises to rank for “river cruises” (UK) by adding guide-grade SEO injection (no UI changes).
+
+Requirements:
+
+Identify the collection route handler for /collections/:slug and apply special handling when slug === "river-cruises".
+
+Fetch the same published packages shown on that collection page.
+
+Build aggregates from those packages:
+
+packageCount
+
+priceMin/median/max (GBP only)
+
+topTags from tags[]
+
+durationBuckets from duration nights (1–4, 5–7, 8–10, 11–14, 15+)
+
+topInclusions from whatsIncluded[] (normalize + frequency)
+
+topDestinations from category counts (top 8)
+
+featuredPackages top 12 by updatedAt desc (or displayOrder)
+
+Inject into #seo-content (and optional shortened <noscript>) BEFORE the list:
+
+H1: River Cruises
+
+Intro paragraph (800–1500 chars total across sections) using only our inventory and policies; include phrases:
+
+“river cruises”
+
+“river cruise packages”
+
+“from the UK” (at least once)
+
+Sections:
+
+Popular river cruise styles (topTags)
+
+Typical trip lengths (durationBuckets with counts)
+
+What’s commonly included (topInclusions; frequency-aware “many/some”)
+
+Top destinations in our river cruises (topDestinations list with links to /destinations/:slug where available)
+
+Featured river cruises (12 internal links + From £price)
+
+FAQs (10–14) as <details> blocks, including booking/contact via holidayenq@flightsandpackages.com
+
+Add head meta fallbacks (manual-first if present):
+
+Title fallback: River Cruises | River Cruise Packages from the UK | Flights and Packages
+
+Description fallback: inventory-based summary (packageCount + from price + typical durations)
+
+Canonical: /collections/river-cruises
+
+Add JSON-LD in head:
+
+BreadcrumbList: Home → Collections → River Cruises
+
+CollectionPage (or WebPage) with name/url/description derived from inventory (no external facts)
+
+ItemList for featuredPackages (with Offer GBP price if available)
+
+FAQPage matching FAQs
+Ensure each appears only once.
+
+Acceptance tests:
+
+curl -s <url> | grep -c "<!DOCTYPE html>" = 1
+
+FAQPage JSON-LD count = 1
+
+ItemList JSON-LD count = 1
+
+Page contains the phrase “river cruise packages” at least once in injected text
+
+#seo-content includes >= 12 internal package links when available

@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { injectTourSeo, injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, injectHolidayDealsSeo, isBot } from './inject';
+import { injectTourSeo, injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, injectHolidayDealsSeo, injectRiverCruisesCollectionSeo, isBot } from './inject';
 import { shouldNoIndex, generateNoIndexMeta } from './meta';
 import {
   generateSitemapIndex,
@@ -249,6 +249,25 @@ export function registerSeoRoutes(app: Express): void {
         }
       } catch (error) {
         console.error('[SEO] Error handling Holidays package SEO:', error);
+      }
+      next();
+    });
+    
+    // River Cruises Collection SEO (must be before generic static pages handler)
+    app.get('/collections/river-cruises', async (req: Request, res: Response, next) => {
+      if (!shouldInjectSeo(req)) {
+        return next();
+      }
+      
+      try {
+        const result = await injectRiverCruisesCollectionSeo();
+        if (!result.error) {
+          res.set('Content-Type', 'text/html');
+          res.set('X-SEO-Injected', 'true');
+          return res.send(result.html);
+        }
+      } catch (error) {
+        console.error('[SEO] Error handling river cruises collection SEO:', error);
       }
       next();
     });

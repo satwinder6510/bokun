@@ -814,3 +814,89 @@ export async function injectHolidayDealsSeo(destinationSlug: string, requestPath
     return { html: template, fromCache: false, error: error.message };
   }
 }
+
+export async function injectRiverCruisesCollectionSeo(): Promise<InjectionResult> {
+  const cacheKey = 'collection:river-cruises';
+  const cached = getCached(cacheKey);
+  if (cached) {
+    return { html: cached, fromCache: true };
+  }
+
+  try {
+    const template = await getBaseTemplate();
+    
+    const { 
+      buildRiverCruiseAggregate, 
+      generateRiverCruiseFaqs, 
+      buildRiverCruiseGuideHtml,
+      buildRiverCruiseNoscriptHtml,
+      generateRiverCruiseMetaTitle,
+      generateRiverCruiseMetaDescription,
+      generateRiverCruiseJsonLd
+    } = await import('./riverCruisesCollection');
+    
+    const allPackages = await storage.getAllFlightPackages();
+    const agg = buildRiverCruiseAggregate(allPackages);
+    const faqs = generateRiverCruiseFaqs(agg);
+    
+    const metaTitle = generateRiverCruiseMetaTitle();
+    const metaDescription = generateRiverCruiseMetaDescription(agg);
+    
+    const metaTags = `
+    <title>${metaTitle}</title>
+    <meta name="description" content="${metaDescription}" />
+    <link rel="canonical" href="${CANONICAL_HOST}/collections/river-cruises" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="${metaTitle}" />
+    <meta property="og:description" content="${metaDescription}" />
+    <meta property="og:url" content="${CANONICAL_HOST}/collections/river-cruises" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Flights and Packages" />
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${metaTitle}" />
+    <meta name="twitter:description" content="${metaDescription}" />
+    `;
+    
+    const jsonLd = generateRiverCruiseJsonLd(agg, faqs);
+    const guideHtml = buildRiverCruiseGuideHtml(agg, faqs);
+    const noscriptHtml = buildRiverCruiseNoscriptHtml(agg);
+    
+    let html = injectIntoHead(template, metaTags + jsonLd);
+    
+    const seoContent = `
+<article itemscope itemtype="https://schema.org/CollectionPage">
+  <h1 itemprop="name">River Cruises</h1>
+  ${guideHtml}
+  <nav aria-label="Breadcrumb">
+    <ol>
+      <li><a href="${CANONICAL_HOST}/">Home</a></li>
+      <li><a href="${CANONICAL_HOST}/collections">Collections</a></li>
+      <li>River Cruises</li>
+    </ol>
+  </nav>
+</article>
+`;
+    
+    html = html.replace('<div id="root"></div>', `
+<!-- SEO Content - Visible to crawlers, hidden from users -->
+<div id="seo-content" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+${seoContent}
+</div>
+<noscript>
+<div id="noscript-content">
+${noscriptHtml}
+</div>
+</noscript>
+    <div id="root"></div>`);
+    
+    setCache(cacheKey, html);
+    return { html, fromCache: false };
+  } catch (error: any) {
+    console.error('[SEO Inject] Error injecting river cruises collection SEO:', error);
+    const template = await getBaseTemplate();
+    return { html: template, fromCache: false, error: error.message };
+  }
+}

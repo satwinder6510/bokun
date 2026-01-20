@@ -10,7 +10,7 @@ export default function PreviewFooter() {
   const [email, setEmail] = useState("");
 
   const destinations = [
-    "India", "Thailand", "Vietnam", "Sri Lanka", "Maldives", "Bali",
+    "India", "Thailand", "Vietnam", "Sri Lanka", "Maldives", "Indonesia",
     "Italy", "Greece", "Portugal", "Spain", "Croatia", "Turkey",
     "South Africa", "Kenya", "Tanzania", "Morocco", "Egypt", "Jordan"
   ];

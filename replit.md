@@ -45,6 +45,16 @@ The platform includes comprehensive SEO optimization managed via a modular serve
 
 A content marketing blog is available at `/blog` with SEO-optimized URLs and content.
 
+**UK-Intent Market-Specific SEO:**
+For priority destinations like India, the platform includes enhanced UK-focused SEO content:
+- UK-intent phrases in H1 titles, meta titles, and descriptions (e.g., "India Holidays from the UK")
+- Inventory-driven FAQs (10-14 questions) with contact email (holidayenq@flightsandpackages.com)
+- Enhanced JSON-LD with TouristDestination, FAQPage, ItemList, and BreadcrumbList schemas
+- Featured packages (12 top items) with ItemList markup
+- Supporting pages like `/destinations/india/holiday-deals` with CollectionPage schema
+- Internal hub links from package pages back to destination pages
+- Configurable via `UK_INTENT_DESTINATIONS` map in `server/seo/ukIntentDestination.ts`
+
 ### URL Structure (Migration-Compatible)
 
 The URL structure is designed for compatibility with existing sites, supporting both legacy and new SEO-friendly routes for packages, destinations, collections, tours, blog posts, and static pages.

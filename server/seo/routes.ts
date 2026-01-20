@@ -6,7 +6,6 @@ import { shouldNoIndex, generateNoIndexMeta } from './meta';
 import {
   generateSitemapIndex,
   generatePagesSitemap,
-  generateToursSitemap,
   generatePackagesSitemap,
   generateDestinationsSitemap,
   generateBlogSitemap
@@ -368,7 +367,6 @@ Our content is available in multiple formats:
 ### Sitemaps
 ${CANONICAL_HOST}/sitemap.xml (index)
 ${CANONICAL_HOST}/sitemaps/packages.xml
-${CANONICAL_HOST}/sitemaps/tours.xml
 ${CANONICAL_HOST}/sitemaps/destinations.xml
 
 ### JSON Feeds (AI-Optimized)
@@ -418,17 +416,6 @@ For AI/LLM partnerships: info@flightsandpackages.com
         res.send(sitemap);
       } catch (error) {
         console.error('[SEO] Error generating pages sitemap:', error);
-        res.status(500).send('Error generating sitemap');
-      }
-    });
-    
-    app.get('/sitemaps/tours.xml', async (_req: Request, res: Response) => {
-      try {
-        const sitemap = await generateToursSitemap();
-        res.set('Content-Type', 'application/xml');
-        res.send(sitemap);
-      } catch (error) {
-        console.error('[SEO] Error generating tours sitemap:', error);
         res.status(500).send('Error generating sitemap');
       }
     });

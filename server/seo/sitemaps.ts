@@ -28,11 +28,6 @@ export async function generateSitemapIndex(): Promise<string> {
   </sitemap>\n`;
   
   xml += `  <sitemap>
-    <loc>${CANONICAL_HOST}/sitemaps/tours.xml</loc>
-    <lastmod>${now}</lastmod>
-  </sitemap>\n`;
-  
-  xml += `  <sitemap>
     <loc>${CANONICAL_HOST}/sitemaps/packages.xml</loc>
     <lastmod>${now}</lastmod>
   </sitemap>\n`;

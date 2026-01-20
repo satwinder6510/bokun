@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
 import { initScheduler } from "./scheduler";
 import { registerSeoRoutes } from "./seo/routes";
+import { trackAICrawl } from "./analytics";
 
 const app = express();
 
@@ -21,6 +22,13 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: false }));
+
+app.use((req, res, next) => {
+  const ua = req.headers["user-agent"] || "";
+  const url = req.originalUrl;
+  trackAICrawl(url, ua);
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { getCached, setCache } from './cache';
-import { generateTourMeta, generateDestinationMeta } from './meta';
+import { generateTourMeta, generateDestinationMeta, generatePackageMeta } from './meta';
 import { generateTourJsonLd, generateDestinationJsonLd, generateBreadcrumbJsonLd, generateOrganizationJsonLd, generateFaqPageJsonLd } from './jsonld';
 import { getCanonicalUrl } from './canonical';
 import { storage } from '../storage';
@@ -301,13 +301,14 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
       return { html: template, fromCache: false, error: 'Package not found' };
     }
     
-    const metaTags = generateTourMeta({
+    const metaTags = generatePackageMeta({
       title: pkg.title,
-      excerpt: pkg.excerpt || undefined,
-      description: pkg.description || undefined,
-      keyPhoto: pkg.featuredImage || undefined,
-      destination: pkg.category || undefined,
-      duration: parseDuration(pkg.duration)
+      category: pkg.category,
+      metaTitle: pkg.metaTitle,
+      metaDescription: pkg.metaDescription,
+      excerpt: pkg.excerpt,
+      description: pkg.description,
+      featuredImage: pkg.featuredImage
     }, requestPath);
     
     const jsonLd = generateTourJsonLd({

@@ -104,6 +104,51 @@ export function generateNoIndexMeta(title: string, description: string, path: st
     <meta name="robots" content="noindex, follow" />`;
 }
 
+// Helper to compute fallback meta for packages when metaTitle/metaDescription are empty
+export function computePackageMeta(pkg: {
+  title: string;
+  category?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  excerpt?: string | null;
+  description?: string | null;
+}): { title: string; description: string } {
+  const title = pkg.metaTitle && pkg.metaTitle.trim()
+    ? pkg.metaTitle.trim()
+    : `${pkg.title} | ${pkg.category || ''} Holidays`.replace(' |  Holidays', ' Holidays');
+
+  const baseDesc = pkg.metaDescription && pkg.metaDescription.trim()
+    ? pkg.metaDescription.trim()
+    : (pkg.excerpt || pkg.description || '').trim();
+
+  const description = baseDesc.length > 155
+    ? baseDesc.slice(0, 155).trim() + '…'
+    : baseDesc;
+
+  return { title, description };
+}
+
+// Generate meta tags for package pages with fallback support
+export function generatePackageMeta(pkg: {
+  title: string;
+  category?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  excerpt?: string | null;
+  description?: string | null;
+  featuredImage?: string | null;
+}, path: string): string {
+  const { title, description } = computePackageMeta(pkg);
+  
+  return generateMetaTags({
+    title,
+    description,
+    image: pkg.featuredImage || undefined,
+    type: 'product',
+    path
+  });
+}
+
 // Check if a URL should be noindexed
 export function shouldNoIndex(path: string, queryString?: string): boolean {
   const noIndexPaths = ['/ai-search', '/checkout', '/admin', '/2fa-setup'];

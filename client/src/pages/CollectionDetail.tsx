@@ -129,7 +129,7 @@ function LandTourCard({ tour }: { tour: BokunProduct }) {
 }
 
 export default function CollectionDetail() {
-  const [, params] = useRoute("/holidays/:tag");
+  const [, params] = useRoute("/collections/:tag");
   const [, setLocation] = useLocation();
   const tagSlug = params?.tag || "";
   const displayName = TAG_DISPLAY_NAMES[tagSlug] || tagSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
@@ -147,7 +147,7 @@ export default function CollectionDetail() {
   // This handles case-insensitive URL matching on production servers
   useEffect(() => {
     if (tagSlug && !isKnownCollection) {
-      // Redirect to destination page (e.g., /holidays/sri-lanka -> /Holidays/sri-lanka)
+      // Redirect to destination page (e.g., /collections/sri-lanka -> /Holidays/sri-lanka)
       setLocation(`/Holidays/${tagSlug}`, { replace: true });
     }
   }, [tagSlug, isKnownCollection, setLocation]);
@@ -163,15 +163,15 @@ export default function CollectionDetail() {
       addJsonLD([
         generateBreadcrumbSchema([
           { name: "Home", url: "/" },
-          { name: "Collections", url: "/holidays" },
-          { name: displayName, url: `/holidays/${tagSlug}` }
+          { name: "Collections", url: "/collections" },
+          { name: displayName, url: `/collections/${tagSlug}` }
         ]),
         {
           "@context": "https://schema.org",
           "@type": "CollectionPage",
           "name": displayName,
           "description": description,
-          "url": `https://tours.flightsandpackages.com/holidays/${tagSlug}`,
+          "url": `https://holidays.flightsandpackages.com/collections/${tagSlug}`,
           "numberOfItems": totalHolidays
         }
       ]);
@@ -185,7 +185,7 @@ export default function CollectionDetail() {
       <main className="flex-1">
         <div className="bg-slate-800 text-white py-12">
           <div className="container mx-auto px-4">
-            <Link href="/holidays" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors">
+            <Link href="/collections" className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors">
               <ArrowLeft className="h-4 w-4" />
               Back to Collections
             </Link>

@@ -63,7 +63,7 @@ export async function generatePagesSitemap(): Promise<string> {
     { loc: '/packages', changefreq: 'daily', priority: '0.9' },
     { loc: '/tours', changefreq: 'daily', priority: '0.9' },
     { loc: '/destinations', changefreq: 'weekly', priority: '0.8' },
-    { loc: '/holidays', changefreq: 'weekly', priority: '0.8' },
+    { loc: '/collections', changefreq: 'weekly', priority: '0.8' },
     { loc: '/blog', changefreq: 'weekly', priority: '0.7' },
     { loc: '/contact', changefreq: 'monthly', priority: '0.6' },
     { loc: '/faq', changefreq: 'monthly', priority: '0.5' },

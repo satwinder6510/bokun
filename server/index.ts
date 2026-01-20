@@ -11,6 +11,14 @@ const app = express();
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 
+// 301 Redirects for Collections
+app.get('/holidays', (req, res) => {
+  res.redirect(301, '/collections');
+});
+app.get('/holidays/:slug', (req, res) => {
+  res.redirect(301, `/collections/${req.params.slug}`);
+});
+
 declare module 'http' {
   interface IncomingMessage {
     rawBody: unknown

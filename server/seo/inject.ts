@@ -331,6 +331,19 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
       { name: pkg.title, url: getCanonicalUrl(requestPath) }
     ]);
     
+    // Get related packages (same destination)
+    let relatedPackages: FlightPackage[] = [];
+    try {
+      const allPackages = await storage.getAllFlightPackages();
+      relatedPackages = allPackages.filter((p: FlightPackage) => 
+        p.category?.toLowerCase() === pkg.category?.toLowerCase() &&
+        p.isPublished &&
+        p.slug !== pkg.slug
+      ).slice(0, 3);
+    } catch (e) {
+      // Related packages optional
+    }
+
     // Generate automated FAQs from package data
     const automatedFaqs = generateAutomatedFaqs(pkg);
     

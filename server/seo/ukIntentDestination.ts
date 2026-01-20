@@ -15,6 +15,11 @@ const UK_INTENT_DESTINATIONS: Record<string, UkIntentConfig> = {
     destinationName: 'India',
     destinationSlug: 'india',
     featuredPackageLimit: 12
+  },
+  'italy': {
+    destinationName: 'Italy',
+    destinationSlug: 'italy',
+    featuredPackageLimit: 12
   }
 };
 

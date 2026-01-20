@@ -6,7 +6,7 @@ import { generateTourJsonLd, generateDestinationJsonLd, generateBreadcrumbJsonLd
 import { getCanonicalUrl } from './canonical';
 import { storage } from '../storage';
 import type { FlightPackage } from '@shared/schema';
-import { buildAllFragments, type FaqItem } from './fragments';
+import { buildAllFragments, generateAutomatedFaqs, type FaqItem } from './fragments';
 import { getBokunProductDetails } from '../bokun';
 
 const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';
@@ -331,35 +331,16 @@ export async function injectPackageSeo(packageSlug: string, requestPath: string)
       { name: pkg.title, url: getCanonicalUrl(requestPath) }
     ]);
     
-    // Get FAQs (top 5 general FAQs for now)
-    let faqs: FaqItem[] = [];
-    try {
-      const allFaqs = await storage.getPublishedFaqs();
-      faqs = allFaqs.slice(0, 5).map(f => ({ question: f.question, answer: f.answer }));
-    } catch (e) {
-      // FAQs optional, continue without them
-    }
+    // Generate automated FAQs from package data
+    const automatedFaqs = generateAutomatedFaqs(pkg);
     
-    // Get related packages (same destination)
-    let relatedPackages: FlightPackage[] = [];
-    try {
-      const allPackages = await storage.getAllFlightPackages();
-      relatedPackages = allPackages.filter((p: FlightPackage) => 
-        p.category?.toLowerCase() === pkg.category?.toLowerCase() &&
-        p.isPublished &&
-        p.slug !== pkg.slug
-      ).slice(0, 3);
-    } catch (e) {
-      // Related packages optional
-    }
-    
-    // Generate FAQ JSON-LD if FAQs exist
-    const faqJsonLd = generateFaqPageJsonLd(faqs);
+    // Generate FAQ JSON-LD
+    const faqJsonLd = generateFaqPageJsonLd(automatedFaqs);
     
     let html = injectIntoHead(template, metaTags + jsonLd + breadcrumbs + faqJsonLd);
     
-    // Build enhanced content fragments
-    const fragments = buildAllFragments(pkg, faqs, relatedPackages);
+    // Build enhanced content fragments including automated FAQs
+    const fragments = buildAllFragments(pkg, automatedFaqs, relatedPackages);
     
     // Build SEO content with proper structure - BEFORE #root, not inside it
     const seoContent = `

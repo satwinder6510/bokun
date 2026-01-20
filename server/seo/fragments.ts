@@ -135,19 +135,106 @@ export interface FaqItem {
   answer: string;
 }
 
+export function generateAutomatedFaqs(pkg: FlightPackage): FaqItem[] {
+  const faqs: FaqItem[] = [];
+  const hotelName = pkg.accommodations?.[0]?.name;
+  const currency = pkg.currency || 'GBP';
+  const price = pkg.price;
+  const priceLabel = pkg.priceLabel || 'per person';
+
+  // 1. Duration FAQ
+  if (pkg.duration) {
+    faqs.push({
+      question: `How long is the ${pkg.title}?`,
+      answer: `The ${pkg.title} duration is ${pkg.duration}.`
+    });
+  }
+
+  // 2. Price FAQ
+  if (price) {
+    const priceText = `${currency === 'GBP' ? '£' : currency}${price} ${priceLabel}`;
+    faqs.push({
+      question: `How much does the ${pkg.title} cost?`,
+      answer: `Prices for the ${pkg.title} start from ${priceText}. Prices are subject to availability and can change based on departure dates.`
+    });
+  }
+
+  // 3. Accommodation FAQ
+  if (hotelName) {
+    faqs.push({
+      question: `Where will I stay during the ${pkg.title}?`,
+      answer: `Accommodation for this holiday is provided at ${hotelName}. Please check the accommodation section for more details.`
+    });
+  }
+
+  // 4. Inclusions FAQ
+  if (pkg.whatsIncluded && pkg.whatsIncluded.length > 0) {
+    faqs.push({
+      question: `What is included in the ${pkg.title} package?`,
+      answer: `The package includes: ${pkg.whatsIncluded.join(', ')}.`
+    });
+  }
+
+  // 5. Insurance FAQ (from otherInfo)
+  if (pkg.otherInfo?.toLowerCase().includes('insurance')) {
+    faqs.push({
+      question: `Is travel insurance included in the ${pkg.title}?`,
+      answer: `Travel insurance is not included. We strongly recommend that you arrange your own comprehensive travel insurance before departure.`
+    });
+  }
+
+  // 6. Exclusions FAQ (from otherInfo or excluded field)
+  const exclusionsText = pkg.excluded || (pkg.otherInfo?.toLowerCase().includes('exclusions') ? pkg.otherInfo : '');
+  if (exclusionsText) {
+    faqs.push({
+      question: `What is not included in the ${pkg.title}?`,
+      answer: `Typically, tips, personal expenses, laundry, and items not mentioned in the inclusions are not included. Please refer to the exclusions section for a full list.`
+    });
+  }
+
+  // 7. Local Taxes FAQ (from otherInfo)
+  if (pkg.otherInfo?.toLowerCase().includes('tax')) {
+    faqs.push({
+      question: `Are there any local taxes to pay for the ${pkg.title}?`,
+      answer: `Local city or tourist taxes may apply and are usually payable directly to the hotel upon arrival or departure.`
+    });
+  }
+
+  // 8. Check-in/out FAQ (from otherInfo)
+  if (pkg.otherInfo?.toLowerCase().includes('check')) {
+    faqs.push({
+      question: `What are the check-in and check-out times for the ${pkg.title}?`,
+      answer: `Standard hotel check-in is typically from 2:00 PM and check-out is by 11:00 AM, though this can vary by hotel.`
+    });
+  }
+
+  // 9. Booking confirmation FAQ
+  faqs.push({
+    question: `How do I receive confirmation for my ${pkg.title} booking?`,
+    answer: `Once your booking is processed and payment is confirmed, you will receive a confirmation email with all your travel documents and vouchers.`
+  });
+
+  // 10. Destination FAQ
+  if (pkg.category) {
+    faqs.push({
+      question: `Where does the ${pkg.title} take place?`,
+      answer: `This holiday package takes you to ${pkg.category}.`
+    });
+  }
+
+  return faqs.slice(0, 10);
+}
+
 export function buildFaqHtml(faqs: FaqItem[]): string {
   if (!faqs || faqs.length === 0) return '';
   
-  const items = faqs.slice(0, 5);
-  if (items.length === 0) return '';
-  
   let html = '<section aria-label="Frequently Asked Questions">\n';
   html += '  <h2>Frequently Asked Questions</h2>\n';
-  for (const faq of items) {
-    html += '  <div>\n';
-    html += `    <h3>${escapeHtml(faq.question)}</h3>\n`;
+  for (const faq of faqs) {
+    html += '  <details>\n';
+    html += `    <summary>${escapeHtml(faq.question)}</summary>\n`;
     html += `    <p>${escapeHtml(stripHtml(faq.answer))}</p>\n`;
-    html += '  </div>\n';
+    html += '  </details>\n';
   }
   html += '</section>\n';
   

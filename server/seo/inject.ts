@@ -217,64 +217,88 @@ export async function injectDestinationSeo(destinationSlug: string, requestPath:
   try {
     const template = await getBaseTemplate();
     
+    // Import destination aggregate helpers
+    const { 
+      buildDestinationAggregate, 
+      generateDestinationFaqs, 
+      buildDestinationGuideHtml,
+      buildDestinationPackageListHtml,
+      buildDestinationBreadcrumbHtml,
+      buildDestinationNoscriptHtml,
+      generateDestinationMetaFallback,
+      generateEnhancedDestinationJsonLd,
+      generateDestinationItemListJsonLd
+    } = await import('./destinationAggregate');
+    
     const packages = await storage.getAllFlightPackages();
-    const destinationPackages = packages.filter((p: FlightPackage) => 
-      p.category?.toLowerCase() === destinationSlug.toLowerCase() ||
-      p.category?.toLowerCase().replace(/\s+/g, '-') === destinationSlug.toLowerCase()
-    );
+    const agg = buildDestinationAggregate(packages, destinationSlug);
     
-    const destinationName = destinationPackages[0]?.category || 
-      destinationSlug.charAt(0).toUpperCase() + destinationSlug.slice(1).replace(/-/g, ' ');
+    if (agg.packageCount === 0) {
+      return { html: template, fromCache: false, error: 'No packages found for destination' };
+    }
     
-    const destinationImage = destinationPackages[0]?.featuredImage;
+    const destinationImage = agg.featuredPackages[0]?.featuredImage;
     
+    // Generate inventory-based meta tags
+    const metaFallback = generateDestinationMetaFallback(agg);
     const metaTags = generateDestinationMeta({
-      name: destinationName,
-      description: `Explore our ${destinationPackages.length} holiday packages to ${destinationName}. Book your perfect getaway with Flights and Packages.`,
+      name: agg.destinationName,
+      description: metaFallback.description,
       image: destinationImage || undefined,
-      packageCount: destinationPackages.length
+      packageCount: agg.packageCount
     }, requestPath);
     
-    const jsonLd = generateDestinationJsonLd({
-      name: destinationName,
-      description: `Holiday packages to ${destinationName}`,
-      image: destinationImage || undefined,
-      packageCount: destinationPackages.length
-    }, requestPath);
+    // Generate enhanced TouristDestination JSON-LD with inventory-based description
+    const enhancedDestinationJsonLd = generateEnhancedDestinationJsonLd(agg, requestPath);
+    const destinationJsonLdScript = `<script type="application/ld+json">${JSON.stringify(enhancedDestinationJsonLd)}</script>`;
     
     const breadcrumbs = generateBreadcrumbJsonLd([
       { name: 'Home', url: CANONICAL_HOST },
       { name: 'Destinations', url: `${CANONICAL_HOST}/destinations` },
-      { name: destinationName, url: getCanonicalUrl(requestPath) }
+      { name: agg.destinationName, url: getCanonicalUrl(requestPath) }
     ]);
     
-    let html = injectIntoHead(template, metaTags + jsonLd + breadcrumbs);
+    // Generate FAQs from inventory data
+    const faqs = generateDestinationFaqs(agg);
+    const faqJsonLd = generateFaqPageJsonLd(faqs);
     
-    // Build SEO content with internal links for crawl depth
-    const packageLinks = destinationPackages.slice(0, 10).map((p: FlightPackage) => 
-      `<li><a href="${CANONICAL_HOST}/Holidays/${destinationSlug.toLowerCase()}/${p.slug}">${p.title}</a> - From £${p.price || 'TBC'}</li>`
-    ).join('\n      ');
+    // Generate ItemList JSON-LD for featured packages
+    const itemListJsonLd = generateDestinationItemListJsonLd(agg);
+    const itemListJsonLdScript = `<script type="application/ld+json">${JSON.stringify(itemListJsonLd)}</script>`;
+    
+    let html = injectIntoHead(template, metaTags + destinationJsonLdScript + breadcrumbs + faqJsonLd + itemListJsonLdScript);
+    
+    // Build comprehensive guide content for #seo-content
+    const guideHtml = buildDestinationGuideHtml(agg, faqs);
+    const packageListHtml = buildDestinationPackageListHtml(agg);
+    const breadcrumbHtml = buildDestinationBreadcrumbHtml(agg);
     
     const seoContent = `
 <article itemscope itemtype="https://schema.org/TouristDestination">
-  <h1 itemprop="name">${destinationName} Holidays</h1>
-  <p itemprop="description">Explore our ${destinationPackages.length} holiday packages to ${destinationName}. Discover amazing tours, experiences, and adventures with Flights and Packages.</p>
-  <section aria-label="Available Packages">
-    <h2>Holiday Packages to ${destinationName}</h2>
-    <ul>
-      ${packageLinks}
-    </ul>
-  </section>
-  <nav aria-label="Breadcrumb">
-    <ol>
-      <li><a href="${CANONICAL_HOST}/">Home</a></li>
-      <li><a href="${CANONICAL_HOST}/destinations">Destinations</a></li>
-      <li>${destinationName}</li>
-    </ol>
-  </nav>
+  <h1 itemprop="name">${agg.destinationName} Holidays</h1>
+${guideHtml}
+${packageListHtml}
+${breadcrumbHtml}
 </article>
 `;
-    html = injectSeoContentBeforeRoot(html, seoContent);
+    
+    // Build shorter noscript content
+    const noscriptContent = buildDestinationNoscriptHtml(agg);
+    
+    // Insert SEO content BEFORE #root with separate noscript
+    const seoContainer = `
+<!-- SEO Content - Visible to crawlers, hidden from users -->
+<div id="seo-content" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+${seoContent}
+</div>
+<noscript>
+<div id="noscript-content">
+${noscriptContent}
+</div>
+</noscript>
+`;
+    
+    html = html.replace('<div id="root"></div>', `${seoContainer}\n    <div id="root"></div>`);
     
     setCache(cacheKey, html);
     return { html, fromCache: false };

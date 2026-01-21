@@ -1,0 +1,357 @@
+{
+  "_links": {
+    "first": {
+      "href": "https://www.widgety.co.uk/api/operators.json?app_id=[api_key]&limit=2&page=1&token=[token]"
+    },
+    "previous": null,
+    "self": {
+      "href": "https://www.widgety.co.uk/api/operators.json?app_id=[api_key]&limit=2&page=1&token=[token]"
+    },
+    "next": {
+      "href": "https://www.widgety.co.uk/api/operators.json?app_id=[api_key]&limit=2&page=2&token=[token]"
+    },
+    "last": {
+      "href": "https://www.widgety.co.uk/api/operators.json?app_id=[api_key]&limit=2&page=44&token=[token]"
+    }
+  },
+  "count": 2,
+  "total": 88,
+  "operators": [
+    {
+      "attachments": [
+        {
+          "name": "Ama Waterways The Secrets Of Egypt & The Nile 2022 2023",
+          "href": "https://widgety-assets.s3.amazonaws.com/2022/08/03/11/12/37/a9c5f1de-3152-48af-96bb-149d1fb75a5e/AmaWaterways The Secrets of Egypt & The Nile 2022-2023.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2022/08/03/18/09/08/89984d47-31e1-4632-8789-aa2c8ee99a56/AmaWaterways The Secrets of Egypt & The Nile 2022-2023.png"
+        },
+        {
+          "name": "Ama Waterways Exotics Brochure 2023   2024",
+          "href": "https://widgety-assets.s3.amazonaws.com/2023/08/07/19/03/54/13476a9d-467b-443e-8815-68c6c766d9d6/AmaWaterways Exotics Brochure 2023 - 2024.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2023/08/17/05/21/40/d7c9a6d0-7d4a-4a28-98fc-6d918e6f9866/AmaWaterways Exotics Brochure 2023 - 2024.png"
+        },
+        {
+          "name": "Ama Waterways 2023 Brochure",
+          "href": "https://widgety-assets.s3.amazonaws.com/2023/08/07/19/07/14/46b4be70-c8f7-4074-b364-933f9c1c9260/AmaWaterways 2023 Brochure.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2023/08/17/05/21/41/72bcf983-2447-486f-89c7-456687742f22/AmaWaterways 2023 Brochure.png"
+        },
+        {
+          "name": "Ama Waterways   2024 Brochure",
+          "href": "https://widgety-assets.s3.amazonaws.com/2023/08/29/16/44/49/c648450f-dfc2-4b43-bb76-713b57bfb817/AmaWaterways - 2024 Brochure.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2023/09/03/11/52/39/abd164fd-6391-47de-8426-5e99e05ffed9/AmaWaterways - 2024 Brochure.png"
+        }
+      ],
+      "brochures": [
+        {
+          "name": "Ama Waterways The Secrets Of Egypt & The Nile 2022 2023",
+          "href": "https://widgety-assets.s3.amazonaws.com/2022/08/03/11/12/37/a9c5f1de-3152-48af-96bb-149d1fb75a5e/AmaWaterways The Secrets of Egypt & The Nile 2022-2023.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2022/08/03/18/09/08/89984d47-31e1-4632-8789-aa2c8ee99a56/AmaWaterways The Secrets of Egypt & The Nile 2022-2023.png"
+        },
+        {
+          "name": "Ama Waterways Exotics Brochure 2023   2024",
+          "href": "https://widgety-assets.s3.amazonaws.com/2023/08/07/19/03/54/13476a9d-467b-443e-8815-68c6c766d9d6/AmaWaterways Exotics Brochure 2023 - 2024.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2023/08/17/05/21/40/d7c9a6d0-7d4a-4a28-98fc-6d918e6f9866/AmaWaterways Exotics Brochure 2023 - 2024.png"
+        },
+        {
+          "name": "Ama Waterways 2023 Brochure",
+          "href": "https://widgety-assets.s3.amazonaws.com/2023/08/07/19/07/14/46b4be70-c8f7-4074-b364-933f9c1c9260/AmaWaterways 2023 Brochure.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2023/08/17/05/21/41/72bcf983-2447-486f-89c7-456687742f22/AmaWaterways 2023 Brochure.png"
+        },
+        {
+          "name": "Ama Waterways   2024 Brochure",
+          "href": "https://widgety-assets.s3.amazonaws.com/2023/08/29/16/44/49/c648450f-dfc2-4b43-bb76-713b57bfb817/AmaWaterways - 2024 Brochure.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2023/09/03/11/52/39/abd164fd-6391-47de-8426-5e99e05ffed9/AmaWaterways - 2024 Brochure.png"
+        }
+      ],
+      "description": "<p>Proudly celebrating 20 years on the river, family-owned and operated AmaWaterways was founded in 2002 by three families; however, our river cruise story began well before that. Co-Founder and President Rudi Schreiner was born in Vienna, at the heart of the Danube. His love of design drew him to architecture, but his even greater love of travel drew him to places far and wide. In 1975, he traveled to South America for a journalism assignment on the Amazon. It was here he designed his first ship, using what he could find to build a raft that would take him up and down the river during the next 7 months. Soon thereafter, he started working in travel, creating unique tour experiences in Europe.</p>",
+      "unique_text": "<p>For 20 wonderful years, our global AmaWaterways family has been guided by our Co-Founder and Executive Vice President Kristin Karst’s “Five P’s” – what have since become the foundation of our core values. You can rest assured that our passionate shoreside staff and crew will always take care of you throughout every step of your journey because we live and breathe each of the values listed below.</p><p><strong>PASSION</strong></p><p>“Ama” means love – and we put love in everything we do. We believe wholeheartedly that if you love what you do, you won’t work a day in your life. Each and every day for the past two decades, we have brought passion into our journeys with AmaWaterways and we always go above and beyond to ensure our guests have a memorable experience.</p><p><strong>POSITIVITY</strong></p><p>We are dedicated to making a positive impact on the world through our commitments to celebrating diversity, giving back to local communities and reducing our impact on the environment. Whether it’s learning about new cultures, supporting local economies or striving to reduce paper waste and eliminate single-use plastics on board and ashore, we believe that, together, we can make the world a more positive place – one river at a time.</p><p><strong>PERSONAL INTERACTION</strong></p><p>Personal connection has been a fundamental value of our company since the very beginning and is the primary reason guests return to river cruise with us year after year. Our staff and crew are very passionate about getting to know both our guests and travel partners and strive to give you the very best personalized experience from the moment you book to the moment you disembark – and even after you’ve returned home.</p><p><strong>PARTNERSHIP</strong></p><p>One of our company mottos is: “Be extraordinary – together.” We are all a part of the same AmaWaterways family and our success depends on working closely with our travel partners, our shoreside colleagues and onboard crews all around the globe. Our willingness to collaborate and work together as a unified team – a family – is key to our continued success.</p><p><strong>PIONEER SPIRIT</strong></p><p>From the beginning, we have always been pioneers in the industry – and continuously create new innovations to enhance our guests’ river cruising experience. Whether it’s seeking out off-the-beaten-path destinations, offering exclusive excursions or providing new wellness activities and special packages on board, you can trust that AmaWaterways is always at the pulse of travel trends and innovates with your best interests at heart.</p>",
+      "reasons_to_book": "<p><strong>The Heart of the River</strong></p><p>Celebrating 20 incredible years on the world’s rivers, our family-owned and operated company has remained focused on what we do best: providing our guests with innovative and unforgettable travel experiences. Our visionary leaders were the pioneers of modern luxury river cruising and have received numerous prestigious awards and accolades. However, we are most fulfilled by the positive feedback we receive from our guests, whom we have always considered a part of our family. Join us, stay awhile and discover Europe, Asia or Africa with us – one river at a time.</p><p><strong>Your Trusted Source</strong></p><p>To ensure your safety and satisfaction every step of the way throughout your journey, consider making all your future travel plans in one step. Our concierge services allow you to reserve your flights with convenient transfers between the ship and airport, add land packages or extra hotel nights before or after your sailing, and cruise with confidence by adding a Cruise Protection Plan to your reservation as well as our Travel Waiver Plus. No need to call and research multiple providers – just contact your preferred travel advisor and we’ve got you covered.</p><p><strong>Unpack Once: A Seamless Experience</strong></p><p>Step aboard and unpack once, traveling between grand capitals and charming villages alike, without the need for multiple hotels or forms of transportation. On one of our unforgettable river cruises, every day is a “see” day rather than a “sea” day because we sail through the very heart of each destination where castles were built and kings and queens were crowned. Your ship docks in close proximity to city centers, and with our quick and easy embarkation and disembarkation, you can step right off the ship and explore.</p><p><strong>The Luxury of Space</strong></p><p>Our intimate, contemporary ships offer the luxury of personal space yet accommodate an average of approximately 156 guests, less than on many traditional river cruise ships. Spacious and uncrowded, our award-winning fleet offers elegantly-appointed staterooms and suites with such welcoming amenities as our signature view-enhancing twin balconies. In 2019, our innovative AmaMagna was recognized by TIME magazine as one of the World’s Greatest Places, offering enhanced personal space with more than 50% luxury suite accommodations as well as four unique dining venues, a chic onboard cinema and an expansive Zen Wellness Studio. In 2021, we welcomed two new ships in Europe, AmaSiena and AmaLucia, as well as the stunning newly designed AmaDahlia, which sails on Egypt’s Nile River.</p><p><strong>Innovation and Sustainability</strong></p><p>A leader in the industry, we continuously innovate to enhance the guest experience. In addition to our twin-balcony staterooms, we were the first river cruise line to offer a fleet of complimentary bikes, a fleetwide wellness program and The Chef’s Table specialty restaurant – all of which are included in the cruise fare. Innovating with the environment in mind is also extremely important to us. In fact, 20 of our ships in Europe have earned the prestigious Green Award certification for their industry-leading safety, quality and environmental performance – including our most innovative ship to date, the AmaMagna.</p><p><strong>Double Your Leisure Time</strong></p><p>Your ship is a means of luxury transportation from destination to destination. The slower pace of river cruising means you have more free time in port and can step right off into the heart of the city and explore. When you’re ready to rejoin the ship, take a dip in the sun-deck pool or whirlpool, participate in one of our wellness activities, relax with a soothing massage or simply watch the scenery go by with a glass of wine in hand – the choice is yours.</p><p><strong>Unparalleled Personalised Service</strong></p><p>You’ll be warmly welcomed on board by AmaWaterways’ professionally trained crew, who always go above and beyond so you have a memorable experience. From greeting you by name to remembering your unique dietary preferences, our crew is more than just highly trained, they “sparkle.” They are taking every recommended preventive measure into account on board as well as intensifying our normal very high standards of hygiene – because your health and safety are our top priority.</p><p><strong>Extraordinary Cruise Managers</strong></p><p>AmaWaterways’ extraordinarily friendly and knowledgeable Cruise Managers are the best in the industry, destination experts with extensive experience in providing exceptional levels of personalized service. Warm-hearted, genuine and knowledgeable, they are there for you every step of the way, throughout your entire journey, including during our optional land packages before and after your sailing – unique to AmaWaterways.</p><p><strong>A Variety of Included Excursions</strong></p><p>AmaWaterways has curated a diverse menu of shore excursions, with a variety of choices each day. Walking tours for gentle, regular and active guests as well as guided hikes and bike rides are operated in small groups of just 15-20 guests. We also offer immersive culinary-themed Special Interest Tours such as cooking demonstrations and tastings. As AmaWaterways often docks just steps from the heart of the city, you may also explore many destinations on your own on foot or by bike.</p><p><strong>Enhance Your Best Self</strong></p><p><em>“As a passionate advocate of living a healthy lifestyle, I am always looking for new opportunities to ensure our guests can extend their own healthy lifestyles while vacationing with AmaWaterways – whether it’s through active hiking and biking adventures, healthy locally-sourced cuisine or our popular wellness activities available fleetwide.”</em> – Kristin Karst, Co-Founder and Executive Vice President</p><p>AmaWaterways was the first river cruise line to offer a dedicated Wellness Host on board leading complimentary small-group fitness classes. For a gentler approach to wellness, we invite you to take a dip in the sun-deck pool or whirlpool or indulge in a spa treatment. Healthy cuisine prepared with fresh seasonal ingredients is always available as are vegetarian, gluten-free and low-sodium choices.</p><p><strong>Award-Winning Included Dining Experiences</strong></p><p>As a member of the internationally recognized La Chaîne des Rôtisseurs and with our Culinary Director a member of the prestigious French association Tables et Auberges de France, AmaWaterways prepares exquisite, regionally-inspired cuisine at every meal paired with complimentary hand-selected wines with every lunch and dinner. All meals are included in your river cruise fare – at both the Main Restaurant and at The Chef’s Table specialty restaurant where a delicious multi-course menu awaits. AmaMagna also offers our new Al Fresco Restaurant and Jimmy’s Wine Bar &amp; Restaurant for a total of four unique dining experiences. No matter where you dine, our crew takes great care to personalize your dining experience.</p><p><strong>Stay Connected</strong></p><p>Whether you wish to keep in close contact with loved ones back home, stay in touch with the office, keep abreast of the latest news or all three, we provide high-quality complimentary Wi-Fi on board throughout our fleet. In addition, our easy-to-use downloadable myAmaCruise app allows you view and share an interactive map that follows your river cruise itinerary, share photos with friends and family, learn about each port of call, find available excursions and even access your electronic Travel Documents.</p><p><strong>River Cruise with Confidence</strong></p><p>The world has changed, and we understand how important it is for you to have peace of mind for your future travel plans. We want to reassure you that we are working with global health authorities and local governments in the U.S. and around the world to follow all the most up-to-date health and safety protocols for both our guests and crew - before you embark, on board and during your excursions ashore. In addition, we encourage you to safeguard your vacation plans by adding our newly enhanced Travel Waiver Plus to your reservation, which allows you to cancel for any reason.</p>",
+      "members_club": "<h3><strong>BLUE</strong></h3><h3><u>2nd Cruise</u></h3><ul><li>£70 Per Person Discount on Cruise Price</li><li>AMAWATERWAYS Privilege Guest Reception</li></ul><h3><strong>SILVER</strong></h3><h3><u>3rd Cruise</u></h3><ul><li>£70 Per Person Discount on Cruise Price</li><li>AMAWATERWAYS Privilege Guest Reception</li><li>Complimentary Welcome Amenity</li><li>Complimentary Airport Transfers</li><li>£70 Per Person Discount on a 1-Category Upgrade</li></ul><h3><strong>GOLD</strong></h3><h3><u>4th (or more) Cruise</u></h3><ul><li>£70 Per Person Discount on Cruise Price</li><li>AMAWATERWAYS Privilege Guest Reception</li><li>Complimentary Welcome Amenity</li><li>Complimentary Airport Transfers</li><li>£70 Per Person Discount on a 1-Category Upgrade</li><li>Complimentary 1-Category Upgrade</li></ul><p><br></p><p><strong>EXCLUSIVE LOYALTY CRUISES</strong></p><p>Whether you’ve sailed with us just once or several times, we invite you to join us on one of our exclusive Loyalty Appreciation Cruises. See upcoming departures and special offers that are available to you as an esteemed member of our AmaFamily <a href=\"https://www.amawaterways.co.uk/Loyalty/2021\" rel=\"noopener noreferrer\" target=\"_blank\">here</a>.</p><p><strong>GIVE A GIFT, GET A GIFT</strong></p><p>As a special thank you to our loyal past guests, each new stateroom reserved by a guest as a result of your referral* will earn you both $100 per stateroom savings on your next river cruise and your referral's first cruise with AmaWaterways.</p>",
+      "twitter_url": "https://twitter.com/AmaWaterways",
+      "facebook_url": "https://www.facebook.com/AmaWaterways",
+      "website_url": "www.amawaterways.co.uk/",
+      "title": "AmaWaterways",
+      "video_url": "https://www.youtube.com/watch?v=b2szXr0bXUM",
+      "profile_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/15/06/22/28/8a5d7613-8c52-4a52-b6f7-016017fedb95/AmaWaterways Gold Logo.jpg",
+      "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2023/08/30/09/44/26/310f5c2a-1b42-492a-837f-7bcf4ea3f846/Zambezi Queen, Exterior.jpg",
+      "href": "https://www.widgety.co.uk/api/operators/amawaterways.json",
+      "html_href": "https://www.widgety.co.uk/operators/amawaterways",
+      "id": "amawaterways",
+      "holidays": [],
+      "ships": [
+        {
+          "name": "AmaDouro",
+          "id": "amadouro",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/16/09/54/11/70b5443a-0508-4a9a-ab5c-fbac3aaef666/AmaWaterways AmaDouro Ship Image LOW RES.png"
+        },
+        {
+          "name": "AmaMagna",
+          "id": "amamagna",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/18/07/08/09/dbc97f78-7992-405d-9afd-e52a257e2136/AmaWaterways AmaMagna_Passau_Germany.jpg"
+        },
+        {
+          "name": "Zambezi Queen",
+          "id": "zambezi-queen",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2015/04/27/09/48/30/644/AmaWaterways_Zambezi_Queen_Exterior.jpg"
+        },
+        {
+          "name": "AmaMora",
+          "id": "amamora",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/02/10/11/54/04/dee86760-9ef5-4eb2-b7f1-cd5ea1c378ef/AmaWaterways River Cruises - AmaMora - Exterior.jpg"
+        },
+        {
+          "name": "AmaViola",
+          "id": "amaviola",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/24/07/48/33/671b9703-5a1f-4e7e-bd1d-4ee2bcd229a5/AmaWaterways AmaViola Exterior.png"
+        },
+        {
+          "name": "AmaKristina",
+          "id": "amakristina",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/23/11/08/19/f4511975-7541-440b-8b70-3b0e6c2cb3f6/AmaWaterways AmaKristina Exterior.jpg"
+        },
+        {
+          "name": "AmaPrima",
+          "id": "amaprima-ship",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/24/10/24/30/ef4d5766-4041-4603-845d-e1e4ba1ec06f/AmaWaterways PRIMA_Moselle_fromBikePath.jpg"
+        },
+        {
+          "name": "AmaSonata",
+          "id": "amasonata-ship",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/25/07/13/44/d05c38b8-43bb-4d3b-bb28-e9edadec3c46/AmaWaterways AmaSonata copy.jpg"
+        },
+        {
+          "name": "AmaLyra",
+          "id": "amalyra",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/29/06/34/47/85d6b1fd-af30-451d-a0ab-effdde339e0f/AmaWaterways AmaLyra.jpg"
+        },
+        {
+          "name": "AmaVida",
+          "id": "amavida",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2015/04/27/09/56/17/847/AmaWaterways_AmaVida_Exterior.jpg"
+        },
+        {
+          "name": "AmaSiena",
+          "id": "amasiena",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/02/11/06/32/40/72d7224f-688a-4263-9543-6e7522fd916a/AmaWaterways River Cruise - AmaSiena - Exterior.jpg"
+        },
+        {
+          "name": "AmaDara",
+          "id": "amadara",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2016/03/08/11/29/39/749/AmaWaterways_AmaDara_AmaDara_Exterior.jpg"
+        },
+        {
+          "name": "AmaReina",
+          "id": "amareina",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2018/10/22/10/03/18/80252e1a-600b-449c-bbf7-4ccc7206d059/AmaReina.jpg"
+        },
+        {
+          "name": "AmaSintra",
+          "id": "amasintra",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/10/20/08/08/28/006b620c-4214-4dd0-8fa8-75ec682e9eef/image coming soon image not available.jpg"
+        },
+        {
+          "name": "AmaDante",
+          "id": "amadante-ship",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2015/09/18/10/00/49/749/AmaWaterways_AmaDante_Exterior_1.jpg"
+        },
+        {
+          "name": "AmaVerde",
+          "id": "amaverde",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/28/07/05/36/f66b4d84-3a71-4155-bf11-c15f3d9afc2c/AmaWaterways AmaVerde.jpg"
+        },
+        {
+          "name": "AmaCello",
+          "id": "amacello",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2018/11/07/12/21/40/d6112ce7-2353-42d1-8291-e760bf1345c8/AmaCello sailing on the Saone passing old Lyon_MXL0726.jpg"
+        },
+        {
+          "name": "AmaBella",
+          "id": "amabella-ship",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/24/09/03/39/5b1e3c8f-eb87-4208-a966-4cc35dd8a511/AmaWaterways AmaBella Exterior.jpg"
+        },
+        {
+          "name": "AmaLea",
+          "id": "amalea",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/18/08/38/10/ef8a1b52-d7ef-4620-a1a9-8a9d613f33e0/AmaWaterways LEA_exterior.jpg"
+        },
+        {
+          "name": "AmaCerto",
+          "id": "amacerto-ship",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2018/11/07/12/23/06/fe69017d-76dd-4bd3-9b2b-e10d221e7d0b/AmaCerto.jpg"
+        },
+        {
+          "name": "AmaVenita",
+          "id": "amavenita",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/23/07/55/43/a1c05be0-8cb3-444a-bcdc-0ef92dc2bd0f/AmaWaterways AmaVenita Exterior.jpg"
+        },
+        {
+          "name": "AmaLilia",
+          "id": "amalilia",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/15/06/48/46/758cc624-7bae-4f49-9940-a478b37832c0/AmaWaterways AmaLilia RENDERING.png"
+        },
+        {
+          "name": "AmaDahlia",
+          "id": "amadahlia",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/10/04/07/55/46/a79362d2-3a5c-4369-a901-00dae178b5cf/AmaWaterways AmaDahlia Exterior.jpeg"
+        },
+        {
+          "name": "AmaLucia",
+          "id": "amalucia",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/16/10/32/17/70378f9c-c028-42d6-bf71-313dca88abd6/AmaWaterways AmaLucia Exterior.png"
+        },
+        {
+          "name": "AmaMagdalena",
+          "id": "amamagdalena",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2023/03/09/08/40/56/9fa09b72-fa42-49ff-b8c4-3be3b2af9c24/AmaWaterways AmaMagdalena Rendering.png"
+        },
+        {
+          "name": "AmaStella",
+          "id": "amastella",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/11/28/07/42/38/628a91f9-d954-4b6a-a99a-631649f42074/AmaWaterways AmaStella cropped.jpg"
+        },
+        {
+          "name": "AmaDolce",
+          "id": "amadolce-ship",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2015/09/18/10/00/52/740/AmaWaterways_AmaDolce_Exterior_2.jpg"
+        },
+        {
+          "name": "AmaSerena",
+          "id": "amaserena",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2016/03/14/09/50/37/965/AmaWaterways_AmaSerena_Exterior.jpg"
+        },
+        {
+          "name": "AmaMelodia",
+          "id": "amamelodia-9a5bb339-4595-49cf-a491-60465ec61577",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2023/03/09/07/43/15/fdafdb2f-c834-448d-9982-c057ddfc16f4/AmaWaterways AmaMelodia Rendering.png"
+        }
+      ]
+    },
+    {
+      "attachments": [
+        {
+          "name": "American Cruise Lines   Complimentary 2023  2024 Cruise Guide",
+          "href": "https://widgety-assets.s3.amazonaws.com/2022/11/18/12/44/01/f3e1fc33-2dc5-4ecf-8c55-9b2dd65765c1/American Cruise Lines, Complimentary 2023- 2024 Cruise Guide 2023-2024.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2023/01/06/14/52/20/a71bbdf3-f487-415d-98f9-01c7dee5e004/American Cruise Lines, Complimentary 2023- 2024 Cruise Guide 2023-2024.png"
+        }
+      ],
+      "brochures": [
+        {
+          "name": "American Cruise Lines   Complimentary 2023  2024 Cruise Guide",
+          "href": "https://widgety-assets.s3.amazonaws.com/2022/11/18/12/44/01/f3e1fc33-2dc5-4ecf-8c55-9b2dd65765c1/American Cruise Lines, Complimentary 2023- 2024 Cruise Guide 2023-2024.pdf",
+          "thumbnail": "https://widgety-assets.s3.amazonaws.com/2023/01/06/14/52/20/a71bbdf3-f487-415d-98f9-01c7dee5e004/American Cruise Lines, Complimentary 2023- 2024 Cruise Guide 2023-2024.png"
+        }
+      ],
+      "description": "<p>Enjoy the intimate, comfortable, and fulfilling experience of small ship river cruising aboard the newest fleet of cruise ships in the world. American Cruise Lines brings you to the greatest destinations along the inland waterways and rivers of the East Coast, Pacific Northwest, Mississippi and Alaska.&nbsp;</p><p>Their modern fleet of ships offer a unique, personal voyage through America's historic waterways. With no more than 150 passengers onboard, their ships provide spacious accommodations and smooth travel through the protected waterways, sheltered harbours, and magnificent rivers of the United States of America.</p>",
+      "unique_text": "<p>American Cruise Lines offers the finest U.S. River Cruises available. You can choose from a variety of riverboat cruise options to find the one that’s right for you.</p><p><strong>Enrichment</strong></p><p>As we travel along America’s legendary rivers, we provide our guests with an elevated cruise experience, through immersive cultural exploration, well-designed enrichment programs on board and ashore, and all the comforts that come with cruising on the newest fleet in the country.</p><p><strong>American Riverboats</strong></p><p>Our brand new series of American riverboats, including American Song, American Symphony, American Melody, American Serenade, American Harmony, and American Jazz, showcases contemporary styling and gracious amenities that bring river cruising to a new level of sophistication. Featured on each are private balconies in every stateroom, a central multi-story glass atrium, and spectacular views from everywhere on the ship.</p><p><strong>Newest Fleet of Paddlewheelers</strong></p><p>If a Victorian-style riverboat is more your style, get on board American Splendor, American Pride, American Heritage, or American West. Enjoy the nostalgia and romance of an authentic paddlewheeler, while experiencing all of the modern amenities and conveniences of a new ship.</p>",
+      "reasons_to_book": "<p><strong>The Riverboat Experience</strong></p><p>Riverboats are inherently smaller with fewer guests onboard, making for a more intimate and personalised travel experience. Guests often make lasting friendships with other travellers and may even book future river cruises together.</p><p><strong>The Crew Connection</strong></p><p>The crew and onboard experts also become well-acquainted with guests and can cater to individual tastes and requests. It’s not uncommon that the crew knows each guest by name and that onboard historians share a meal with guests.</p><p><strong>Land and Sea</strong></p><p>Unlike cruising on the open ocean, the riverboat journey is a smooth one, with land never far out of sight and beautiful landscapes nearly close enough to touch. A riverboat is able to dock in the heart of destinations inaccessible to large cruise ships, resulting in an up-close exploration of the small towns and unique cities that define America.</p>",
+      "members_club": "<p><strong>The Eagle Society Loyalty Program</strong></p><p>Created to reward and recognise their most loyal guests, members receive special benefits, unique offers and enhanced personalised service.</p><p>Benefits include:</p><ul><li>Special savings, cruises and promotions only available to Eagle Society members</li><li>Access to the Eagle Society Referral Program –&nbsp;American Cruise Lines offers a $500 courtesy savings per stateroom for every friend a member refers that reserves a cruise with them.&nbsp;If cruising together, the referral will be automatically upgraded to Eagle Society status on their first cruise</li><li>Eagle Society luggage tags and name tags</li><li>Special gifts waiting onboard your next cruise</li><li>Complimentary tour of the bridge and the galley including a meet-and-greet with the ship's Captain</li><li>Hometown VIP Access –&nbsp;When a ship is in port near a member's hometown, American Cruise Lines extends an invitation to come aboard for lunch or dinner</li><li>An invitation to non-guest friends and family onboard for visits and dining</li><li>Complimentary Premium shore excursions after 3 cruises</li><li>After you cruise 10 times, your 11th cruise will be free</li></ul>",
+      "twitter_url": "https://twitter.com/American_Cruise",
+      "facebook_url": "https://www.facebook.com/americancruiselines",
+      "website_url": "http://www.americancruiselines.com/",
+      "title": "American Cruise Lines",
+      "video_url": "https://www.youtube.com/watch?v=jDJXQVg2zko",
+      "profile_image_href": "https://widgety-assets.s3.amazonaws.com/2014/11/12/16/05/26/984/american_cruise_lines_logo.jpg",
+      "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2014/11/12/16/05/26/678/american_cruise_lines_queen_of_the_mississippi.jpg",
+      "href": "https://www.widgety.co.uk/api/operators/american-cruise-lines.json",
+      "html_href": "https://www.widgety.co.uk/operators/american-cruise-lines",
+      "id": "american-cruise-lines",
+      "holidays": [],
+      "ships": [
+        {
+          "name": "American Legend",
+          "id": "american-legend",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2023/10/09/11/44/34/5a80bc61-3431-453e-9d5d-5c9f09ebf956/American Legend - Exterior.jpg"
+        },
+        {
+          "name": "American Liberty",
+          "id": "american-liberty",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2023/03/13/14/26/45/2119c0a2-8e27-40e7-88f9-8f3bf472ef8a/American Cruise Lines American Liberty Exterior.jpg"
+        },
+        {
+          "name": "American Heritage",
+          "id": "american-eagle",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/03/03/15/24/49/e79b4505-5cbe-41a8-bc91-766b2d58a033/American Cruise Lines American Heritage Exterior.jpg"
+        },
+        {
+          "name": "American Spirit",
+          "id": "american-spirit",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/10/16/08/18/32/1d054839-32ce-4152-8840-c3bdfbe7a9c2/American Cruise Lines - American Spirit - Exterior.jpg"
+        },
+        {
+          "name": "American Star",
+          "id": "american-star",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/10/16/08/43/05/706db1f0-ac5a-46cb-b1ee-ebd59578fcd7/American Cruise Lines - American Star - Exterior.jpg"
+        },
+        {
+          "name": "American Independence",
+          "id": "independence",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/03/03/15/12/08/6de22181-a36c-47eb-a9f1-0cea72ca596c/American Cruise Lines American Independence.jpg"
+        },
+        {
+          "name": "American Pride",
+          "id": "queen-of-the-mississippi",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2016/12/13/14/48/28/53/American_Cruise_Lines_American_Pride_Exterior.jpg"
+        },
+        {
+          "name": "American West",
+          "id": "queen-of-the-west",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/10/16/04/12/09/bca34f2d-e083-40b1-ae4e-88ca3ead547c/American Cruise Lines - Queen of the West - Exterior.jpg"
+        },
+        {
+          "name": "American Splendor",
+          "id": "america",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/03/03/14/15/54/dcfb322d-ce6e-4231-9549-bab8b0e3bb1e/American Cruise Lines American Splendor.jpg"
+        },
+        {
+          "name": "American Constellation",
+          "id": "american-constellation",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/10/16/04/23/45/8e1a544e-bed0-4c6a-b396-7bf004251932/American Cruise Lines - American Constellation - Exterior.jpg"
+        },
+        {
+          "name": "American Jazz",
+          "id": "american-jazz",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2019/08/09/16/03/43/0e8b192d-b6f1-4fa7-94cd-115dfe51c686/American Cruise Lines American Jazz Cover.jpg"
+        },
+        {
+          "name": "American Melody",
+          "id": "american-melody",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/10/13/06/58/38/70d01724-03f5-4e30-a204-033e139b7388/American Cruise Lines - American Melody - Exterior rendering.jpg"
+        },
+        {
+          "name": "American Symphony",
+          "id": "american-symphony",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2021/07/05/17/05/05/af968267-4194-4647-91b4-466351d724c1/American Cruise Lines American Symphony Exterior.jpg"
+        },
+        {
+          "name": "American Serenade",
+          "id": "american-serenade",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2021/07/05/17/05/05/af968267-4194-4647-91b4-466351d724c1/American Cruise Lines American Symphony Exterior.jpg"
+        },
+        {
+          "name": "American Eagle",
+          "id": "american-eagle-ship",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/03/18/12/01/11/32c71bce-0cdc-4fc6-8d8f-d677e7cafacc/American Cruise Lines American Eagle Exterior.jpg"
+        },
+        {
+          "name": "American Harmony",
+          "id": "american-harmony",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2020/10/14/08/05/52/f8020598-ba92-4d65-89c9-bd5a166c07a5/American Cruise Lines - American Harmony - Exterior.jpg"
+        },
+        {
+          "name": "American Song",
+          "id": "american-song",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2019/08/12/15/01/01/59680623-985b-480b-b7e5-c29ae6dbb5ab/American Cruise Lines American Song Cover.jpg"
+        },
+        {
+          "name": "American Constitution",
+          "id": "american-constitution",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2019/08/09/12/26/26/9ee0a5bf-4652-4a8e-9aaa-c9d03fdc24e0/American Cruise Lines American Constitution Cover Image.jpg"
+        },
+        {
+          "name": "American Glory",
+          "id": "american-glory",
+          "cover_image_href": "https://widgety-assets.s3.amazonaws.com/2022/03/18/09/37/35/37634266-e5d4-46f2-a8cf-916a088152f5/American Cruises Line American Glory Exterior.jpg"
+        }
+      ]
+    }
+  ]
+}

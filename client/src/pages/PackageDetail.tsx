@@ -496,6 +496,7 @@ export default function PackageDetail() {
   const [selectedAirport, setSelectedAirport] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
+  const [showStickyBar, setShowStickyBar] = useState(false);
   
   // Embla carousel for gallery
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
@@ -774,6 +775,18 @@ export default function PackageDetail() {
       }));
     }
   }, [selectedDate]);
+
+  // Show sticky CTA bar after scrolling past hero section (mobile only)
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const threshold = 400; // Show after scrolling 400px (past hero)
+      setShowStickyBar(scrollY > threshold);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Auto-select the cheapest airport (first in sorted list)
   useEffect(() => {
@@ -2451,6 +2464,59 @@ export default function PackageDetail() {
           </div>
         </div>
       </section>
+
+      {/* Sticky Mobile CTA Bar */}
+      <div 
+        className={`fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t shadow-lg z-50 lg:hidden transition-transform duration-300 ${
+          showStickyBar ? 'translate-y-0' : 'translate-y-full'
+        }`}
+        data-testid="sticky-cta-bar"
+      >
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground">From</p>
+              <p className="text-lg font-bold text-primary truncate" data-testid="text-sticky-price">
+                {formatPrice(bokunPricing?.enabled && bokunPricing.prices.length > 0 ? bokunDisplayMinPrice : (pkg?.price || 0))}
+                <span className="text-xs font-normal text-muted-foreground ml-1">pp</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <a 
+                href={`tel:${phoneNumber.replace(/\s/g, '')}`}
+                className="flex items-center justify-center h-11 w-11 rounded-md border bg-background hover-elevate active-elevate-2"
+                data-testid="button-sticky-call"
+                onClick={() => {
+                  if (pkg) {
+                    captureCallCtaClicked({ 
+                      package_id: pkg.id, 
+                      package_title: pkg.title,
+                      phone_number: phoneNumber 
+                    });
+                    trackCallCta({ 
+                      content_name: pkg.title,
+                      content_category: 'package' 
+                    });
+                  }
+                }}
+              >
+                <Phone className="h-5 w-5 text-primary" />
+              </a>
+              <Button 
+                onClick={() => setEnquiryOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground whitespace-nowrap"
+                data-testid="button-sticky-enquire"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Enquire Now
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Add bottom padding to prevent content being hidden by sticky bar on mobile */}
+      <div className="h-20 lg:hidden" aria-hidden="true" />
 
       <Footer />
     </div>

@@ -1055,7 +1055,7 @@ export default function PackageDetail() {
             <img
               src={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
               alt={pkg.title}
-              className="w-full aspect-[21/9] object-cover"
+              className="w-full aspect-[16/9] md:aspect-[21/9] object-cover"
               data-testid="img-package-hero"
               loading="lazy"
               decoding="async"
@@ -1116,7 +1116,7 @@ export default function PackageDetail() {
                   {allGalleryItems.map((item, index) => (
                     <div 
                       key={index} 
-                      className={`flex-[0_0_auto] w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative ${item.type === 'video' ? 'cursor-pointer' : ''}`}
+                      className={`flex-[0_0_auto] w-[80%] sm:w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative ${item.type === 'video' ? 'cursor-pointer' : ''}`}
                       onClick={() => item.type === 'video' && item.video && setActiveVideo(item.video)}
                     >
                       <img
@@ -1555,13 +1555,13 @@ export default function PackageDetail() {
                               dangerouslySetInnerHTML={{ __html: hotel.description || '' }}
                             />
                             {hotel.images && hotel.images.length > 0 && (
-                              <div className="grid grid-cols-2 gap-2">
-                                {hotel.images.map((img, imgIndex) => (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {hotel.images.slice(0, 4).map((img, imgIndex) => (
                                   <img 
                                     key={imgIndex}
                                     src={img}
                                     alt={`${hotel.name} ${imgIndex + 1}`}
-                                    className="w-full h-24 object-cover rounded-md"
+                                    className="w-full aspect-[4/3] object-cover rounded-lg"
                                     onError={(e) => {
                                       const target = e.target as HTMLImageElement;
                                       target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
@@ -1824,13 +1824,13 @@ export default function PackageDetail() {
                             dangerouslySetInnerHTML={{ __html: hotel.description }}
                           />
                           {hotel.images && hotel.images.length > 0 && (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                              {hotel.images.map((img, imgIndex) => (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                              {hotel.images.slice(0, 4).map((img, imgIndex) => (
                                 <img 
                                   key={imgIndex}
                                   src={img}
                                   alt={`${hotel.name} ${imgIndex + 1}`}
-                                  className="w-full h-24 object-cover rounded-md"
+                                  className="w-full aspect-[4/3] object-cover rounded-lg"
                                   data-testid={`hotel-image-${index}-${imgIndex}`}
                                   onError={(e) => {
                                     const target = e.target as HTMLImageElement;

@@ -1,0 +1,106 @@
+Please do ALL of the following:
+
+1. Identify all clickable elements
+
+Search for:
+
+<button>
+
+<a>
+
+<Link> (React Router)
+
+<div onClick>
+
+<div role="button">
+
+Any component with props:
+onClick, onPress, onSelect, onTap
+
+List them with the file and component name.
+
+2. For every clickable element, check:
+
+Is its visible area at least 44px × 44px (Apple HIG) or 48px × 48px (Google Material/SEO)?
+
+Does it have at least 8px padding on all sides?
+
+Is text clickable or only the icon/small area?
+
+On mobile, can a finger easily tap it without zoom?
+
+Identify failures and list them with paths.
+
+3. Check for click blockers
+
+Search for:
+
+overlay divs covering elements (e.g., modal fade, header blur)
+
+elements with:
+position: absolute; pointer-events: none/auto;
+
+invisible elements higher in DOM tree blocking interaction
+
+z-index conflicts
+
+Tell me:
+
+Which elements are blocked?
+
+Why?
+
+What should be changed?
+
+4. Check all cards
+
+Many rage clicks come from users clicking a card expecting it to be clickable.
+
+Audit all card components (in client/src/components/**/) and confirm:
+
+If a card REPRESENTS a clickable item (package, cruise, tour…), the entire card should be clickable, not just the small "view details" button.
+
+Ensure the card has:
+
+cursor: pointer
+
+role="link"
+
+Accessible click area ≥ 48×48 on mobile
+
+List which cards need to be made fully clickable.
+
+5. Generate fixes (code MODIFICATIONS)
+
+For each issue FOUND:
+
+Provide exact code changes
+
+Patch suggestions (before + after)
+
+Only adjustments needed (padding, min-height, making card clickable, adding cursor: pointer, etc.)
+
+DO NOT break existing styles or layouts.
+
+6. Output format
+
+Respond in this structure:
+
+[ISSUE CATEGORY]
+- File:
+- Component:
+- Problem:
+- Fix:
+- Code patch:
+
+[REPEAT FOR ALL ISSUES]
+
+Notes
+
+Do NOT make changes blindly — inspect each clickable element in context.
+
+Ensure no layout shifts or design regressions.
+
+Respect existing Tailwind or CSS modules.
+
+Must pass Lighthouse "Tap targets" accessibility check.

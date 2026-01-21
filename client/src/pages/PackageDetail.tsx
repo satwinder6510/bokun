@@ -211,9 +211,8 @@ function PriceCalendarWidget({
           size="icon" 
           onClick={prevMonth}
           disabled={!hasPricesInPrevMonth}
-          className="h-8 w-8"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-5 w-5" />
         </Button>
         <span className="font-semibold">{monthName}</span>
         <Button 
@@ -221,9 +220,8 @@ function PriceCalendarWidget({
           size="icon" 
           onClick={nextMonth}
           disabled={!hasPricesInNextMonth}
-          className="h-8 w-8"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
 
@@ -404,9 +402,8 @@ function BokunPriceCalendarWidget({
           size="icon" 
           onClick={prevMonth}
           disabled={!hasPricesInPrevMonth}
-          className="h-8 w-8"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft className="h-5 w-5" />
         </Button>
         <span className="font-semibold">{monthName}</span>
         <Button 
@@ -414,9 +411,8 @@ function BokunPriceCalendarWidget({
           size="icon" 
           onClick={nextMonth}
           disabled={!hasPricesInNextMonth}
-          className="h-8 w-8"
         >
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
 

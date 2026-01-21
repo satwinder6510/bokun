@@ -78,11 +78,11 @@ export function Header() {
               {/* Mobile phone icon only */}
               <a 
                 href={`tel:${phoneNumberClean}`}
-                className="flex md:hidden items-center justify-center w-10 h-10 bg-slate-800 hover:bg-slate-900 text-white rounded-md transition-colors"
+                className="flex md:hidden items-center justify-center w-11 h-11 bg-slate-800 hover:bg-slate-900 text-white rounded-md transition-colors"
                 data-testid="link-header-phone-mobile"
                 aria-label="Call us"
               >
-                <Phone className="h-4 w-4" />
+                <Phone className="h-5 w-5" />
               </a>
               {/* Desktop phone with number */}
               <a 

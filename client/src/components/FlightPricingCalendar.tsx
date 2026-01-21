@@ -228,7 +228,7 @@ export function FlightPricingCalendar({ bokunProductId, productTitle }: FlightPr
               onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
               data-testid="button-prev-month"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-5 w-5" />
             </Button>
             <h3 className="text-lg font-semibold" data-testid="text-current-month">
               {format(currentMonth, "MMMM yyyy")}
@@ -239,7 +239,7 @@ export function FlightPricingCalendar({ bokunProductId, productTitle }: FlightPr
               onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
               data-testid="button-next-month"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-5 w-5" />
             </Button>
           </div>
 

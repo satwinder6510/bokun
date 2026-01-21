@@ -34,7 +34,10 @@ export function ProductsCard({ products, isLoading, onProductClick, totalCount }
                 <div
                   key={product.id}
                   onClick={() => onProductClick(product.id)}
-                  className="rounded-lg border bg-card p-4 space-y-2 hover-elevate active-elevate-2 cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onProductClick(product.id); }}
+                  className="rounded-lg border bg-card p-4 space-y-2 hover-elevate active-elevate-2 cursor-pointer min-h-[48px]"
                   data-testid={`card-product-${product.id}`}
                 >
                   <div className="flex items-start justify-between gap-2">

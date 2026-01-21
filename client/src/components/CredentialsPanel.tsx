@@ -41,7 +41,7 @@ export function CredentialsPanel({ accessKey, secretKey }: CredentialsPanelProps
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-11 w-11"
                 onClick={() => setShowAccess(!showAccess)}
                 data-testid="button-toggle-access-key"
               >
@@ -68,7 +68,7 @@ export function CredentialsPanel({ accessKey, secretKey }: CredentialsPanelProps
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-11 w-11"
                 onClick={() => setShowSecret(!showSecret)}
                 data-testid="button-toggle-secret-key"
               >

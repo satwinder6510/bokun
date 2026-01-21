@@ -498,6 +498,7 @@ export default function PackageDetail() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [showAllItinerary, setShowAllItinerary] = useState(false);
   
   // Embla carousel for gallery
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
@@ -1507,7 +1508,7 @@ export default function PackageDetail() {
                     </Card>
                   ) : (
                     <div className="space-y-4">
-                      {itinerary.map((day, index) => (
+                      {(showAllItinerary ? itinerary : itinerary.slice(0, 3)).map((day, index) => (
                         <Card key={index}>
                           <CardHeader className="pb-2">
                             <div className="flex items-center gap-4">
@@ -1527,6 +1528,20 @@ export default function PackageDetail() {
                           </CardContent>
                         </Card>
                       ))}
+                      {itinerary.length > 3 && (
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => setShowAllItinerary(!showAllItinerary)}
+                          data-testid="button-toggle-itinerary"
+                        >
+                          {showAllItinerary ? (
+                            <>Show less</>
+                          ) : (
+                            <>Show all {itinerary.length} days</>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>

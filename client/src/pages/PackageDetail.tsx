@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRoute, Link, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X, Loader2 } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -496,6 +496,7 @@ export default function PackageDetail() {
   
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isChatLoading, setIsChatLoading] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
@@ -2245,6 +2246,7 @@ export default function PackageDetail() {
                       variant="secondary" 
                       className="w-full" 
                       size="lg" 
+                      disabled={isChatLoading}
                       onClick={() => {
                         const win = window as WindowWithTidio;
                         
@@ -2262,6 +2264,7 @@ export default function PackageDetail() {
                         
                         // Open Tidio chat
                         const openTidio = () => {
+                          setIsChatLoading(false);
                           if (win.tidioChatApi) {
                             win.tidioChatApi.show();
                             win.tidioChatApi.open();
@@ -2271,13 +2274,28 @@ export default function PackageDetail() {
                         if (win.tidioChatApi) {
                           openTidio();
                         } else {
-                          document.addEventListener("tidioChat-ready", openTidio);
+                          // Show loading state while waiting for Tidio
+                          setIsChatLoading(true);
+                          const handleReady = () => {
+                            openTidio();
+                            document.removeEventListener("tidioChat-ready", handleReady);
+                          };
+                          document.addEventListener("tidioChat-ready", handleReady);
+                          // Timeout after 5 seconds to prevent infinite loading
+                          setTimeout(() => {
+                            setIsChatLoading(false);
+                            document.removeEventListener("tidioChat-ready", handleReady);
+                          }, 5000);
                         }
                       }}
                       data-testid="button-chat"
                     >
-                      <MessageCircle className="w-5 h-5 mr-2" />
-                      Chat with us
+                      {isChatLoading ? (
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <MessageCircle className="w-5 h-5 mr-2" />
+                      )}
+                      {isChatLoading ? "Opening chat..." : "Chat with us"}
                     </Button>
                     <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                       <DialogTrigger asChild>

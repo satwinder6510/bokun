@@ -49,7 +49,7 @@ export function ExpandableText({
           variant="ghost"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-2 text-primary hover:text-primary/80 p-0 h-auto font-medium"
+          className="mt-2 text-secondary hover:text-secondary/80 p-0 h-auto font-medium"
           data-testid={testId ? `${testId}-toggle` : "button-expand-text"}
         >
           {isExpanded ? (

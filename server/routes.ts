@@ -174,16 +174,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // LEGACY URL REDIRECTS (Old sitemap compatibility)
   // ========================================
   
+  // Handle .aspx legacy URLs - redirect to clean URLs
+  app.get(/\.aspx$/i, (req, res) => {
+    const cleanUrl = req.url.replace(/\.aspx$/i, '');
+    res.redirect(301, cleanUrl);
+  });
+  
   // Middleware to handle legacy URLs from old website
   app.use((req, res, next) => {
     const originalUrl = req.path;
     
-    // Skip API routes and static assets
+    // Skip API routes and static assets (but .aspx handled above)
     if (originalUrl.startsWith('/api/') || 
         originalUrl.startsWith('/objects/') || 
         originalUrl.startsWith('/assets/') ||
         originalUrl.startsWith('/uploads/') ||
-        originalUrl.includes('.')) {
+        (originalUrl.includes('.') && !originalUrl.endsWith('.aspx'))) {
       return next();
     }
     

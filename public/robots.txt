@@ -2,6 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /2fa-setup
+Disallow: /*.aspx$
 
 Sitemap: /sitemap.xml
 

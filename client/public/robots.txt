@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /*.aspx$
 
 Sitemap: https://tours.flightsandpackages.com/sitemap.xml

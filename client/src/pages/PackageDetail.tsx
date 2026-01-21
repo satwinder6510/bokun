@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ExpandableText } from "@/components/ExpandableText";
 import { apiRequest } from "@/lib/queryClient";
 import { getProxiedImageUrl, getHeroImageUrl, getGalleryImageUrl } from "@/lib/imageProxy";
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
@@ -1465,9 +1466,11 @@ export default function PackageDetail() {
                   <h2 className="text-xl font-bold mb-4">About This Package</h2>
                   <Card>
                     <CardContent className="pt-6">
-                      <div 
-                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                        dangerouslySetInnerHTML={{ __html: pkg.description }}
+                      <ExpandableText 
+                        html={pkg.description}
+                        maxLines={6}
+                        className="whitespace-pre-line"
+                        testId="content-description-mobile"
                       />
                     </CardContent>
                   </Card>
@@ -1515,9 +1518,11 @@ export default function PackageDetail() {
                             </div>
                           </CardHeader>
                           <CardContent>
-                            <div 
-                              className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
-                              dangerouslySetInnerHTML={{ __html: day.description }}
+                            <ExpandableText 
+                              html={day.description}
+                              maxLines={4}
+                              className="text-muted-foreground"
+                              testId={`content-itinerary-day-${day.day}`}
                             />
                           </CardContent>
                         </Card>
@@ -1550,9 +1555,11 @@ export default function PackageDetail() {
                             )}
                           </CardHeader>
                           <CardContent className="space-y-4">
-                            <div 
-                              className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
-                              dangerouslySetInnerHTML={{ __html: hotel.description || '' }}
+                            <ExpandableText 
+                              html={hotel.description || ''}
+                              maxLines={3}
+                              className="text-muted-foreground"
+                              testId={`content-hotel-${index}`}
                             />
                             {hotel.images && hotel.images.length > 0 && (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

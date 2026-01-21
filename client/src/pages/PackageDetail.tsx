@@ -1153,7 +1153,7 @@ export default function PackageDetail() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
+                    className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
                     onClick={scrollPrev}
                     data-testid="button-gallery-prev"
                   >
@@ -1162,7 +1162,7 @@ export default function PackageDetail() {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
+                    className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
                     onClick={scrollNext}
                     data-testid="button-gallery-next"
                   >

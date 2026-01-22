@@ -117,7 +117,7 @@ export async function generatePackagesSitemap(): Promise<string> {
   
   try {
     const packages = await storage.getAllFlightPackages();
-    const publishedPackages = packages.filter((p: FlightPackage) => p.isPublished);
+    const publishedPackages = packages.filter((p: FlightPackage) => p.isPublished && !p.isUnlisted);
     
     for (const pkg of publishedPackages) {
       const lastmod = formatDate(pkg.updatedAt || new Date());
@@ -149,7 +149,7 @@ export async function generateDestinationsSitemap(): Promise<string> {
   
   try {
     const packages = await storage.getAllFlightPackages();
-    const publishedPackages = packages.filter((p: FlightPackage) => p.isPublished);
+    const publishedPackages = packages.filter((p: FlightPackage) => p.isPublished && !p.isUnlisted);
     
     const destinations = new Set<string>();
     for (const pkg of publishedPackages) {

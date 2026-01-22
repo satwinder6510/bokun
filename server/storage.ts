@@ -710,7 +710,10 @@ export class MemStorage implements IStorage {
   async getPublishedFlightPackages(category?: string): Promise<FlightPackage[]> {
     try {
       let query = db.select().from(flightPackages)
-        .where(eq(flightPackages.isPublished, true))
+        .where(and(
+          eq(flightPackages.isPublished, true),
+          eq(flightPackages.isUnlisted, false)
+        ))
         .orderBy(asc(flightPackages.displayOrder), desc(flightPackages.createdAt));
       
       const results = await query;
@@ -731,6 +734,7 @@ export class MemStorage implements IStorage {
       const query = db.select().from(flightPackages)
         .where(and(
           eq(flightPackages.isPublished, true),
+          eq(flightPackages.isUnlisted, false),
           eq(flightPackages.isSpecialOffer, true)
         ))
         .orderBy(asc(flightPackages.displayOrder), desc(flightPackages.createdAt));

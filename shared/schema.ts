@@ -420,6 +420,7 @@ export const flightPackages = pgTable("flight_packages", {
   
   // Status
   isPublished: boolean("is_published").notNull().default(false),
+  isUnlisted: boolean("is_unlisted").notNull().default(false), // Hidden from listings, only accessible via direct URL
   isSpecialOffer: boolean("is_special_offer").notNull().default(false), // Featured in Special Offers section
   displayOrder: integer("display_order").notNull().default(0),
   

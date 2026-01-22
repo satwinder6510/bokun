@@ -138,6 +138,7 @@ type PackageFormData = {
   metaTitle: string;
   metaDescription: string;
   isPublished: boolean;
+  isUnlisted: boolean;
   isSpecialOffer: boolean;
   displayOrder: number;
   bokunProductId: string | null;
@@ -193,6 +194,7 @@ const emptyPackage: PackageFormData = {
   metaTitle: "",
   metaDescription: "",
   isPublished: false,
+  isUnlisted: false,
   isSpecialOffer: false,
   displayOrder: 0,
   bokunProductId: null,
@@ -695,6 +697,7 @@ export default function AdminPackages() {
       metaTitle: pkg.metaTitle || "",
       metaDescription: pkg.metaDescription || "",
       isPublished: pkg.isPublished,
+      isUnlisted: pkg.isUnlisted || false,
       isSpecialOffer: pkg.isSpecialOffer || false,
       displayOrder: pkg.displayOrder,
       bokunProductId: pkg.bokunProductId || null,
@@ -2680,6 +2683,17 @@ export default function AdminPackages() {
                         />
                         <Label htmlFor="isSpecialOffer" className="flex items-center gap-1">
                           <span className="text-amber-600">★</span> Special Offer
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id="isUnlisted"
+                          checked={formData.isUnlisted}
+                          onCheckedChange={(checked) => setFormData({ ...formData, isUnlisted: checked })}
+                          data-testid="switch-unlisted"
+                        />
+                        <Label htmlFor="isUnlisted" className="flex items-center gap-1">
+                          <span className="text-muted-foreground">👁</span> Unlisted (hidden from listings)
                         </Label>
                       </div>
                     </div>

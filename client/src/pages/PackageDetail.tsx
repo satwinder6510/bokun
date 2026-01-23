@@ -1074,8 +1074,8 @@ export default function PackageDetail() {
           />
           {/* Strong Gradient Overlay for text visibility */}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
-          {/* Title Overlay with backdrop */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 bg-gradient-to-t from-black/90 to-transparent">
+          {/* Title Overlay with backdrop - positioned higher to be above the fold */}
+          <div className="absolute bottom-[20vh] left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-16">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <Badge className="bg-black/60 backdrop-blur-md text-white border-white/40 text-xs font-medium shadow-lg" data-testid="badge-category-overlay-mobile">
                 {pkg.category}

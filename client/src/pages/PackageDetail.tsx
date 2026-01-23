@@ -1049,43 +1049,80 @@ export default function PackageDetail() {
     <div className="min-h-screen bg-stone-50">
       <Header />
 
-      {/* Gallery - Bokun Style */}
-      <section className="pt-4 pb-8">
+      {/* Mobile Full-Screen Video Hero (if available) */}
+      {pkg.mobileHeroVideo && (
+        <section className="md:hidden relative w-full h-screen bg-muted">
+          <video
+            src={pkg.mobileHeroVideo}
+            width={1080}
+            height={1920}
+            className="w-full h-full object-cover"
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
+            data-testid="video-package-hero-mobile"
+            onError={(e) => {
+              // Hide video section and show standard gallery on error
+              const target = e.target as HTMLVideoElement;
+              const section = target.closest('section');
+              if (section) section.style.display = 'none';
+              const fallbackSection = document.getElementById('package-gallery-section');
+              if (fallbackSection) fallbackSection.classList.remove('hidden');
+            }}
+          />
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          {/* Title Overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 pb-8">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs" data-testid="badge-category-overlay-mobile">
+                {pkg.category}
+              </Badge>
+              <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1 text-xs">
+                <Plane className="w-3 h-3 shrink-0" />
+                <span>FLIGHT+</span>
+              </Badge>
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-title-overlay-mobile">
+              {pkg.title}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-white/90">
+              {pkg.duration && (
+                <div className="flex items-center gap-1 text-sm">
+                  <Clock className="w-4 h-4 shrink-0" />
+                  <span>{pkg.duration}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1 text-sm">
+                <MapPin className="w-4 h-4 shrink-0" />
+                <span>{pkg.category}</span>
+              </div>
+            </div>
+            {/* Mobile Price Badge */}
+            <div className="mt-4 inline-block bg-white/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg">
+              <p className="text-xs text-muted-foreground">From</p>
+              <p className="text-xl font-bold text-secondary" data-testid="hero-price-mobile-video">
+                {formatPrice(pkg.price)}
+              </p>
+              <p className="text-xs text-muted-foreground">per person</p>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Gallery - Bokun Style (hidden on mobile if video exists) */}
+      <section id="package-gallery-section" className={`pt-4 pb-8 ${pkg.mobileHeroVideo ? 'hidden md:block' : ''}`}>
         <div className="container mx-auto px-6 md:px-8">
-          {/* Hero Image/Video with Title Overlay - 21:9 aspect ratio */}
+          {/* Hero Image with Title Overlay - 21:9 aspect ratio */}
           <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">
-            {/* Mobile Video Hero (if available) */}
-            {pkg.mobileHeroVideo && (
-              <video
-                src={pkg.mobileHeroVideo}
-                width={1920}
-                height={1080}
-                className="w-full aspect-[16/9] object-cover md:hidden"
-                autoPlay
-                loop
-                muted
-                playsInline
-                poster={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
-                data-testid="video-package-hero-mobile"
-                onError={(e) => {
-                  // Hide video and show image fallback on error
-                  const target = e.target as HTMLVideoElement;
-                  target.style.display = 'none';
-                  // Show the image fallback
-                  const fallbackImg = document.getElementById('package-hero-image-fallback');
-                  if (fallbackImg) {
-                    fallbackImg.classList.remove('hidden');
-                  }
-                }}
-              />
-            )}
-            {/* Image Hero (always shown on desktop, shown as fallback on mobile if video errors) */}
             <img
               src={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
               alt={pkg.title}
               width={1920}
               height={640}
-              className={`w-full aspect-[16/9] md:aspect-[21/9] object-cover ${pkg.mobileHeroVideo ? 'hidden md:block' : ''}`}
+              className="w-full aspect-[16/9] md:aspect-[21/9] object-cover"
               id="package-hero-image-fallback"
               data-testid="img-package-hero"
               loading="eager"

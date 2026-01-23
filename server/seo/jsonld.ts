@@ -1,5 +1,7 @@
 import { getCanonicalUrl } from './canonical';
 
+const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';
+
 interface TourData {
   id: number | string;
   title: string;
@@ -43,7 +45,7 @@ export function generateTourJsonLd(tour: TourData, path: string): string {
     "provider": {
       "@type": "TravelAgency",
       "name": "Flights and Packages",
-      "url": "https://holidays.flightsandpackages.com"
+      "url": CANONICAL_HOST
     }
   };
   
@@ -124,8 +126,8 @@ export function generateOrganizationJsonLd(): string {
     "@context": "https://schema.org",
     "@type": "TravelAgency",
     "name": "Flights and Packages",
-    "url": "https://holidays.flightsandpackages.com",
-    "logo": "https://holidays.flightsandpackages.com/favicon.png",
+    "url": CANONICAL_HOST,
+    "logo": `${CANONICAL_HOST}/favicon.png`,
     "sameAs": [],
     "contactPoint": {
       "@type": "ContactPoint",

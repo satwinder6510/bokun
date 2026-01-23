@@ -8,6 +8,19 @@ import { trackAICrawl } from "./analytics";
 
 const app = express();
 
+// Canonical host redirect - redirect www to non-www
+const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';
+const WWW_HOST = 'www.holidays.flightsandpackages.com';
+
+app.use((req, res, next) => {
+  // Only redirect if the hostname matches the www host
+  if (req.hostname === WWW_HOST) {
+    const redirectUrl = `${CANONICAL_HOST}${req.originalUrl}`;
+    return res.redirect(301, redirectUrl);
+  }
+  next();
+});
+
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'public', 'uploads')));
 

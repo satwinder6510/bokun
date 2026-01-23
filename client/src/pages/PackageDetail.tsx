@@ -1052,14 +1052,41 @@ export default function PackageDetail() {
       {/* Gallery - Bokun Style */}
       <section className="pt-4 pb-8">
         <div className="container mx-auto px-6 md:px-8">
-          {/* Hero Image with Title Overlay - 21:9 aspect ratio */}
+          {/* Hero Image/Video with Title Overlay - 21:9 aspect ratio */}
           <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">
+            {/* Mobile Video Hero (if available) */}
+            {pkg.mobileHeroVideo && (
+              <video
+                src={pkg.mobileHeroVideo}
+                width={1920}
+                height={1080}
+                className="w-full aspect-[16/9] object-cover md:hidden"
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
+                data-testid="video-package-hero-mobile"
+                onError={(e) => {
+                  // Hide video and show image fallback on error
+                  const target = e.target as HTMLVideoElement;
+                  target.style.display = 'none';
+                  // Show the image fallback
+                  const fallbackImg = document.getElementById('package-hero-image-fallback');
+                  if (fallbackImg) {
+                    fallbackImg.classList.remove('hidden');
+                  }
+                }}
+              />
+            )}
+            {/* Image Hero (always shown on desktop, shown as fallback on mobile if video errors) */}
             <img
               src={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
               alt={pkg.title}
               width={1920}
               height={640}
-              className="w-full aspect-[16/9] md:aspect-[21/9] object-cover"
+              className={`w-full aspect-[16/9] md:aspect-[21/9] object-cover ${pkg.mobileHeroVideo ? 'hidden md:block' : ''}`}
+              id="package-hero-image-fallback"
               data-testid="img-package-hero"
               loading="eager"
               decoding="async"

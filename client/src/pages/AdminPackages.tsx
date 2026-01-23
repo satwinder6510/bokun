@@ -133,6 +133,7 @@ type PackageFormData = {
   attention: string | null;
   featuredImage: string;
   gallery: string[];
+  mobileHeroVideo: string;
   videos: VideoItem[];
   duration: string;
   metaTitle: string;
@@ -189,6 +190,7 @@ const emptyPackage: PackageFormData = {
   attention: null,
   featuredImage: "",
   gallery: [],
+  mobileHeroVideo: "",
   videos: [],
   duration: "",
   metaTitle: "",
@@ -269,6 +271,7 @@ export default function AdminPackages() {
   const [editingIncludedValue, setEditingIncludedValue] = useState("");
   const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
+  const [isUploadingMobileVideo, setIsUploadingMobileVideo] = useState(false);
   const [uploadingHotelIndex, setUploadingHotelIndex] = useState<number | null>(null);
   const [draggedImageIndex, setDraggedImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
   const [dragOverImageIndex, setDragOverImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
@@ -281,6 +284,7 @@ export default function AdminPackages() {
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
+  const mobileVideoRef = useRef<HTMLInputElement>(null);
   const hotelImageRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
   
   // Scraper test state
@@ -692,6 +696,7 @@ export default function AdminPackages() {
       attention: pkg.attention || null,
       featuredImage: pkg.featuredImage || "",
       gallery: (pkg.gallery || []) as string[],
+      mobileHeroVideo: pkg.mobileHeroVideo || "",
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
       metaTitle: pkg.metaTitle || "",
@@ -1467,6 +1472,52 @@ export default function AdminPackages() {
       setIsUploadingGallery(false);
       if (galleryImagesRef.current) {
         galleryImagesRef.current.value = '';
+      }
+    }
+  };
+
+  const handleMobileVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate video file
+    if (!file.type.startsWith('video/')) {
+      toast({ title: "Please select a video file", variant: "destructive" });
+      return;
+    }
+    
+    // Max 50MB for mobile video
+    if (file.size > 50 * 1024 * 1024) {
+      toast({ title: "Video must be under 50MB", variant: "destructive" });
+      return;
+    }
+    
+    setIsUploadingMobileVideo(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('video', file);
+      
+      const response = await fetch('/api/admin/upload-video', {
+        method: 'POST',
+        headers: {
+          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
+        },
+        body: formDataUpload,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      setFormData({ ...formData, mobileHeroVideo: data.url });
+      toast({ title: "Video uploaded successfully" });
+    } catch (error) {
+      toast({ title: "Failed to upload video", variant: "destructive" });
+    } finally {
+      setIsUploadingMobileVideo(false);
+      if (mobileVideoRef.current) {
+        mobileVideoRef.current.value = '';
       }
     }
   };
@@ -2551,6 +2602,66 @@ export default function AdminPackages() {
                           <p className="text-sm text-muted-foreground text-center py-4">
                             No gallery images yet. Click to upload.
                           </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Mobile Hero Video (Optional)</Label>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Upload a short video to display as the hero background on mobile devices. Max <strong>50MB</strong>. MP4 format recommended.
+                      </p>
+                      <div className="mt-2 space-y-3">
+                        <input
+                          ref={mobileVideoRef}
+                          type="file"
+                          accept="video/*"
+                          onChange={handleMobileVideoUpload}
+                          className="hidden"
+                          data-testid="input-mobile-video-file"
+                        />
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => mobileVideoRef.current?.click()}
+                            disabled={isUploadingMobileVideo}
+                            className="w-full sm:flex-1"
+                            data-testid="button-upload-mobile-video"
+                          >
+                            {isUploadingMobileVideo ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Uploading Video...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4 mr-2" />
+                                Upload Mobile Video
+                              </>
+                            )}
+                          </Button>
+                          {formData.mobileHeroVideo && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setFormData({ ...formData, mobileHeroVideo: "" })}
+                              data-testid="button-remove-mobile-video"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        {formData.mobileHeroVideo && (
+                          <div className="relative">
+                            <video 
+                              src={formData.mobileHeroVideo} 
+                              className="h-40 w-auto rounded-md object-cover"
+                              controls
+                              muted
+                            />
+                          </div>
                         )}
                       </div>
                     </div>

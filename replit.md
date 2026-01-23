@@ -149,10 +149,19 @@ The `/api/ai-search/filters` endpoint returns `holidayTypesByDestination` mappin
 -   **Privyr CRM:** Webhook integration for contact form submissions.
 -   **PostHog:** User activity tracking and analytics with EU data residency.
 
+### Mobile Hero Video Feature
+
+Flight packages support per-package mobile hero videos that display instead of the featured image on mobile devices:
+- Videos are uploaded via the admin panel (max 50MB) and stored in Replit Object Storage
+- On mobile devices, the video auto-plays, loops, and is muted with playsInline
+- Desktop users see the standard hero image
+- Fallback to featured image if video fails to load
+- Explicit dimensions and poster attribute prevent CLS issues
+
 ### Database & Infrastructure
 
 -   **Neon Serverless PostgreSQL:** Database operations via Drizzle ORM.
--   **Replit Object Storage:** For media library images.
+-   **Replit Object Storage:** For media library images and videos.
 
 ### UI Component Libraries
 

@@ -7373,6 +7373,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload video (admin) - stores in Object Storage for persistence
+  const videoFilter = (req: any, file: Express.Multer.File, callback: multer.FileFilterCallback) => {
+    if (file.mimetype.startsWith('video/')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Only video files are allowed'));
+    }
+  };
+
+  const videoUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit for videos
+    fileFilter: videoFilter
+  });
+
+  app.post("/api/admin/upload-video", verifyAdminSession, videoUpload.single('video'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No video file provided" });
+      }
+      
+      console.log(`[Video Upload] Received file: ${req.file.originalname}, size: ${req.file.size} bytes`);
+      
+      const objectStorageService = new ObjectStorageService();
+      const isAvailable = await objectStorageService.isAvailable();
+      
+      console.log(`[Video Upload] Object Storage available: ${isAvailable}`);
+      
+      if (isAvailable) {
+        // Upload to Object Storage for persistence
+        console.log(`[Video Upload] Uploading to Object Storage...`);
+        
+        // Generate unique filename with timestamp
+        const ext = path.extname(req.file.originalname) || '.mp4';
+        const filename = `videos/${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
+        
+        const videoUrl = await objectStorageService.uploadFromBuffer(
+          req.file.buffer,
+          filename
+        );
+        console.log(`[Video Upload] Success - stored at: ${videoUrl}`);
+        res.json({ 
+          success: true, 
+          url: videoUrl,
+          filename: req.file.originalname,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+          storage: 'object-storage'
+        });
+      } else {
+        // Fallback to local disk (won't persist after deploy)
+        console.warn(`[Video Upload] WARNING: Object Storage not available! Using local storage (will NOT persist in production)`);
+        const filename = `${Date.now()}-${req.file.originalname}`;
+        const videoDir = path.join(uploadDir, 'videos');
+        if (!fs.existsSync(videoDir)) {
+          fs.mkdirSync(videoDir, { recursive: true });
+        }
+        const filePath = path.join(videoDir, filename);
+        fs.writeFileSync(filePath, req.file.buffer);
+        res.json({ 
+          success: true, 
+          url: `/uploads/videos/${filename}`,
+          filename: filename,
+          size: req.file.size,
+          mimetype: req.file.mimetype,
+          storage: 'local',
+          warning: 'Using local storage - videos will NOT persist after redeployment'
+        });
+      }
+    } catch (error: any) {
+      console.error("[Video Upload] Error uploading video:", error);
+      res.status(500).json({ error: "Failed to upload video", details: error.message });
+    }
+  });
+
   // Delete uploaded image (admin) - handles both Object Storage and local files
   app.delete("/api/admin/upload/:filename", async (req, res) => {
     try {

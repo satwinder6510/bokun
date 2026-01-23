@@ -1072,36 +1072,36 @@ export default function PackageDetail() {
               if (fallbackSection) fallbackSection.classList.remove('hidden');
             }}
           />
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          {/* Title Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 pb-8">
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-xs" data-testid="badge-category-overlay-mobile">
+          {/* Strong Gradient Overlay for text visibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+          {/* Title Overlay with backdrop */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 pb-8 bg-gradient-to-t from-black/90 to-transparent">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <Badge className="bg-black/60 backdrop-blur-md text-white border-white/40 text-xs font-medium shadow-lg" data-testid="badge-category-overlay-mobile">
                 {pkg.category}
               </Badge>
-              <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1 text-xs">
+              <Badge variant="outline" className="bg-black/60 backdrop-blur-md text-white border-white/40 gap-1 text-xs font-medium shadow-lg">
                 <Plane className="w-3 h-3 shrink-0" />
                 <span>FLIGHT+</span>
               </Badge>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-title-overlay-mobile">
+            <h1 className="text-2xl font-bold text-white mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 4px 16px rgba(0,0,0,0.5)'}} data-testid="text-title-overlay-mobile">
               {pkg.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-white/90">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-white font-medium" style={{textShadow: '0 1px 4px rgba(0,0,0,0.8)'}}>
               {pkg.duration && (
                 <div className="flex items-center gap-1 text-sm">
-                  <Clock className="w-4 h-4 shrink-0" />
+                  <Clock className="w-4 h-4 shrink-0 drop-shadow-lg" />
                   <span>{pkg.duration}</span>
                 </div>
               )}
               <div className="flex items-center gap-1 text-sm">
-                <MapPin className="w-4 h-4 shrink-0" />
+                <MapPin className="w-4 h-4 shrink-0 drop-shadow-lg" />
                 <span>{pkg.category}</span>
               </div>
             </div>
             {/* Mobile Price Badge */}
-            <div className="mt-4 inline-block bg-white/95 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg">
+            <div className="mt-4 inline-block bg-white backdrop-blur-sm rounded-lg px-4 py-2 shadow-xl">
               <p className="text-xs text-muted-foreground">From</p>
               <p className="text-xl font-bold text-secondary" data-testid="hero-price-mobile-video">
                 {formatPrice(pkg.price)}

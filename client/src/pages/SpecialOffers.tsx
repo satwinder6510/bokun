@@ -28,10 +28,12 @@ function PackageCard({ pkg }: { pkg: FlightPackage }) {
         className="relative overflow-hidden rounded-xl aspect-[3/4] group cursor-pointer"
         data-testid={`card-special-offer-${pkg.id}`}
       >
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-muted">
           <img 
             src={getProxiedImageUrl(pkg.featuredImage)}
             alt={pkg.title}
+            width={400}
+            height={533}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             loading="lazy"
             decoding="async"

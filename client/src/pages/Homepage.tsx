@@ -831,13 +831,16 @@ export default function Homepage() {
                           className="relative overflow-hidden rounded-xl aspect-[3/4] group cursor-pointer"
                           data-testid={`card-ai-result-${result.type}-${result.id}`}
                         >
-                          <div className="absolute inset-0">
+                          <div className="absolute inset-0 bg-muted">
                             {result.image ? (
                               <img
                                 src={getProxiedImageUrl(result.image, 'card')}
                                 alt={result.title}
+                                width={400}
+                                height={533}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 loading="lazy"
+                                decoding="async"
                               />
                             ) : (
                               <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary/20" />
@@ -941,11 +944,13 @@ export default function Homepage() {
                   >
                     <div className="relative overflow-hidden rounded-xl aspect-[3/4] cursor-pointer">
                       {/* Background Image */}
-                      <div className="absolute inset-0">
+                      <div className="absolute inset-0 bg-muted">
                         {pkg.featuredImage ? (
                           <img
                             src={getProxiedImageUrl(pkg.featuredImage)}
                             alt={pkg.title}
+                            width={400}
+                            height={533}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             loading="lazy"
                             decoding="async"
@@ -1053,8 +1058,8 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-16 md:py-24 bg-stone-50">
+      {/* Testimonials - content-visibility for improved LCP */}
+      <section className="py-16 md:py-24 bg-stone-50 cv-auto">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-12">
             <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
@@ -1139,8 +1144,8 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Featured Land Tours Section */}
-      <section id="tours" className="py-16 md:py-24 bg-stone-50">
+      {/* Featured Land Tours Section - content-visibility for improved LCP */}
+      <section id="tours" className="py-16 md:py-24 bg-stone-50 cv-auto">
         <div className="container mx-auto px-6 md:px-8">
           <div className="text-center mb-8">
             <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">

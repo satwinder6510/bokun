@@ -29,10 +29,12 @@ export function TourCard({ product }: TourCardProps) {
         data-testid={`card-tour-${product.id}`}
       >
         {/* Background Image */}
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-muted">
           <img
             src={imageUrl}
             alt={product.title}
+            width={400}
+            height={533}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             data-testid={`img-tour-${product.id}`}
             loading="lazy"

@@ -161,10 +161,12 @@ export default function TourDetail() {
       <section className="py-8">
         <div className="container mx-auto px-6 md:px-8">
           {/* Hero Image with Title Overlay */}
-          <div className="relative rounded-xl overflow-hidden mb-4">
+          <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">
             <img
               src={getHeroImageUrl(product.keyPhoto?.originalUrl)}
               alt={product.title}
+              width={1920}
+              height={640}
               className="w-full aspect-[21/9] object-cover"
               data-testid="img-tour-hero"
               loading="eager"
@@ -206,11 +208,13 @@ export default function TourDetail() {
                   {photos.map((photo, index) => (
                     <div 
                       key={index} 
-                      className="flex-[0_0_auto] w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3]"
+                      className="flex-[0_0_auto] w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] bg-muted"
                     >
                       <img
                         src={getThumbImageUrl(photo.originalUrl)}
                         alt={photo.description || `Tour photo ${index + 1}`}
+                        width={400}
+                        height={300}
                         className="w-full h-full object-cover"
                         data-testid={`img-gallery-${index}`}
                         loading="lazy"

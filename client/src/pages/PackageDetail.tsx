@@ -1053,14 +1053,18 @@ export default function PackageDetail() {
       <section className="pt-4 pb-8">
         <div className="container mx-auto px-6 md:px-8">
           {/* Hero Image with Title Overlay - 21:9 aspect ratio */}
-          <div className="relative rounded-xl overflow-hidden mb-4">
+          <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">
             <img
               src={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
               alt={pkg.title}
+              width={1920}
+              height={640}
               className="w-full aspect-[16/9] md:aspect-[21/9] object-cover"
               data-testid="img-package-hero"
-              loading="lazy"
+              loading="eager"
               decoding="async"
+              // @ts-ignore - fetchpriority is valid HTML but not in React types yet
+              fetchpriority="high"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80";
@@ -1118,12 +1122,14 @@ export default function PackageDetail() {
                   {allGalleryItems.map((item, index) => (
                     <div 
                       key={index} 
-                      className={`flex-[0_0_auto] w-[80%] sm:w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative ${item.type === 'video' ? 'cursor-pointer' : ''}`}
+                      className={`flex-[0_0_auto] w-[80%] sm:w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative bg-muted ${item.type === 'video' ? 'cursor-pointer' : ''}`}
                       onClick={() => item.type === 'video' && item.video && setActiveVideo(item.video)}
                     >
                       <img
                         src={item.url}
                         alt={item.type === 'video' ? `Video: ${item.video?.title || 'Watch video'}` : `${pkg.title} photo ${index + 1}`}
+                        width={400}
+                        height={300}
                         className="w-full h-full object-cover"
                         data-testid={item.type === 'video' ? `video-gallery-${index}` : `img-gallery-${index}`}
                         loading="lazy"

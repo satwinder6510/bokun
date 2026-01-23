@@ -55,11 +55,18 @@ export function Header() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <Link href="/">
-                <img src={logoImage} alt="Flights and Packages" className="h-12 md:h-14 cursor-pointer" data-testid="img-logo" />
+                <img 
+                  src={logoImage} 
+                  alt="Flights and Packages" 
+                  width={180}
+                  height={56}
+                  className="h-12 md:h-14 cursor-pointer" 
+                  data-testid="img-logo" 
+                />
               </Link>
               <div className="hidden md:flex items-center gap-4 border-l border-stone-200 pl-6">
-                <img src={travelTrustLogo} alt="Travel Trust Association" className="h-10" />
-                <img src={atolLogo} alt="ATOL Protected" className="h-10 rounded-full" />
+                <img src={travelTrustLogo} alt="Travel Trust Association" width={100} height={40} className="h-10" />
+                <img src={atolLogo} alt="ATOL Protected" width={40} height={40} className="h-10 rounded-full" />
               </div>
             </div>
 

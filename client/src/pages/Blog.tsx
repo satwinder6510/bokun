@@ -73,8 +73,12 @@ export default function Blog() {
                         <img
                           src={post.featuredImage}
                           alt={post.title}
+                          width={640}
+                          height={360}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           data-testid={`img-featured-${post.id}`}
+                          loading="lazy"
+                          decoding="async"
                         />
                       </div>
                     )}

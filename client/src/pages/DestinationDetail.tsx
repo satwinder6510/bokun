@@ -43,11 +43,15 @@ function FlightPackageCard({ pkg, countrySlug }: { pkg: FlightPackage; countrySl
   return (
     <Link href={`/Holidays/${countrySlug}/${pkg.slug}`}>
       <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
-        <div className="relative aspect-[4/3] overflow-hidden">
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           <img 
             src={pkg.featuredImage || "/placeholder.jpg"} 
             alt={pkg.title}
+            width={400}
+            height={300}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
           />
           <div className="absolute top-3 left-3 flex gap-2">
             <Badge className="bg-blue-600 text-white">
@@ -92,13 +96,16 @@ function BlogCard({ post }: { post: BlogPost }) {
       >
         <Card className="overflow-hidden h-full hover-elevate">
           {post.featuredImage && (
-            <div className="relative aspect-[16/9] overflow-hidden">
+            <div className="relative aspect-[16/9] overflow-hidden bg-muted">
               <img 
                 src={getProxiedImageUrl(post.featuredImage)} 
                 alt={post.title}
+                width={640}
+                height={360}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 itemProp="image"
                 loading="lazy"
+                decoding="async"
               />
             </div>
           )}

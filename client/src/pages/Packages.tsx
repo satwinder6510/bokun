@@ -40,10 +40,12 @@ function PackageCard({ pkg, showSpecialBadge = false }: { pkg: FlightPackage; sh
         className="relative overflow-hidden rounded-xl aspect-[3/4] group cursor-pointer"
         data-testid={`card-package-${pkg.id}`}
       >
-        <div className="absolute inset-0">
+        <div className="absolute inset-0 bg-muted">
           <img 
             src={getProxiedImageUrl(pkg.featuredImage)}
             alt={pkg.title}
+            width={400}
+            height={533}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             loading="lazy"
             decoding="async"
@@ -227,9 +229,9 @@ export default function Packages() {
         </section>
       )}
 
-      {/* Collections Section - Carousel Style */}
+      {/* Collections Section - Carousel Style - content-visibility for improved LCP */}
       {collections.length > 0 && (
-        <section className="py-12 md:py-16 bg-stone-100">
+        <section className="py-12 md:py-16 bg-stone-100 cv-auto">
           <div className="container mx-auto px-4 md:px-8">
             <div className="text-center mb-10">
               <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
@@ -277,8 +279,11 @@ export default function Packages() {
                       <img 
                         src={getProxiedImageUrl(collection.image)}
                         alt={collection.tag}
+                        width={297}
+                        height={480}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80";
@@ -297,9 +302,9 @@ export default function Packages() {
         </section>
       )}
 
-      {/* Destinations Section - Carousel Style */}
+      {/* Destinations Section - Carousel Style - content-visibility for improved LCP */}
       {destinations.length > 0 && (
-        <section className="py-12 md:py-16 bg-stone-100">
+        <section className="py-12 md:py-16 bg-stone-100 cv-auto">
           <div className="container mx-auto px-4 md:px-8">
             <div className="text-center mb-10">
               <p className="text-teal-600 font-semibold text-sm uppercase tracking-wider mb-2">
@@ -342,14 +347,17 @@ export default function Packages() {
                   return (
                     <Link key={destination.name} href={`/Holidays/${destinationSlug}`}>
                       <div 
-                        className="relative flex-shrink-0 w-40 md:w-48 rounded-2xl overflow-hidden aspect-[3/4] group cursor-pointer shadow-md hover:shadow-xl transition-shadow"
+                        className="relative flex-shrink-0 w-40 md:w-48 rounded-2xl overflow-hidden aspect-[3/4] group cursor-pointer shadow-md hover:shadow-xl transition-shadow bg-muted"
                         data-testid={`card-destination-${destination.name}`}
                       >
                         <img 
                           src={getProxiedImageUrl(destination.image)}
                           alt={destination.name}
+                          width={192}
+                          height={256}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           loading="lazy"
+                          decoding="async"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80";
@@ -369,9 +377,9 @@ export default function Packages() {
         </section>
       )}
 
-      {/* Blog Section */}
+      {/* Blog Section - content-visibility for improved LCP */}
       {blogPosts.length > 0 && (
-        <section className="py-12 md:py-16 bg-muted/30">
+        <section className="py-12 md:py-16 bg-muted/30 cv-auto">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -392,12 +400,15 @@ export default function Packages() {
               {blogPosts.slice(0, 3).map((post) => (
                 <Link key={post.id} href={`/blog/${post.slug}`}>
                   <Card className="hover-elevate cursor-pointer overflow-hidden h-full" data-testid={`card-blog-${post.id}`}>
-                    <div className="relative h-48">
+                    <div className="relative h-48 bg-muted">
                       <img 
                         src={getProxiedImageUrl(post.featuredImage)}
                         alt={post.title}
+                        width={400}
+                        height={192}
                         className="w-full h-full object-cover"
                         loading="lazy"
+                        decoding="async"
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&q=80";

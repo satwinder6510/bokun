@@ -106,6 +106,7 @@ function Router() {
       <Route path="/Holidays" component={Destinations} />
       <Route path="/Holidays/:country" component={DestinationDetail} />
       <Route path="/Holidays/:country/:slug" component={PackageDetail} />
+      <Route path="/Holidays-test/:country/:slug" component={PackageDetailTest} />
       <Route path="/design-preview" component={DesignPreview} />
       <Route path="/hero-concepts" component={HeroConcepts} />
       <Route path="/preview/packages" component={PreviewPackages} />

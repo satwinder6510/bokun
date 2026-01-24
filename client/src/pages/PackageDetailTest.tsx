@@ -1465,7 +1465,7 @@ export default function PackageDetailTest() {
         <div className="container mx-auto px-4 md:px-8 text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Book Your Adventure?</h2>
           <p className="text-white/80 mb-6 max-w-2xl mx-auto">
-            Speak to our travel experts who can help customize this package to your preferences
+            Speak to our travel experts who can check live availability and book this for you or help you to customise the holiday
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="outline" className="bg-white text-secondary hover:bg-white/90 border-white" asChild>
@@ -1474,10 +1474,27 @@ export default function PackageDetailTest() {
                 {phoneNumber}
               </a>
             </Button>
+            {/* Live Chat - Mobile only */}
+            <Button 
+              size="lg" 
+              className="lg:hidden bg-white/20 hover:bg-white/30 border-white/40" 
+              variant="outline"
+              onClick={() => {
+                const win = window as WindowWithTidio;
+                if (win.tidioChatApi) {
+                  win.tidioChatApi.show();
+                  win.tidioChatApi.open();
+                }
+              }}
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Live Chat
+            </Button>
+            {/* Enquire button */}
             <Button size="lg" className="bg-white/20 hover:bg-white/30 border-white/40" variant="outline" asChild>
               <a href={`mailto:holidayenq@flightsandpackages.com?subject=Enquiry: ${pkg.title}`}>
                 <Mail className="w-5 h-5 mr-2" />
-                Email Us
+                Enquire
               </a>
             </Button>
           </div>

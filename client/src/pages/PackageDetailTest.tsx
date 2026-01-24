@@ -1134,8 +1134,8 @@ export default function PackageDetailTest() {
         </section>
       )}
 
-      {/* Gallery - Bokun Style (hidden on mobile if video exists) */}
-      <section id="package-gallery-section" className={`pt-4 pb-8 ${pkg.mobileHeroVideo ? 'hidden md:block' : ''}`}>
+      {/* Gallery - Hidden on mobile in test layout */}
+      <section id="package-gallery-section" className="hidden lg:block pt-4 pb-8">
         <div className="container mx-auto px-6 md:px-8">
           {/* Hero Image with Title Overlay - 21:9 aspect ratio */}
           <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">

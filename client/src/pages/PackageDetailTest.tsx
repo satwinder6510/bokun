@@ -519,6 +519,9 @@ export default function PackageDetailTest() {
   }, []);
   const [showAllItinerary, setShowAllItinerary] = useState(false);
   
+  // Hotel image lightbox state
+  const [hotelLightbox, setHotelLightbox] = useState<{ images: string[]; index: number; hotelName: string } | null>(null);
+  
   // Embla carousel for gallery
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
     loop: false, 
@@ -1601,14 +1604,23 @@ export default function PackageDetailTest() {
                               key={imgIndex}
                               src={img}
                               alt={`${hotel.name} ${imgIndex + 1}`}
-                              className="w-full aspect-[4/3] object-cover rounded-lg"
+                              className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                               data-testid={`hotel-image-new-${index}-${imgIndex}`}
+                              onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
                               onError={(e) => {
                                 const target = e.target as HTMLImageElement;
                                 target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
                               }}
                             />
                           ))}
+                          {hotel.images.length > 4 && (
+                            <button
+                              onClick={() => setHotelLightbox({ images: hotel.images, index: 0, hotelName: hotel.name })}
+                              className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded"
+                            >
+                              +{hotel.images.length - 4} more
+                            </button>
+                          )}
                         </div>
                       )}
                     </CardContent>
@@ -2942,6 +2954,78 @@ export default function PackageDetailTest() {
 
       {/* Add bottom padding to prevent content being hidden by sticky bar on mobile */}
       <div className="h-20 lg:hidden" aria-hidden="true" />
+
+      {/* Hotel Image Lightbox */}
+      <Dialog open={!!hotelLightbox} onOpenChange={() => setHotelLightbox(null)}>
+        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 bg-black border-none">
+          <DialogHeader className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/60 to-transparent">
+            <DialogTitle className="text-white text-lg">
+              {hotelLightbox?.hotelName} ({(hotelLightbox?.index ?? 0) + 1}/{hotelLightbox?.images.length})
+            </DialogTitle>
+          </DialogHeader>
+          
+          {hotelLightbox && (
+            <div className="relative flex items-center justify-center min-h-[50vh] md:min-h-[70vh]">
+              <img
+                src={hotelLightbox.images[hotelLightbox.index]}
+                alt={`${hotelLightbox.hotelName} ${hotelLightbox.index + 1}`}
+                className="max-w-full max-h-[80vh] object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80";
+                }}
+              />
+              
+              {/* Navigation arrows */}
+              {hotelLightbox.images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setHotelLightbox({
+                      ...hotelLightbox,
+                      index: hotelLightbox.index === 0 ? hotelLightbox.images.length - 1 : hotelLightbox.index - 1
+                    })}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-white" />
+                  </button>
+                  <button
+                    onClick={() => setHotelLightbox({
+                      ...hotelLightbox,
+                      index: hotelLightbox.index === hotelLightbox.images.length - 1 ? 0 : hotelLightbox.index + 1
+                    })}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="w-6 h-6 text-white" />
+                  </button>
+                </>
+              )}
+              
+              {/* Thumbnail strip */}
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 overflow-x-auto">
+                <div className="flex gap-2 justify-center">
+                  {hotelLightbox.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setHotelLightbox({ ...hotelLightbox, index: idx })}
+                      className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
+                        idx === hotelLightbox.index ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

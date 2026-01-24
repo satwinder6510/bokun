@@ -1519,7 +1519,7 @@ export default function PackageDetailTest() {
               <Card>
                 <CardContent className="pt-6">
                   <div 
-                    className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                    className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line [&>p]:mb-4"
                     dangerouslySetInnerHTML={{ __html: pkg.description }}
                   />
                 </CardContent>
@@ -1566,7 +1566,7 @@ export default function PackageDetailTest() {
                     </CardHeader>
                     <CardContent>
                       <div 
-                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground whitespace-pre-line [&>p]:mb-4"
                         dangerouslySetInnerHTML={{ __html: day.description }}
                       />
                     </CardContent>
@@ -1591,7 +1591,7 @@ export default function PackageDetailTest() {
                     </CardHeader>
                     <CardContent>
                       <div 
-                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4"
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4 whitespace-pre-line [&>p]:mb-4"
                         dangerouslySetInnerHTML={{ __html: hotel.description }}
                       />
                       {hotel.images && hotel.images.length > 0 && (

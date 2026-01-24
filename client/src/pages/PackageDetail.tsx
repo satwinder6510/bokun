@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRoute, Link, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X, Loader2, Hotel, Utensils } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -474,7 +474,7 @@ function BokunPriceCalendarWidget({
   );
 }
 
-export default function PackageDetail() {
+export default function PackageDetailTest() {
   const { toast } = useToast();
   const phoneNumber = useDynamicPhoneNumber();
   const searchString = useSearch();
@@ -487,9 +487,11 @@ export default function PackageDetail() {
   
   // Support both old route (/packages/:slug) and new route (/Holidays/:country/:slug)
   const [, oldParams] = useRoute("/packages/:slug");
+  const [, oldTestParams] = useRoute("/packages-test/:slug");
   const [, newParams] = useRoute("/Holidays/:country/:slug");
-  const slug = newParams?.slug || oldParams?.slug;
-  const countrySlug = newParams?.country;
+  const [, newTestParams] = useRoute("/Holidays-test/:country/:slug");
+  const slug = newTestParams?.slug || newParams?.slug || oldTestParams?.slug || oldParams?.slug;
+  const countrySlug = newTestParams?.country || newParams?.country;
   
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -498,7 +500,27 @@ export default function PackageDetail() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  
+  // Handler to select date and scroll to CTA section
+  const handleDateSelect = useCallback((date: Date | undefined) => {
+    setSelectedDate(date);
+    // Only scroll to CTA if a date was actually selected
+    if (date) {
+      setTimeout(() => {
+        const ctaSection = document.getElementById('cta-section');
+        if (ctaSection) {
+          // Get the element's position and scroll with offset for header
+          const elementPosition = ctaSection.getBoundingClientRect().top + window.scrollY;
+          const offsetPosition = elementPosition - 20; // 20px offset from top
+          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, []);
   const [showAllItinerary, setShowAllItinerary] = useState(false);
+  
+  // Hotel image lightbox state
+  const [hotelLightbox, setHotelLightbox] = useState<{ images: string[]; index: number; hotelName: string } | null>(null);
   
   // Embla carousel for gallery
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
@@ -1112,8 +1134,49 @@ export default function PackageDetail() {
         </section>
       )}
 
-      {/* Gallery - Bokun Style (hidden on mobile if video exists) */}
-      <section id="package-gallery-section" className={`pt-4 pb-8 ${pkg.mobileHeroVideo ? 'hidden md:block' : ''}`}>
+      {/* Mobile Hero Image (when no video) */}
+      {!pkg.mobileHeroVideo && (
+        <section className="lg:hidden relative w-full aspect-[4/3] bg-muted">
+          <img
+            src={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
+            alt={pkg.title}
+            className="w-full h-full object-cover"
+            data-testid="img-package-hero-mobile"
+          />
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          {/* Title Overlay */}
+          <div className="absolute bottom-6 left-0 right-0 px-6">
+            <h1 className="text-2xl font-bold text-white mb-2">{pkg.title}</h1>
+            <div className="flex items-center gap-3 text-white/90 text-sm">
+              {pkg.duration && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {pkg.duration}
+                </span>
+              )}
+              {pkg.category && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  {pkg.category}
+                </span>
+              )}
+            </div>
+            {pkg.price && (
+              <div className="mt-3 inline-block bg-white backdrop-blur-sm rounded-lg px-4 py-2 shadow-xl">
+                <p className="text-xs text-muted-foreground">From</p>
+                <p className="text-xl font-bold text-secondary">
+                  {formatPrice(pkg.price)}
+                </p>
+                <p className="text-xs text-muted-foreground">per person</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Gallery - Hidden on mobile in test layout */}
+      <section id="package-gallery-section" className="hidden lg:block pt-4 pb-8">
         <div className="container mx-auto px-6 md:px-8">
           {/* Hero Image with Title Overlay - 21:9 aspect ratio */}
           <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">
@@ -1272,6 +1335,349 @@ export default function PackageDetail() {
         </div>
       </section>
 
+      {/* About This Package - Quick Info Cards */}
+      <section className="py-6 md:py-8 bg-muted/30">
+        <div className="container mx-auto px-4 md:px-8">
+          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">About This Package</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            {/* Duration Card */}
+            <Card className="text-center p-4">
+              <Clock className="w-8 h-8 mx-auto mb-2 text-secondary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Duration</p>
+              <p className="font-semibold text-sm md:text-base">{pkg.duration || 'Contact us'}</p>
+            </Card>
+            
+            {/* Destination Card */}
+            <Card className="text-center p-4">
+              <MapPin className="w-8 h-8 mx-auto mb-2 text-secondary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Destination</p>
+              <p className="font-semibold text-sm md:text-base">{pkg.category}</p>
+            </Card>
+            
+            {/* Accommodation Card */}
+            <Card className="text-center p-4">
+              <Hotel className="w-8 h-8 mx-auto mb-2 text-secondary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Accommodation</p>
+              <p className="font-semibold text-sm md:text-base">{accommodations.length > 0 ? `${accommodations.length} Hotel${accommodations.length > 1 ? 's' : ''}` : 'Included'}</p>
+            </Card>
+            
+            {/* Board Card */}
+            <Card className="text-center p-4">
+              <Utensils className="w-8 h-8 mx-auto mb-2 text-secondary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Board</p>
+              <p className="font-semibold text-sm md:text-base">As per itinerary</p>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* What's Included Section */}
+      {whatsIncluded.length > 0 && (
+        <section className="py-6 md:py-8">
+          <div className="container mx-auto px-4 md:px-8">
+            <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Included</h2>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {whatsIncluded.map((item, index) => (
+                    <div key={index} className="flex items-start gap-2" data-testid={`included-new-${index}`}>
+                      <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+      )}
+
+      {/* Availability Calendar Section */}
+      <section className="py-6 md:py-8 bg-muted/30" id="availability-calendar">
+        <div className="container mx-auto px-4 md:px-8">
+          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Check Availability & Prices</h2>
+          
+          {/* Manual Pricing Calendar */}
+          {pricing.length > 0 && (
+            <Card className="border-2 border-secondary/30">
+              <CardHeader className="bg-secondary/5 pb-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <span className="text-sm text-muted-foreground">From</span>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price)}</p>
+                    <span className="text-xs text-muted-foreground">per person</span>
+                  </div>
+                  <Badge className="bg-secondary text-white">
+                    <Plane className="w-4 h-4 mr-1" />
+                    Flights Included
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                {airports.length > 0 && (
+                  <div>
+                    <Label className="text-sm text-muted-foreground mb-1 block">Departing from</Label>
+                    <select
+                      value={selectedAirport}
+                      onChange={(e) => {
+                        setSelectedAirport(e.target.value);
+                        setSelectedDate(undefined);
+                      }}
+                      className="w-full md:w-auto min-w-[200px] p-2 border rounded-md bg-white text-foreground text-sm"
+                      data-testid="select-airport-new"
+                    >
+                      {airports.length > 1 && <option value="">Select Airport</option>}
+                      {airports.map(airport => (
+                        <option key={airport.code} value={airport.code}>
+                          {airport.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {selectedAirport && (
+                  <PriceCalendarWidget
+                    pricingData={sortedPricing}
+                    selectedDate={selectedDate}
+                    onDateSelect={handleDateSelect}
+                    formatPrice={formatPrice}
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Bokun Pricing Calendar - Reuse existing component logic */}
+          {bokunPricing?.enabled && bokunPricing.prices.length > 0 && bokunAirports.length > 0 && !pricing.length && (
+            <Card className="border-2 border-blue-300 dark:border-blue-700">
+              <CardHeader className="bg-blue-50 dark:bg-blue-900/20 pb-3">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <span className="text-sm text-muted-foreground">From</span>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price)}</p>
+                    <span className="text-xs text-muted-foreground">per person</span>
+                  </div>
+                  <Badge className="bg-blue-600 text-white">
+                    <Plane className="w-4 h-4 mr-1" />
+                    Flight + Tour
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4 space-y-4">
+                <div>
+                  <Label className="text-sm text-muted-foreground mb-1 block">Departing from</Label>
+                  <select
+                    value={selectedBokunAirport}
+                    onChange={(e) => {
+                      setSelectedBokunAirport(e.target.value);
+                      setSelectedBokunDate(undefined);
+                    }}
+                    className="w-full md:w-auto min-w-[200px] p-2 border rounded-md bg-white text-foreground text-sm"
+                    data-testid="select-bokun-airport-new"
+                  >
+                    {bokunAirports.length > 1 && <option value="">Select Airport</option>}
+                    {bokunAirports.map(airport => (
+                      <option key={airport.code} value={airport.code}>
+                        {airport.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedBokunAirport && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <CalendarIcon className="w-8 h-8 mx-auto mb-2" />
+                    <p>Select dates from the calendar below</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* No pricing available message */}
+          {!pricing.length && !(bokunPricing?.enabled && bokunPricing.prices.length > 0) && (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Contact us for availability and pricing</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
+
+      {/* Stacked CTA Section */}
+      <section id="cta-section" className="py-8 md:py-12 bg-secondary text-white">
+        <div className="container mx-auto px-4 md:px-8 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Book Your Adventure?</h2>
+          <p className="text-white/80 mb-6 max-w-2xl mx-auto">
+            Speak to our travel experts who can check live availability and book this for you or help you to customise the holiday
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" variant="outline" className="bg-white text-secondary hover:bg-white/90 border-white" asChild>
+              <a href={`tel:${phoneNumber.replace(/\s/g, '')}`}>
+                <Phone className="w-5 h-5 mr-2" />
+                {phoneNumber}
+              </a>
+            </Button>
+            {/* Live Chat - Mobile only */}
+            <Button 
+              size="lg" 
+              className="lg:hidden bg-white/20 hover:bg-white/30 border-white/40" 
+              variant="outline"
+              onClick={() => {
+                const win = window as WindowWithTidio;
+                if (win.tidioChatApi) {
+                  win.tidioChatApi.show();
+                  win.tidioChatApi.open();
+                }
+              }}
+            >
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Live Chat
+            </Button>
+            {/* Enquire button - opens form dialog */}
+            <Button 
+              size="lg" 
+              className="bg-white/20 hover:bg-white/30 border-white/40" 
+              variant="outline"
+              onClick={() => setEnquiryOpen(true)}
+            >
+              <Mail className="w-5 h-5 mr-2" />
+              Enquire
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Package Details - Tabbed Content */}
+      <section className="py-8 md:py-12">
+        <div className="container mx-auto px-4 md:px-8">
+          <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
+          <Tabs defaultValue="description" className="w-full">
+            <TabsList className="w-full justify-start mb-6 overflow-x-auto">
+              <TabsTrigger value="description" data-testid="tab-description-new">Description</TabsTrigger>
+              <TabsTrigger value="itinerary" data-testid="tab-itinerary-new">Itinerary</TabsTrigger>
+              <TabsTrigger value="accommodation" data-testid="tab-accommodation-new">Accommodation</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="description" className="space-y-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div 
+                    className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line [&>p]:mb-4"
+                    dangerouslySetInnerHTML={{ __html: pkg.description }}
+                  />
+                </CardContent>
+              </Card>
+              
+              {/* Highlights */}
+              {highlights.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Tour Highlights</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {highlights.map((highlight, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                          <span>{highlight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="itinerary" className="space-y-4">
+              {itinerary.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Detailed itinerary coming soon</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                itinerary.map((day, index) => (
+                  <Card key={index} data-testid={`itinerary-day-new-${day.day}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center gap-4">
+                        <Badge variant="outline" className="text-lg px-4 py-1">
+                          Day {day.day}
+                        </Badge>
+                        <CardTitle className="text-lg">{day.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground whitespace-pre-line [&>p]:mb-4"
+                        dangerouslySetInnerHTML={{ __html: day.description }}
+                      />
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+
+            <TabsContent value="accommodation" className="space-y-4">
+              {accommodations.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <Hotel className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">Accommodation details coming soon</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                accommodations.map((hotel, index) => (
+                  <Card key={index} data-testid={`accommodation-new-${index}`}>
+                    <CardHeader>
+                      <CardTitle>{hotel.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4 whitespace-pre-line [&>p]:mb-4"
+                        dangerouslySetInnerHTML={{ __html: hotel.description }}
+                      />
+                      {hotel.images && hotel.images.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          {hotel.images.slice(0, 4).map((img, imgIndex) => (
+                            <img 
+                              key={imgIndex}
+                              src={img}
+                              alt={`${hotel.name} ${imgIndex + 1}`}
+                              className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                              data-testid={`hotel-image-new-${index}-${imgIndex}`}
+                              onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                              }}
+                            />
+                          ))}
+                          {hotel.images.length > 4 && (
+                            <button
+                              onClick={() => setHotelLightbox({ images: hotel.images, index: 0, hotelName: hotel.name })}
+                              className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded"
+                            >
+                              +{hotel.images.length - 4} more
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
+      </section>
+
+      {/* Hide old mobile sections in test layout */}
+      <div className="hidden">
       {/* Mobile Availability Calendar - Shown only on mobile */}
       {pricing.length > 0 && (
         <section className="lg:hidden pb-6" id="pricing-mobile">
@@ -1323,7 +1729,7 @@ export default function PackageDetail() {
                     <PriceCalendarWidget
                       pricingData={sortedPricing}
                       selectedDate={selectedDate}
-                      onDateSelect={setSelectedDate}
+                      onDateSelect={handleDateSelect}
                       formatPrice={formatPrice}
                     />
                     
@@ -1523,6 +1929,8 @@ export default function PackageDetail() {
           </div>
         </section>
       )}
+      </div>
+      {/* End of hidden old mobile sections */}
 
       {/* Main Content */}
       <section className="py-8 md:py-12">
@@ -1530,8 +1938,8 @@ export default function PackageDetail() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Content */}
             <div className="lg:col-span-2">
-              {/* Mobile: Continuous scrolling content */}
-              <div className="lg:hidden space-y-6">
+              {/* Mobile: Continuous scrolling content - HIDDEN in test layout (content moved above) */}
+              <div className="hidden">
                 {/* Overview Section */}
                 <div id="overview-mobile">
                   <h2 className="text-xl font-bold mb-4">About This Package</h2>
@@ -1813,10 +2221,10 @@ export default function PackageDetail() {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
-                  {/* Description */}
+                  {/* Description - Full details */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>About This Package</CardTitle>
+                      <CardTitle>Description</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div 
@@ -1839,25 +2247,6 @@ export default function PackageDetail() {
                             <li key={index} className="flex items-start gap-2" data-testid={`highlight-${index}`}>
                               <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
                               <span>{highlight}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* What's Included - Hidden on mobile (shown in mobile section above) */}
-                  {whatsIncluded.length > 0 && (
-                    <Card className="hidden lg:block">
-                      <CardHeader>
-                        <CardTitle>What's Included</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-2">
-                          {whatsIncluded.map((item, index) => (
-                            <li key={index} className="flex items-start gap-2" data-testid={`included-${index}`}>
-                              <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span>{item}</span>
                             </li>
                           ))}
                         </ul>
@@ -2168,7 +2557,7 @@ export default function PackageDetail() {
                               <PriceCalendarWidget
                                 pricingData={sortedPricing}
                                 selectedDate={selectedDate}
-                                onDateSelect={setSelectedDate}
+                                onDateSelect={handleDateSelect}
                                 formatPrice={formatPrice}
                               />
                               
@@ -2609,6 +2998,87 @@ export default function PackageDetail() {
 
       {/* Add bottom padding to prevent content being hidden by sticky bar on mobile */}
       <div className="h-20 lg:hidden" aria-hidden="true" />
+
+      {/* Hotel Image Lightbox */}
+      <Dialog open={!!hotelLightbox} onOpenChange={() => setHotelLightbox(null)}>
+        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 bg-black border-none">
+          {/* Large Close Button */}
+          <button
+            onClick={() => setHotelLightbox(null)}
+            className="absolute top-4 right-4 z-20 bg-white/20 hover:bg-white/40 rounded-full p-3 transition-colors"
+            aria-label="Close lightbox"
+          >
+            <X className="w-8 h-8 text-white" />
+          </button>
+          
+          <DialogHeader className="absolute top-0 left-0 right-16 z-10 p-4 bg-gradient-to-b from-black/60 to-transparent">
+            <DialogTitle className="text-white text-lg">
+              {hotelLightbox?.hotelName} ({(hotelLightbox?.index ?? 0) + 1}/{hotelLightbox?.images.length})
+            </DialogTitle>
+          </DialogHeader>
+          
+          {hotelLightbox && (
+            <div className="relative flex items-center justify-center min-h-[50vh] md:min-h-[70vh]">
+              <img
+                src={hotelLightbox.images[hotelLightbox.index]}
+                alt={`${hotelLightbox.hotelName} ${hotelLightbox.index + 1}`}
+                className="max-w-full max-h-[80vh] object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80";
+                }}
+              />
+              
+              {/* Navigation arrows */}
+              {hotelLightbox.images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setHotelLightbox({
+                      ...hotelLightbox,
+                      index: hotelLightbox.index === 0 ? hotelLightbox.images.length - 1 : hotelLightbox.index - 1
+                    })}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-white" />
+                  </button>
+                  <button
+                    onClick={() => setHotelLightbox({
+                      ...hotelLightbox,
+                      index: hotelLightbox.index === hotelLightbox.images.length - 1 ? 0 : hotelLightbox.index + 1
+                    })}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight className="w-6 h-6 text-white" />
+                  </button>
+                </>
+              )}
+              
+              {/* Thumbnail strip */}
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 overflow-x-auto">
+                <div className="flex gap-2 justify-center">
+                  {hotelLightbox.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setHotelLightbox({ ...hotelLightbox, index: idx })}
+                      className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
+                        idx === hotelLightbox.index ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>

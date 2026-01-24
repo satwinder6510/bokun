@@ -44,7 +44,9 @@ import BlogPost from "@/pages/BlogPost";
 import Checkout from "@/pages/Checkout";
 import BookingConfirmation from "@/pages/BookingConfirmation";
 import Packages from "@/pages/Packages";
+import PackagesTest from "@/pages/PackagesTest";
 import PackageDetail from "@/pages/PackageDetail";
+import PackageDetailTest from "@/pages/PackageDetailTest";
 import AdminFAQ from "@/pages/AdminFAQ";
 import AdminBlog from "@/pages/AdminBlog";
 import AdminPackages from "@/pages/AdminPackages";
@@ -85,6 +87,8 @@ function Router() {
       <Route path="/tours" component={Tours} />
       <Route path="/tour/:id" component={TourDetail} />
       <Route path="/packages" component={Packages} />
+      <Route path="/packages-test" component={PackagesTest} />
+      <Route path="/packages-test/:slug" component={PackageDetailTest} />
       <Route path="/packages/:slug" component={PackageDetail} />
       <Route path="/search" component={SearchResults} />
       <Route path="/special-offers" component={SpecialOffers} />

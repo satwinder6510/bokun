@@ -1155,10 +1155,10 @@ export default function PackageDetailTest() {
                   {pkg.duration}
                 </span>
               )}
-              {pkg.destinationCountry && (
+              {pkg.category && (
                 <span className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" />
-                  {pkg.destinationCountry}
+                  {pkg.category}
                 </span>
               )}
             </div>
@@ -3002,7 +3002,16 @@ export default function PackageDetailTest() {
       {/* Hotel Image Lightbox */}
       <Dialog open={!!hotelLightbox} onOpenChange={() => setHotelLightbox(null)}>
         <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 bg-black border-none">
-          <DialogHeader className="absolute top-0 left-0 right-0 z-10 p-4 bg-gradient-to-b from-black/60 to-transparent">
+          {/* Large Close Button */}
+          <button
+            onClick={() => setHotelLightbox(null)}
+            className="absolute top-4 right-4 z-20 bg-white/20 hover:bg-white/40 rounded-full p-3 transition-colors"
+            aria-label="Close lightbox"
+          >
+            <X className="w-8 h-8 text-white" />
+          </button>
+          
+          <DialogHeader className="absolute top-0 left-0 right-16 z-10 p-4 bg-gradient-to-b from-black/60 to-transparent">
             <DialogTitle className="text-white text-lg">
               {hotelLightbox?.hotelName} ({(hotelLightbox?.index ?? 0) + 1}/{hotelLightbox?.images.length})
             </DialogTitle>

@@ -1134,6 +1134,46 @@ export default function PackageDetailTest() {
         </section>
       )}
 
+      {/* Mobile Hero Image (when no video) */}
+      {!pkg.mobileHeroVideo && (
+        <section className="lg:hidden relative w-full aspect-[4/3] bg-muted">
+          <img
+            src={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
+            alt={pkg.title}
+            className="w-full h-full object-cover"
+            data-testid="img-package-hero-mobile"
+          />
+          {/* Gradient Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          {/* Title Overlay */}
+          <div className="absolute bottom-6 left-0 right-0 px-6">
+            <h1 className="text-2xl font-bold text-white mb-2">{pkg.title}</h1>
+            <div className="flex items-center gap-3 text-white/90 text-sm">
+              {pkg.duration && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {pkg.duration}
+                </span>
+              )}
+              {pkg.destinationCountry && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  {pkg.destinationCountry}
+                </span>
+              )}
+            </div>
+            {displayPrice && (
+              <div className="mt-3">
+                <p className="text-xl font-bold text-secondary">
+                  From {formatPrice(displayPrice)}
+                </p>
+                <p className="text-xs text-white/70">per person</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Gallery - Hidden on mobile in test layout */}
       <section id="package-gallery-section" className="hidden lg:block pt-4 pb-8">
         <div className="container mx-auto px-6 md:px-8">

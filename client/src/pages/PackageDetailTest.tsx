@@ -1162,12 +1162,13 @@ export default function PackageDetailTest() {
                 </span>
               )}
             </div>
-            {displayPrice && (
-              <div className="mt-3">
+            {pkg.price && (
+              <div className="mt-3 inline-block bg-white backdrop-blur-sm rounded-lg px-4 py-2 shadow-xl">
+                <p className="text-xs text-muted-foreground">From</p>
                 <p className="text-xl font-bold text-secondary">
-                  From {formatPrice(displayPrice)}
+                  {formatPrice(pkg.price)}
                 </p>
-                <p className="text-xs text-white/70">per person</p>
+                <p className="text-xs text-muted-foreground">per person</p>
               </div>
             )}
           </div>

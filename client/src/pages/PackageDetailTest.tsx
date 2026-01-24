@@ -500,6 +500,20 @@ export default function PackageDetailTest() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  
+  // Handler to select date and scroll to CTA section
+  const handleDateSelect = useCallback((date: Date | undefined) => {
+    setSelectedDate(date);
+    // Only scroll to CTA if a date was actually selected
+    if (date) {
+      setTimeout(() => {
+        const ctaSection = document.getElementById('cta-section');
+        if (ctaSection) {
+          ctaSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, []);
   const [showAllItinerary, setShowAllItinerary] = useState(false);
   
   // Embla carousel for gallery
@@ -1379,7 +1393,7 @@ export default function PackageDetailTest() {
                   <PriceCalendarWidget
                     pricingData={sortedPricing}
                     selectedDate={selectedDate}
-                    onDateSelect={setSelectedDate}
+                    onDateSelect={handleDateSelect}
                     formatPrice={formatPrice}
                   />
                 )}
@@ -1447,7 +1461,7 @@ export default function PackageDetailTest() {
       </section>
 
       {/* Stacked CTA Section */}
-      <section className="py-8 md:py-12 bg-secondary text-white">
+      <section id="cta-section" className="py-8 md:py-12 bg-secondary text-white">
         <div className="container mx-auto px-4 md:px-8 text-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">Ready to Book Your Adventure?</h2>
           <p className="text-white/80 mb-6 max-w-2xl mx-auto">
@@ -1639,7 +1653,7 @@ export default function PackageDetailTest() {
                     <PriceCalendarWidget
                       pricingData={sortedPricing}
                       selectedDate={selectedDate}
-                      onDateSelect={setSelectedDate}
+                      onDateSelect={handleDateSelect}
                       formatPrice={formatPrice}
                     />
                     
@@ -1848,8 +1862,8 @@ export default function PackageDetailTest() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left Column - Content */}
             <div className="lg:col-span-2">
-              {/* Mobile: Continuous scrolling content */}
-              <div className="lg:hidden space-y-6">
+              {/* Mobile: Continuous scrolling content - HIDDEN in test layout (content moved above) */}
+              <div className="hidden">
                 {/* Overview Section */}
                 <div id="overview-mobile">
                   <h2 className="text-xl font-bold mb-4">About This Package</h2>
@@ -2131,10 +2145,10 @@ export default function PackageDetailTest() {
                 </TabsList>
 
                 <TabsContent value="overview" className="space-y-6">
-                  {/* Description */}
+                  {/* Description - Full details */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>About This Package</CardTitle>
+                      <CardTitle>Description</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div 
@@ -2157,25 +2171,6 @@ export default function PackageDetailTest() {
                             <li key={index} className="flex items-start gap-2" data-testid={`highlight-${index}`}>
                               <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
                               <span>{highlight}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* What's Included - Hidden on mobile (shown in mobile section above) */}
-                  {whatsIncluded.length > 0 && (
-                    <Card className="hidden lg:block">
-                      <CardHeader>
-                        <CardTitle>What's Included</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-2">
-                          {whatsIncluded.map((item, index) => (
-                            <li key={index} className="flex items-start gap-2" data-testid={`included-${index}`}>
-                              <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span>{item}</span>
                             </li>
                           ))}
                         </ul>
@@ -2486,7 +2481,7 @@ export default function PackageDetailTest() {
                               <PriceCalendarWidget
                                 pricingData={sortedPricing}
                                 selectedDate={selectedDate}
-                                onDateSelect={setSelectedDate}
+                                onDateSelect={handleDateSelect}
                                 formatPrice={formatPrice}
                               />
                               

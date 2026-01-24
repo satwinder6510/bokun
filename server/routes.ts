@@ -13,7 +13,11 @@ import { db } from "./db";
 import { eq, lt, desc } from "drizzle-orm";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { randomBytes } from "crypto";
+import { exec } from "child_process";
+import { promisify } from "util";
 import multer from "multer";
+
+const execPromise = promisify(exec);
 import path from "path";
 import fs from "fs";
 import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor";
@@ -7394,7 +7398,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No video file provided" });
       }
       
-      console.log(`[Video Upload] Received file: ${req.file.originalname}, size: ${req.file.size} bytes`);
+      const originalSize = req.file.size;
+      console.log(`[Video Upload] Received file: ${req.file.originalname}, size: ${(originalSize / 1024 / 1024).toFixed(2)} MB`);
+      
+      // Compress video using ffmpeg
+      const tempDir = '/tmp/video-processing';
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const inputPath = path.join(tempDir, `input-${Date.now()}.mp4`);
+      const outputPath = path.join(tempDir, `output-${Date.now()}.mp4`);
+      
+      // Write original file to temp
+      fs.writeFileSync(inputPath, req.file.buffer);
+      
+      // Compress with ffmpeg - optimize for mobile web playback
+      // -crf 28 = good quality/size balance (lower = better quality, higher = smaller file)
+      // -preset fast = balance between encoding speed and compression
+      // -vf scale=-2:720 = scale to 720p height, maintaining aspect ratio
+      // -c:a aac -b:a 128k = compress audio
+      console.log(`[Video Upload] Compressing video with ffmpeg...`);
+      
+      try {
+        await execPromise(
+          `ffmpeg -i "${inputPath}" -c:v libx264 -crf 28 -preset fast -vf "scale=-2:720" -c:a aac -b:a 128k -movflags +faststart -y "${outputPath}"`,
+          { timeout: 120000 } // 2 minute timeout
+        );
+      } catch (ffmpegError: any) {
+        console.error(`[Video Upload] ffmpeg compression failed:`, ffmpegError.message);
+        // Clean up and continue with original file
+        if (fs.existsSync(inputPath)) fs.unlinkSync(inputPath);
+        if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath);
+        throw new Error(`Video compression failed: ${ffmpegError.message}`);
+      }
+      
+      // Read compressed video
+      const compressedBuffer = fs.readFileSync(outputPath);
+      const compressedSize = compressedBuffer.length;
+      const compressionRatio = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+      
+      console.log(`[Video Upload] Compressed: ${(originalSize / 1024 / 1024).toFixed(2)} MB -> ${(compressedSize / 1024 / 1024).toFixed(2)} MB (${compressionRatio}% reduction)`);
+      
+      // Clean up temp files
+      fs.unlinkSync(inputPath);
+      fs.unlinkSync(outputPath);
       
       const objectStorageService = new ObjectStorageService();
       const isAvailable = await objectStorageService.isAvailable();
@@ -7402,15 +7450,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`[Video Upload] Object Storage available: ${isAvailable}`);
       
       if (isAvailable) {
-        // Upload to Object Storage for persistence
-        console.log(`[Video Upload] Uploading to Object Storage...`);
+        // Upload compressed video to Object Storage
+        console.log(`[Video Upload] Uploading compressed video to Object Storage...`);
         
-        // Generate unique filename with timestamp
-        const ext = path.extname(req.file.originalname) || '.mp4';
-        const filename = `videos/${Date.now()}-${Math.random().toString(36).substring(7)}${ext}`;
+        const filename = `videos/${Date.now()}-${Math.random().toString(36).substring(7)}.mp4`;
         
         const videoUrl = await objectStorageService.uploadFromBuffer(
-          req.file.buffer,
+          compressedBuffer,
           filename
         );
         console.log(`[Video Upload] Success - stored at: ${videoUrl}`);
@@ -7418,28 +7464,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
           success: true, 
           url: videoUrl,
           filename: req.file.originalname,
-          size: req.file.size,
-          mimetype: req.file.mimetype,
+          originalSize: originalSize,
+          compressedSize: compressedSize,
+          compressionRatio: `${compressionRatio}%`,
+          mimetype: 'video/mp4',
           storage: 'object-storage'
         });
       } else {
-        // Fallback to local disk (won't persist after deploy)
-        console.warn(`[Video Upload] WARNING: Object Storage not available! Using local storage (will NOT persist in production)`);
-        const filename = `${Date.now()}-${req.file.originalname}`;
+        // Fallback to local disk
+        console.warn(`[Video Upload] WARNING: Object Storage not available!`);
+        const filename = `${Date.now()}-compressed.mp4`;
         const videoDir = path.join(uploadDir, 'videos');
         if (!fs.existsSync(videoDir)) {
           fs.mkdirSync(videoDir, { recursive: true });
         }
         const filePath = path.join(videoDir, filename);
-        fs.writeFileSync(filePath, req.file.buffer);
+        fs.writeFileSync(filePath, compressedBuffer);
         res.json({ 
           success: true, 
           url: `/uploads/videos/${filename}`,
           filename: filename,
-          size: req.file.size,
-          mimetype: req.file.mimetype,
+          originalSize: originalSize,
+          compressedSize: compressedSize,
+          compressionRatio: `${compressionRatio}%`,
+          mimetype: 'video/mp4',
           storage: 'local',
-          warning: 'Using local storage - videos will NOT persist after redeployment'
+          warning: 'Using local storage - videos will NOT persist'
         });
       }
     } catch (error: any) {

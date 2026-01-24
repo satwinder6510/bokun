@@ -1073,10 +1073,10 @@ export default function PackageDetailTest() {
 
       {/* Mobile Full-Screen Video Hero (if available) */}
       {pkg.mobileHeroVideo && (
-        <section className="md:hidden relative w-full min-h-[60vh] bg-black flex items-center">
+        <section className="md:hidden relative w-full min-h-[60vh] max-h-[80vh] bg-black overflow-hidden">
           <video
             src={pkg.mobileHeroVideo}
-            className="w-full h-auto object-contain"
+            className="w-full min-h-[60vh] object-contain"
             autoPlay
             loop
             muted

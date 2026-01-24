@@ -487,9 +487,11 @@ export default function PackageDetailTest() {
   
   // Support both old route (/packages/:slug) and new route (/Holidays/:country/:slug)
   const [, oldParams] = useRoute("/packages/:slug");
+  const [, oldTestParams] = useRoute("/packages-test/:slug");
   const [, newParams] = useRoute("/Holidays/:country/:slug");
-  const slug = newParams?.slug || oldParams?.slug;
-  const countrySlug = newParams?.country;
+  const [, newTestParams] = useRoute("/Holidays-test/:country/:slug");
+  const slug = newTestParams?.slug || newParams?.slug || oldTestParams?.slug || oldParams?.slug;
+  const countrySlug = newTestParams?.country || newParams?.country;
   
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

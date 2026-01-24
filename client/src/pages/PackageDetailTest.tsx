@@ -1537,12 +1537,15 @@ export default function PackageDetailTest() {
               <MessageCircle className="w-5 h-5 mr-2" />
               Live Chat
             </Button>
-            {/* Enquire button */}
-            <Button size="lg" className="bg-white/20 hover:bg-white/30 border-white/40" variant="outline" asChild>
-              <a href={`mailto:holidayenq@flightsandpackages.com?subject=Enquiry: ${pkg.title}`}>
-                <Mail className="w-5 h-5 mr-2" />
-                Enquire
-              </a>
+            {/* Enquire button - opens form dialog */}
+            <Button 
+              size="lg" 
+              className="bg-white/20 hover:bg-white/30 border-white/40" 
+              variant="outline"
+              onClick={() => setEnquiryOpen(true)}
+            >
+              <Mail className="w-5 h-5 mr-2" />
+              Enquire
             </Button>
           </div>
         </div>

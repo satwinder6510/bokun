@@ -8,6 +8,7 @@ declare global {
       hide: () => void;
       open: () => void;
     };
+    tidioIdentify?: object;
   }
 }
 
@@ -23,18 +24,33 @@ export function useTidio() {
     const isTestPage = /^\/packages-test\/[^\/]+$/.test(location) || /^\/Holidays-test\/[^\/]+\/[^\/]+$/.test(location);
     
     if ((isTourDetail || isPackageDetail || isTestPage) && !tidioLoaded) {
+      // Set up Tidio to hide on load
+      const handleTidioReady = () => {
+        if (window.tidioChatApi) {
+          window.tidioChatApi.hide();
+        }
+      };
+      
+      // Listen for Tidio ready event
+      document.addEventListener('tidioChat-ready', handleTidioReady);
+      
       // Load Tidio script
       const script = document.createElement('script');
       script.src = '//code.tidio.co/umkdiuqjxuccie7jbxsnr0f6pj3lkfcs.js';
       script.async = true;
       document.body.appendChild(script);
       tidioLoaded = true;
+      
+      return () => {
+        document.removeEventListener('tidioChat-ready', handleTidioReady);
+      };
     }
   }, [location]);
 }
 
 export function openTidioChat() {
   if (window.tidioChatApi) {
+    window.tidioChatApi.show();
     window.tidioChatApi.open();
   }
 }

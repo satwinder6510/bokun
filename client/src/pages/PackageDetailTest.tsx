@@ -509,7 +509,10 @@ export default function PackageDetailTest() {
       setTimeout(() => {
         const ctaSection = document.getElementById('cta-section');
         if (ctaSection) {
-          ctaSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Get the element's position and scroll with offset for header
+          const elementPosition = ctaSection.getBoundingClientRect().top + window.scrollY;
+          const offsetPosition = elementPosition - 20; // 20px offset from top
+          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
         }
       }, 100);
     }

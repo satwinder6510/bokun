@@ -7209,8 +7209,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Trigger Bokun product cache refresh (admin)
-  app.post("/api/admin/refresh-bokun-cache", async (req, res) => {
+  app.post("/api/admin/refresh-bokun-cache", verifyAdminSession, async (req, res) => {
     try {
+      console.log("[Admin] Starting manual Bokun cache refresh...");
       // Run the cache refresh in the background
       runWeeklyBokunCacheRefresh().catch(err => {
         console.error("[Admin] Bokun cache refresh failed:", err);

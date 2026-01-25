@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +13,7 @@ import type { SiteSetting } from "@shared/schema";
 
 export default function AdminSettings() {
   const { toast } = useToast();
+  const { sessionToken } = useAdminAuth();
   const [exchangeRate, setExchangeRate] = useState("0.79");
   const [packagesCount, setPackagesCount] = useState("4");
   const [heroImage, setHeroImage] = useState<string | null>(null);
@@ -187,7 +189,18 @@ export default function AdminSettings() {
   const handleRefreshFlightPrices = async () => {
     setIsRefreshingFlights(true);
     try {
-      const response = await apiRequest("POST", "/api/admin/refresh-flight-prices", {});
+      const response = await fetch("/api/admin/refresh-flight-prices", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-session": sessionToken || ""
+        },
+        body: JSON.stringify({})
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to start refresh");
+      }
       toast({ 
         title: "Flight price refresh started", 
         description: "This may take several minutes. Check server logs for progress." 
@@ -206,7 +219,18 @@ export default function AdminSettings() {
   const handleRefreshBokunCache = async () => {
     setIsRefreshingBokun(true);
     try {
-      const response = await apiRequest("POST", "/api/admin/refresh-bokun-cache", {});
+      const response = await fetch("/api/admin/refresh-bokun-cache", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-admin-session": sessionToken || ""
+        },
+        body: JSON.stringify({})
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to start refresh");
+      }
       toast({ 
         title: "Bokun cache refresh started", 
         description: "This may take several minutes." 

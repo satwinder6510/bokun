@@ -24,7 +24,7 @@ import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import * as mediaService from "./mediaService";
 import * as stockImageService from "./stockImageService";
-import { runWeeklyBokunCacheRefresh } from "./scheduler";
+import { runWeeklyBokunCacheRefresh, runWeeklyFlightRefresh } from "./scheduler";
 import { buildPackageIndex, getPackageIndex, scorePackageWithIndex, isIndexBuilt } from "./keywordIndex";
 
 // Password hashing constants
@@ -7223,6 +7223,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error starting Bokun cache refresh:", error);
       res.status(500).json({ error: "Failed to start cache refresh" });
+    }
+  });
+
+  // Trigger flight price refresh (admin)
+  app.post("/api/admin/refresh-flight-prices", verifyAdminSession, async (req, res) => {
+    try {
+      console.log("[Admin] Starting manual flight price refresh...");
+      // Run the flight refresh in the background
+      runWeeklyFlightRefresh().catch(err => {
+        console.error("[Admin] Flight price refresh failed:", err);
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Flight price refresh started. This may take several minutes. Check server logs for progress." 
+      });
+    } catch (error: any) {
+      console.error("Error starting flight price refresh:", error);
+      res.status(500).json({ error: "Failed to start flight price refresh" });
     }
   });
 

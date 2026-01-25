@@ -36,6 +36,7 @@ function TidioLoader() {
 import Homepage from "@/pages/Homepage";
 import { Redirect } from "wouter";
 import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
 import Contact from "@/pages/Contact";
 import FAQ from "@/pages/FAQ";
 import Blog from "@/pages/Blog";
@@ -88,6 +89,7 @@ function Router() {
       <Route path="/checkout" component={Checkout} />
       <Route path="/booking/:reference" component={BookingConfirmation} />
       <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
       <Route path="/contact" component={Contact} />
       <Route path="/faq" component={FAQ} />
       <Route path="/blog" component={Blog} />

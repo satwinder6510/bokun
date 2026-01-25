@@ -1343,8 +1343,566 @@ export default function PackageDetailTest() {
         </div>
       </section>
 
-      {/* About This Package - Quick Info Cards */}
-      <section className="py-6 md:py-8 bg-muted/30">
+      {/* ==================== DESKTOP 2-COLUMN LAYOUT ==================== */}
+      <div className="hidden lg:block">
+        <div className="container mx-auto px-4 md:px-8 py-8">
+          <div className="grid grid-cols-[1fr_380px] gap-8">
+            {/* Left Column - Main Content */}
+            <div className="space-y-8">
+              {/* About This Package - Quick Info Cards */}
+              <div className="bg-muted/30 -mx-4 px-4 py-6 rounded-lg">
+                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">About This Package</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                  <Card className="text-center p-4">
+                    <Clock className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Duration</p>
+                    <p className="font-semibold text-sm md:text-base">{pkg.duration || 'Contact us'}</p>
+                  </Card>
+                  <Card className="text-center p-4">
+                    <MapPin className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Destination</p>
+                    <p className="font-semibold text-sm md:text-base">{pkg.category}</p>
+                  </Card>
+                  <Card className="text-center p-4">
+                    <Hotel className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Accommodation</p>
+                    <p className="font-semibold text-sm md:text-base">{accommodations.length > 0 ? `${accommodations.length} Hotel${accommodations.length > 1 ? 's' : ''}` : 'Included'}</p>
+                  </Card>
+                  <Card className="text-center p-4">
+                    <Utensils className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Board</p>
+                    <p className="font-semibold text-sm md:text-base">As per itinerary</p>
+                  </Card>
+                </div>
+              </div>
+
+              {/* What's Included */}
+              {whatsIncluded.length > 0 && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Included</h2>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {whatsIncluded.map((item, index) => (
+                          <div key={index} className="flex items-start gap-2" data-testid={`included-desktop-${index}`}>
+                            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold mb-4">Description</h2>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div 
+                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
+                      dangerouslySetInnerHTML={{ __html: pkg.description }}
+                      data-testid="content-description-desktop"
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Highlights */}
+              {highlights.length > 0 && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-4">Highlights</h2>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {highlights.map((highlight, index) => (
+                          <li key={index} className="flex items-start gap-2" data-testid={`highlight-desktop-${index}`}>
+                            <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                            <span>{highlight}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Itinerary */}
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold mb-4">Itinerary</h2>
+                {itinerary.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">Detailed itinerary coming soon</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {itinerary.map((day, index) => (
+                      <Card key={index} data-testid={`itinerary-desktop-day-${day.day}`}>
+                        <CardHeader className="pb-2">
+                          <div className="flex items-center gap-4">
+                            <Badge variant="outline" className="text-lg px-4 py-1">
+                              Day {day.day}
+                            </Badge>
+                            <CardTitle className="text-lg">{day.title}</CardTitle>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
+                            dangerouslySetInnerHTML={{ __html: day.description }}
+                          />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Hotels */}
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold mb-4">Hotels</h2>
+                {accommodations.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <Hotel className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">Accommodation details coming soon</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {accommodations.map((hotel, index) => (
+                      <Card key={index} data-testid={`hotel-desktop-${index}`}>
+                        <CardHeader>
+                          <CardTitle>{hotel.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4"
+                            dangerouslySetInnerHTML={{ __html: hotel.description }}
+                          />
+                          {hotel.images && hotel.images.length > 0 && (
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                              {hotel.images.slice(0, 4).map((img, imgIndex) => (
+                                <img 
+                                  key={imgIndex}
+                                  src={img}
+                                  alt={`${hotel.name} ${imgIndex + 1}`}
+                                  className="w-full aspect-[4/3] object-cover rounded-lg"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Additional Info */}
+              {pkg.excluded && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-4">Important Information</h2>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Exclusions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="prose prose-sm max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: pkg.excluded }}
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Reviews */}
+              {pkg.review && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-4">Customer Reviews</h2>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div 
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
+                        dangerouslySetInnerHTML={{ __html: pkg.review }}
+                        data-testid="content-reviews-desktop"
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column - Sticky Sidebar */}
+            <div data-testid="desktop-sidebar">
+              <div className="sticky top-24 space-y-4">
+                {/* Price & Booking Card */}
+                <Card className="border-2 border-secondary/30">
+                  <CardHeader className="bg-secondary/5">
+                    <div className="space-y-2">
+                      <span className="text-sm text-muted-foreground">From</span>
+                      <div className="flex items-baseline gap-3 flex-wrap">
+                        {(pkg.pricingDisplay === "both" || pkg.pricingDisplay === "twin" || !pkg.pricingDisplay) && (
+                          <div>
+                            <p className="text-3xl font-bold text-foreground" data-testid="text-price-desktop">
+                              {formatPrice(pkg.price)}
+                            </p>
+                            <span className="text-xs text-muted-foreground">pp twin share</span>
+                          </div>
+                        )}
+                        {pkg.pricingDisplay === "single" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
+                          <div>
+                            <p className="text-3xl font-bold text-foreground">
+                              {formatPrice(pkg.singlePrice)}
+                            </p>
+                            <span className="text-xs text-muted-foreground">pp solo</span>
+                          </div>
+                        )}
+                        {pkg.pricingDisplay === "both" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
+                          <div className="border-l pl-3 border-border">
+                            <p className="text-xl font-semibold text-foreground">
+                              {formatPrice(pkg.singlePrice)}
+                            </p>
+                            <span className="text-xs text-muted-foreground">pp solo</span>
+                          </div>
+                        )}
+                      </div>
+                      <Badge className="bg-secondary text-white mt-2">
+                        <Plane className="w-4 h-4 mr-1" />
+                        Flights Included
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4 space-y-4">
+                    {/* Quick Info */}
+                    <div className="space-y-2 text-sm">
+                      {pkg.duration && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-muted-foreground" />
+                          <span>{pkg.duration}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <span>{pkg.category}</span>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Pricing Calendar */}
+                    {pricing.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <CalendarIcon className="w-5 h-5 text-secondary" />
+                          <p className="font-medium">Check Availability</p>
+                        </div>
+                        
+                        {airports.length > 0 && (
+                          <div>
+                            <Label className="text-sm text-muted-foreground mb-1 block">Departing from</Label>
+                            <select
+                              value={selectedAirport}
+                              onChange={(e) => {
+                                setSelectedAirport(e.target.value);
+                                setSelectedDate(undefined);
+                              }}
+                              className="w-full p-2 border rounded-md bg-white text-foreground text-sm"
+                              data-testid="select-airport-desktop"
+                            >
+                              {airports.length > 1 && <option value="">Select Airport</option>}
+                              {airports.map(airport => (
+                                <option key={airport.code} value={airport.code}>
+                                  {airport.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {selectedAirport && (
+                          <div className="space-y-3">
+                            <PriceCalendarWidget
+                              pricingData={sortedPricing}
+                              selectedDate={selectedDate}
+                              onDateSelect={handleDateSelect}
+                              formatPrice={formatPrice}
+                            />
+                            
+                            {selectedDate && selectedPricing && (
+                              <div className="p-3 bg-secondary/10 rounded-lg border border-secondary/20">
+                                <div className="text-center">
+                                  <p className="font-medium text-sm">
+                                    {selectedDate.toLocaleDateString('en-GB', { 
+                                      weekday: 'short',
+                                      day: 'numeric', 
+                                      month: 'short',
+                                      year: 'numeric'
+                                    })}
+                                  </p>
+                                  <p className="text-2xl font-bold text-secondary mt-1">
+                                    {formatPrice(selectedPricing.price)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">per person</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {!selectedAirport && airports.length > 1 && (
+                          <p className="text-sm text-muted-foreground text-center py-2">
+                            Select a departure airport
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bokun Departures + Flights Calendar */}
+                    {bokunPricing?.enabled && bokunPricing.prices.length > 0 && bokunAirports.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Plane className="w-5 h-5 text-blue-600" />
+                          <div>
+                            <p className="font-medium text-blue-600">Flight + Tour Package</p>
+                            <p className="text-xs text-muted-foreground">
+                              From {formatPrice(bokunDisplayMinPrice)} pp
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {bokunAirports.length > 0 && (
+                          <div>
+                            <Label className="text-sm text-muted-foreground mb-1 block">Flying from</Label>
+                            <select
+                              value={selectedBokunAirport}
+                              onChange={(e) => {
+                                setSelectedBokunAirport(e.target.value);
+                                setSelectedBokunRate("");
+                                setSelectedBokunDate(undefined);
+                              }}
+                              className="w-full p-2 border rounded-md bg-white text-foreground text-sm"
+                              data-testid="select-bokun-airport-desktop"
+                            >
+                              {bokunAirports.map(airport => (
+                                <option key={airport.code} value={airport.code}>
+                                  {airport.name} ({formatPrice(airport.minPrice)})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {bokunRates.length > 1 && selectedBokunAirport && (
+                          <div>
+                            <Label className="text-sm text-muted-foreground mb-1 block">Room Type</Label>
+                            <select
+                              value={selectedBokunRate}
+                              onChange={(e) => {
+                                setSelectedBokunRate(e.target.value);
+                                setSelectedBokunDate(undefined);
+                              }}
+                              className="w-full p-2 border rounded-md bg-white text-foreground text-sm"
+                              data-testid="select-bokun-rate-desktop"
+                            >
+                              {bokunRates.map(rate => (
+                                <option key={rate.title} value={rate.title}>
+                                  {rate.title} ({formatPrice(rate.price)})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {selectedBokunAirport && filteredBokunPricing.length > 0 && (
+                          <div className="space-y-3">
+                            <BokunPriceCalendarWidget
+                              pricingData={filteredBokunPricing}
+                              selectedDate={selectedBokunDate}
+                              onDateSelect={setSelectedBokunDate}
+                              formatPrice={formatPrice}
+                            />
+                            
+                            {selectedBokunDate && selectedBokunPricing && (
+                              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="text-center">
+                                  <p className="font-medium text-sm">
+                                    {selectedBokunDate.toLocaleDateString('en-GB', { 
+                                      weekday: 'short',
+                                      day: 'numeric', 
+                                      month: 'short',
+                                      year: 'numeric'
+                                    })}
+                                  </p>
+                                  <p className="text-2xl font-bold text-blue-600 mt-1">
+                                    {formatPrice(selectedBokunPricing.combinedPrice)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">per person incl. flights</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <Separator />
+
+                    {/* CTA Buttons */}
+                    <div className="space-y-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            className="w-full bg-secondary hover:bg-secondary/90 text-white"
+                            size="lg"
+                            onClick={() => {
+                              captureEnquireCtaClicked({
+                                package_title: pkg.title,
+                                package_id: pkg.id,
+                                package_slug: slug
+                              });
+                              trackEnquireCta({
+                                content_name: pkg.title,
+                                content_category: pkg.category || 'Flight Package'
+                              });
+                            }}
+                            data-testid="button-enquire-desktop"
+                          >
+                            <Mail className="w-4 h-4 mr-2" />
+                            Enquire Now
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px]">
+                          <DialogHeader>
+                            <DialogTitle>Enquire About This Package</DialogTitle>
+                            <DialogDescription>
+                              Fill in your details and we'll get back to you within 24 hours.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <form onSubmit={handleSubmitEnquiry} className="space-y-4 mt-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="firstName">First Name *</Label>
+                                <Input
+                                  id="firstName"
+                                  value={formData.firstName}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                                  required
+                                  data-testid="input-first-name"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="lastName">Last Name *</Label>
+                                <Input
+                                  id="lastName"
+                                  value={formData.lastName}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                                  required
+                                  data-testid="input-last-name"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="email">Email *</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                                required
+                                data-testid="input-email"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="phone">Phone Number *</Label>
+                              <Input
+                                id="phone"
+                                type="tel"
+                                value={formData.phone}
+                                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                required
+                                data-testid="input-phone"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="message">Message</Label>
+                              <Textarea
+                                id="message"
+                                value={formData.message}
+                                onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                                placeholder="Tell us about your travel plans..."
+                                rows={4}
+                                data-testid="input-message"
+                              />
+                            </div>
+                            <Button 
+                              type="submit" 
+                              className="w-full bg-secondary hover:bg-secondary/90"
+                              disabled={isSubmitting}
+                              data-testid="button-submit-enquiry"
+                            >
+                              {isSubmitting ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                'Send Enquiry'
+                              )}
+                            </Button>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => {
+                          captureCallCtaClicked({
+                            package_title: pkg.title,
+                            package_id: pkg.id,
+                            package_slug: slug,
+                            phone_number: phoneNumber
+                          });
+                          trackCallCta({
+                            content_name: pkg.title,
+                            content_category: pkg.category || 'Flight Package'
+                          });
+                          window.location.href = `tel:${phoneNumber.replace(/\s/g, '')}`;
+                        }}
+                        data-testid="button-call-desktop"
+                      >
+                        <Phone className="w-4 h-4 mr-2" />
+                        {phoneNumber}
+                      </Button>
+                    </div>
+
+                    {/* Trust Badges */}
+                    <div className="flex items-center justify-center gap-4 pt-2">
+                      <img src={travelTrustLogo} alt="Travel Trust Association" className="h-8 object-contain" />
+                      <img src={atolLogo} alt="ATOL Protected" className="h-8 object-contain" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* ==================== END DESKTOP LAYOUT ==================== */}
+
+      {/* ==================== MOBILE LAYOUT (unchanged) ==================== */}
+      {/* About This Package - Quick Info Cards - MOBILE ONLY */}
+      <section className="py-6 md:py-8 bg-muted/30 lg:hidden">
         <div className="container mx-auto px-4 md:px-8">
           <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">About This Package</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
@@ -1943,9 +2501,9 @@ export default function PackageDetailTest() {
       {/* Main Content */}
       <section className="py-8 md:py-12">
         <div className="container mx-auto px-4 md:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
             {/* Left Column - Content */}
-            <div className="lg:col-span-2">
+            <div>
               {/* Mobile: Continuous scrolling content - HIDDEN in test layout (content moved above) */}
               <div className="hidden">
                 {/* Overview Section */}
@@ -2470,7 +3028,7 @@ export default function PackageDetailTest() {
             </div>
 
             {/* Right Column - Booking Sidebar - Hidden on mobile (shown in mobile section above) */}
-            <div className="hidden lg:block lg:col-span-1" id="pricing">
+            <div className="hidden lg:block" id="pricing">
               <div className="sticky top-24">
                 <Card className="border-2 border-secondary/30">
                   <CardHeader className="bg-secondary/5">

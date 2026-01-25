@@ -1390,8 +1390,8 @@ export default function PackageDetailTest() {
         </section>
       )}
 
-      {/* Availability Calendar Section */}
-      <section className="py-6 md:py-8 bg-muted/30" id="availability-calendar">
+      {/* Availability Calendar Section - Hidden on desktop (sidebar has calendar) */}
+      <section className="py-6 md:py-8 bg-muted/30 lg:hidden" id="availability-calendar">
         <div className="container mx-auto px-4 md:px-8">
           <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Check Availability & Prices</h2>
           

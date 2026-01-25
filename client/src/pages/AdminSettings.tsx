@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowLeft, Settings, Save, Loader2, RefreshCw, DollarSign, Home, Image, Package, Upload, X } from "lucide-react";
+import { ArrowLeft, Settings, Save, Loader2, RefreshCw, DollarSign, Home, Image, Package, Upload, X, Plane, Database } from "lucide-react";
 import type { SiteSetting } from "@shared/schema";
 
 export default function AdminSettings() {
@@ -18,6 +18,8 @@ export default function AdminSettings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [hasHomepageChanges, setHasHomepageChanges] = useState(false);
   const [isUploadingHero, setIsUploadingHero] = useState(false);
+  const [isRefreshingFlights, setIsRefreshingFlights] = useState(false);
+  const [isRefreshingBokun, setIsRefreshingBokun] = useState(false);
   const heroFileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: settings = [], isLoading, refetch } = useQuery<SiteSetting[]>({
@@ -180,6 +182,44 @@ export default function AdminSettings() {
     }
     
     updateHomepageSettingsMutation.mutate();
+  };
+
+  const handleRefreshFlightPrices = async () => {
+    setIsRefreshingFlights(true);
+    try {
+      const response = await apiRequest("POST", "/api/admin/refresh-flight-prices", {});
+      toast({ 
+        title: "Flight price refresh started", 
+        description: "This may take several minutes. Check server logs for progress." 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Failed to start flight refresh", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsRefreshingFlights(false);
+    }
+  };
+
+  const handleRefreshBokunCache = async () => {
+    setIsRefreshingBokun(true);
+    try {
+      const response = await apiRequest("POST", "/api/admin/refresh-bokun-cache", {});
+      toast({ 
+        title: "Bokun cache refresh started", 
+        description: "This may take several minutes." 
+      });
+    } catch (error: any) {
+      toast({ 
+        title: "Failed to start Bokun refresh", 
+        description: error.message, 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsRefreshingBokun(false);
+    }
   };
 
   const rateSetting = settings.find(s => s.key === "usd_to_gbp_rate");
@@ -437,6 +477,69 @@ export default function AdminSettings() {
                 <strong>Tip:</strong> Check current USD/GBP rates and set this slightly above 
                 market rate to cover currency fluctuations and payment processing fees.
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5" />
+                System Actions
+              </CardTitle>
+              <CardDescription>
+                Manually trigger scheduled tasks. These normally run automatically on Sundays.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Plane className="w-5 h-5 text-blue-600" />
+                    <h4 className="font-medium">Flight Price Refresh</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Updates flight prices for all packages using the Bokun Departures + Flights module. Scheduled: Sundays 3:00 AM UK.
+                  </p>
+                  <Button 
+                    onClick={handleRefreshFlightPrices}
+                    disabled={isRefreshingFlights}
+                    variant="outline"
+                    className="w-full"
+                    data-testid="button-refresh-flights"
+                  >
+                    {isRefreshingFlights ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plane className="w-4 h-4 mr-2" />
+                    )}
+                    {isRefreshingFlights ? "Starting..." : "Refresh Flight Prices"}
+                  </Button>
+                </div>
+
+                <div className="flex-1 p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Database className="w-5 h-5 text-green-600" />
+                    <h4 className="font-medium">Bokun Product Cache</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Refreshes the cached list of Bokun tours displayed on the website. Scheduled: Sundays 8:00 PM UK.
+                  </p>
+                  <Button 
+                    onClick={handleRefreshBokunCache}
+                    disabled={isRefreshingBokun}
+                    variant="outline"
+                    className="w-full"
+                    data-testid="button-refresh-bokun"
+                  >
+                    {isRefreshingBokun ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Database className="w-4 h-4 mr-2" />
+                    )}
+                    {isRefreshingBokun ? "Starting..." : "Refresh Bokun Cache"}
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -1343,70 +1343,7 @@ export default function PackageDetailTest() {
         </div>
       </section>
 
-      {/* ==================== DESKTOP 2-COLUMN LAYOUT ==================== */}
-      <div className="hidden lg:block">
-        <div className="container mx-auto px-4 md:px-8 py-8">
-          <div className="grid grid-cols-[1fr_380px] gap-8">
-            {/* Left Column - Main Content */}
-            <div className="space-y-8">
-              {/* About This Package - Quick Info Cards */}
-              <div className="bg-muted/30 -mx-4 px-4 py-6 rounded-lg">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">About This Package</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                  <Card className="text-center p-4">
-                    <Clock className="w-8 h-8 mx-auto mb-2 text-secondary" />
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Duration</p>
-                    <p className="font-semibold text-sm md:text-base">{pkg.duration || 'Contact us'}</p>
-                  </Card>
-                  <Card className="text-center p-4">
-                    <MapPin className="w-8 h-8 mx-auto mb-2 text-secondary" />
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Destination</p>
-                    <p className="font-semibold text-sm md:text-base">{pkg.category}</p>
-                  </Card>
-                  <Card className="text-center p-4">
-                    <Hotel className="w-8 h-8 mx-auto mb-2 text-secondary" />
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Accommodation</p>
-                    <p className="font-semibold text-sm md:text-base">{accommodations.length > 0 ? `${accommodations.length} Hotel${accommodations.length > 1 ? 's' : ''}` : 'Included'}</p>
-                  </Card>
-                  <Card className="text-center p-4">
-                    <Utensils className="w-8 h-8 mx-auto mb-2 text-secondary" />
-                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Board</p>
-                    <p className="font-semibold text-sm md:text-base">As per itinerary</p>
-                  </Card>
-                </div>
-              </div>
-
-              {/* What's Included */}
-              {whatsIncluded.length > 0 && (
-                <div>
-                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Included</h2>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {whatsIncluded.map((item, index) => (
-                          <div key={index} className="flex items-start gap-2" data-testid={`included-desktop-${index}`}>
-                            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* Description */}
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold mb-4">Description</h2>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div 
-                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                      dangerouslySetInnerHTML={{ __html: pkg.description }}
-                      data-testid="content-description-desktop"
-                    />
-                  </CardContent>
-                </Card>
+      {/* ==================== SINGLE COLUMN LAYOUT ==================== */}
               </div>
 
               {/* Highlights */}

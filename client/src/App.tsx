@@ -34,8 +34,7 @@ function TidioLoader() {
   return null;
 }
 import Homepage from "@/pages/Homepage";
-import Tours from "@/pages/Tours";
-import TourDetail from "@/pages/TourDetail";
+import { Redirect } from "wouter";
 import Terms from "@/pages/Terms";
 import Contact from "@/pages/Contact";
 import FAQ from "@/pages/FAQ";
@@ -63,8 +62,6 @@ import Dashboard from "@/pages/Dashboard";
 import DesignPreview from "@/pages/DesignPreview";
 import PreviewPackages from "@/pages/PreviewPackages";
 import PreviewPackageDetail from "@/pages/PreviewPackageDetail";
-import PreviewTours from "@/pages/PreviewTours";
-import PreviewTourDetail from "@/pages/PreviewTourDetail";
 import PreviewContact from "@/pages/PreviewContact";
 import PreviewFAQ from "@/pages/PreviewFAQ";
 import PreviewBlog from "@/pages/PreviewBlog";
@@ -82,8 +79,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Homepage} />
-      <Route path="/tours" component={Tours} />
-      <Route path="/tour/:id" component={TourDetail} />
+      <Route path="/tours">{() => <Redirect to="/packages" />}</Route>
+      <Route path="/tour/:id">{() => <Redirect to="/packages" />}</Route>
       <Route path="/packages" component={Packages} />
       <Route path="/packages/:slug" component={PackageDetail} />
       <Route path="/search" component={SearchResults} />
@@ -106,8 +103,8 @@ function Router() {
       <Route path="/hero-concepts" component={HeroConcepts} />
       <Route path="/preview/packages" component={PreviewPackages} />
       <Route path="/preview/packages/:id" component={PreviewPackageDetail} />
-      <Route path="/preview/tours" component={PreviewTours} />
-      <Route path="/preview/tours/:slug" component={PreviewTourDetail} />
+      <Route path="/preview/tours">{() => <Redirect to="/preview/packages" />}</Route>
+      <Route path="/preview/tours/:slug">{() => <Redirect to="/preview/packages" />}</Route>
       <Route path="/preview/contact" component={PreviewContact} />
       <Route path="/preview/faq" component={PreviewFAQ} />
       <Route path="/preview/blog" component={PreviewBlog} />

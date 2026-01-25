@@ -2708,29 +2708,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "Solo Travellers": ["solo traveller", "solo traveler", "single traveller"],
       };
       
-      // Fetch packages and cached tours (try GBP first, fall back to USD)
+      // Fetch packages only (land tours no longer shown on public site)
       const packages = await storage.getPublishedFlightPackages();
-      let cachedTours = await storage.getCachedProducts("GBP");
       
-      // Fall back to USD cache if GBP is empty
-      if (cachedTours.length === 0) {
-        cachedTours = await storage.getCachedProducts("USD");
-        console.log(`[AI Search] GBP cache empty, using USD cache (${cachedTours.length} tours)`);
-      }
-      
-      // Get all Bokun product IDs that are linked to flight packages
-      // These tours should not appear separately as "land tours"
-      const linkedBokunIds = new Set<string>();
-      for (const pkg of packages) {
-        if (pkg.bokunProductId) {
-          linkedBokunIds.add(pkg.bokunProductId);
-        }
-      }
-      
-      // Filter out tours that are already linked to flight packages
-      const filteredTours = cachedTours.filter(tour => !linkedBokunIds.has(String(tour.id)));
-      
-      console.log(`[AI Search] Found ${packages.length} packages, ${cachedTours.length} cached tours (${linkedBokunIds.size} linked to packages, ${filteredTours.length} available as land tours)`);
+      console.log(`[AI Search] Found ${packages.length} packages`);
       
       // Convert to searchable format and score
       interface AISearchItem {
@@ -2864,140 +2845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Process tours (excluding those linked to flight packages)
-      for (const tour of filteredTours) {
-        // Parse duration
-        let durationDays = 1;
-        const durationMatch = tour.durationText?.match(/(\d+)/);
-        if (durationMatch) durationDays = parseInt(durationMatch[1]);
-        
-        // Get price (convert from USD if needed)
-        const price = tour.price ? tour.price * 0.8 : undefined; // Rough USD to GBP
-        
-        // Check filters
-        if (price && price > budgetLimit) continue;
-        if (durationDays > durationLimit) continue;
-        
-        // Destination filter - prefer full country name from googlePlace
-        const tourCountryRaw = tour.googlePlace?.country || tour.locationCode?.country;
-        
-        // Normalize country name
-        const countryNormalization: Record<string, string> = {
-          "Sri lanka": "Sri Lanka",
-          "Türkiye": "Turkey",
-        };
-        const tourCountry = tourCountryRaw && tourCountryRaw.length > 2 
-          ? (countryNormalization[tourCountryRaw] || tourCountryRaw) 
-          : null;
-        
-        if (destFilter && destFilter !== "all") {
-          // Skip tours that don't have a proper country name to match
-          if (!tourCountry) continue;
-          if (tourCountry.toLowerCase() !== destFilter.toLowerCase()) continue;
-        }
-        
-        // Holiday type filter - enhanced keyword matching for tours
-        let typeScore = 0;
-        let matchedTypes = 0;
-        const tourSearchText = `${tour.title} ${tour.excerpt || ""} ${tour.summary || ""}`.toLowerCase();
-        const activityCategories = tour.activityCategories || [];
-        
-        // Map Bokun activity categories to our holiday types
-        // Bokun uses uppercase snake_case: SUN_AND_BEACH, SAFARI_AND_WILDLIFE, etc.
-        const bokunCategoryMappings: Record<string, string[]> = {
-          "Beach": ["sun_and_beach", "island_hopping", "water_sports", "beach"],
-          "Adventure": ["adventure", "hiking", "outdoor", "extreme_sports", "rafting", "trekking"],
-          "Cultural": ["arts_and_culture", "cultural", "heritage", "museum", "archaeological", "pilgrimage_or_religion"],
-          "City Break": ["city_break", "city_tour", "urban", "short_break"],
-          "Cruise": ["cruise", "mini_cruise", "sailing", "boat_tour"],
-          "River Cruise": ["river_cruise", "barge"],
-          "Safari": ["safari_and_wildlife", "safari", "game_drive"],
-          "Wildlife": ["safari_and_wildlife", "nature", "bird_watching", "wildlife"],
-          "Luxury": ["luxury", "premium", "exclusive", "private_roundtrip", "private_roundrip"],
-          "Multi-Centre": ["multi_centre", "combination", "seat_in_coach_tour"],
-          "Island": ["island", "island_hopping"],
-          "Solo Travellers": ["solo", "individual"],
-        };
-        
-        if (typeFilters.length > 0) {
-          // STRICT FILTERING: Only count matches from Bokun activity categories
-          // Keywords in description are for SCORING only, not filtering
-          for (const typeFilter of typeFilters) {
-            let typeMatched = false;
-            
-            // Check Bokun activity categories - this is the ONLY way to match for filtering
-            const mappedCategories = bokunCategoryMappings[typeFilter] || [];
-            for (const category of activityCategories) {
-              const catLower = category.toLowerCase();
-              if (mappedCategories.some(m => catLower.includes(m.toLowerCase()))) {
-                typeScore += 20;
-                typeMatched = true;
-                break;
-              }
-            }
-            
-            if (typeMatched) matchedTypes++;
-          }
-          
-          // IMPORTANT: Skip tours that don't have ALL selected holiday types in their categories
-          // For "Luxury Solo" the tour must have BOTH luxury AND solo categories
-          if (matchedTypes < typeFilters.length) continue;
-          
-          // Bonus scoring from keywords (for ranking, not filtering)
-          const keywords = holidayTypeKeywords[typeFilters[0]] || [];
-          for (const keyword of keywords) {
-            if (tourSearchText.includes(keyword)) {
-              typeScore += 5; // Small bonus for keyword matches
-              break;
-            }
-          }
-        } else {
-          typeScore = 10; // No filter = decent base score
-        }
-        
-        // Solo traveller boost for tours
-        if (travelerCount === 1 && tourSearchText.includes("solo")) {
-          typeScore += 10;
-        }
-        
-        // Calculate score - tours can compete with packages when highly relevant
-        let score = 60; // Base score for tours
-        score += typeScore;
-        
-        // Budget relevance
-        if (price && budgetLimit > 0) {
-          const budgetRatio = price / budgetLimit;
-          if (budgetRatio >= 0.3 && budgetRatio <= 0.8) {
-            score += 12;
-          } else if (budgetRatio > 0.8 && budgetRatio <= 1) {
-            score += 6;
-          }
-        }
-        
-        // Duration relevance
-        if (durationDays && durationLimit > 0) {
-          const durationRatio = durationDays / durationLimit;
-          if (durationRatio >= 0.4 && durationRatio <= 0.9) {
-            score += 8;
-          }
-        }
-        
-        results.push({
-          id: tour.id,
-          type: "tour",
-          title: tour.title,
-          description: tour.excerpt || tour.summary,
-          category: tourCountry,
-          countries: tourCountry ? [tourCountry] : [],
-          price,
-          duration: tour.durationText,
-          durationDays,
-          image: tour.keyPhoto?.originalUrl,
-          score,
-        });
-      }
-      
-      // Sort all results by score first
+// Sort all results by score first
       results.sort((a, b) => b.score - a.score);
       
       // FALLBACK: If no exact matches found with holiday type filters, 
@@ -3042,57 +2890,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: pkg.id,
               type: "package",
               title: pkg.title,
-              description: pkg.excerpt,
-              category: pkg.category,
-              countries: pkg.countries,
-              tags: pkg.tags,
-              price: pkg.price,
-              duration: pkg.duration,
+              description: pkg.excerpt || undefined,
+              category: pkg.category || undefined,
+              countries: pkg.countries || [],
+              tags: pkg.tags || [],
+              price: pkg.price || undefined,
+              duration: pkg.duration || undefined,
               durationDays,
-              image: pkg.heroImage,
+              image: pkg.featuredImage || undefined,
               slug: pkg.slug,
               score: 50 + typeScore,
-            });
-          }
-        }
-        
-        // Also check tours with loose matching
-        for (const tour of filteredTours) {
-          let durationDays = 7;
-          const durMatch = tour.durationText?.match(/(\d+)/);
-          if (durMatch) durationDays = parseInt(durMatch[1]);
-          
-          const price = tour.price;
-          if (price && price > budgetLimit) continue;
-          if (durationDays > durationLimit) continue;
-          
-          const tourSearchText = `${tour.title} ${tour.excerpt || ""} ${tour.summary || ""}`.toLowerCase();
-          
-          let typeScore = 0;
-          for (const typeFilter of typeFilters) {
-            const keywords = holidayTypeKeywords[typeFilter] || [typeFilter.toLowerCase()];
-            for (const keyword of keywords) {
-              if (tourSearchText.includes(keyword)) {
-                typeScore += 10;
-                break;
-              }
-            }
-          }
-          
-          if (typeScore > 0) {
-            const tourCountry = tour.googlePlace?.country || null;
-            results.push({
-              id: tour.id,
-              type: "tour",
-              title: tour.title,
-              description: tour.excerpt || tour.summary,
-              category: tourCountry,
-              countries: tourCountry ? [tourCountry] : [],
-              price,
-              duration: tour.durationText,
-              durationDays,
-              image: tour.keyPhoto?.originalUrl,
-              score: 40 + typeScore,
             });
           }
         }
@@ -3100,69 +2907,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         results.sort((a, b) => b.score - a.score);
       }
       
-      // Take top 24 results but ensure variety
-      // If we have holiday type filters, prioritize items that matched
-      const hasFilters = typeFilters.length > 0;
+      // Take top 24 packages only (land tours no longer shown on public site)
+      const combinedResults = results.slice(0, 24);
       
-      let combinedResults: typeof results = [];
-      
-      if (hasFilters) {
-        // When filters are active, ensure balanced results with relevant tours
-        // Separate and sort by score within each type
-        const packageResults = results.filter(r => r.type === "package").sort((a, b) => b.score - a.score);
-        const tourResults = results.filter(r => r.type === "tour").sort((a, b) => b.score - a.score);
-        
-        // Always include top 6 tours (sorted by score) to ensure variety
-        // No score threshold - just take the best matching tours
-        const maxPackages = Math.min(18, packageResults.length);
-        const maxTours = Math.min(6, tourResults.length);
-        
-        const selectedPackages = packageResults.slice(0, maxPackages);
-        const selectedTours = tourResults.slice(0, maxTours);
-        
-        // Combine and sort by score for final ordering
-        combinedResults = [...selectedPackages, ...selectedTours].sort((a, b) => b.score - a.score);
-        
-        // If we still have room (under 24) and more packages, add them
-        if (combinedResults.length < 24) {
-          const remaining = packageResults.slice(maxPackages, maxPackages + (24 - combinedResults.length));
-          combinedResults = [...combinedResults, ...remaining].sort((a, b) => b.score - a.score);
-        }
-      } else {
-        // No filters: show a balanced mix of packages and tours
-        const packageResults = results.filter(r => r.type === "package");
-        const tourResults = results.filter(r => r.type === "tour");
-        
-        // Interleave: 2 packages, 1 tour pattern for variety
-        const maxItems = 24;
-        let pkgIdx = 0, tourIdx = 0;
-        
-        while (combinedResults.length < maxItems) {
-          // Add up to 2 packages
-          for (let i = 0; i < 2 && pkgIdx < packageResults.length && combinedResults.length < maxItems; i++) {
-            combinedResults.push(packageResults[pkgIdx++]);
-          }
-          // Add 1 tour
-          if (tourIdx < tourResults.length && combinedResults.length < maxItems) {
-            combinedResults.push(tourResults[tourIdx++]);
-          }
-          // If we've exhausted both, break
-          if (pkgIdx >= packageResults.length && tourIdx >= tourResults.length) break;
-        }
-        
-        // Fill remaining slots with whatever is left
-        while (combinedResults.length < maxItems && pkgIdx < packageResults.length) {
-          combinedResults.push(packageResults[pkgIdx++]);
-        }
-        while (combinedResults.length < maxItems && tourIdx < tourResults.length) {
-          combinedResults.push(tourResults[tourIdx++]);
-        }
-      }
-      
-      const packageCount = combinedResults.filter(r => r.type === "package").length;
-      const tourCount = combinedResults.filter(r => r.type === "tour").length;
-      
-      console.log(`[AI Search] Returning ${packageCount} packages, ${tourCount} tours (filters: ${typeFilters.join(", ") || "none"}, exact: ${exactMatches})`);
+      console.log(`[AI Search] Returning ${combinedResults.length} packages (filters: ${typeFilters.join(", ") || "none"}, exact: ${exactMatches})`);
       
       res.json({
         results: combinedResults,

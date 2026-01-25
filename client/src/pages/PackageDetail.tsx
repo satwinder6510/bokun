@@ -1104,6 +1104,11 @@ export default function PackageDetailTest() {
                 <Plane className="w-3 h-3 shrink-0" />
                 <span>FLIGHT+</span>
               </Badge>
+              {pkg.bokunProductId && (
+                <Badge variant="outline" className="bg-blue-600/80 backdrop-blur-md text-white border-blue-400/60 text-xs font-medium shadow-lg" data-testid="badge-bokun-ref-mobile">
+                  B{pkg.bokunProductId}
+                </Badge>
+              )}
             </div>
             <h1 className="text-2xl font-bold text-white mb-3 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" style={{textShadow: '0 2px 8px rgba(0,0,0,0.9), 0 4px 16px rgba(0,0,0,0.5)'}} data-testid="text-title-overlay-mobile">
               {pkg.title}
@@ -1208,6 +1213,11 @@ export default function PackageDetailTest() {
                   <span className="hidden sm:inline">Flights Included</span>
                   <span className="sm:hidden">FLIGHT+</span>
                 </Badge>
+                {pkg.bokunProductId && (
+                  <Badge variant="outline" className="bg-blue-600/80 backdrop-blur-sm text-white border-blue-400/60 text-[10px] sm:text-xs" data-testid="badge-bokun-ref">
+                    B{pkg.bokunProductId}
+                  </Badge>
+                )}
               </div>
               <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-title-overlay">
                 {pkg.title}

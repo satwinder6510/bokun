@@ -135,9 +135,6 @@ export function Footer() {
                 <Link href="/packages" className="text-stone-400 hover:text-white text-sm transition-colors">
                   Flight Packages
                 </Link>
-                <Link href="/tours" className="text-stone-400 hover:text-white text-sm transition-colors">
-                  Land Tours
-                </Link>
                 <Link href="/blog" className="text-stone-400 hover:text-white text-sm transition-colors">
                   Travel Blog
                 </Link>

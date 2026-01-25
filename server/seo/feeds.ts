@@ -36,6 +36,7 @@ export async function generateToursFeed(): Promise<TourFeedItem[]> {
   const items: TourFeedItem[] = [];
   
   try {
+    // Only include flight packages (land tours no longer shown on public site)
     const packages = await storage.getAllFlightPackages();
     const publishedPackages = packages.filter((p: FlightPackage) => p.isPublished);
     
@@ -54,31 +55,8 @@ export async function generateToursFeed(): Promise<TourFeedItem[]> {
         last_updated: (pkg.updatedAt || new Date()).toISOString()
       });
     }
-    
-    // Try GBP cache first, fall back to USD if empty
-    let cachedProducts = await storage.getCachedProducts('GBP');
-    if (!cachedProducts || cachedProducts.length === 0) {
-      cachedProducts = await storage.getCachedProducts('USD');
-    }
-    for (const product of cachedProducts) {
-      const keyPhotoUrl = product.keyPhoto?.originalUrl || null;
-      const destination = product.googlePlace?.country || product.locationCode?.country || '';
-      items.push({
-        id: product.id,
-        slug: product.id.toString(),
-        title: product.title,
-        summary: product.excerpt || '',
-        destination,
-        duration: null,
-        price_from: product.price || null,
-        currency: 'GBP',
-        image_url: keyPhotoUrl,
-        page_url: `${CANONICAL_HOST}/tour/${product.id}`,
-        last_updated: new Date().toISOString()
-      });
-    }
   } catch (error) {
-    console.error('[Feeds] Error generating tours feed:', error);
+    console.error('[Feeds] Error generating packages feed:', error);
   }
   
   return items;

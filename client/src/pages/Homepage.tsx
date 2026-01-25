@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD, generateOrganizationSchema } from "@/lib/meta-tags";
-import { TourCard } from "@/components/TourCard";
 import { useCurrency } from "@/contexts/CurrencyContext";
 import { useToast } from "@/hooks/use-toast";
 import { getProxiedImageUrl, getHeroImageUrl, getCardImageUrl } from "@/lib/imageProxy";
@@ -20,7 +19,7 @@ import { Footer } from "@/components/Footer";
 import { captureDestinationViewed, captureSearch, captureFilterApplied, captureNewsletterSignup, captureAISearch } from "@/lib/posthog";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
-import type { BokunProductSearchResponse, BokunProduct, FlightPackage, Review } from "@shared/schema";
+import type { FlightPackage, Review } from "@shared/schema";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 
 // Fallback hero images (used when no products/packages have images)
@@ -51,7 +50,7 @@ const fallbackTestimonials = [
   {
     customerName: "Emily Roberts",
     location: "Birmingham, UK",
-    reviewText: "From booking to return, everything was seamless. The tours were well-organised and our guide was exceptional. Highly recommend!",
+    reviewText: "From booking to return, everything was seamless. The holiday was well-organised and our guide was exceptional. Highly recommend!",
     rating: 5
   }
 ];
@@ -113,9 +112,9 @@ const trustFeatures = [
     description: "Competitive prices with no hidden fees"
   },
   {
-    icon: Shield,
-    title: "Trust Account",
-    description: "Your land tour is 100% financially protected"
+    icon: Phone,
+    title: "24/7 Support",
+    description: "We're here to help before, during and after your trip"
   }
 ];
 
@@ -123,12 +122,7 @@ export default function Homepage() {
   const { selectedCurrency } = useCurrency();
   const { toast } = useToast();
   const phoneNumber = useDynamicPhoneNumber();
-  const [products, setProducts] = useState<BokunProduct[]>([]);
-  const [tourSearchQuery, setTourSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [email, setEmail] = useState("");
+    const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [testimonialSlide, setTestimonialSlide] = useState(0);
 
@@ -324,61 +318,9 @@ export default function Homepage() {
     }).format(price);
   };
 
-  // Fetch initial batch of products for quick display (12 items)
-  const { 
-    data: initialProductsData,
-    isLoading: initialLoading,
-  } = useQuery<BokunProductSearchResponse>({
-    queryKey: ['/api/bokun/products-initial'],
-    queryFn: async () => {
-      const response = await apiRequest("POST", "/api/bokun/products", {
-        page: 1,
-        pageSize: 12,
-      });
-      return response as BokunProductSearchResponse;
-    },
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
-  });
-
-  // Fetch full product list in background after initial render
-  const { 
-    data: fullProductsData,
-  } = useQuery<BokunProductSearchResponse>({
-    queryKey: ['/api/bokun/products-full'],
-    queryFn: async () => {
-      const response = await apiRequest("POST", "/api/bokun/products", {
-        page: 1,
-        pageSize: 1000,
-      });
-      return response as BokunProductSearchResponse;
-    },
-    staleTime: 1000 * 60 * 30,
-    gcTime: 1000 * 60 * 60,
-    enabled: !!initialProductsData, // Only fetch after initial data loads
-  });
-
-  // Use full data if available, otherwise initial data
   useEffect(() => {
-    if (fullProductsData?.items) {
-      setProducts(fullProductsData.items);
-      setIsLoading(false);
-    } else if (initialProductsData?.items) {
-      setProducts(initialProductsData.items);
-      setIsLoading(false);
-    }
-  }, [initialProductsData, fullProductsData]);
-
-  // Handle loading state
-  useEffect(() => {
-    if (!initialLoading && !initialProductsData) {
-      setIsLoading(false);
-    }
-  }, [initialLoading, initialProductsData]);
-
-  useEffect(() => {
-    const title = "Flights and Packages - Book 700+ Tours Worldwide";
-    const description = "Discover and book 700+ unique tours worldwide with Flights and Packages. Explore destinations, compare prices, check availability, and find your perfect adventure.";
+    const title = "Flights and Packages - Book Flight Inclusive Holiday Packages";
+    const description = "Book flight inclusive holiday packages from UK airports with Flights and Packages. ATOL protected holidays to destinations worldwide with expert travel advisors.";
     
     setMetaTags(title, description, logoImage);
 
@@ -401,55 +343,6 @@ export default function Homepage() {
       }
     ]);
   }, []);
-
-  const formatCategoryName = (category: string): string => {
-    return category
-      .split('_')
-      .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-      .join(' ');
-  };
-
-  const categories = Array.from(
-    new Set(
-      products.flatMap(p => p.activityCategories || [])
-    )
-  ).sort();
-
-  // Extract countries with full names and count tours per country
-  const countryData = new Map<string, { name: string; count: number }>();
-  products.forEach(p => {
-    const countryName = p.googlePlace?.country;
-    if (countryName) {
-      const existing = countryData.get(countryName);
-      if (existing) {
-        existing.count++;
-      } else {
-        countryData.set(countryName, { name: countryName, count: 1 });
-      }
-    }
-  });
-
-  const allCountries = Array.from(countryData.keys()).sort();
-
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = !tourSearchQuery || 
-      product.title.toLowerCase().includes(tourSearchQuery.toLowerCase()) ||
-      (product.excerpt || "").toLowerCase().includes(tourSearchQuery.toLowerCase()) ||
-      (product.locationCode?.name || "").toLowerCase().includes(tourSearchQuery.toLowerCase());
-    
-    const matchesCategory = !selectedCategory || 
-      (product.activityCategories || []).includes(selectedCategory);
-    
-    const matchesCountry = !selectedCountry || 
-      product.googlePlace?.country === selectedCountry;
-    
-    return matchesSearch && matchesCategory && matchesCountry;
-  });
-
-  // Featured tours (first 8 with images)
-  const featuredTours = products
-    .filter(p => p.keyPhoto?.originalUrl)
-    .slice(0, 8);
 
   // Get hero background image - admin-configured image (from media library) takes priority
   // Media library images are served directly with proper caching, no proxy needed
@@ -478,21 +371,6 @@ export default function Homepage() {
     }, 8000);
     return () => clearInterval(interval);
   }, [totalSlides]);
-
-  // Track search queries with debounce
-  useEffect(() => {
-    if (!tourSearchQuery || tourSearchQuery.length < 3) return;
-    
-    const timer = setTimeout(() => {
-      captureSearch({
-        search_query: tourSearchQuery,
-        search_type: 'tours',
-        results_count: filteredProducts.length,
-      });
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [tourSearchQuery, filteredProducts.length]);
 
   const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -566,13 +444,13 @@ export default function Homepage() {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center text-white max-w-4xl px-4 md:px-6">
             <p className="text-xs md:text-sm font-bold tracking-[0.3em] mb-3 md:mb-4 uppercase text-white/90">
-              FLIGHT INCLUSIVE PACKAGES & LAND TOURS
+              FLIGHT INCLUSIVE PACKAGES
             </p>
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4 leading-tight" data-testid="text-hero-title">
               Your Perfect Holiday Awaits
             </h1>
             <p className="text-base md:text-xl font-medium mb-6 md:mb-8 text-white/90 max-w-2xl mx-auto">
-              Discover 700+ handpicked tours and complete holiday packages with flights from UK airports
+              Discover handpicked flight inclusive holiday packages from UK airports
             </p>
             
             {/* Dual CTAs */}
@@ -584,17 +462,7 @@ export default function Homepage() {
                   data-testid="button-hero-packages"
                 >
                   <Plane className="w-4 h-4 mr-2" />
-                  Flight Packages
-                </Button>
-              </a>
-              <a href="#tours">
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="text-base px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-slate-900 font-semibold"
-                  data-testid="button-hero-tours"
-                >
-                  Browse Land Tours
+                  Browse Packages
                 </Button>
               </a>
             </div>
@@ -849,12 +717,8 @@ export default function Homepage() {
                           </div>
 
                           <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                              result.type === "package" 
-                                ? "bg-primary text-primary-foreground" 
-                                : "bg-secondary text-secondary-foreground"
-                            }`}>
-                              {result.type === "package" ? "Flight Package" : "Land Tour"}
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-primary text-primary-foreground">
+                              Flight Package
                             </span>
                             {result.duration && (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/90 text-slate-700">
@@ -1144,152 +1008,6 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Featured Land Tours Section - content-visibility for improved LCP */}
-      <section id="tours" className="py-16 md:py-24 bg-stone-50 cv-auto">
-        <div className="container mx-auto px-6 md:px-8">
-          <div className="text-center mb-8">
-            <p className="text-slate-500 text-sm font-bold tracking-wider uppercase mb-2">
-              700+ EXPERIENCES
-            </p>
-            <h2 className="text-3xl md:text-4xl font-bold text-secondary mb-4" data-testid="text-tours-title">
-              Explore Our Land Tours
-            </h2>
-            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-              Discover handpicked experiences from trusted local operators worldwide
-            </p>
-          </div>
-
-          {/* Search Bar */}
-          <div className="max-w-2xl mx-auto mb-8">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <Input
-                type="text"
-                placeholder="Search destinations, tours, or experiences..."
-                value={tourSearchQuery}
-                onChange={(e) => setTourSearchQuery(e.target.value)}
-                className="pl-12 pr-12 h-14 text-base"
-                data-testid="input-search"
-              />
-              {tourSearchQuery && (
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute right-2 top-1/2 -translate-y-1/2"
-                  onClick={() => setTourSearchQuery("")}
-                  data-testid="button-clear-search"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Category Pills */}
-          {categories.length > 0 && (
-            <div className="mb-12">
-              <div className="flex gap-3 overflow-x-auto pb-2 hide-scrollbar justify-center flex-wrap">
-                <button
-                  onClick={() => setSelectedCategory(null)}
-                  className={`px-5 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap transition-all border ${
-                    selectedCategory === null
-                      ? 'bg-slate-800 text-white border-slate-800'
-                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                  }`}
-                  data-testid="button-category-all"
-                >
-                  All
-                </button>
-                {categories.slice(0, 10).map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => {
-                      setSelectedCategory(category);
-                      captureFilterApplied('destination', category, 'tours_list');
-                    }}
-                    className={`px-5 py-2.5 rounded-full font-semibold text-sm whitespace-nowrap transition-all border ${
-                      selectedCategory === category
-                        ? 'bg-slate-800 text-white border-slate-800'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                    }`}
-                    data-testid={`button-category-${category.toLowerCase().replace(/\s+/g, '-')}`}
-                  >
-                    {formatCategoryName(category)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Results count */}
-          {(tourSearchQuery || selectedCategory || selectedCountry) && (
-            <p className="text-center text-slate-600 mb-8" data-testid="text-results-count">
-              {filteredProducts.length} {filteredProducts.length === 1 ? 'tour' : 'tours'} found
-              {selectedCountry && ` in ${selectedCountry}`}
-            </p>
-          )}
-
-          {/* Tours Grid */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="aspect-[3/4] bg-slate-100 rounded-xl animate-pulse" />
-              ))}
-            </div>
-          ) : (tourSearchQuery || selectedCategory || selectedCountry) ? (
-            // Show filtered results
-            filteredProducts.length === 0 ? (
-              <div className="text-center py-20">
-                <p className="text-xl font-semibold text-slate-800 mb-2" data-testid="text-no-results">
-                  No land tours found
-                </p>
-                <p className="text-slate-600 mb-6">
-                  Try adjusting your search or filters
-                </p>
-                <Button
-                  variant="outline"
-                  className="border-slate-300 text-slate-700 hover:bg-white"
-                  onClick={() => {
-                    setTourSearchQuery("");
-                    setSelectedCategory(null);
-                    setSelectedCountry(null);
-                  }}
-                  data-testid="button-clear-filters"
-                >
-                  Clear All Filters
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredProducts.map((product) => (
-                  <TourCard key={product.id} product={product} />
-                ))}
-              </div>
-            )
-          ) : (
-            // Show featured tours
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                {featuredTours.map((product) => (
-                  <TourCard key={product.id} product={product} />
-                ))}
-              </div>
-              <div className="text-center">
-                <Button 
-                  size="lg" 
-                  variant="outline"
-                  className="border-slate-300 text-slate-700 hover:bg-white"
-                  onClick={() => document.getElementById('tours')?.scrollIntoView({ behavior: 'smooth' })}
-                  data-testid="button-view-all-tours"
-                >
-                  View All {products.length} Land Tours
-                </Button>
-              </div>
-            </>
-          )}
-        </div>
-      </section>
-
       {/* Destination Inspiration */}
       {topDestinations.length > 0 && (
         <section className="py-16 md:py-24 bg-white border-y border-stone-200">
@@ -1308,14 +1026,13 @@ export default function Homepage() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
               {topDestinations.map((dest, index) => {
-                const totalHolidays = dest.flightPackageCount + dest.landTourCount;
                 const countrySlug = dest.name.replace(/\s+/g, '-');
                 return (
                   <Link
                     key={dest.name}
                     href={`/Holidays/${countrySlug}`}
                     onClick={() => {
-                      captureDestinationViewed(dest.name, totalHolidays);
+                      captureDestinationViewed(dest.name, dest.flightPackageCount);
                     }}
                     className={`relative overflow-hidden rounded-xl group block ${
                       index === 0 ? 'col-span-2 md:col-span-1 row-span-2 aspect-[3/4]' : 'aspect-[4/3]'
@@ -1332,20 +1049,12 @@ export default function Homepage() {
                       <h3 className="text-white text-xl md:text-2xl font-bold mb-2">
                         {dest.name}
                       </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {dest.flightPackageCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-white/90 text-xs bg-blue-600/80 px-2 py-1 rounded">
-                            <Plane className="h-3 w-3" />
-                            {dest.flightPackageCount} {dest.flightPackageCount === 1 ? 'package' : 'packages'}
-                          </span>
-                        )}
-                        {dest.landTourCount > 0 && (
-                          <span className="inline-flex items-center gap-1 text-white/90 text-xs bg-emerald-600/80 px-2 py-1 rounded">
-                            <MapIcon className="h-3 w-3" />
-                            {dest.landTourCount} {dest.landTourCount === 1 ? 'tour' : 'tours'}
-                          </span>
-                        )}
-                      </div>
+                      {dest.flightPackageCount > 0 && (
+                        <span className="inline-flex items-center gap-1 text-white/90 text-xs bg-blue-600/80 px-2 py-1 rounded">
+                          <Plane className="h-3 w-3" />
+                          {dest.flightPackageCount} {dest.flightPackageCount === 1 ? 'package' : 'packages'}
+                        </span>
+                      )}
                     </div>
                   </Link>
                 );

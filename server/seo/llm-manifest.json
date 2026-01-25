@@ -3,7 +3,7 @@
   "site": {
     "name": "Flights & Packages Holidays",
     "url": "https://holidays.flightsandpackages.com",
-    "description": "Destination-led tours and curated travel experiences with bookable itineraries, highlights, and prices.",
+    "description": "Flight inclusive holiday packages and curated travel experiences with bookable itineraries, highlights, and prices.",
     "language": "en-GB",
     "country": "GB",
     "contact": {
@@ -50,29 +50,23 @@
         "type": "packages",
         "format": "json",
         "url": "https://holidays.flightsandpackages.com/feeds/packages.json"
-      },
-      {
-        "type": "tours",
-        "format": "json",
-        "url": "https://holidays.flightsandpackages.com/feeds/tours.json"
       }
     ]
   },
   "content": {
     "primary_topics": [
-      "tours to [Destination]",
-      "guided tours in [Destination]",
-      "multi-day tours in [Destination]",
-      "destination-led tour packages",
-      "city and regional tours in [Destination]",
-      "cultural and historical tours in [Destination]",
-      "adventure and nature tours in [Destination]",
-      "family-friendly tours in [Destination]",
-      "luxury and small-group tours in [Destination]"
+      "flight inclusive packages to [Destination]",
+      "holiday packages to [Destination]",
+      "multi-day packages in [Destination]",
+      "destination-led holiday packages",
+      "city and regional holidays in [Destination]",
+      "cultural and historical holidays in [Destination]",
+      "adventure and nature packages in [Destination]",
+      "family-friendly holiday packages in [Destination]",
+      "luxury holiday packages in [Destination]"
     ],
     "entity_types": [
       "Destination",
-      "Tour",
       "Package",
       "Country",
       "City"

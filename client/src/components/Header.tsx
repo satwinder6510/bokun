@@ -121,9 +121,6 @@ export function Header() {
             <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-packages">
               Flight Packages
             </Link>
-            <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-tours">
-              Land Tours
-            </Link>
             <Link href="/collections" className="text-slate-700 hover:text-slate-900 font-medium transition-colors whitespace-nowrap" data-testid="link-collections">
               Collections
             </Link>
@@ -147,9 +144,6 @@ export function Header() {
                 </Link>
                 <Link href="/packages" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-packages">
                   Flight Packages
-                </Link>
-                <Link href="/tours" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-tours">
-                  Land Tours
                 </Link>
                 <Link href="/collections" className="text-slate-700 hover:text-slate-900 font-medium py-2" data-testid="mobile-link-collections">
                   Collections
@@ -181,7 +175,7 @@ export function Header() {
           <GlobalSearch 
             autoFocus 
             onClose={() => setSearchOpen(false)}
-            placeholder="Search destinations, tours, packages..."
+            placeholder="Search destinations, packages..."
           />
         </DialogContent>
       </Dialog>

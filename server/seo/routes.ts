@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { injectTourSeo, injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, injectHolidayDealsSeo, injectCollectionSeo, isBot } from './inject';
+import { injectDestinationSeo, injectPackageSeo, injectStaticPageSeo, injectBlogPostSeo, injectHolidayDealsSeo, injectCollectionSeo, isBot } from './inject';
 import { isConfiguredCollection, COLLECTION_CONFIGS } from './collectionSeo';
 import { shouldNoIndex, generateNoIndexMeta } from './meta';
 import {
@@ -11,7 +11,7 @@ import {
   generateDestinationsSitemap,
   generateBlogSitemap
 } from './sitemaps';
-import { generateToursFeed, generateDestinationsFeed, generatePackagesFeed } from './feeds';
+import { generateDestinationsFeed, generatePackagesFeed } from './feeds';
 
 const SEO_ENABLED = process.env.SEO_ENABLED === 'true';
 const PRERENDER_ENABLED = process.env.PRERENDER_ENABLED === 'true';
@@ -113,29 +113,13 @@ export function registerSeoRoutes(app: Express): void {
     // These routes use NEXT() if SEO is not needed or fails, allowing the static server/Vite to pick it up.
     // However, if the result is successful, they return and end the request.
 
-    app.get('/tour/:id', async (req: Request, res: Response, next) => {
-      // Skip SEO injection for regular browser requests in development
-      if (!shouldInjectSeo(req)) {
-        return next();
-      }
-      
-      try {
-        const tourId = req.params.id;
-        
-        if (await servePrerendered('tours', tourId, res)) {
-          return;
-        }
-        
-        const result = await injectTourSeo(tourId, req.path);
-        if (!result.error) {
-          res.set('Content-Type', 'text/html');
-          res.set('X-SEO-Injected', 'true');
-          return res.send(result.html);
-        }
-      } catch (error) {
-        console.error('[SEO] Error handling tour SEO:', error);
-      }
-      next();
+    // 301 redirect old tour routes to packages (land tours removed from public site)
+    app.get('/tour/:id', (_req: Request, res: Response) => {
+      res.redirect(301, '/packages');
+    });
+    
+    app.get('/tours', (_req: Request, res: Response) => {
+      res.redirect(301, '/packages');
     });
     
     app.get('/packages/:slug', async (req: Request, res: Response, next) => {
@@ -497,20 +481,9 @@ For AI/LLM partnerships: info@flightsandpackages.com
   }
   
   if (FEEDS_ENABLED) {
-    app.get('/feed/tours.json', async (_req: Request, res: Response) => {
-      try {
-        const feed = await generateToursFeed();
-        res.json({
-          version: '1.0',
-          title: 'Flights and Packages - Tours',
-          home_page_url: CANONICAL_HOST,
-          feed_url: `${CANONICAL_HOST}/feed/tours.json`,
-          items: feed
-        });
-      } catch (error) {
-        console.error('[SEO] Error generating tours feed:', error);
-        res.status(500).json({ error: 'Error generating feed' });
-      }
+    // Redirect old tours feed to packages feed (301 for SEO)
+    app.get('/feed/tours.json', (_req: Request, res: Response) => {
+      res.redirect(301, '/feed/packages.json');
     });
     
     app.get('/feed/packages.json', async (_req: Request, res: Response) => {
@@ -561,23 +534,13 @@ export async function handleSeoRequest(
   const path = req.path;
   
   try {
-    if (path.startsWith('/tour/')) {
-      const tourId = path.replace('/tour/', '');
-      
-      if (await servePrerendered('tours', tourId, res)) {
-        return;
-      }
-      
-      const result = await injectTourSeo(tourId, path);
-      if (!result.error) {
-        res.set('Content-Type', 'text/html');
-        res.set('X-SEO-Injected', 'true');
-        res.send(result.html);
-        return;
-      }
+    // 301 redirect old tour routes to packages (land tours removed from public site)
+    if (path.startsWith('/tour/') || path === '/tours') {
+      res.redirect(301, '/packages');
+      return;
     }
     
-    else if (path.startsWith('/packages/') && !path.includes('/api/')) {
+    if (path.startsWith('/packages/') && !path.includes('/api/')) {
       const slug = path.replace('/packages/', '');
       
       if (await servePrerendered('packages', slug, res)) {

@@ -1937,9 +1937,9 @@ export default function PackageDetailTest() {
         </div>
       </section>
 
-      {/* What's Included Section */}
+      {/* What's Included Section - Mobile only */}
       {whatsIncluded.length > 0 && (
-        <section className="py-6 md:py-8">
+        <section className="py-6 md:py-8 lg:hidden">
           <div className="container mx-auto px-4 md:px-8">
             <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Included</h2>
             <Card>
@@ -2498,10 +2498,10 @@ export default function PackageDetailTest() {
       </div>
       {/* End of hidden old mobile sections */}
 
-      {/* Main Content */}
-      <section className="py-8 md:py-12">
+      {/* Main Content - OLD LAYOUT (hidden on desktop, kept for mobile fallback) */}
+      <section className="py-8 md:py-12 lg:hidden">
         <div className="container mx-auto px-4 md:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
+          <div className="grid grid-cols-1 gap-8">
             {/* Left Column - Content */}
             <div>
               {/* Mobile: Continuous scrolling content - HIDDEN in test layout (content moved above) */}

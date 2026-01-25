@@ -1343,7 +1343,70 @@ export default function PackageDetailTest() {
         </div>
       </section>
 
-      {/* ==================== SINGLE COLUMN LAYOUT ==================== */}
+      {/* ==================== DESKTOP 2-COLUMN LAYOUT ==================== */}
+      <div className="hidden lg:block">
+        <div className="container mx-auto px-4 md:px-8 py-8">
+          <div className="grid grid-cols-[1fr_380px] gap-8">
+            {/* Left Column - Main Content */}
+            <div className="space-y-8">
+              {/* About This Package - Quick Info Cards */}
+              <div className="bg-muted/30 -mx-4 px-4 py-6 rounded-lg">
+                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">About This Package</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                  <Card className="text-center p-4">
+                    <Clock className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Duration</p>
+                    <p className="font-semibold text-sm md:text-base">{pkg.duration || 'Contact us'}</p>
+                  </Card>
+                  <Card className="text-center p-4">
+                    <MapPin className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Destination</p>
+                    <p className="font-semibold text-sm md:text-base">{pkg.category}</p>
+                  </Card>
+                  <Card className="text-center p-4">
+                    <Hotel className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Accommodation</p>
+                    <p className="font-semibold text-sm md:text-base">{accommodations.length > 0 ? `${accommodations.length} Hotel${accommodations.length > 1 ? 's' : ''}` : 'Included'}</p>
+                  </Card>
+                  <Card className="text-center p-4">
+                    <Utensils className="w-8 h-8 mx-auto mb-2 text-secondary" />
+                    <p className="text-xs text-muted-foreground uppercase tracking-wide">Board</p>
+                    <p className="font-semibold text-sm md:text-base">As per itinerary</p>
+                  </Card>
+                </div>
+              </div>
+
+              {/* What's Included */}
+              {whatsIncluded.length > 0 && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Included</h2>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {whatsIncluded.map((item, index) => (
+                          <div key={index} className="flex items-start gap-2" data-testid={`included-desktop-${index}`}>
+                            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold mb-4">Description</h2>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div 
+                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
+                      dangerouslySetInnerHTML={{ __html: pkg.description }}
+                      data-testid="content-description-desktop"
+                    />
+                  </CardContent>
+                </Card>
               </div>
 
               {/* Highlights */}
@@ -1534,142 +1597,9 @@ export default function PackageDetailTest() {
                       </div>
                     </div>
 
-                    {/* CTA Buttons - FIRST so always visible */}
-                    <div className="space-y-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            className="w-full bg-secondary hover:bg-secondary/90 text-white"
-                            size="lg"
-                            onClick={() => {
-                              captureEnquireCtaClicked({
-                                package_title: pkg.title,
-                                package_id: pkg.id,
-                                package_slug: slug
-                              });
-                              trackEnquireCta({
-                                content_name: pkg.title,
-                                content_category: pkg.category || 'Flight Package'
-                              });
-                            }}
-                            data-testid="button-enquire-desktop"
-                          >
-                            <Mail className="w-4 h-4 mr-2" />
-                            Enquire Now
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                          <DialogHeader>
-                            <DialogTitle>Enquire About This Package</DialogTitle>
-                            <DialogDescription>
-                              Fill in your details and we'll get back to you within 24 hours.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handleSubmitEnquiry} className="space-y-4 mt-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="firstName">First Name *</Label>
-                                <Input
-                                  id="firstName"
-                                  value={formData.firstName}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                                  required
-                                  data-testid="input-first-name"
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="lastName">Last Name *</Label>
-                                <Input
-                                  id="lastName"
-                                  value={formData.lastName}
-                                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                                  required
-                                  data-testid="input-last-name"
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="email">Email *</Label>
-                              <Input
-                                id="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                                required
-                                data-testid="input-email"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="phone">Phone Number *</Label>
-                              <Input
-                                id="phone"
-                                type="tel"
-                                value={formData.phone}
-                                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                                required
-                                data-testid="input-phone"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="message">Message</Label>
-                              <Textarea
-                                id="message"
-                                value={formData.message}
-                                onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-                                placeholder="Tell us about your travel plans..."
-                                rows={4}
-                                data-testid="input-message"
-                              />
-                            </div>
-                            <Button 
-                              type="submit" 
-                              className="w-full bg-secondary hover:bg-secondary/90"
-                              disabled={isSubmitting}
-                              data-testid="button-submit-enquiry"
-                            >
-                              {isSubmitting ? (
-                                <>
-                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                  Sending...
-                                </>
-                              ) : (
-                                'Send Enquiry'
-                              )}
-                            </Button>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                      
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => {
-                          captureCallCtaClicked({
-                            package_title: pkg.title,
-                            package_id: pkg.id,
-                            package_slug: slug,
-                            phone_number: phoneNumber
-                          });
-                          trackCallCta({
-                            content_name: pkg.title,
-                            content_category: pkg.category || 'Flight Package'
-                          });
-                          window.location.href = `tel:${phoneNumber.replace(/\s/g, '')}`;
-                        }}
-                        data-testid="button-call-desktop"
-                      >
-                        <Phone className="w-4 h-4 mr-2" />
-                        {phoneNumber}
-                      </Button>
-                    </div>
+                    <Separator />
 
-                    {/* Trust Badges */}
-                    <div className="flex items-center justify-center gap-4 py-2 border-t border-b">
-                      <img src={travelTrustLogo} alt="Travel Trust Association" className="h-7 object-contain" />
-                      <img src={atolLogo} alt="ATOL Protected" className="h-7 object-contain" />
-                    </div>
-
-                    {/* Pricing Calendar - Below CTAs */}
+                    {/* Pricing Calendar */}
                     {pricing.length > 0 && (
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
@@ -1825,6 +1755,142 @@ export default function PackageDetailTest() {
                       </div>
                     )}
 
+                    <Separator />
+
+                    {/* CTA Buttons */}
+                    <div className="space-y-2">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            className="w-full bg-secondary hover:bg-secondary/90 text-white"
+                            size="lg"
+                            onClick={() => {
+                              captureEnquireCtaClicked({
+                                package_title: pkg.title,
+                                package_id: pkg.id,
+                                package_slug: slug
+                              });
+                              trackEnquireCta({
+                                content_name: pkg.title,
+                                content_category: pkg.category || 'Flight Package'
+                              });
+                            }}
+                            data-testid="button-enquire-desktop"
+                          >
+                            <Mail className="w-4 h-4 mr-2" />
+                            Enquire Now
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px]">
+                          <DialogHeader>
+                            <DialogTitle>Enquire About This Package</DialogTitle>
+                            <DialogDescription>
+                              Fill in your details and we'll get back to you within 24 hours.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <form onSubmit={handleSubmitEnquiry} className="space-y-4 mt-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="firstName">First Name *</Label>
+                                <Input
+                                  id="firstName"
+                                  value={formData.firstName}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                                  required
+                                  data-testid="input-first-name"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="lastName">Last Name *</Label>
+                                <Input
+                                  id="lastName"
+                                  value={formData.lastName}
+                                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                                  required
+                                  data-testid="input-last-name"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="email">Email *</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                                required
+                                data-testid="input-email"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="phone">Phone Number *</Label>
+                              <Input
+                                id="phone"
+                                type="tel"
+                                value={formData.phone}
+                                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                                required
+                                data-testid="input-phone"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="message">Message</Label>
+                              <Textarea
+                                id="message"
+                                value={formData.message}
+                                onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                                placeholder="Tell us about your travel plans..."
+                                rows={4}
+                                data-testid="input-message"
+                              />
+                            </div>
+                            <Button 
+                              type="submit" 
+                              className="w-full bg-secondary hover:bg-secondary/90"
+                              disabled={isSubmitting}
+                              data-testid="button-submit-enquiry"
+                            >
+                              {isSubmitting ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Sending...
+                                </>
+                              ) : (
+                                'Send Enquiry'
+                              )}
+                            </Button>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                      
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => {
+                          captureCallCtaClicked({
+                            package_title: pkg.title,
+                            package_id: pkg.id,
+                            package_slug: slug,
+                            phone_number: phoneNumber
+                          });
+                          trackCallCta({
+                            content_name: pkg.title,
+                            content_category: pkg.category || 'Flight Package'
+                          });
+                          window.location.href = `tel:${phoneNumber.replace(/\s/g, '')}`;
+                        }}
+                        data-testid="button-call-desktop"
+                      >
+                        <Phone className="w-4 h-4 mr-2" />
+                        {phoneNumber}
+                      </Button>
+                    </div>
+
+                    {/* Trust Badges */}
+                    <div className="flex items-center justify-center gap-4 pt-2">
+                      <img src={travelTrustLogo} alt="Travel Trust Association" className="h-8 object-contain" />
+                      <img src={atolLogo} alt="ATOL Protected" className="h-8 object-contain" />
+                    </div>
                   </CardContent>
                 </Card>
               </div>

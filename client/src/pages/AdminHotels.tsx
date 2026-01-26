@@ -175,6 +175,39 @@ export default function AdminHotels() {
     },
   });
 
+  const verifyImagesMutation = useMutation({
+    mutationFn: async (repair: boolean = false) => {
+      const response = await adminFetch("/api/admin/hotels/verify-images", {
+        method: 'POST',
+        body: JSON.stringify({ repair }),
+      });
+      return response;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/hotels"] });
+      if (data.repaired > 0) {
+        toast({ 
+          title: "Images repaired", 
+          description: `Cleaned up broken images from ${data.repaired} hotels` 
+        });
+      } else if (data.hotelsWithBrokenImages > 0) {
+        toast({ 
+          title: `Found ${data.hotelsWithBrokenImages} hotels with missing images`, 
+          description: "Click 'Repair Images' to clean up broken references",
+          variant: "destructive"
+        });
+      } else {
+        toast({ 
+          title: "All images verified", 
+          description: "No broken image references found" 
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to verify images", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleScrape = () => {
     if (!scrapeUrl) {
       toast({ title: "Please enter a URL", variant: "destructive" });
@@ -234,6 +267,42 @@ export default function AdminHotels() {
               data-testid="input-search-hotels"
             />
           </div>
+          <Button 
+            variant="outline"
+            onClick={() => verifyImagesMutation.mutate(false)} 
+            disabled={verifyImagesMutation.isPending}
+            data-testid="button-verify-images"
+          >
+            {verifyImagesMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              <>
+                <ImageIcon className="h-4 w-4 mr-2" />
+                Verify Images
+              </>
+            )}
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => verifyImagesMutation.mutate(true)} 
+            disabled={verifyImagesMutation.isPending}
+            data-testid="button-repair-images"
+          >
+            {verifyImagesMutation.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Repairing...
+              </>
+            ) : (
+              <>
+                <Upload className="h-4 w-4 mr-2" />
+                Repair Images
+              </>
+            )}
+          </Button>
           <Button 
             variant="outline"
             onClick={() => removeDuplicatesMutation.mutate()} 

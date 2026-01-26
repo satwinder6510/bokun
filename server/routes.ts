@@ -9717,6 +9717,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Verify and repair broken hotel images
+  app.post("/api/admin/hotels/verify-images", verifyAdminSession, async (req, res) => {
+    try {
+      const allHotels = await storage.getAllHotels();
+      const brokenHotels: { id: number; name: string; brokenImages: number; totalImages: number }[] = [];
+      const repairedHotels: string[] = [];
+      
+      for (const hotel of allHotels) {
+        const images = (hotel.images || []) as string[];
+        if (images.length === 0) continue;
+        
+        let brokenCount = 0;
+        const workingImages: string[] = [];
+        
+        for (const imageUrl of images) {
+          // Extract slug from URL like /api/media/slug/variant
+          const match = imageUrl.match(/\/api\/media\/([^/]+)\/[^/]+$/);
+          if (match) {
+            const slug = match[1];
+            const variantInfo = await mediaService.getVariantInfo(slug, 'card');
+            if (!variantInfo) {
+              brokenCount++;
+            } else {
+              workingImages.push(imageUrl);
+            }
+          } else {
+            // Not a media URL, keep it
+            workingImages.push(imageUrl);
+          }
+        }
+        
+        if (brokenCount > 0) {
+          brokenHotels.push({
+            id: hotel.id,
+            name: hotel.name,
+            brokenImages: brokenCount,
+            totalImages: images.length,
+          });
+          
+          // Repair: Update hotel with only working images
+          if (req.body.repair) {
+            await storage.updateHotel(hotel.id, {
+              images: workingImages,
+              featuredImage: workingImages[0] || null,
+            });
+            repairedHotels.push(hotel.name);
+          }
+        }
+      }
+      
+      res.json({
+        success: true,
+        totalHotels: allHotels.length,
+        hotelsWithBrokenImages: brokenHotels.length,
+        brokenHotels: req.body.repair ? undefined : brokenHotels,
+        repaired: req.body.repair ? repairedHotels.length : 0,
+        repairedHotels: req.body.repair ? repairedHotels : undefined,
+      });
+    } catch (error: any) {
+      console.error("Error verifying hotel images:", error);
+      res.status(500).json({ error: error.message || "Failed to verify hotel images" });
+    }
+  });
+
   // Build keyword index for AI search on startup
   (async () => {
     try {

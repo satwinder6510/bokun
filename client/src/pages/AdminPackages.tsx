@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { 
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
   Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
-  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling, GripVertical, Info
+  Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling, GripVertical, Info,
+  ChevronUp, ChevronDown, PlusCircle
 } from "lucide-react";
 import {
   HoverCard,
@@ -1382,7 +1383,41 @@ export default function AdminPackages() {
 
   const removeItineraryDay = (index: number) => {
     const updated = (formData.itinerary || []).filter((_, i) => i !== index);
-    setFormData({ ...formData, itinerary: updated });
+    // Renumber remaining days
+    const renumbered = updated.map((day, i) => ({ ...day, day: i + 1 }));
+    setFormData({ ...formData, itinerary: renumbered });
+  };
+
+  const moveItineraryDayUp = (index: number) => {
+    if (index === 0) return;
+    const updated = [...(formData.itinerary || [])];
+    [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+    // Renumber all days
+    const renumbered = updated.map((day, i) => ({ ...day, day: i + 1 }));
+    setFormData({ ...formData, itinerary: renumbered });
+  };
+
+  const moveItineraryDayDown = (index: number) => {
+    const itinerary = formData.itinerary || [];
+    if (index >= itinerary.length - 1) return;
+    const updated = [...itinerary];
+    [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+    // Renumber all days
+    const renumbered = updated.map((day, i) => ({ ...day, day: i + 1 }));
+    setFormData({ ...formData, itinerary: renumbered });
+  };
+
+  const insertItineraryDayBefore = (index: number) => {
+    const itinerary = formData.itinerary || [];
+    const newDay = { day: index + 1, title: "", description: "" };
+    const updated = [
+      ...itinerary.slice(0, index),
+      newDay,
+      ...itinerary.slice(index)
+    ];
+    // Renumber all days
+    const renumbered = updated.map((day, i) => ({ ...day, day: i + 1 }));
+    setFormData({ ...formData, itinerary: renumbered });
   };
 
   const addAccommodation = () => {
@@ -3110,20 +3145,65 @@ export default function AdminPackages() {
                         Add Day
                       </Button>
                     </div>
+                    {(formData.itinerary || []).length > 1 && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <ChevronUp className="w-3 h-3" />
+                        <ChevronDown className="w-3 h-3" />
+                        Use arrows to reorder days. Use + to insert a new day before.
+                      </p>
+                    )}
                     {(formData.itinerary || []).map((day, index) => (
                       <Card key={index}>
                         <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline">Day {day.day}</Badge>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeItineraryDay(index)}
-                              data-testid={`button-remove-day-${index}`}
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex flex-col">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => moveItineraryDayUp(index)}
+                                  disabled={index === 0}
+                                  data-testid={`button-move-day-up-${index}`}
+                                >
+                                  <ChevronUp className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6"
+                                  onClick={() => moveItineraryDayDown(index)}
+                                  disabled={index === (formData.itinerary?.length || 0) - 1}
+                                  data-testid={`button-move-day-down-${index}`}
+                                >
+                                  <ChevronDown className="w-4 h-4" />
+                                </Button>
+                              </div>
+                              <Badge variant="outline">Day {day.day}</Badge>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => insertItineraryDayBefore(index)}
+                                title="Insert day before"
+                                data-testid={`button-insert-day-before-${index}`}
+                              >
+                                <PlusCircle className="w-4 h-4 text-primary" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeItineraryDay(index)}
+                                data-testid={`button-remove-day-${index}`}
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent className="space-y-2">

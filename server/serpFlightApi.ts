@@ -295,12 +295,12 @@ export async function searchSerpFlights(params: SerpFlightSearchParams): Promise
   
   if (params.specificDates && params.specificDates.length > 0) {
     // Use only the Bokun-available dates
-    datesToSearch = params.specificDates.slice(0, 50); // Max 50 dates
+    datesToSearch = params.specificDates;
     console.log(`[SerpAPI] Searching ${datesToSearch.length} specific tour dates (from Bokun availability)`);
   } else {
-    // Fallback to date range (shouldn't normally happen)
+    // Fallback to date range
     const dates = generateDateRange(params.startDate, params.endDate);
-    datesToSearch = dates.slice(0, 30);
+    datesToSearch = dates;
     console.log(`[SerpAPI] Searching ${datesToSearch.length} dates from ${params.startDate} to ${params.endDate}`);
   }
   
@@ -684,16 +684,13 @@ export async function searchOpenJawFlights(params: OpenJawSearchParams): Promise
     return [];
   }
   
-  // Limit to reasonable number of dates (API calls are expensive)
-  const limitedDates = datesToSearch.slice(0, 30);
-  
   // Parallel fetch with concurrency limit
   const CONCURRENCY = 5; // Lower concurrency for multi-city (more complex queries)
   const allOffers: OpenJawFlightOffer[] = [];
   
-  for (let i = 0; i < limitedDates.length; i += CONCURRENCY) {
-    const batch = limitedDates.slice(i, i + CONCURRENCY);
-    console.log(`[SerpAPI OpenJaw] Fetching batch ${Math.floor(i / CONCURRENCY) + 1}/${Math.ceil(limitedDates.length / CONCURRENCY)}`);
+  for (let i = 0; i < datesToSearch.length; i += CONCURRENCY) {
+    const batch = datesToSearch.slice(i, i + CONCURRENCY);
+    console.log(`[SerpAPI OpenJaw] Fetching batch ${Math.floor(i / CONCURRENCY) + 1}/${Math.ceil(datesToSearch.length / CONCURRENCY)}`);
     
     const batchResults = await Promise.all(
       batch.map(date => fetchOpenJawFlightsForDate(
@@ -711,7 +708,7 @@ export async function searchOpenJawFlights(params: OpenJawSearchParams): Promise
     }
     
     // Delay between batches
-    if (i + CONCURRENCY < limitedDates.length) {
+    if (i + CONCURRENCY < datesToSearch.length) {
       await sleep(1000);
     }
   }

@@ -506,15 +506,34 @@ export default function PackageDetailTest() {
     setSelectedDate(date);
     // Only scroll to CTA if a date was actually selected
     if (date) {
-      setTimeout(() => {
-        const ctaSection = document.getElementById('cta-section');
-        if (ctaSection) {
-          // Get the element's position and scroll with offset for header
-          const elementPosition = ctaSection.getBoundingClientRect().top + window.scrollY;
-          const offsetPosition = elementPosition - 20; // 20px offset from top
-          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-        }
-      }, 100);
+      // Check if desktop (lg breakpoint = 1024px)
+      const isDesktop = window.innerWidth >= 1024;
+      
+      if (isDesktop) {
+        // On desktop, scroll to enquiry section and open dialog
+        setTimeout(() => {
+          const enquirySection = document.getElementById('desktop-enquiry-section');
+          if (enquirySection) {
+            const elementPosition = enquirySection.getBoundingClientRect().top + window.scrollY;
+            const offsetPosition = elementPosition - 100; // Offset for header
+            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+          }
+          // Open the enquiry dialog after scrolling
+          setTimeout(() => {
+            setEnquiryOpen(true);
+          }, 300);
+        }, 100);
+      } else {
+        // On mobile, scroll to CTA section
+        setTimeout(() => {
+          const ctaSection = document.getElementById('cta-section');
+          if (ctaSection) {
+            const elementPosition = ctaSection.getBoundingClientRect().top + window.scrollY;
+            const offsetPosition = elementPosition - 20;
+            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+          }
+        }, 100);
+      }
     }
   }, []);
   const [showAllItinerary, setShowAllItinerary] = useState(false);
@@ -1758,8 +1777,8 @@ export default function PackageDetailTest() {
                     <Separator />
 
                     {/* CTA Buttons */}
-                    <div className="space-y-2">
-                      <Dialog>
+                    <div className="space-y-2" id="desktop-enquiry-section">
+                      <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                         <DialogTrigger asChild>
                           <Button 
                             className="w-full bg-secondary hover:bg-secondary/90 text-white"

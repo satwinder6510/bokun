@@ -1482,11 +1482,125 @@ export default function PackageDetailTest() {
                   </Card>
                 </div>
               )}
+
+              {/* Package Details - Tabbed Content (Desktop) */}
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
+                <Tabs defaultValue="description" className="w-full">
+                  <TabsList className="w-full justify-start mb-6 overflow-x-auto">
+                    <TabsTrigger value="description" className="text-base font-semibold" data-testid="tab-description-desktop">Description</TabsTrigger>
+                    <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-desktop">Itinerary</TabsTrigger>
+                    <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-desktop">Accommodation</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="description" className="space-y-4">
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div 
+                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line [&>p]:mb-4"
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.description) }}
+                        />
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Highlights */}
+                    {highlights.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Tour Highlights</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {highlights.map((highlight, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                                <span>{highlight}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="itinerary" className="space-y-4">
+                    {itinerary.length === 0 ? (
+                      <Card>
+                        <CardContent className="py-12 text-center">
+                          <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground">Detailed itinerary coming soon</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      itinerary.map((day, index) => (
+                        <Card key={index} data-testid={`itinerary-desktop-day-${day.day}`}>
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center gap-4">
+                              <Badge variant="outline" className="text-lg px-4 py-1">
+                                Day {day.day}
+                              </Badge>
+                              <CardTitle className="text-lg">{day.title}</CardTitle>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div 
+                              className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground whitespace-pre-line [&>p]:mb-4"
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(day.description) }}
+                            />
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="accommodation" className="space-y-4">
+                    {accommodations.length === 0 ? (
+                      <Card>
+                        <CardContent className="py-12 text-center">
+                          <Hotel className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                          <p className="text-muted-foreground">Accommodation details coming soon</p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      accommodations.map((hotel, index) => (
+                        <Card key={index} data-testid={`hotel-desktop-${index}`}>
+                          <CardHeader>
+                            <CardTitle>{hotel.name}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div 
+                              className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4 whitespace-pre-line [&>p]:mb-4"
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(hotel.description) }}
+                            />
+                            {hotel.images && hotel.images.length > 0 && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {hotel.images.slice(0, 4).map((img, imgIndex) => (
+                                  <img 
+                                    key={imgIndex}
+                                    src={img}
+                                    alt={`${hotel.name} ${imgIndex + 1}`}
+                                    className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </div>
             </div>
 
-            {/* Right Column - Sticky Sidebar */}
+            {/* Right Column - Sidebar (scrolls with page) */}
             <div data-testid="desktop-sidebar">
-              <div className="sticky top-24 space-y-4">
+              <div className="space-y-4">
                 {/* Price & Booking Card */}
                 <Card className="border-2 border-secondary/30">
                   <CardHeader className="bg-secondary/5">
@@ -2015,15 +2129,15 @@ export default function PackageDetailTest() {
         </div>
       </section>
 
-      {/* Package Details - Tabbed Content */}
-      <section className="py-8 md:py-12">
+      {/* Package Details - Tabbed Content (Mobile only) */}
+      <section className="py-8 md:py-12 lg:hidden">
         <div className="container mx-auto px-4 md:px-8">
           <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
           <Tabs defaultValue="description" className="w-full">
             <TabsList className="w-full justify-start mb-6 overflow-x-auto">
-              <TabsTrigger value="description" data-testid="tab-description-new">Description</TabsTrigger>
-              <TabsTrigger value="itinerary" data-testid="tab-itinerary-new">Itinerary</TabsTrigger>
-              <TabsTrigger value="accommodation" data-testid="tab-accommodation-new">Accommodation</TabsTrigger>
+              <TabsTrigger value="description" className="text-base font-semibold" data-testid="tab-description-new">Description</TabsTrigger>
+              <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-new">Itinerary</TabsTrigger>
+              <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-new">Accommodation</TabsTrigger>
             </TabsList>
 
             <TabsContent value="description" className="space-y-4">

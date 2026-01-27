@@ -1494,7 +1494,9 @@ export default function PackageDetailTest() {
                       <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-desktop">Itinerary</TabsTrigger>
                     )}
                     <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-desktop">Accommodation</TabsTrigger>
-                    <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-desktop">Info</TabsTrigger>
+                    {(pkg.excluded || pkg.requirements || pkg.attention) && (
+                      <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-desktop">Info</TabsTrigger>
+                    )}
                     {pkg.review && (
                       <TabsTrigger value="reviews" className="text-base font-semibold" data-testid="tab-reviews-desktop">Reviews</TabsTrigger>
                     )}
@@ -1645,13 +1647,6 @@ export default function PackageDetailTest() {
                       </Card>
                     )}
 
-                    {!pkg.excluded && !pkg.requirements && !pkg.attention && (
-                      <Card>
-                        <CardContent className="py-12 text-center">
-                          <p className="text-muted-foreground">No additional information available</p>
-                        </CardContent>
-                      </Card>
-                    )}
                   </TabsContent>
 
                   {pkg.review && (
@@ -2215,7 +2210,9 @@ export default function PackageDetailTest() {
                 <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-new">Itinerary</TabsTrigger>
               )}
               <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-new">Accommodation</TabsTrigger>
-              <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-new">Info</TabsTrigger>
+              {(pkg.excluded || pkg.requirements || pkg.attention) && (
+                <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-new">Info</TabsTrigger>
+              )}
               {pkg.review && (
                 <TabsTrigger value="reviews" className="text-base font-semibold" data-testid="tab-reviews-new">Reviews</TabsTrigger>
               )}
@@ -2375,13 +2372,6 @@ export default function PackageDetailTest() {
                 </Card>
               )}
 
-              {!pkg.excluded && !pkg.requirements && !pkg.attention && (
-                <Card>
-                  <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">No additional information available</p>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
 
             {pkg.review && (

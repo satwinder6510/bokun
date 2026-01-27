@@ -680,10 +680,10 @@ export async function syncBokunDepartures(
           }
         }
         
-        // Convert to GBP
+        // Convert to GBP (divide by rate since we're buying in USD, e.g., $100 / 1.25 = £80)
         const priceGbp = originalCurrency === "GBP" 
           ? originalPrice 
-          : Math.round(originalPrice * exchangeRate * 100) / 100;
+          : Math.round((originalPrice / exchangeRate) * 100) / 100;
         
         // Parse min/max booking from rate details
         const minPerBooking = rateDetails.minPerBooking || 1;
@@ -719,7 +719,7 @@ export async function syncBokunDepartures(
         const originalCurrency = rate.currency || "USD";
         const priceGbp = originalCurrency === "GBP" 
           ? originalPrice 
-          : Math.round(originalPrice * exchangeRate * 100) / 100;
+          : Math.round((originalPrice / exchangeRate) * 100) / 100;
         
         const minPerBooking = rate.minPerBooking || 1;
         const roomCategory = parseRoomCategory(rateTitle, minPerBooking);

@@ -5888,13 +5888,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`Using fallback price from product details`);
         }
         
-        // Convert USD to GBP
-        const landTourPriceGBP = landTourPriceUSD * exchangeRate;
+        // Convert USD to GBP (divide by rate since we're buying in USD, e.g., $100 / 1.25 = £80)
+        const landTourPriceGBP = landTourPriceUSD / exchangeRate;
         
         // Apply 10% Bokun markup
         landTourPriceWithMarkup = landTourPriceGBP * 1.1;
         
-        console.log(`Bokun land tour price: $${landTourPriceUSD} USD -> £${landTourPriceGBP.toFixed(2)} GBP (rate: ${exchangeRate})`);
+        console.log(`Bokun land tour price: $${landTourPriceUSD} USD / ${exchangeRate} = £${landTourPriceGBP.toFixed(2)} GBP`);
         console.log(`With 10% markup: £${landTourPriceWithMarkup.toFixed(2)}`);
       }
       
@@ -6256,8 +6256,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!priceIsGBP) {
           const usdPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
           if (usdPrice > 0) {
-            importPrice = Math.round(usdPrice * exchangeRate * 100) / 100;
-            console.log(`Product not in GBP cache - converting USD to GBP: $${usdPrice} * ${exchangeRate} = £${importPrice}`);
+            importPrice = Math.round((usdPrice / exchangeRate) * 100) / 100;
+            console.log(`Product not in GBP cache - converting USD to GBP: $${usdPrice} / ${exchangeRate} = £${importPrice}`);
           } else {
             console.log(`No price found in Bokun product details`);
           }
@@ -6266,8 +6266,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("Could not fetch GBP pricing:", priceError);
         const usdPrice = details.nextDefaultPriceMoney?.amount || details.price || 0;
         if (usdPrice > 0) {
-          importPrice = Math.round(usdPrice * exchangeRate * 100) / 100;
-          console.log(`Error fallback - converting USD to GBP: $${usdPrice} * ${exchangeRate} = £${importPrice}`);
+          importPrice = Math.round((usdPrice / exchangeRate) * 100) / 100;
+          console.log(`Error fallback - converting USD to GBP: $${usdPrice} / ${exchangeRate} = £${importPrice}`);
         }
       }
       

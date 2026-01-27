@@ -271,7 +271,7 @@ function PriceCalendarWidget({
       <div className="grid grid-cols-7">
         {/* Empty cells for days before first of month */}
         {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`empty-${i}`} className="h-16 border-b border-r last:border-r-0" />
+          <div key={`empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
         ))}
 
         {/* Days of the month */}
@@ -286,21 +286,16 @@ function PriceCalendarWidget({
               key={dayNum}
               onClick={() => available && onDateSelect(date)}
               className={`
-                relative h-16 border-b border-r flex flex-col items-center justify-center text-xs
+                h-14 border-b border-r flex flex-col items-center justify-center text-xs
                 ${available ? 'cursor-pointer hover:bg-secondary/10' : ''}
                 ${isSelected ? 'bg-secondary text-white' : ''}
                 ${!available && price !== undefined ? 'text-muted-foreground/50' : ''}
                 ${!available && price === undefined ? 'text-muted-foreground/30' : ''}
                 ${isToday && !isSelected ? 'font-bold' : ''}
-                ${isCheapest && !isSelected ? 'bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700' : ''}
+                ${isCheapest && !isSelected ? 'bg-green-100 dark:bg-green-900/40' : ''}
               `}
               data-testid={`calendar-day-${dayNum}`}
             >
-              {isCheapest && !isSelected && (
-                <div className="absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">
-                  Lowest
-                </div>
-              )}
               <span className={`${isSelected ? 'text-white' : ''}`}>
                 {dayNum}
               </span>
@@ -309,7 +304,7 @@ function PriceCalendarWidget({
                   isSelected 
                     ? 'text-white' 
                     : isCheapest 
-                      ? 'text-green-600 dark:text-green-400 font-bold' 
+                      ? 'text-green-700 dark:text-green-300 font-bold' 
                       : 'text-secondary'
                 } ${!available ? 'opacity-50' : ''}`}>
                   {formatPrice(price)}
@@ -321,7 +316,7 @@ function PriceCalendarWidget({
 
         {/* Fill remaining cells */}
         {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
-          <div key={`end-empty-${i}`} className="h-16 border-b border-r last:border-r-0" />
+          <div key={`end-empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
         ))}
       </div>
     </div>
@@ -496,7 +491,7 @@ function BokunPriceCalendarWidget({
       <div className="grid grid-cols-7">
         {/* Empty cells for days before first of month */}
         {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`empty-${i}`} className="h-16 border-b border-r last:border-r-0" />
+          <div key={`empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
         ))}
 
         {/* Days of the month */}
@@ -511,21 +506,16 @@ function BokunPriceCalendarWidget({
               key={dayNum}
               onClick={() => available && onDateSelect(date)}
               className={`
-                relative h-16 border-b border-r flex flex-col items-center justify-center text-xs
+                h-14 border-b border-r flex flex-col items-center justify-center text-xs
                 ${available ? 'cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30' : ''}
                 ${isSelected ? 'bg-blue-600 text-white' : ''}
                 ${!available && price !== undefined ? 'text-muted-foreground/50' : ''}
                 ${!available && price === undefined ? 'text-muted-foreground/30' : ''}
                 ${isToday && !isSelected ? 'font-bold' : ''}
-                ${isCheapest && !isSelected ? 'bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700' : ''}
+                ${isCheapest && !isSelected ? 'bg-green-100 dark:bg-green-900/40' : ''}
               `}
               data-testid={`bokun-calendar-day-${dayNum}`}
             >
-              {isCheapest && !isSelected && (
-                <div className="absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">
-                  Lowest
-                </div>
-              )}
               <span className={`${isSelected ? 'text-white' : ''}`}>
                 {dayNum}
               </span>
@@ -534,7 +524,7 @@ function BokunPriceCalendarWidget({
                   isSelected 
                     ? 'text-white' 
                     : isCheapest 
-                      ? 'text-green-600 dark:text-green-400 font-bold' 
+                      ? 'text-green-700 dark:text-green-300 font-bold' 
                       : 'text-blue-600 dark:text-blue-400'
                 } ${!available ? 'opacity-50' : ''}`}>
                   {formatPrice(price)}
@@ -546,7 +536,7 @@ function BokunPriceCalendarWidget({
 
         {/* Fill remaining cells */}
         {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
-          <div key={`end-empty-${i}`} className="h-16 border-b border-r last:border-r-0" />
+          <div key={`end-empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
         ))}
       </div>
     </div>
@@ -1488,152 +1478,6 @@ export default function PackageDetailTest() {
                           </div>
                         ))}
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* Description */}
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold mb-4">Description</h2>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div 
-                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.description) }}
-                      data-testid="content-description-desktop"
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Highlights */}
-              {highlights.length > 0 && (
-                <div>
-                  <h2 className="text-xl md:text-2xl font-bold mb-4">Highlights</h2>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {highlights.map((highlight, index) => (
-                          <li key={index} className="flex items-start gap-2" data-testid={`highlight-desktop-${index}`}>
-                            <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                            <span>{highlight}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* Itinerary */}
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold mb-4">Itinerary</h2>
-                {itinerary.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <CalendarIcon className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">Detailed itinerary coming soon</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {itinerary.map((day, index) => (
-                      <Card key={index} data-testid={`itinerary-desktop-day-${day.day}`}>
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center gap-4">
-                            <Badge variant="outline" className="text-lg px-4 py-1">
-                              Day {day.day}
-                            </Badge>
-                            <CardTitle className="text-lg">{day.title}</CardTitle>
-                          </div>
-                        </CardHeader>
-                        <CardContent>
-                          <div 
-                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(day.description) }}
-                          />
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Hotels */}
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold mb-4">Hotels</h2>
-                {accommodations.length === 0 ? (
-                  <Card>
-                    <CardContent className="py-12 text-center">
-                      <Hotel className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">Accommodation details coming soon</p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="space-y-4">
-                    {accommodations.map((hotel, index) => (
-                      <Card key={index} data-testid={`hotel-desktop-${index}`}>
-                        <CardHeader>
-                          <CardTitle>{hotel.name}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div 
-                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(hotel.description) }}
-                          />
-                          {hotel.images && hotel.images.length > 0 && (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                              {hotel.images.slice(0, 4).map((img, imgIndex) => (
-                                <img 
-                                  key={imgIndex}
-                                  src={img}
-                                  alt={`${hotel.name} ${imgIndex + 1}`}
-                                  className="w-full aspect-[4/3] object-cover rounded-lg"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Additional Info */}
-              {pkg.excluded && (
-                <div>
-                  <h2 className="text-xl md:text-2xl font-bold mb-4">Important Information</h2>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Exclusions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div 
-                        className="prose prose-sm max-w-none dark:prose-invert"
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.excluded) }}
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* Reviews */}
-              {pkg.review && (
-                <div>
-                  <h2 className="text-xl md:text-2xl font-bold mb-4">Customer Reviews</h2>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div 
-                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.review) }}
-                        data-testid="content-reviews-desktop"
-                      />
                     </CardContent>
                   </Card>
                 </div>

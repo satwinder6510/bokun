@@ -1490,7 +1490,9 @@ export default function PackageDetailTest() {
                 <Tabs defaultValue="description" className="w-full">
                   <TabsList className="w-full justify-start mb-6 overflow-x-auto">
                     <TabsTrigger value="description" className="text-base font-semibold" data-testid="tab-description-desktop">Description</TabsTrigger>
-                    <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-desktop">Itinerary</TabsTrigger>
+                    {itinerary.length > 0 && (
+                      <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-desktop">Itinerary</TabsTrigger>
+                    )}
                     <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-desktop">Accommodation</TabsTrigger>
                     <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-desktop">Info</TabsTrigger>
                     {pkg.review && (
@@ -2209,7 +2211,9 @@ export default function PackageDetailTest() {
           <Tabs defaultValue="description" className="w-full">
             <TabsList className="w-full justify-start mb-6 overflow-x-auto">
               <TabsTrigger value="description" className="text-base font-semibold" data-testid="tab-description-new">Description</TabsTrigger>
-              <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-new">Itinerary</TabsTrigger>
+              {itinerary.length > 0 && (
+                <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-new">Itinerary</TabsTrigger>
+              )}
               <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-new">Accommodation</TabsTrigger>
               <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-new">Info</TabsTrigger>
               {pkg.review && (

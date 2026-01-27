@@ -144,6 +144,7 @@ type PackageFormData = {
   isSpecialOffer: boolean;
   displayOrder: number;
   bokunProductId: string | null;
+  enabledHotelCategories: string[];
 };
 
 type BokunTourResult = {
@@ -201,6 +202,7 @@ const emptyPackage: PackageFormData = {
   isSpecialOffer: false,
   displayOrder: 0,
   bokunProductId: null,
+  enabledHotelCategories: [],
 };
 
 // Helper function to parse YouTube/Vimeo URLs
@@ -707,6 +709,7 @@ export default function AdminPackages() {
       isSpecialOffer: pkg.isSpecialOffer || false,
       displayOrder: pkg.displayOrder,
       bokunProductId: pkg.bokunProductId || null,
+      enabledHotelCategories: ((pkg as any).enabledHotelCategories || []) as string[],
     });
     // Clear imported price breakdown when editing existing package
     setImportedPriceBreakdown(null);
@@ -4079,6 +4082,76 @@ export default function AdminPackages() {
                                   </Button>
                                 </div>
                               )}
+                              
+                              {/* Hotel Category Visibility */}
+                              {bokunDepartures.length > 0 && (() => {
+                                // Extract unique hotel categories from departures
+                                const allCategories = new Set<string>();
+                                bokunDepartures.forEach((departure: any) => {
+                                  departure.rates?.forEach((rate: any) => {
+                                    if (rate.hotelCategory) {
+                                      allCategories.add(rate.hotelCategory);
+                                    }
+                                  });
+                                });
+                                const categories = Array.from(allCategories).sort();
+                                
+                                if (categories.length === 0) return null;
+                                
+                                return (
+                                  <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+                                    <p className="text-sm font-medium">Hotel Categories to Show on Site</p>
+                                    <p className="text-xs text-muted-foreground mb-2">
+                                      Select which hotel categories should be visible to customers. Unchecking all will show all categories.
+                                    </p>
+                                    <div className="flex flex-wrap gap-3">
+                                      {categories.map((category) => {
+                                        const isEnabled = formData.enabledHotelCategories.length === 0 || 
+                                          formData.enabledHotelCategories.includes(category);
+                                        return (
+                                          <label 
+                                            key={category}
+                                            className="flex items-center gap-2 cursor-pointer"
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={isEnabled}
+                                              onChange={(e) => {
+                                                let newCategories: string[];
+                                                if (e.target.checked) {
+                                                  // If was empty (all enabled), start fresh with just this one
+                                                  if (formData.enabledHotelCategories.length === 0) {
+                                                    // When first checkbox is checked from "all", enable all then it's already checked
+                                                    newCategories = [...formData.enabledHotelCategories];
+                                                  } else {
+                                                    newCategories = [...formData.enabledHotelCategories, category];
+                                                  }
+                                                } else {
+                                                  // If all were enabled (empty array), set to all except this one
+                                                  if (formData.enabledHotelCategories.length === 0) {
+                                                    newCategories = categories.filter(c => c !== category);
+                                                  } else {
+                                                    newCategories = formData.enabledHotelCategories.filter(c => c !== category);
+                                                  }
+                                                }
+                                                setFormData({ ...formData, enabledHotelCategories: newCategories });
+                                              }}
+                                              className="w-4 h-4 rounded border-gray-300"
+                                              data-testid={`checkbox-hotel-${category.toLowerCase().replace(/\s+/g, '-')}`}
+                                            />
+                                            <span className="text-sm">{category}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                    {formData.enabledHotelCategories.length > 0 && (
+                                      <p className="text-xs text-muted-foreground mt-2">
+                                        Showing: {formData.enabledHotelCategories.join(", ")}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                               
                               {/* Departures Table */}
                               {isLoadingDepartures ? (

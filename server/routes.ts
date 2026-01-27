@@ -3092,6 +3092,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const packageId = parseInt(id);
       
+      // Get the package to check enabled hotel categories
+      const pkg = await storage.getFlightPackageById(packageId);
+      const enabledHotelCategories: string[] = (pkg?.enabledHotelCategories as string[]) || [];
+      
       // Get departures with rates
       const departures = await storage.getBokunDepartures(packageId);
       
@@ -3164,6 +3168,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!departure.rates || !Array.isArray(departure.rates)) continue;
         
         for (const rate of departure.rates) {
+          // Filter by enabled hotel categories if configured
+          // Empty array means show all categories
+          if (enabledHotelCategories.length > 0 && rate.hotelCategory) {
+            if (!enabledHotelCategories.includes(rate.hotelCategory)) {
+              continue; // Skip this rate - hotel category not enabled
+            }
+          }
+          
           const rateFlights = flightsByRate.get(rate.id);
           if (!rateFlights) continue;
           

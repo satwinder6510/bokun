@@ -430,6 +430,11 @@ export const flightPackages = pgTable("flight_packages", {
   // Source URL for rescraping
   sourceUrl: text("source_url"),
   
+  // Hotel category visibility settings (for Bokun departures pricing module)
+  // When set, only these hotel categories will be shown on the public site
+  // Empty array or null means show all categories
+  enabledHotelCategories: jsonb("enabled_hotel_categories").$type<string[]>().default([]),
+  
   // Auto-refresh settings for Bokun flight pricing
   autoRefreshEnabled: boolean("auto_refresh_enabled").notNull().default(false),
   lastFlightRefreshAt: timestamp("last_flight_refresh_at"),

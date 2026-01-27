@@ -3892,7 +3892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const cheapestEntries = Array.from(cheapestByDateAirport.entries());
             
             for (const [dateAirport, bestOffer] of cheapestEntries) {
-              const [date, airport] = dateAirport.split("_");
+              const [date, airport] = dateAirport.split("|"); // SERP uses | as delimiter
               if (!uniqueDates.includes(date)) continue;
               
               // OpenJawFlightOffer has pricePerPerson which is the combined total
@@ -3919,9 +3919,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const cheapestByDateAirport = getCheapestSerpFlightsByDateAndAirport(flightOffers);
             const cheapestEntries = Array.from(cheapestByDateAirport.entries());
             
+            console.log(`[BokunFlights] SERP cheapest entries: ${cheapestEntries.length}`);
+            if (cheapestEntries.length > 0) {
+              console.log(`[BokunFlights] Sample SERP entry key: ${cheapestEntries[0][0]}`);
+              console.log(`[BokunFlights] Sample uniqueDates: ${uniqueDates.slice(0, 3).join(", ")}`);
+            }
+            
+            let skippedDates = 0;
             for (const [dateAirport, offer] of cheapestEntries) {
-              const [date, airport] = dateAirport.split("_");
-              if (!uniqueDates.includes(date)) continue;
+              const [date, airport] = dateAirport.split("|"); // SERP uses | as delimiter
+              if (!uniqueDates.includes(date)) {
+                skippedDates++;
+                continue;
+              }
               
               const priceWithBaggage = offer.pricePerPerson + BAGGAGE_SURCHARGE_GBP;
               const markedUpPrice = Math.round(priceWithBaggage * (1 + (markup || 0) / 100));
@@ -3929,6 +3939,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (!flightPrices[date]) flightPrices[date] = {};
               flightPrices[date][airport] = markedUpPrice;
             }
+            console.log(`[BokunFlights] SERP: Populated ${Object.keys(flightPrices).length} dates, skipped ${skippedDates} non-matching dates`);
           }
         } else {
           // ===== EUROPEAN API PATH =====

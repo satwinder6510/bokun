@@ -2635,15 +2635,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Convert to serializable format, applying regional constraints and normalization
       const holidayTypesByDestination: Record<string, string[]> = {};
-      for (const [dest, types] of destinationHolidayTypes) {
+      const destEntries = Array.from(destinationHolidayTypes.entries());
+      for (const [dest, types] of destEntries) {
         if (dest.length <= 2) continue; // Skip country codes
         const normalizedDest = countryNormalization[dest] || dest;
         // Filter out impossible holiday types for this destination
-        const validTypes = Array.from(types).filter(t => isValidHolidayTypeForCountry(t, normalizedDest));
+        const typesArray = Array.from(types);
+        const validTypes = typesArray.filter((t: string) => isValidHolidayTypeForCountry(t, normalizedDest));
         // Merge with existing if normalized name already exists
         if (holidayTypesByDestination[normalizedDest]) {
           const existing = new Set(holidayTypesByDestination[normalizedDest]);
-          validTypes.forEach(t => existing.add(t));
+          validTypes.forEach((t: string) => existing.add(t));
           holidayTypesByDestination[normalizedDest] = Array.from(existing).sort();
         } else {
           holidayTypesByDestination[normalizedDest] = validTypes.sort();
@@ -2652,7 +2654,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Sort destinations alphabetically, filtering out 2-letter country codes and normalizing names
       const normalizedDestinations = new Set<string>();
-      for (const dest of destinationSet) {
+      const destArray = Array.from(destinationSet);
+      for (const dest of destArray) {
         if (dest.length > 2) {
           const normalized = countryNormalization[dest] || dest;
           normalizedDestinations.add(normalized);
@@ -3165,7 +3168,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (!rateFlights) continue;
           
           // Add an entry for each airport with pricing
-          for (const [airportCode, pricing] of rateFlights) {
+          const rateFlightEntries = Array.from(rateFlights.entries());
+          for (const [airportCode, pricing] of rateFlightEntries) {
             prices.push({
               departureDate: departure.departureDate,
               rateTitle: rate.rateTitle || "Standard Rate",

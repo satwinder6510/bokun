@@ -119,7 +119,7 @@ function PriceCalendarWidget({
 }: { 
   pricingData: PackagePricing[];
   selectedDate: Date | undefined;
-  onDateSelect: (date: Date | undefined) => void;
+  onDateSelect: (date: Date | undefined, isAutoSelect?: boolean) => void;
   formatPrice: (price: number) => string;
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
@@ -157,10 +157,10 @@ function PriceCalendarWidget({
         console.log("[Calendar] Setting current month to:", newMonth.toDateString());
         setCurrentMonth(newMonth);
         
-        // Auto-select the cheapest date on initial load
+        // Auto-select the cheapest date on initial load (pass true to skip dialog opening)
         if (!hasAutoSelected) {
           setHasAutoSelected(true);
-          onDateSelect(cheapestDate);
+          onDateSelect(cheapestDate, true);
         }
       }
     }
@@ -344,7 +344,7 @@ function BokunPriceCalendarWidget({
 }: { 
   pricingData: BokunPricingEntryType[];
   selectedDate: Date | undefined;
-  onDateSelect: (date: Date | undefined) => void;
+  onDateSelect: (date: Date | undefined, isAutoSelect?: boolean) => void;
   formatPrice: (price: number) => string;
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
@@ -376,10 +376,10 @@ function BokunPriceCalendarWidget({
         const newMonth = new Date(cheapestDate.getFullYear(), cheapestDate.getMonth(), 1);
         setCurrentMonth(newMonth);
         
-        // Auto-select the cheapest date on initial load
+        // Auto-select the cheapest date on initial load (pass true to skip dialog opening)
         if (!hasAutoSelected) {
           setHasAutoSelected(true);
-          onDateSelect(cheapestDate);
+          onDateSelect(cheapestDate, true);
         }
       }
     }
@@ -571,10 +571,11 @@ export default function PackageDetailTest() {
   const [showStickyBar, setShowStickyBar] = useState(false);
   
   // Handler to select date and scroll to CTA section
-  const handleDateSelect = useCallback((date: Date | undefined) => {
+  // isAutoSelect = true means this is an auto-selection on page load, so don't open dialog
+  const handleDateSelect = useCallback((date: Date | undefined, isAutoSelect?: boolean) => {
     setSelectedDate(date);
-    // Only scroll to CTA if a date was actually selected
-    if (date) {
+    // Only scroll to CTA if a date was actually selected AND it's not an auto-selection
+    if (date && !isAutoSelect) {
       // Check if desktop (lg breakpoint = 1024px)
       const isDesktop = window.innerWidth >= 1024;
       

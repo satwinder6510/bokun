@@ -941,6 +941,7 @@ export default function AdminPackages() {
           duration: parseInt(editingPackage.duration || "7"),
           markup: bokunFlightMarkup,
           flightType: bokunFlightType,
+          flightApiSource: formData.flightApiSource,
         }),
       });
       
@@ -4178,6 +4179,37 @@ export default function AdminPackages() {
                                   </h4>
                                   
                                   <div className="space-y-4">
+                                    {/* Flight API Source Selector */}
+                                    <div>
+                                      <Label className="mb-2 block">Flight API Source</Label>
+                                      <div className="flex gap-2">
+                                        <Button
+                                          type="button"
+                                          variant={formData.flightApiSource === "european" ? "default" : "outline"}
+                                          size="sm"
+                                          onClick={() => setFormData({ ...formData, flightApiSource: "european" })}
+                                          data-testid="button-bokun-api-european"
+                                        >
+                                          European Flight API
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant={formData.flightApiSource === "serp" ? "default" : "outline"}
+                                          size="sm"
+                                          onClick={() => setFormData({ ...formData, flightApiSource: "serp" })}
+                                          data-testid="button-bokun-api-serp"
+                                        >
+                                          SERP API (Google Flights)
+                                        </Button>
+                                      </div>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {formData.flightApiSource === "european" 
+                                          ? "Uses European Flight API for direct flight pricing"
+                                          : "Uses SERP API to get Google Flights pricing data"
+                                        }
+                                      </p>
+                                    </div>
+                                    
                                     {/* Flight Type Selector */}
                                     <div className="space-y-2">
                                       <Label>Flight Type</Label>

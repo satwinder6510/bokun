@@ -3822,7 +3822,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         departureAirports, 
         duration: requestDuration, 
         markup,
-        flightType = "roundtrip" // "roundtrip" or "openjaw"
+        flightType = "roundtrip", // "roundtrip" or "openjaw"
+        flightApiSource = "european" // "european" or "serp"
       } = req.body;
       
       if (!packageId || !destinationAirport || !departureAirports || departureAirports.length === 0) {
@@ -3855,26 +3856,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Collect unique departure dates
       const uniqueDates = Array.from(new Set(departures.map(d => d.departureDate)));
-      console.log(`[BokunFlights] Found ${uniqueDates.length} unique departure dates`);
+      console.log(`[BokunFlights] Found ${uniqueDates.length} unique departure dates, API source: ${flightApiSource}`);
       
-      // Fetch flight prices using Sunshine European Flight API
+      // Fetch flight prices - either SERP API or European API
       const flightPrices: Record<string, Record<string, number>> = {}; // date -> { airport: price }
       
-      // Format dates for Sunshine API (DD/MM/YYYY)
-      const formatDateForApi = (isoDate: string): string => {
-        const [year, month, day] = isoDate.split("-");
-        return `${day}/${month}/${year}`;
-      };
-      
-      // Get date range for API call
+      // Get date range
       const sortedDates = [...uniqueDates].sort();
-      const startDate = formatDateForApi(sortedDates[0]);
-      const endDate = formatDateForApi(sortedDates[sortedDates.length - 1]);
-      
-      // Build pipe-separated airport list
-      const airportList = departureAirports.join("|");
       
       try {
+        // ===== SERP API PATH =====
+        if (flightApiSource === "serp") {
+          if (!isSerpApiConfigured()) {
+            return res.status(400).json({ error: "SERPAPI_KEY is not configured" });
+          }
+          
+          console.log(`[BokunFlights] Using SERP API for ${flightType} flights`);
+          
+          if (flightType === "openjaw") {
+            // SERP API Open-jaw search
+            const openJawOffers = await searchOpenJawFlights({
+              ukAirports: departureAirports,
+              arriveAirport: destinationAirport,
+              departAirport: returnAirport,
+              startDate: sortedDates[0],
+              endDate: sortedDates[sortedDates.length - 1],
+              nights: duration,
+              specificDates: uniqueDates, // Use exact Bokun availability dates
+            });
+            
+            console.log(`[BokunFlights] SERP API returned ${openJawOffers.length} open-jaw offers`);
+            
+            // Get cheapest per date/airport
+            const cheapestByDateAirport = getCheapestOpenJawByDateAndAirport(openJawOffers);
+            const cheapestEntries = Array.from(cheapestByDateAirport.entries());
+            
+            for (const [dateAirport, bestOffer] of cheapestEntries) {
+              const [date, airport] = dateAirport.split("_");
+              if (!uniqueDates.includes(date)) continue;
+              
+              // OpenJawFlightOffer has pricePerPerson which is the combined total
+              const combinedPrice = bestOffer.pricePerPerson + BAGGAGE_SURCHARGE_GBP;
+              const markedUpPrice = Math.round(combinedPrice * (1 + (markup || 0) / 100));
+              
+              if (!flightPrices[date]) flightPrices[date] = {};
+              flightPrices[date][airport] = markedUpPrice;
+            }
+          } else {
+            // SERP API Round-trip search
+            const flightOffers = await searchSerpFlights({
+              departAirports: departureAirports,
+              arriveAirport: destinationAirport,
+              startDate: sortedDates[0],
+              endDate: sortedDates[sortedDates.length - 1],
+              nights: duration,
+              specificDates: uniqueDates, // Use exact Bokun availability dates
+            });
+            
+            console.log(`[BokunFlights] SERP API returned ${flightOffers.length} flight offers`);
+            
+            // Get cheapest per date/airport
+            const cheapestByDateAirport = getCheapestSerpFlightsByDateAndAirport(flightOffers);
+            const cheapestEntries = Array.from(cheapestByDateAirport.entries());
+            
+            for (const [dateAirport, offer] of cheapestEntries) {
+              const [date, airport] = dateAirport.split("_");
+              if (!uniqueDates.includes(date)) continue;
+              
+              const priceWithBaggage = offer.pricePerPerson + BAGGAGE_SURCHARGE_GBP;
+              const markedUpPrice = Math.round(priceWithBaggage * (1 + (markup || 0) / 100));
+              
+              if (!flightPrices[date]) flightPrices[date] = {};
+              flightPrices[date][airport] = markedUpPrice;
+            }
+          }
+        } else {
+          // ===== EUROPEAN API PATH =====
+          // Format dates for Sunshine API (DD/MM/YYYY)
+          const formatDateForApi = (isoDate: string): string => {
+            const [year, month, day] = isoDate.split("-");
+            return `${day}/${month}/${year}`;
+          };
+          
+          const startDate = formatDateForApi(sortedDates[0]);
+          const endDate = formatDateForApi(sortedDates[sortedDates.length - 1]);
+          
+          // Build pipe-separated airport list
+          const airportList = departureAirports.join("|");
+          
         if (flightType === "openjaw") {
           // ===== OPEN-JAW: Search outbound + return one-way flights separately =====
           console.log(`[BokunFlights] Open-jaw mode: searching one-way flights`);
@@ -4256,6 +4325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           console.log(`[BokunFlights] Finished all batches. Found prices for ${Object.keys(flightPrices).length} dates`);
         }
+        } // Close European API else block
       } catch (err: any) {
         console.error(`[BokunFlights] Error fetching from Sunshine API:`, err.message);
         return res.status(500).json({ error: `Flight API error: ${err.message}` });
@@ -4286,7 +4356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               flightPrice as number,
               smartRoundedPrice,
               markup,
-              "sunshine"
+              flightApiSource === "serp" ? "serp" : "sunshine"
             );
             updatedCount++;
           }

@@ -134,6 +134,7 @@ export interface OpenJawSearchParams {
   nights: number;                 // Duration in nights
   startDate: string;              // YYYY-MM-DD format
   endDate: string;                // YYYY-MM-DD format
+  specificDates?: string[];       // Optional: specific dates to search (overrides date range)
 }
 
 // Internal flight search parameters (one-way domestic flights)
@@ -671,9 +672,11 @@ export async function searchOpenJawFlights(params: OpenJawSearchParams): Promise
     throw new Error("SERPAPI_KEY not configured. Please add your SerpApi key to secrets.");
   }
   
-  // Generate date range
-  const datesToSearch = generateDateRange(params.startDate, params.endDate);
-  console.log(`[SerpAPI OpenJaw] Searching ${datesToSearch.length} dates for open-jaw flights`);
+  // Use specific dates if provided, otherwise generate date range
+  const datesToSearch = params.specificDates && params.specificDates.length > 0
+    ? [...params.specificDates].sort() // Use provided specific dates
+    : generateDateRange(params.startDate, params.endDate);
+  console.log(`[SerpAPI OpenJaw] Searching ${datesToSearch.length} dates for open-jaw flights${params.specificDates ? ' (using specific dates)' : ''}`);
   console.log(`[SerpAPI OpenJaw] Route: UK airports -> ${params.arriveAirport}, ${params.departAirport} -> UK airports`);
   
   if (datesToSearch.length === 0) {

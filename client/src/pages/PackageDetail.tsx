@@ -1492,6 +1492,10 @@ export default function PackageDetailTest() {
                     <TabsTrigger value="description" className="text-base font-semibold" data-testid="tab-description-desktop">Description</TabsTrigger>
                     <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-desktop">Itinerary</TabsTrigger>
                     <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-desktop">Accommodation</TabsTrigger>
+                    <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-desktop">Info</TabsTrigger>
+                    {pkg.review && (
+                      <TabsTrigger value="reviews" className="text-base font-semibold" data-testid="tab-reviews-desktop">Reviews</TabsTrigger>
+                    )}
                   </TabsList>
 
                   <TabsContent value="description" className="space-y-4">
@@ -1595,6 +1599,74 @@ export default function PackageDetailTest() {
                       ))
                     )}
                   </TabsContent>
+
+                  <TabsContent value="info" className="space-y-4">
+                    {pkg.excluded && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Exclusions</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.excluded) }}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {pkg.requirements && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>What Do I Need to Bring?</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.requirements) }}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {pkg.attention && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Please Note</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.attention) }}
+                          />
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {!pkg.excluded && !pkg.requirements && !pkg.attention && (
+                      <Card>
+                        <CardContent className="py-12 text-center">
+                          <p className="text-muted-foreground">No additional information available</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  {pkg.review && (
+                    <TabsContent value="reviews" className="space-y-4">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Customer Reviews</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div 
+                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.review) }}
+                          />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
                 </Tabs>
               </div>
             </div>
@@ -2139,6 +2211,10 @@ export default function PackageDetailTest() {
               <TabsTrigger value="description" className="text-base font-semibold" data-testid="tab-description-new">Description</TabsTrigger>
               <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-new">Itinerary</TabsTrigger>
               <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-new">Accommodation</TabsTrigger>
+              <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-new">Info</TabsTrigger>
+              {pkg.review && (
+                <TabsTrigger value="reviews" className="text-base font-semibold" data-testid="tab-reviews-new">Reviews</TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="description" className="space-y-4">
@@ -2251,6 +2327,74 @@ export default function PackageDetailTest() {
                 ))
               )}
             </TabsContent>
+
+            <TabsContent value="info" className="space-y-4">
+              {pkg.excluded && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Exclusions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div 
+                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.excluded) }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {pkg.requirements && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>What Do I Need to Bring?</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div 
+                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.requirements) }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {pkg.attention && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Please Note</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div 
+                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.attention) }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
+              {!pkg.excluded && !pkg.requirements && !pkg.attention && (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <p className="text-muted-foreground">No additional information available</p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            {pkg.review && (
+              <TabsContent value="reviews" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Customer Reviews</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div 
+                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.review) }}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </section>

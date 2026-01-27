@@ -5,6 +5,7 @@ import { Phone, Mail } from "lucide-react";
 import PreviewHeader from "@/components/PreviewHeader";
 import PreviewFooter from "@/components/PreviewFooter";
 import type { Faq } from "@shared/schema";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export default function PreviewFAQ() {
   const { data: faqs = [], isLoading } = useQuery<Faq[]>({
@@ -55,7 +56,7 @@ export default function PreviewFAQ() {
                         {faq.question}
                       </AccordionTrigger>
                       <AccordionContent className="text-slate-600 pb-5 leading-relaxed">
-                        <div dangerouslySetInnerHTML={{ __html: faq.answer }} />
+                        <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(faq.answer) }} />
                       </AccordionContent>
                     </AccordionItem>
                   ))}

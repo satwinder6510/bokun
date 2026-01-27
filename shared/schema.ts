@@ -896,6 +896,20 @@ export const adminSessions = pgTable("admin_sessions", {
 
 export type AdminSession = typeof adminSessions.$inferSelect;
 
+// Pending 2FA Sessions table for 2FA verification flow (survives server restarts)
+export const pending2FASessions = pgTable("pending_2fa_sessions", {
+  id: serial("id").primaryKey(),
+  pendingToken: text("pending_token").notNull().unique(),
+  sessionType: text("session_type").notNull(), // 'pending' or 'setup'
+  userId: integer("user_id").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type Pending2FASession = typeof pending2FASessions.$inferSelect;
+
 // Flight Tour Pricing Configs - links Bokun tours to flight API for dynamic pricing
 export const flightTourPricingConfigs = pgTable("flight_tour_pricing_configs", {
   id: serial("id").primaryKey(),

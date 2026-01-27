@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { apiRequest } from '@/lib/queryClient';
 
 interface AdminUser {
   id: number;
@@ -40,41 +39,31 @@ const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefin
 
 export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
-  const [sessionToken, setSessionToken] = useState<string | null>(() => {
-    return localStorage.getItem('admin_session_token');
-  });
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchCurrentUser = useCallback(async () => {
-    if (!sessionToken) {
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const response = await fetch('/api/auth/admin/me', {
-        headers: {
-          'x-admin-session': sessionToken
-        }
+        credentials: 'include'
       });
 
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);
+        setSessionToken('cookie-session');
       } else {
-        localStorage.removeItem('admin_session_token');
         setSessionToken(null);
         setUser(null);
       }
     } catch (error) {
       console.error('Failed to fetch user:', error);
-      localStorage.removeItem('admin_session_token');
       setSessionToken(null);
       setUser(null);
     } finally {
       setIsLoading(false);
     }
-  }, [sessionToken]);
+  }, []);
 
   useEffect(() => {
     fetchCurrentUser();
@@ -84,7 +73,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const response = await fetch('/api/auth/admin/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
+      credentials: 'include'
     });
 
     const data = await response.json();
@@ -100,7 +90,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const response = await fetch('/api/auth/admin/2fa/setup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pendingToken })
+      body: JSON.stringify({ pendingToken }),
+      credentials: 'include'
     });
 
     const data = await response.json();
@@ -116,7 +107,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const response = await fetch('/api/auth/admin/2fa/verify-setup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pendingToken, token, secret })
+      body: JSON.stringify({ pendingToken, token, secret }),
+      credentials: 'include'
     });
 
     const data = await response.json();
@@ -125,8 +117,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || 'Failed to verify 2FA setup');
     }
 
-    localStorage.setItem('admin_session_token', data.sessionToken);
-    setSessionToken(data.sessionToken);
+    setSessionToken('cookie-session');
     setUser(data.user);
   };
 
@@ -134,7 +125,8 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     const response = await fetch('/api/auth/admin/2fa/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pendingToken, token })
+      body: JSON.stringify({ pendingToken, token }),
+      credentials: 'include'
     });
 
     const data = await response.json();
@@ -143,24 +135,20 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(data.error || 'Failed to verify 2FA');
     }
 
-    localStorage.setItem('admin_session_token', data.sessionToken);
-    setSessionToken(data.sessionToken);
+    setSessionToken('cookie-session');
     setUser(data.user);
   };
 
   const logout = async (): Promise<void> => {
-    if (sessionToken) {
-      try {
-        await fetch('/api/auth/admin/logout', {
-          method: 'POST',
-          headers: { 'x-admin-session': sessionToken }
-        });
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
+    try {
+      await fetch('/api/auth/admin/logout', {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
     }
 
-    localStorage.removeItem('admin_session_token');
     setSessionToken(null);
     setUser(null);
   };
@@ -174,7 +162,7 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         sessionToken,
-        isAuthenticated: !!user && !!sessionToken,
+        isAuthenticated: !!user,
         isLoading,
         login,
         setup2FA,

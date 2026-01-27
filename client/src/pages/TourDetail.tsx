@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Clock, MapPin, Calendar, Users, ChevronLeft, ChevronRight, ChevronDown, Plane } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -372,13 +373,13 @@ export default function TourDetail() {
                   {product.description && (
                     <div 
                       className="prose prose-sm max-w-none text-base leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: product.description }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) }}
                     />
                   )}
                   {product.excerpt && !product.description && (
                     <div 
                       className="prose prose-sm max-w-none text-base leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: product.excerpt }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.excerpt) }}
                     />
                   )}
                   
@@ -389,7 +390,7 @@ export default function TourDetail() {
                         className="prose prose-sm max-w-none text-base leading-relaxed"
                         data-testid="content-hotel-details"
                         dangerouslySetInnerHTML={{ 
-                          __html: product.customFields.find(f => f.code === "Accommodation options")?.value || "" 
+                          __html: sanitizeHtml(product.customFields.find(f => f.code === "Accommodation options")?.value || "") 
                         }}
                       />
                     </div>
@@ -404,7 +405,7 @@ export default function TourDetail() {
                     <CardContent className="p-6">
                       <div 
                         className="prose prose-sm max-w-none text-base leading-relaxed"
-                        dangerouslySetInnerHTML={{ __html: product.included }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.included) }}
                       />
                     </CardContent>
                   </Card>
@@ -425,7 +426,7 @@ export default function TourDetail() {
                         <CardContent>
                           <div 
                             className="text-sm leading-relaxed prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ __html: day.body || day.excerpt || '' }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(day.body || day.excerpt || '') }}
                           />
                         </CardContent>
                       </Card>
@@ -472,7 +473,7 @@ export default function TourDetail() {
                               {extra.information && (
                                 <div 
                                   className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                                  dangerouslySetInnerHTML={{ __html: extra.information }}
+                                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(extra.information) }}
                                 />
                               )}
                             </div>
@@ -507,7 +508,7 @@ export default function TourDetail() {
                       <CardContent>
                         <div 
                           className="prose prose-sm max-w-none text-base leading-relaxed"
-                          dangerouslySetInnerHTML={{ __html: product.excluded }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.excluded) }}
                         />
                       </CardContent>
                     </Card>
@@ -521,7 +522,7 @@ export default function TourDetail() {
                       <CardContent>
                         <div 
                           className="prose prose-sm max-w-none text-base leading-relaxed"
-                          dangerouslySetInnerHTML={{ __html: product.requirements }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.requirements) }}
                         />
                       </CardContent>
                     </Card>
@@ -535,7 +536,7 @@ export default function TourDetail() {
                       <CardContent>
                         <div 
                           className="prose prose-sm max-w-none text-base leading-relaxed"
-                          dangerouslySetInnerHTML={{ __html: product.attention }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.attention) }}
                         />
                       </CardContent>
                     </Card>

@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -258,7 +259,7 @@ export function ProductDetailsModal({
                     <h4 className="text-sm font-medium mb-3">Tour Description</h4>
                     <div
                       className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
-                      dangerouslySetInnerHTML={{ __html: product.description }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(product.description) }}
                       data-testid="text-product-description"
                     />
                   </div>
@@ -277,7 +278,7 @@ export function ProductDetailsModal({
                           {day.body && (
                             <div
                               className="text-xs text-muted-foreground prose prose-xs max-w-none dark:prose-invert"
-                              dangerouslySetInnerHTML={{ __html: day.body }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(day.body) }}
                             />
                           )}
                         </div>
@@ -323,7 +324,7 @@ export function ProductDetailsModal({
                     <div
                       className="text-sm leading-relaxed prose prose-sm max-w-none dark:prose-invert"
                       dangerouslySetInnerHTML={{ 
-                        __html: product.customFields.find(f => f.code === "Accommodation options")?.value || "" 
+                        __html: sanitizeHtml(product.customFields.find(f => f.code === "Accommodation options")?.value || "") 
                       }}
                     />
                   </div>

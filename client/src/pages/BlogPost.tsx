@@ -10,6 +10,7 @@ import { Footer } from "@/components/Footer";
 import type { BlogPost } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export default function BlogPostPage() {
   const [, params] = useRoute("/blog/:slug");
@@ -141,7 +142,7 @@ export default function BlogPostPage() {
 
           <div 
             className="prose prose-lg max-w-none prose-headings:font-bold prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-2xl prose-h3:mt-6 prose-h3:mb-3 prose-p:leading-relaxed prose-p:mb-4 prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg prose-img:shadow-md prose-strong:font-semibold prose-ul:my-4 prose-ol:my-4"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
             data-testid="content-body"
           />
 

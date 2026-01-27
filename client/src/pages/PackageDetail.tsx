@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X, Loader2, Hotel, Utensils } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -1421,7 +1422,7 @@ export default function PackageDetailTest() {
                   <CardContent className="pt-6">
                     <div 
                       className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                      dangerouslySetInnerHTML={{ __html: pkg.description }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.description) }}
                       data-testid="content-description-desktop"
                     />
                   </CardContent>
@@ -1472,7 +1473,7 @@ export default function PackageDetailTest() {
                         <CardContent>
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
-                            dangerouslySetInnerHTML={{ __html: day.description }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(day.description) }}
                           />
                         </CardContent>
                       </Card>
@@ -1501,7 +1502,7 @@ export default function PackageDetailTest() {
                         <CardContent>
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4"
-                            dangerouslySetInnerHTML={{ __html: hotel.description }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(hotel.description) }}
                           />
                           {hotel.images && hotel.images.length > 0 && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -1537,7 +1538,7 @@ export default function PackageDetailTest() {
                     <CardContent>
                       <div 
                         className="prose prose-sm max-w-none dark:prose-invert"
-                        dangerouslySetInnerHTML={{ __html: pkg.excluded }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.excluded) }}
                       />
                     </CardContent>
                   </Card>
@@ -1552,7 +1553,7 @@ export default function PackageDetailTest() {
                     <CardContent className="pt-6">
                       <div 
                         className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                        dangerouslySetInnerHTML={{ __html: pkg.review }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.review) }}
                         data-testid="content-reviews-desktop"
                       />
                     </CardContent>
@@ -2152,7 +2153,7 @@ export default function PackageDetailTest() {
                 <CardContent className="pt-6">
                   <div 
                     className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line [&>p]:mb-4"
-                    dangerouslySetInnerHTML={{ __html: pkg.description }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.description) }}
                   />
                 </CardContent>
               </Card>
@@ -2199,7 +2200,7 @@ export default function PackageDetailTest() {
                     <CardContent>
                       <div 
                         className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground whitespace-pre-line [&>p]:mb-4"
-                        dangerouslySetInnerHTML={{ __html: day.description }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(day.description) }}
                       />
                     </CardContent>
                   </Card>
@@ -2224,7 +2225,7 @@ export default function PackageDetailTest() {
                     <CardContent>
                       <div 
                         className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4 whitespace-pre-line [&>p]:mb-4"
-                        dangerouslySetInnerHTML={{ __html: hotel.description }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(hotel.description) }}
                       />
                       {hotel.images && hotel.images.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -2674,7 +2675,7 @@ export default function PackageDetailTest() {
                         <CardContent>
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                            dangerouslySetInnerHTML={{ __html: pkg.excluded }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.excluded) }}
                           />
                         </CardContent>
                       </Card>
@@ -2688,7 +2689,7 @@ export default function PackageDetailTest() {
                         <CardContent>
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                            dangerouslySetInnerHTML={{ __html: pkg.requirements }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.requirements) }}
                           />
                         </CardContent>
                       </Card>
@@ -2702,7 +2703,7 @@ export default function PackageDetailTest() {
                         <CardContent>
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                            dangerouslySetInnerHTML={{ __html: pkg.attention }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.attention) }}
                           />
                         </CardContent>
                       </Card>
@@ -2716,7 +2717,7 @@ export default function PackageDetailTest() {
                         {pkg.otherInfo ? (
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                            dangerouslySetInnerHTML={{ __html: pkg.otherInfo }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.otherInfo) }}
                           />
                         ) : (
                           <p className="text-muted-foreground">
@@ -2783,7 +2784,7 @@ export default function PackageDetailTest() {
                         <CardContent>
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                            dangerouslySetInnerHTML={{ __html: pkg.review }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.review) }}
                             data-testid="content-reviews-mobile"
                           />
                         </CardContent>
@@ -2814,7 +2815,7 @@ export default function PackageDetailTest() {
                     <CardContent>
                       <div 
                         className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                        dangerouslySetInnerHTML={{ __html: pkg.description }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.description) }}
                         data-testid="content-description"
                       />
                     </CardContent>
@@ -2862,7 +2863,7 @@ export default function PackageDetailTest() {
                         <CardContent>
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground"
-                            dangerouslySetInnerHTML={{ __html: day.description }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(day.description) }}
                           />
                         </CardContent>
                       </Card>
@@ -2887,7 +2888,7 @@ export default function PackageDetailTest() {
                         <CardContent>
                           <div 
                             className="prose prose-sm md:prose-base max-w-none dark:prose-invert text-muted-foreground mb-4"
-                            dangerouslySetInnerHTML={{ __html: hotel.description }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(hotel.description) }}
                           />
                           {hotel.images && hotel.images.length > 0 && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -2921,7 +2922,7 @@ export default function PackageDetailTest() {
                       <CardContent>
                         <div 
                           className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                          dangerouslySetInnerHTML={{ __html: pkg.excluded }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.excluded) }}
                           data-testid="content-excluded"
                         />
                       </CardContent>
@@ -2936,7 +2937,7 @@ export default function PackageDetailTest() {
                       <CardContent>
                         <div 
                           className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                          dangerouslySetInnerHTML={{ __html: pkg.requirements }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.requirements) }}
                           data-testid="content-requirements"
                         />
                       </CardContent>
@@ -2951,7 +2952,7 @@ export default function PackageDetailTest() {
                       <CardContent>
                         <div 
                           className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                          dangerouslySetInnerHTML={{ __html: pkg.attention }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.attention) }}
                           data-testid="content-attention"
                         />
                       </CardContent>
@@ -2966,7 +2967,7 @@ export default function PackageDetailTest() {
                       {pkg.otherInfo ? (
                         <div 
                           className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                          dangerouslySetInnerHTML={{ __html: pkg.otherInfo }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.otherInfo) }}
                           data-testid="content-other-info"
                         />
                       ) : (
@@ -3036,7 +3037,7 @@ export default function PackageDetailTest() {
                       <CardContent>
                         <div 
                           className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line"
-                          dangerouslySetInnerHTML={{ __html: pkg.review }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.review) }}
                           data-testid="content-reviews"
                         />
                       </CardContent>

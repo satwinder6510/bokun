@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface ExpandableTextProps {
   html: string;
@@ -41,7 +42,7 @@ export function ExpandableText({
         ref={contentRef}
         className={`prose prose-sm md:prose-base max-w-none dark:prose-invert ${className}`}
         style={collapsedStyle}
-        dangerouslySetInnerHTML={{ __html: html }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
         data-testid={testId}
       />
       {needsExpansion && (

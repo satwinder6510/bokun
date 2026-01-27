@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import path from "path";
@@ -7,6 +8,9 @@ import { registerSeoRoutes } from "./seo/routes";
 import { trackAICrawl } from "./analytics";
 
 const app = express();
+
+// Parse cookies for session management
+app.use(cookieParser());
 
 // Canonical host redirect - redirect www to non-www
 const CANONICAL_HOST = process.env.CANONICAL_HOST || 'https://holidays.flightsandpackages.com';

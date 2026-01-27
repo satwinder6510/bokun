@@ -1,12 +1,13 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import rateLimit from "express-rate-limit";
 import { testBokunConnection, searchBokunProducts, searchBokunProductsByKeyword, getBokunProductDetails, getBokunAvailability, reserveBokunBooking, confirmBokunBooking, syncBokunDepartures } from "./bokun";
 import { storage } from "./storage";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import bcrypt from "bcrypt";
 import sharp from "sharp";
-import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertTourEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions, newsletterSubscribers } from "@shared/schema";
+import { contactLeadSchema, insertFaqSchema, updateFaqSchema, insertBlogPostSchema, updateBlogPostSchema, insertCartItemSchema, insertFlightPackageSchema, updateFlightPackageSchema, insertPackageEnquirySchema, insertTourEnquirySchema, insertReviewSchema, updateReviewSchema, adminLoginSchema, insertAdminUserSchema, updateAdminUserSchema, insertFlightTourPricingConfigSchema, updateFlightTourPricingConfigSchema, adminSessions, pending2FASessions, newsletterSubscribers } from "@shared/schema";
 import { calculateCombinedPrices, getFlightsForDateWithPrices, UK_AIRPORTS, getDefaultDepartAirports, searchFlights } from "./flightApi";
 import { searchSerpFlights, getCheapestSerpFlightsByDateAndAirport, isSerpApiConfigured, searchOpenJawFlights, getCheapestOpenJawByDateAndAirport, searchInternalFlights, getCheapestInternalByDate, BAGGAGE_SURCHARGE_GBP } from "./serpFlightApi";
 import { db } from "./db";
@@ -30,6 +31,51 @@ import { buildPackageIndex, getPackageIndex, scorePackageWithIndex, isIndexBuilt
 // Password hashing constants
 const SALT_ROUNDS = 12;
 
+// Password validation - minimum 12 characters with uppercase, lowercase, number, and special character
+function validatePassword(password: string): { valid: boolean; error?: string } {
+  if (!password || password.length < 12) {
+    return { valid: false, error: "Password must be at least 12 characters" };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one uppercase letter" };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one lowercase letter" };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one number" };
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)" };
+  }
+  return { valid: true };
+}
+
+// Rate limiters for security-sensitive endpoints
+const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per IP per window
+  message: { error: "Too many login attempts. Please try again in 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const twoFactorRateLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // 10 attempts per IP per window
+  message: { error: "Too many 2FA attempts. Please try again in 5 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const passwordResetRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 attempts per IP per hour
+  message: { error: "Too many password reset attempts. Please try again in 1 hour." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Smart rounding helper - rounds prices to x49, x69, or x99 for psychological pricing
 function smartRound(price: number): number {
   const base = Math.floor(price / 100) * 100;
@@ -44,8 +90,32 @@ function smartRound(price: number): number {
   }
 }
 
-// Pending sessions for 2FA (in-memory, short-lived - 5 minutes max)
-const pendingSessions = new Map<string, { userId: number; email: string; role: string; expiresAt: Date }>();
+// Helper functions for database-backed pending 2FA sessions
+async function setPending2FASession(token: string, sessionType: string, data: { userId: number; email: string; role: string; expiresAt: Date }) {
+  // Delete any existing session with same token
+  await db.delete(pending2FASessions).where(eq(pending2FASessions.pendingToken, token));
+  await db.insert(pending2FASessions).values({
+    pendingToken: token,
+    sessionType,
+    userId: data.userId,
+    email: data.email,
+    role: data.role,
+    expiresAt: data.expiresAt,
+  });
+}
+
+async function getPending2FASession(token: string, sessionType: string) {
+  const [session] = await db.select().from(pending2FASessions)
+    .where(eq(pending2FASessions.pendingToken, token));
+  if (session && session.sessionType === sessionType) {
+    return session;
+  }
+  return null;
+}
+
+async function deletePending2FASession(token: string) {
+  await db.delete(pending2FASessions).where(eq(pending2FASessions.pendingToken, token));
+}
 
 // Generate session token
 function generateSessionToken(): string {
@@ -54,7 +124,8 @@ function generateSessionToken(): string {
 
 // Verify admin session middleware (using database-backed sessions)
 async function verifyAdminSession(req: Request, res: Response, next: NextFunction) {
-  const sessionToken = req.headers['x-admin-session'] as string;
+  // Try to get session token from HTTP-only cookie first, then fall back to header
+  const sessionToken = req.cookies?.admin_session || req.headers['x-admin-session'] as string;
   
   if (!sessionToken) {
     return res.status(401).json({ error: "Authentication required" });
@@ -415,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Diagnostic: List objects in storage (admin only)
-  app.get("/api/admin/storage-diagnostic", async (req, res) => {
+  app.get("/api/admin/storage-diagnostic", verifyAdminSession, async (req, res) => {
     try {
       const objectStorageService = new ObjectStorageService();
       const isAvailable = await objectStorageService.isAvailable();
@@ -756,7 +827,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const LOCKOUT_MINUTES = 15;
 
   // Admin Login - Step 1: Validate email and password
-  app.post("/api/auth/admin/login", async (req, res) => {
+  app.post("/api/auth/admin/login", loginRateLimiter, async (req, res) => {
     try {
       const validation = adminLoginSchema.safeParse(req.body);
       if (!validation.success) {
@@ -809,8 +880,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.twoFactorEnabled && user.twoFactorSecret) {
         // Return pending 2FA status - client must complete 2FA
         const pendingToken = generateSessionToken();
-        // Store pending session temporarily in memory (expires in 5 minutes)
-        pendingSessions.set(`pending_${pendingToken}`, {
+        // Store pending session in database (expires in 5 minutes)
+        await setPending2FASession(pendingToken, 'pending', {
           userId: user.id,
           email: user.email,
           role: user.role,
@@ -827,7 +898,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If 2FA not enabled, check if this is first login (requires 2FA setup)
       if (!user.twoFactorEnabled) {
         const pendingToken = generateSessionToken();
-        pendingSessions.set(`setup_${pendingToken}`, {
+        await setPending2FASession(pendingToken, 'setup', {
           userId: user.id,
           email: user.email,
           role: user.role,
@@ -858,9 +929,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Pending token required" });
       }
 
-      const session = pendingSessions.get(`setup_${pendingToken}`);
+      const session = await getPending2FASession(pendingToken, 'setup');
       if (!session || session.expiresAt < new Date()) {
-        pendingSessions.delete(`setup_${pendingToken}`);
+        await deletePending2FASession(pendingToken);
         return res.status(401).json({ error: "Session expired. Please login again." });
       }
 
@@ -892,7 +963,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin 2FA Verify and Complete Setup
-  app.post("/api/auth/admin/2fa/verify-setup", async (req, res) => {
+  app.post("/api/auth/admin/2fa/verify-setup", twoFactorRateLimiter, async (req, res) => {
     try {
       const { pendingToken, token, secret } = req.body;
       
@@ -900,9 +971,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      const session = pendingSessions.get(`setup_${pendingToken}`);
+      const session = await getPending2FASession(pendingToken, 'setup');
       if (!session || session.expiresAt < new Date()) {
-        pendingSessions.delete(`setup_${pendingToken}`);
+        await deletePending2FASession(pendingToken);
         return res.status(401).json({ error: "Session expired. Please login again." });
       }
 
@@ -944,7 +1015,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Clean up pending session
-      pendingSessions.delete(`setup_${pendingToken}`);
+      await deletePending2FASession(pendingToken);
+
+      // Set HTTP-only cookie for session
+      res.cookie('admin_session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        path: '/'
+      });
 
       res.json({
         success: true,
@@ -962,7 +1042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin 2FA Verify (for login with existing 2FA)
-  app.post("/api/auth/admin/2fa/verify", async (req, res) => {
+  app.post("/api/auth/admin/2fa/verify", twoFactorRateLimiter, async (req, res) => {
     try {
       const { pendingToken, token } = req.body;
       
@@ -970,9 +1050,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Pending token and verification code required" });
       }
 
-      const session = pendingSessions.get(`pending_${pendingToken}`);
+      const session = await getPending2FASession(pendingToken, 'pending');
       if (!session || session.expiresAt < new Date()) {
-        pendingSessions.delete(`pending_${pendingToken}`);
+        await deletePending2FASession(pendingToken);
         return res.status(401).json({ error: "Session expired. Please login again." });
       }
 
@@ -1014,7 +1094,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Clean up pending session
-      pendingSessions.delete(`pending_${pendingToken}`);
+      await deletePending2FASession(pendingToken);
+
+      // Set HTTP-only cookie for session
+      res.cookie('admin_session', sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        path: '/'
+      });
 
       res.json({
         success: true,
@@ -1034,7 +1123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin Logout
   app.post("/api/auth/admin/logout", async (req, res) => {
-    const sessionToken = req.headers['x-admin-session'] as string;
+    const sessionToken = req.cookies?.admin_session || req.headers['x-admin-session'] as string;
     if (sessionToken) {
       try {
         await db.delete(adminSessions).where(eq(adminSessions.sessionToken, sessionToken));
@@ -1042,6 +1131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error('Logout error:', error);
       }
     }
+    // Clear the HTTP-only cookie
+    res.clearCookie('admin_session', { path: '/' });
     res.json({ success: true });
   });
 
@@ -1174,13 +1265,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Reset admin user password (super_admin only)
-  app.post("/api/auth/admin/users/:id/reset-password", verifyAdminSession, requireSuperAdmin, async (req, res) => {
+  app.post("/api/auth/admin/users/:id/reset-password", passwordResetRateLimiter, verifyAdminSession, requireSuperAdmin, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       const { newPassword } = req.body;
 
-      if (!newPassword || newPassword.length < 8) {
-        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ error: passwordValidation.error });
       }
 
       const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
@@ -1272,8 +1364,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email, password, and full name are required" });
       }
 
-      if (password.length < 8) {
-        return res.status(400).json({ error: "Password must be at least 8 characters" });
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ error: passwordValidation.error });
       }
 
       // Hash password
@@ -1635,7 +1728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create FAQ (admin only)
-  app.post("/api/faqs", async (req, res) => {
+  app.post("/api/faqs", verifyAdminSession, async (req, res) => {
     try {
       const validation = insertFaqSchema.safeParse(req.body);
       if (!validation.success) {
@@ -1654,7 +1747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update FAQ (admin only)
-  app.patch("/api/faqs/:id", async (req, res) => {
+  app.patch("/api/faqs/:id", verifyAdminSession, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1682,7 +1775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete FAQ (admin only)
-  app.delete("/api/faqs/:id", async (req, res) => {
+  app.delete("/api/faqs/:id", verifyAdminSession, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1768,7 +1861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create blog post (admin only)
-  app.post("/api/blog", async (req, res) => {
+  app.post("/api/blog", verifyAdminSession, async (req, res) => {
     try {
       const validation = insertBlogPostSchema.safeParse(req.body);
       if (!validation.success) {
@@ -1787,7 +1880,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update blog post (admin only)
-  app.patch("/api/blog/:id", async (req, res) => {
+  app.patch("/api/blog/:id", verifyAdminSession, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -1815,7 +1908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete blog post (admin only)
-  app.delete("/api/blog/:id", async (req, res) => {
+  app.delete("/api/blog/:id", verifyAdminSession, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -3494,7 +3587,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all packages including unpublished (admin)
-  app.get("/api/admin/packages", async (req, res) => {
+  app.get("/api/admin/packages", verifyAdminSession, async (req, res) => {
     try {
       const packages = await storage.getAllFlightPackages();
       res.json(packages);
@@ -3505,7 +3598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new package (admin)
-  app.post("/api/admin/packages", async (req, res) => {
+  app.post("/api/admin/packages", verifyAdminSession, async (req, res) => {
     try {
       const parseResult = insertFlightPackageSchema.safeParse(req.body);
       
@@ -3556,7 +3649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update package (admin)
-  app.patch("/api/admin/packages/:id", async (req, res) => {
+  app.patch("/api/admin/packages/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const parseResult = updateFlightPackageSchema.safeParse(req.body);
@@ -3596,7 +3689,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete package (admin)
-  app.delete("/api/admin/packages/:id", async (req, res) => {
+  app.delete("/api/admin/packages/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteFlightPackage(parseInt(id));
@@ -3608,7 +3701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get package pricing (admin)
-  app.get("/api/admin/packages/:id/pricing", async (req, res) => {
+  app.get("/api/admin/packages/:id/pricing", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const pricing = await storage.getPackagePricing(parseInt(id));
@@ -3620,7 +3713,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add package pricing entries (admin)
-  app.post("/api/admin/packages/:id/pricing", async (req, res) => {
+  app.post("/api/admin/packages/:id/pricing", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const { entries } = req.body;
@@ -3649,7 +3742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a single pricing entry (admin)
-  app.delete("/api/admin/packages/:packageId/pricing/:pricingId", async (req, res) => {
+  app.delete("/api/admin/packages/:packageId/pricing/:pricingId", verifyAdminSession, async (req, res) => {
     try {
       const { pricingId } = req.params;
       await storage.deletePackagePricing(parseInt(pricingId));
@@ -3661,7 +3754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete all pricing for a package (admin)
-  app.delete("/api/admin/packages/:id/pricing", async (req, res) => {
+  app.delete("/api/admin/packages/:id/pricing", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deletePackagePricingByPackage(parseInt(id));
@@ -3675,7 +3768,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== Package Seasons Admin Routes ====================
   
   // Get seasons for a package
-  app.get("/api/admin/packages/:id/seasons", async (req, res) => {
+  app.get("/api/admin/packages/:id/seasons", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const seasons = await storage.getPackageSeasons(parseInt(id));
@@ -3687,7 +3780,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a season for a package
-  app.post("/api/admin/packages/:id/seasons", async (req, res) => {
+  app.post("/api/admin/packages/:id/seasons", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const seasonData = { ...req.body, packageId: parseInt(id) };
@@ -3700,7 +3793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update a season
-  app.patch("/api/admin/seasons/:id", async (req, res) => {
+  app.patch("/api/admin/seasons/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const updated = await storage.updatePackageSeason(parseInt(id), req.body);
@@ -3715,7 +3808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a season
-  app.delete("/api/admin/seasons/:id", async (req, res) => {
+  app.delete("/api/admin/seasons/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deletePackageSeason(parseInt(id));
@@ -3727,7 +3820,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete all seasons for a package
-  app.delete("/api/admin/packages/:id/seasons", async (req, res) => {
+  app.delete("/api/admin/packages/:id/seasons", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deletePackageSeasonsByPackage(parseInt(id));
@@ -3741,7 +3834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== Bokun Departures Routes ====================
 
   // Sync departures from Bokun for a package
-  app.post("/api/admin/packages/:id/sync-departures", async (req, res) => {
+  app.post("/api/admin/packages/:id/sync-departures", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const pkg = await storage.getFlightPackageById(parseInt(id));
@@ -3790,7 +3883,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get departures for a package
-  app.get("/api/admin/packages/:id/departures", async (req, res) => {
+  app.get("/api/admin/packages/:id/departures", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const departures = await storage.getBokunDepartures(parseInt(id));
@@ -3802,7 +3895,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update flight pricing for a departure rate
-  app.patch("/api/admin/departure-rates/:id/flight-pricing", async (req, res) => {
+  app.patch("/api/admin/departure-rates/:id/flight-pricing", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const { flightPriceGbp, departureAirport } = req.body;
@@ -3825,7 +3918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Fetch flight prices for all Bokun departure rates
-  app.post("/api/admin/packages/fetch-bokun-departure-flights", async (req, res) => {
+  app.post("/api/admin/packages/fetch-bokun-departure-flights", verifyAdminSession, async (req, res) => {
     try {
       const { 
         packageId, 
@@ -4413,7 +4506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== Pricing Export History Routes ====================
   
   // Get pricing exports for a package
-  app.get("/api/admin/packages/:id/exports", async (req, res) => {
+  app.get("/api/admin/packages/:id/exports", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const exports = await storage.getPricingExports(parseInt(id));
@@ -4425,7 +4518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate pricing by combining flight prices with seasonal land costs
-  app.post("/api/admin/packages/:id/generate-pricing", async (req, res) => {
+  app.post("/api/admin/packages/:id/generate-pricing", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const { 
@@ -4597,7 +4690,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Generate open-jaw pricing (fly into one city, out of another)
-  app.post("/api/admin/packages/:id/generate-openjaw-pricing", async (req, res) => {
+  app.post("/api/admin/packages/:id/generate-openjaw-pricing", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const { 
@@ -4783,7 +4876,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Fetch SERP/European flight prices, combine with seasonal land costs, and SAVE to database
-  app.post("/api/admin/packages/fetch-serp-flight-prices", async (req, res) => {
+  app.post("/api/admin/packages/fetch-serp-flight-prices", verifyAdminSession, async (req, res) => {
     try {
       const { 
         packageId, 
@@ -5352,7 +5445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== Content Images Admin Routes ====================
   
   // Get all content images
-  app.get("/api/admin/content-images", async (req, res) => {
+  app.get("/api/admin/content-images", verifyAdminSession, async (req, res) => {
     try {
       const images = await storage.getAllContentImages();
       res.json(images);
@@ -5363,7 +5456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get content images by type
-  app.get("/api/admin/content-images/:type", async (req, res) => {
+  app.get("/api/admin/content-images/:type", verifyAdminSession, async (req, res) => {
     try {
       const { type } = req.params;
       const images = await storage.getContentImagesByType(type);
@@ -5375,7 +5468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upsert content image (create or update)
-  app.post("/api/admin/content-images", async (req, res) => {
+  app.post("/api/admin/content-images", verifyAdminSession, async (req, res) => {
     try {
       const { type, name, imageUrl } = req.body;
       
@@ -5396,7 +5489,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete content image
-  app.delete("/api/admin/content-images/:id", async (req, res) => {
+  app.delete("/api/admin/content-images/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteContentImage(parseInt(id));
@@ -5408,7 +5501,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Download pricing CSV (admin)
-  app.get("/api/admin/packages/:id/pricing/download-csv", async (req, res) => {
+  app.get("/api/admin/packages/:id/pricing/download-csv", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const packageId = parseInt(id);
@@ -5461,7 +5554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Supports two formats:
   // 1. Simple row format: departure_airport,date,price (or with extra columns ignored)
   // 2. Grid format: Departure Airport/Date/Price rows with multiple columns
-  app.post("/api/admin/packages/:id/pricing/upload-csv", csvUpload.single('csv'), async (req, res) => {
+  app.post("/api/admin/packages/:id/pricing/upload-csv", verifyAdminSession, csvUpload.single('csv'), async (req, res) => {
     try {
       const { id } = req.params;
       const packageId = parseInt(id);
@@ -5722,7 +5815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Fetch flight prices and save to package (admin)
-  app.post("/api/admin/packages/fetch-flight-prices", async (req, res) => {
+  app.post("/api/admin/packages/fetch-flight-prices", verifyAdminSession, async (req, res) => {
     try {
       const { 
         packageId, 
@@ -5998,7 +6091,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Search Bokun tours for import into flight packages (admin)
-  app.get("/api/admin/packages/bokun-search", async (req, res) => {
+  app.get("/api/admin/packages/bokun-search", verifyAdminSession, async (req, res) => {
     try {
       const { query } = req.query;
       
@@ -6095,7 +6188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get Bokun tour details for import (admin)
-  app.get("/api/admin/packages/bokun-tour/:productId", async (req, res) => {
+  app.get("/api/admin/packages/bokun-tour/:productId", verifyAdminSession, async (req, res) => {
     try {
       const { productId } = req.params;
       
@@ -6411,7 +6504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export pricing CSV with Bokun net prices (admin)
-  app.get("/api/admin/packages/:id/pricing/export-csv", async (req, res) => {
+  app.get("/api/admin/packages/:id/pricing/export-csv", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const packageId = parseInt(id);
@@ -6635,7 +6728,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all enquiries (admin)
-  app.get("/api/admin/enquiries", async (req, res) => {
+  app.get("/api/admin/enquiries", verifyAdminSession, async (req, res) => {
     try {
       const enquiries = await storage.getAllPackageEnquiries();
       res.json(enquiries);
@@ -6646,7 +6739,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update enquiry status (admin)
-  app.patch("/api/admin/enquiries/:id", async (req, res) => {
+  app.patch("/api/admin/enquiries/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -6753,7 +6846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all tour enquiries (admin)
-  app.get("/api/admin/tour-enquiries", async (req, res) => {
+  app.get("/api/admin/tour-enquiries", verifyAdminSession, async (req, res) => {
     try {
       const enquiries = await storage.getAllTourEnquiries();
       res.json(enquiries);
@@ -6764,7 +6857,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update tour enquiry status (admin)
-  app.patch("/api/admin/tour-enquiries/:id", async (req, res) => {
+  app.patch("/api/admin/tour-enquiries/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -6790,7 +6883,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all reviews (admin)
-  app.get("/api/admin/reviews", async (req, res) => {
+  app.get("/api/admin/reviews", verifyAdminSession, async (req, res) => {
     try {
       const reviews = await storage.getAllReviews();
       res.json(reviews);
@@ -6801,7 +6894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get single review (admin)
-  app.get("/api/admin/reviews/:id", async (req, res) => {
+  app.get("/api/admin/reviews/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const review = await storage.getReviewById(parseInt(id));
@@ -6816,7 +6909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create review (admin)
-  app.post("/api/admin/reviews", async (req, res) => {
+  app.post("/api/admin/reviews", verifyAdminSession, async (req, res) => {
     try {
       const parsed = insertReviewSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -6831,7 +6924,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update review (admin)
-  app.patch("/api/admin/reviews/:id", async (req, res) => {
+  app.patch("/api/admin/reviews/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const parsed = updateReviewSchema.safeParse(req.body);
@@ -6850,7 +6943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete review (admin)
-  app.delete("/api/admin/reviews/:id", async (req, res) => {
+  app.delete("/api/admin/reviews/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteReview(parseInt(id));
@@ -6902,7 +6995,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all tracking numbers (admin)
-  app.get("/api/admin/tracking-numbers", async (req, res) => {
+  app.get("/api/admin/tracking-numbers", verifyAdminSession, async (req, res) => {
     try {
       const numbers = await storage.getAllTrackingNumbers();
       res.json(numbers);
@@ -6913,7 +7006,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get single tracking number (admin)
-  app.get("/api/admin/tracking-numbers/:id", async (req, res) => {
+  app.get("/api/admin/tracking-numbers/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const number = await storage.getTrackingNumberById(parseInt(id));
@@ -6928,7 +7021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create tracking number (admin)
-  app.post("/api/admin/tracking-numbers", async (req, res) => {
+  app.post("/api/admin/tracking-numbers", verifyAdminSession, async (req, res) => {
     try {
       const { insertTrackingNumberSchema } = await import("@shared/schema");
       const parsed = insertTrackingNumberSchema.safeParse(req.body);
@@ -6944,7 +7037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update tracking number (admin)
-  app.patch("/api/admin/tracking-numbers/:id", async (req, res) => {
+  app.patch("/api/admin/tracking-numbers/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const { updateTrackingNumberSchema } = await import("@shared/schema");
@@ -6964,7 +7057,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete tracking number (admin)
-  app.delete("/api/admin/tracking-numbers/:id", async (req, res) => {
+  app.delete("/api/admin/tracking-numbers/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteTrackingNumber(parseInt(id));
@@ -6976,7 +7069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Site Settings API endpoints (admin)
-  app.get("/api/admin/settings", async (req, res) => {
+  app.get("/api/admin/settings", verifyAdminSession, async (req, res) => {
     try {
       const settings = await storage.getAllSiteSettings();
       res.json(settings);
@@ -6986,7 +7079,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/settings/:key", async (req, res) => {
+  app.get("/api/admin/settings/:key", verifyAdminSession, async (req, res) => {
     try {
       const { key } = req.params;
       const setting = await storage.getSiteSettingByKey(key);
@@ -7000,7 +7093,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/settings/:key", async (req, res) => {
+  app.put("/api/admin/settings/:key", verifyAdminSession, async (req, res) => {
     try {
       const { key } = req.params;
       const { value, label, description } = req.body;
@@ -7027,7 +7120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Initialize default settings (admin)
-  app.post("/api/admin/settings/initialize", async (req, res) => {
+  app.post("/api/admin/settings/initialize", verifyAdminSession, async (req, res) => {
     try {
       // Create default exchange rate if it doesn't exist
       const exchangeRate = await storage.upsertSiteSetting(
@@ -7120,7 +7213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload image (admin) - stores in Object Storage for persistence
-  app.post("/api/admin/upload", memoryUpload.single('image'), async (req, res) => {
+  app.post("/api/admin/upload", verifyAdminSession, memoryUpload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -7172,7 +7265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload multiple images (admin) - stores in Object Storage for persistence
-  app.post("/api/admin/upload-multiple", memoryUpload.array('images', 20), async (req, res) => {
+  app.post("/api/admin/upload-multiple", verifyAdminSession, memoryUpload.array('images', 20), async (req, res) => {
     try {
       const files = req.files as Express.Multer.File[];
       if (!files || files.length === 0) {
@@ -7354,7 +7447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete uploaded image (admin) - handles both Object Storage and local files
-  app.delete("/api/admin/upload/:filename", async (req, res) => {
+  app.delete("/api/admin/upload/:filename", verifyAdminSession, async (req, res) => {
     try {
       const { filename } = req.params;
       
@@ -7382,7 +7475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import sample packages (admin)
-  app.post("/api/admin/packages/import-samples", async (req, res) => {
+  app.post("/api/admin/packages/import-samples", verifyAdminSession, async (req, res) => {
     try {
       const { samplePackages } = await import("./scraper");
       const imported: any[] = [];
@@ -7416,7 +7509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk import packages from JSON (admin)
-  app.post("/api/admin/packages/import", async (req, res) => {
+  app.post("/api/admin/packages/import", verifyAdminSession, async (req, res) => {
     try {
       const { packages } = req.body;
       
@@ -7461,7 +7554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test scraper endpoint - validates extraction from holidays.flightsandpackages.com
-  app.post("/api/admin/scrape-test", async (req, res) => {
+  app.post("/api/admin/scrape-test", verifyAdminSession, async (req, res) => {
     try {
       const { url } = req.body;
       
@@ -7923,7 +8016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Process and optimize images from URLs
-  app.post("/api/admin/process-images", async (req, res) => {
+  app.post("/api/admin/process-images", verifyAdminSession, async (req, res) => {
     try {
       const { imageUrls, packageSlug, maxImages = 10 } = req.body;
       
@@ -7953,7 +8046,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Process a single image from URL
-  app.post("/api/admin/process-image", async (req, res) => {
+  app.post("/api/admin/process-image", verifyAdminSession, async (req, res) => {
     try {
       const { imageUrl, packageSlug } = req.body;
       
@@ -7985,7 +8078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Batch import packages from URLs (scrape + import)
-  app.post("/api/admin/batch-import", async (req, res) => {
+  app.post("/api/admin/batch-import", verifyAdminSession, async (req, res) => {
     try {
       const { urls } = req.body;
       
@@ -8234,7 +8327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Match sitemap URLs to existing packages and update sourceUrl field
-  app.post("/api/admin/flight-packages/match-urls", async (req, res) => {
+  app.post("/api/admin/flight-packages/match-urls", verifyAdminSession, async (req, res) => {
     try {
       const { urls } = req.body;
       
@@ -8301,7 +8394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk rescrape accommodations for all packages with sourceUrl
-  app.post("/api/admin/flight-packages/rescrape-accommodations", async (req, res) => {
+  app.post("/api/admin/flight-packages/rescrape-accommodations", verifyAdminSession, async (req, res) => {
     try {
       const { limit = 500, delayMs = 500 } = req.body;
       
@@ -8509,7 +8602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk rescrape IMAGES ONLY for all packages with sourceUrl (preserves pricing)
-  app.post("/api/admin/flight-packages/rescrape-images", async (req, res) => {
+  app.post("/api/admin/flight-packages/rescrape-images", verifyAdminSession, async (req, res) => {
     try {
       const { limit = 500, delayMs = 500, onlyMissing = false } = req.body;
       
@@ -9882,16 +9975,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setInterval(async () => {
     try {
       // Clean up expired database sessions
-      const result = await db.delete(adminSessions).where(lt(adminSessions.expiresAt, new Date()));
+      await db.delete(adminSessions).where(lt(adminSessions.expiresAt, new Date()));
       console.log('Cleaned up expired admin sessions from database');
       
-      // Clean up expired pending sessions from memory
-      const now = new Date();
-      Array.from(pendingSessions.entries()).forEach(([token, session]) => {
-        if (session.expiresAt < now) {
-          pendingSessions.delete(token);
-        }
-      });
+      // Clean up expired pending 2FA sessions from database
+      await db.delete(pending2FASessions).where(lt(pending2FASessions.expiresAt, new Date()));
+      console.log('Cleaned up expired pending 2FA sessions from database');
     } catch (error) {
       console.error('Session cleanup error:', error);
     }

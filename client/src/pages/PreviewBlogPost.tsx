@@ -6,6 +6,7 @@ import { Calendar, User, ArrowLeft, Share2 } from "lucide-react";
 import PreviewHeader from "@/components/PreviewHeader";
 import PreviewFooter from "@/components/PreviewFooter";
 import type { BlogPost } from "@shared/schema";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 export default function PreviewBlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -108,7 +109,7 @@ export default function PreviewBlogPost() {
             {/* Content */}
             <div 
               className="prose prose-lg prose-slate max-w-none prose-headings:text-slate-800 prose-p:text-slate-600 prose-a:text-slate-800 prose-strong:text-slate-800"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
             />
 
             {/* Share */}

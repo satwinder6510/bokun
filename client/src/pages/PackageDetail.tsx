@@ -353,6 +353,7 @@ function BokunPriceCalendarWidget({
   formatPrice: (price: number) => string;
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   // Helper to parse date string without timezone issues
   const parsePricingDate = (dateStr: string): Date => {
@@ -379,9 +380,15 @@ function BokunPriceCalendarWidget({
         const cheapestDate = parsePricingDate(cheapestEntry.departureDate);
         const newMonth = new Date(cheapestDate.getFullYear(), cheapestDate.getMonth(), 1);
         setCurrentMonth(newMonth);
+        
+        // Auto-select the cheapest date on initial load
+        if (!hasAutoSelected) {
+          setHasAutoSelected(true);
+          onDateSelect(cheapestDate);
+        }
       }
     }
-  }, [pricingData]);
+  }, [pricingData, hasAutoSelected, onDateSelect]);
 
   // Get cheapest price for a specific date
   const getPriceForDate = (date: Date) => {
@@ -391,14 +398,6 @@ function BokunPriceCalendarWidget({
     });
     if (pricesForDate.length === 0) return undefined;
     return Math.min(...pricesForDate.map(p => p.combinedPrice));
-  };
-
-  // Check if date has pricing
-  const hasPrice = (date: Date) => {
-    return pricingData.some(p => {
-      const pDate = parsePricingDate(p.departureDate);
-      return pDate.toDateString() === date.toDateString();
-    });
   };
 
   // Get days in month
@@ -419,6 +418,30 @@ function BokunPriceCalendarWidget({
   const monthName = currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  // Build days array for current month and compute cheapest dates
+  const monthDays = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return Array.from({ length: daysInMonth }).map((_, i) => {
+      const dayNum = i + 1;
+      const date = new Date(year, month, dayNum);
+      const price = getPriceForDate(date);
+      const isPast = date < today;
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+      return {
+        dayNum,
+        date,
+        price,
+        dateKey,
+        available: !!price && !isPast
+      };
+    });
+  }, [year, month, daysInMonth, pricingData]);
+
+  // Get cheapest date keys for the current month
+  const cheapestDateKeys = useMemo(() => getCheapestDateKeys(monthDays), [monthDays]);
 
   const prevMonth = () => {
     setCurrentMonth(new Date(year, month - 1, 1));
@@ -473,36 +496,47 @@ function BokunPriceCalendarWidget({
       <div className="grid grid-cols-7">
         {/* Empty cells for days before first of month */}
         {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
+          <div key={`empty-${i}`} className="h-16 border-b border-r last:border-r-0" />
         ))}
 
         {/* Days of the month */}
-        {Array.from({ length: daysInMonth }).map((_, i) => {
-          const dayNum = i + 1;
-          const date = new Date(year, month, dayNum);
-          const price = getPriceForDate(date);
+        {monthDays.map((day) => {
+          const { dayNum, date, price, dateKey, available } = day;
+          const isCheapest = cheapestDateKeys.has(dateKey);
           const isSelected = selectedDate?.toDateString() === date.toDateString();
           const isToday = new Date().toDateString() === date.toDateString();
-          const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
 
           return (
             <div
               key={dayNum}
-              onClick={() => price && !isPast && onDateSelect(date)}
+              onClick={() => available && onDateSelect(date)}
               className={`
-                h-14 border-b border-r flex flex-col items-center justify-center text-xs
-                ${price && !isPast ? 'cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30' : ''}
+                relative h-16 border-b border-r flex flex-col items-center justify-center text-xs
+                ${available ? 'cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30' : ''}
                 ${isSelected ? 'bg-blue-600 text-white' : ''}
-                ${isPast ? 'text-muted-foreground/50' : ''}
+                ${!available && price !== undefined ? 'text-muted-foreground/50' : ''}
+                ${!available && price === undefined ? 'text-muted-foreground/30' : ''}
                 ${isToday && !isSelected ? 'font-bold' : ''}
+                ${isCheapest && !isSelected ? 'bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700' : ''}
               `}
               data-testid={`bokun-calendar-day-${dayNum}`}
             >
+              {isCheapest && !isSelected && (
+                <div className="absolute top-1 right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">
+                  Lowest
+                </div>
+              )}
               <span className={`${isSelected ? 'text-white' : ''}`}>
                 {dayNum}
               </span>
-              {price && !isPast && (
-                <span className={`text-[10px] font-semibold ${isSelected ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`}>
+              {price !== undefined && (
+                <span className={`text-[10px] font-semibold ${
+                  isSelected 
+                    ? 'text-white' 
+                    : isCheapest 
+                      ? 'text-green-600 dark:text-green-400 font-bold' 
+                      : 'text-blue-600 dark:text-blue-400'
+                } ${!available ? 'opacity-50' : ''}`}>
                   {formatPrice(price)}
                 </span>
               )}
@@ -512,7 +546,7 @@ function BokunPriceCalendarWidget({
 
         {/* Fill remaining cells */}
         {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
-          <div key={`end-empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
+          <div key={`end-empty-${i}`} className="h-16 border-b border-r last:border-r-0" />
         ))}
       </div>
     </div>

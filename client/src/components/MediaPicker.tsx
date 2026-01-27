@@ -69,9 +69,9 @@ export function MediaPicker({
   const adminFetch = async (url: string, options: RequestInit = {}) => {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         ...options.headers,
       },
     });
@@ -129,9 +129,7 @@ export function MediaPicker({
       formData.append('tags', JSON.stringify(tags));
       const response = await fetch('/api/admin/media/upload', {
         method: 'POST',
-        headers: {
-          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
-        },
+        credentials: 'include',
         body: formData,
       });
       if (!response.ok) throw new Error('Upload failed');

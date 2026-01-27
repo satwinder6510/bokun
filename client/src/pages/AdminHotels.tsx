@@ -45,12 +45,10 @@ export default function AdminHotels() {
   const [scrapeCity, setScrapeCity] = useState("");
   const [isScraping, setIsScraping] = useState(false);
 
-  // Helper for admin fetch with session header
+  // Helper for admin fetch with cookie-based auth
   const adminQueryFn = async (url: string) => {
     const response = await fetch(url, {
-      headers: {
-        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
-      },
+      credentials: 'include',
     });
     if (!response.ok) {
       const text = await response.text();
@@ -62,9 +60,9 @@ export default function AdminHotels() {
   const adminFetch = async (url: string, options: RequestInit = {}) => {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         ...options.headers,
       },
     });
@@ -642,9 +640,7 @@ function EditHotelForm({
       
       const response = await fetch('/api/admin/upload-multiple', {
         method: 'POST',
-        headers: {
-          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
-        },
+        credentials: 'include',
         body: formData,
       });
       

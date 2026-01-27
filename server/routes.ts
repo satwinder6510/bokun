@@ -124,8 +124,8 @@ function generateSessionToken(): string {
 
 // Verify admin session middleware (using database-backed sessions)
 async function verifyAdminSession(req: Request, res: Response, next: NextFunction) {
-  // Try to get session token from HTTP-only cookie first, then fall back to header
-  const sessionToken = req.cookies?.admin_session || req.headers['x-admin-session'] as string;
+  // Get session token from HTTP-only cookie only (no header fallback for security)
+  const sessionToken = req.cookies?.admin_session;
   
   if (!sessionToken) {
     return res.status(401).json({ error: "Authentication required" });

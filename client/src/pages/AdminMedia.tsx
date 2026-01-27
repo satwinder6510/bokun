@@ -91,12 +91,10 @@ export default function AdminMedia() {
   const [isImportingBulk, setIsImportingBulk] = useState(false);
   const [importDestination, setImportDestination] = useState("");
 
-  // Helper for admin fetch in queries
+  // Helper for admin fetch in queries with cookie-based auth
   const adminQueryFn = async (url: string) => {
     const response = await fetch(url, {
-      headers: {
-        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
-      },
+      credentials: 'include',
     });
     if (!response.ok) {
       const text = await response.text();
@@ -133,9 +131,7 @@ export default function AdminMedia() {
     mutationFn: async (formData: FormData) => {
       const response = await fetch('/api/admin/media/upload', {
         method: 'POST',
-        headers: {
-          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
-        },
+        credentials: 'include',
         body: formData,
       });
       if (!response.ok) throw new Error('Upload failed');
@@ -151,13 +147,13 @@ export default function AdminMedia() {
     },
   });
 
-  // Helper for admin API requests with auth header
+  // Helper for admin API requests with cookie-based auth
   const adminFetch = async (url: string, options: RequestInit = {}) => {
     const response = await fetch(url, {
       ...options,
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         ...options.headers,
       },
     });

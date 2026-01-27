@@ -371,12 +371,10 @@ export default function AdminPackages() {
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
   const [hotelSearchQuery, setHotelSearchQuery] = useState("");
 
-  // Helper for admin fetch with session header
+  // Helper for admin fetch with cookie-based auth
   const adminQueryFn = async (url: string) => {
     const response = await fetch(url, {
-      headers: {
-        'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
-      },
+      credentials: 'include',
     });
     if (!response.ok) {
       const text = await response.text();
@@ -757,7 +755,7 @@ export default function AdminPackages() {
     setIsLoadingSeasons(true);
     try {
       const response = await fetch(`/api/admin/packages/${packageId}/seasons`, {
-        headers: { 'X-Admin-Session': localStorage.getItem('admin_session_token') || '' },
+        credentials: 'include',
       });
       if (response.ok) {
         const seasons = await response.json();
@@ -811,9 +809,9 @@ export default function AdminPackages() {
       
       const response = await fetch(url, {
         method: editingSeasonData ? "PATCH" : "POST",
+        credentials: 'include',
         headers: { 
           "Content-Type": "application/json",
-          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         },
         body: JSON.stringify(seasonForm),
       });
@@ -836,7 +834,7 @@ export default function AdminPackages() {
     try {
       const response = await fetch(`/api/admin/seasons/${seasonId}`, {
         method: "DELETE",
-        headers: { 'X-Admin-Session': localStorage.getItem('admin_session_token') || '' },
+        credentials: 'include',
       });
       
       if (response.ok) {
@@ -853,7 +851,7 @@ export default function AdminPackages() {
     setIsLoadingDepartures(true);
     try {
       const response = await fetch(`/api/admin/packages/${packageId}/departures`, {
-        headers: { 'X-Admin-Session': localStorage.getItem('admin_session_token') || '' },
+        credentials: 'include',
       });
       if (response.ok) {
         const departures = await response.json();
@@ -876,9 +874,9 @@ export default function AdminPackages() {
     try {
       const response = await fetch(`/api/admin/packages/${editingPackage.id}/sync-departures`, {
         method: "POST",
+        credentials: 'include',
         headers: { 
           "Content-Type": "application/json",
-          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         },
       });
       
@@ -932,9 +930,9 @@ export default function AdminPackages() {
     try {
       const response = await fetch("/api/admin/packages/fetch-bokun-departure-flights", {
         method: "POST",
+        credentials: 'include',
         headers: { 
           "Content-Type": "application/json",
-          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         },
         body: JSON.stringify({
           packageId: editingPackage.id,
@@ -1003,9 +1001,9 @@ export default function AdminPackages() {
     try {
       const response = await fetch("/api/admin/packages/fetch-serp-flight-prices", {
         method: "POST",
+        credentials: 'include',
         headers: { 
           "Content-Type": "application/json",
-          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
         },
         body: JSON.stringify({
           packageId: editingPackage.id,
@@ -1538,9 +1536,7 @@ export default function AdminPackages() {
       
       const response = await fetch('/api/admin/upload-video', {
         method: 'POST',
-        headers: {
-          'X-Admin-Session': localStorage.getItem('admin_session_token') || '',
-        },
+        credentials: 'include',
         body: formDataUpload,
       });
       

@@ -289,22 +289,20 @@ function PriceCalendarWidget({
               className={`
                 h-12 lg:h-14 border-b border-r border-border/50 flex flex-col items-center justify-center transition-colors
                 ${available && !isCheapest ? 'cursor-pointer hover:bg-muted/50' : ''}
-                ${available && isCheapest && !isSelected ? 'cursor-pointer bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/50' : ''}
+                ${available && isCheapest && !isSelected ? 'cursor-pointer bg-emerald-600 text-white hover:bg-emerald-700' : ''}
                 ${isSelected ? 'bg-primary text-white' : ''}
                 ${!available ? 'text-muted-foreground/40 bg-muted/30' : ''}
               `}
               data-testid={`calendar-day-${dayNum}`}
             >
-              <span className={`text-sm lg:text-base ${isSelected ? 'text-white font-medium' : isCheapest && available ? 'font-semibold' : ''}`}>
+              <span className={`text-sm lg:text-base ${isSelected || (isCheapest && available) ? 'text-white font-medium' : ''}`}>
                 {dayNum}
               </span>
               {price !== undefined && (
                 <span className={`text-[9px] lg:text-[11px] mt-0.5 ${
-                  isSelected 
+                  isSelected || (isCheapest && available)
                     ? 'text-white/90 font-medium' 
-                    : isCheapest && available
-                      ? 'text-emerald-700 dark:text-emerald-300 font-bold' 
-                      : 'text-muted-foreground'
+                    : 'text-muted-foreground'
                 }`}>
                   {formatPrice(price)}
                 </span>

@@ -238,40 +238,42 @@ function PriceCalendarWidget({
   });
 
   return (
-    <div className="border rounded-lg overflow-hidden">
-      {/* Month Navigation */}
-      <div className="flex items-center justify-between p-2 lg:p-3 bg-primary/15">
+    <div className="border-2 border-primary/20 rounded-xl overflow-hidden shadow-sm">
+      {/* Month Navigation - Bold orange header */}
+      <div className="flex items-center justify-between px-3 py-3 lg:px-4 lg:py-4 bg-primary text-white">
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={prevMonth}
           disabled={!hasPricesInPrevMonth}
+          className="text-white hover:bg-white/20 disabled:opacity-40"
         >
-          <ChevronLeft className="h-5 w-5" />
+          <ChevronLeft className="h-5 w-5 lg:h-6 lg:w-6" />
         </Button>
-        <span className="font-semibold text-sm lg:text-base">{monthName}</span>
+        <span className="font-bold text-base lg:text-lg tracking-wide">{monthName}</span>
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={nextMonth}
           disabled={!hasPricesInNextMonth}
+          className="text-white hover:bg-white/20 disabled:opacity-40"
         >
-          <ChevronRight className="h-5 w-5" />
+          <ChevronRight className="h-5 w-5 lg:h-6 lg:w-6" />
         </Button>
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 text-center text-xs lg:text-sm font-medium text-muted-foreground border-b bg-primary/5">
+      <div className="grid grid-cols-7 text-center text-xs lg:text-sm font-semibold text-foreground bg-muted/50 border-b">
         {days.map(day => (
-          <div key={day} className="py-2 lg:py-3">{day}</div>
+          <div key={day} className="py-2 lg:py-2.5">{day}</div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-7 bg-background">
         {/* Empty cells for days before first of month */}
         {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`empty-${i}`} className="h-14 lg:h-16 border-b border-r last:border-r-0" />
+          <div key={`empty-${i}`} className="h-12 lg:h-14 border-b border-r border-border/50 last:border-r-0 bg-muted/20" />
         ))}
 
         {/* Days of the month */}
@@ -286,25 +288,25 @@ function PriceCalendarWidget({
               key={dayNum}
               onClick={() => available && onDateSelect(date)}
               className={`
-                h-14 lg:h-16 border-b border-r flex flex-col items-center justify-center text-xs lg:text-sm
+                h-12 lg:h-14 border-b border-r border-border/50 flex flex-col items-center justify-center transition-colors
                 ${available ? 'cursor-pointer hover:bg-primary/10' : ''}
                 ${isSelected ? 'bg-primary text-white' : ''}
-                ${!available && price !== undefined ? 'text-muted-foreground/50' : ''}
-                ${!available && price === undefined ? 'text-muted-foreground/30' : ''}
-                ${isToday && !isSelected ? 'font-bold' : ''}
-                ${isCheapest && !isSelected ? 'bg-green-100 dark:bg-green-900/40' : ''}
+                ${!available && price !== undefined ? 'text-muted-foreground/50 bg-muted/10' : ''}
+                ${!available && price === undefined ? 'text-muted-foreground/30 bg-muted/20' : ''}
+                ${isToday && !isSelected ? 'ring-2 ring-inset ring-primary/50' : ''}
+                ${isCheapest && !isSelected ? 'bg-emerald-50 dark:bg-emerald-900/30' : ''}
               `}
               data-testid={`calendar-day-${dayNum}`}
             >
-              <span className={`${isSelected ? 'text-white' : ''}`}>
+              <span className={`text-sm lg:text-base font-medium ${isSelected ? 'text-white' : ''}`}>
                 {dayNum}
               </span>
               {price !== undefined && (
-                <span className={`text-[10px] lg:text-xs font-semibold ${
+                <span className={`text-[9px] lg:text-[11px] font-bold mt-0.5 ${
                   isSelected 
-                    ? 'text-white' 
+                    ? 'text-white/90' 
                     : isCheapest 
-                      ? 'text-green-700 dark:text-green-300 font-bold' 
+                      ? 'text-emerald-600 dark:text-emerald-400' 
                       : 'text-primary'
                 } ${!available ? 'opacity-50' : ''}`}>
                   {formatPrice(price)}
@@ -316,7 +318,7 @@ function PriceCalendarWidget({
 
         {/* Fill remaining cells */}
         {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
-          <div key={`end-empty-${i}`} className="h-14 lg:h-16 border-b border-r last:border-r-0" />
+          <div key={`end-empty-${i}`} className="h-12 lg:h-14 border-b border-r border-border/50 last:border-r-0 bg-muted/20" />
         ))}
       </div>
     </div>

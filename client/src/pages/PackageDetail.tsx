@@ -240,7 +240,7 @@ function PriceCalendarWidget({
   return (
     <div className="border rounded-lg overflow-hidden">
       {/* Month Navigation */}
-      <div className="flex items-center justify-between p-2 bg-muted/50">
+      <div className="flex items-center justify-between p-2 lg:p-3 bg-primary/15">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -249,7 +249,7 @@ function PriceCalendarWidget({
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <span className="font-semibold">{monthName}</span>
+        <span className="font-semibold text-sm lg:text-base">{monthName}</span>
         <Button 
           variant="ghost" 
           size="icon" 
@@ -261,9 +261,9 @@ function PriceCalendarWidget({
       </div>
 
       {/* Day Headers */}
-      <div className="grid grid-cols-7 text-center text-xs font-medium text-muted-foreground border-b">
+      <div className="grid grid-cols-7 text-center text-xs lg:text-sm font-medium text-muted-foreground border-b bg-primary/5">
         {days.map(day => (
-          <div key={day} className="py-2">{day}</div>
+          <div key={day} className="py-2 lg:py-3">{day}</div>
         ))}
       </div>
 
@@ -271,7 +271,7 @@ function PriceCalendarWidget({
       <div className="grid grid-cols-7">
         {/* Empty cells for days before first of month */}
         {Array.from({ length: firstDay }).map((_, i) => (
-          <div key={`empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
+          <div key={`empty-${i}`} className="h-14 lg:h-16 border-b border-r last:border-r-0" />
         ))}
 
         {/* Days of the month */}
@@ -286,9 +286,9 @@ function PriceCalendarWidget({
               key={dayNum}
               onClick={() => available && onDateSelect(date)}
               className={`
-                h-14 border-b border-r flex flex-col items-center justify-center text-xs
-                ${available ? 'cursor-pointer hover:bg-secondary/10' : ''}
-                ${isSelected ? 'bg-secondary text-white' : ''}
+                h-14 lg:h-16 border-b border-r flex flex-col items-center justify-center text-xs lg:text-sm
+                ${available ? 'cursor-pointer hover:bg-primary/10' : ''}
+                ${isSelected ? 'bg-primary text-white' : ''}
                 ${!available && price !== undefined ? 'text-muted-foreground/50' : ''}
                 ${!available && price === undefined ? 'text-muted-foreground/30' : ''}
                 ${isToday && !isSelected ? 'font-bold' : ''}
@@ -300,12 +300,12 @@ function PriceCalendarWidget({
                 {dayNum}
               </span>
               {price !== undefined && (
-                <span className={`text-[10px] font-semibold ${
+                <span className={`text-[10px] lg:text-xs font-semibold ${
                   isSelected 
                     ? 'text-white' 
                     : isCheapest 
                       ? 'text-green-700 dark:text-green-300 font-bold' 
-                      : 'text-secondary'
+                      : 'text-primary'
                 } ${!available ? 'opacity-50' : ''}`}>
                   {formatPrice(price)}
                 </span>
@@ -316,7 +316,7 @@ function PriceCalendarWidget({
 
         {/* Fill remaining cells */}
         {Array.from({ length: (7 - ((firstDay + daysInMonth) % 7)) % 7 }).map((_, i) => (
-          <div key={`end-empty-${i}`} className="h-14 border-b border-r last:border-r-0" />
+          <div key={`end-empty-${i}`} className="h-14 lg:h-16 border-b border-r last:border-r-0" />
         ))}
       </div>
     </div>

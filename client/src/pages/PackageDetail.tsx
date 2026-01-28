@@ -238,9 +238,9 @@ function PriceCalendarWidget({
   });
 
   return (
-    <div className="border-2 border-primary/20 rounded-xl overflow-hidden shadow-sm">
-      {/* Month Navigation - Bold orange header */}
-      <div className="flex items-center justify-between px-3 py-3 lg:px-4 lg:py-4 bg-primary text-white">
+    <div className="border-2 border-secondary/20 rounded-xl overflow-hidden shadow-sm">
+      {/* Month Navigation - Teal header */}
+      <div className="flex items-center justify-between px-3 py-3 lg:px-4 lg:py-4 bg-secondary text-white">
         <Button 
           variant="ghost" 
           size="icon" 
@@ -1762,9 +1762,9 @@ export default function PackageDetailTest() {
                             />
                             
                             {selectedDate && selectedPricing && (
-                              <div className="p-3 bg-secondary/10 rounded-lg border border-secondary/20">
+                              <div className="p-3 bg-primary text-white rounded-lg">
                                 <div className="text-center">
-                                  <p className="font-medium text-sm">
+                                  <p className="font-medium text-sm text-white/90">
                                     {selectedDate.toLocaleDateString('en-GB', { 
                                       weekday: 'short',
                                       day: 'numeric', 
@@ -1772,10 +1772,10 @@ export default function PackageDetailTest() {
                                       year: 'numeric'
                                     })}
                                   </p>
-                                  <p className="text-2xl font-bold text-secondary mt-1">
+                                  <p className="text-2xl font-bold text-white mt-1">
                                     {formatPrice(selectedPricing.price)}
                                   </p>
-                                  <p className="text-xs text-muted-foreground">per person</p>
+                                  <p className="text-xs text-white/80">per person</p>
                                 </div>
                               </div>
                             )}

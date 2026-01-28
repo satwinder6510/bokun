@@ -1489,16 +1489,16 @@ export default function PackageDetailTest() {
                 <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
                 <Tabs defaultValue="description" className="w-full">
                   <TabsList className="w-full justify-start mb-6 overflow-x-auto">
-                    <TabsTrigger value="description" className="text-base font-semibold" data-testid="tab-description-desktop">Description</TabsTrigger>
+                    <TabsTrigger value="description" className="text-lg font-semibold" data-testid="tab-description-desktop">Description</TabsTrigger>
                     {itinerary.length > 0 && (
-                      <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-desktop">Itinerary</TabsTrigger>
+                      <TabsTrigger value="itinerary" className="text-lg font-semibold" data-testid="tab-itinerary-desktop">Itinerary</TabsTrigger>
                     )}
-                    <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-desktop">Accommodation</TabsTrigger>
+                    <TabsTrigger value="accommodation" className="text-lg font-semibold" data-testid="tab-accommodation-desktop">Accommodation</TabsTrigger>
                     {(pkg.excluded || pkg.requirements || pkg.attention) && (
-                      <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-desktop">Info</TabsTrigger>
+                      <TabsTrigger value="info" className="text-lg font-semibold" data-testid="tab-info-desktop">Info</TabsTrigger>
                     )}
                     {pkg.review && (
-                      <TabsTrigger value="reviews" className="text-base font-semibold" data-testid="tab-reviews-desktop">Reviews</TabsTrigger>
+                      <TabsTrigger value="reviews" className="text-lg font-semibold" data-testid="tab-reviews-desktop">Reviews</TabsTrigger>
                     )}
                   </TabsList>
 

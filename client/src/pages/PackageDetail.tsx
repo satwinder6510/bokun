@@ -281,7 +281,6 @@ function PriceCalendarWidget({
           const { dayNum, date, price, dateKey, available } = day;
           const isCheapest = cheapestDateKeys.has(dateKey);
           const isSelected = selectedDate?.toDateString() === date.toDateString();
-          const isToday = new Date().toDateString() === date.toDateString();
 
           return (
             <div
@@ -289,26 +288,24 @@ function PriceCalendarWidget({
               onClick={() => available && onDateSelect(date)}
               className={`
                 h-12 lg:h-14 border-b border-r border-border/50 flex flex-col items-center justify-center transition-colors
-                ${available ? 'cursor-pointer hover:bg-primary/10' : ''}
+                ${available && !isCheapest ? 'cursor-pointer hover:bg-muted/50' : ''}
+                ${available && isCheapest && !isSelected ? 'cursor-pointer bg-emerald-100 dark:bg-emerald-900/40 hover:bg-emerald-200 dark:hover:bg-emerald-800/50' : ''}
                 ${isSelected ? 'bg-primary text-white' : ''}
-                ${!available && price !== undefined ? 'text-muted-foreground/50 bg-muted/10' : ''}
-                ${!available && price === undefined ? 'text-muted-foreground/30 bg-muted/20' : ''}
-                ${isToday && !isSelected ? 'ring-2 ring-inset ring-primary/50' : ''}
-                ${isCheapest && !isSelected ? 'bg-emerald-50 dark:bg-emerald-900/30' : ''}
+                ${!available ? 'text-muted-foreground/40 bg-muted/30' : ''}
               `}
               data-testid={`calendar-day-${dayNum}`}
             >
-              <span className={`text-sm lg:text-base font-medium ${isSelected ? 'text-white' : ''}`}>
+              <span className={`text-sm lg:text-base ${isSelected ? 'text-white font-medium' : isCheapest && available ? 'font-semibold' : ''}`}>
                 {dayNum}
               </span>
               {price !== undefined && (
-                <span className={`text-[9px] lg:text-[11px] font-bold mt-0.5 ${
+                <span className={`text-[9px] lg:text-[11px] mt-0.5 ${
                   isSelected 
-                    ? 'text-white/90' 
-                    : isCheapest 
-                      ? 'text-emerald-600 dark:text-emerald-400' 
-                      : 'text-primary'
-                } ${!available ? 'opacity-50' : ''}`}>
+                    ? 'text-white/90 font-medium' 
+                    : isCheapest && available
+                      ? 'text-emerald-700 dark:text-emerald-300 font-bold' 
+                      : 'text-muted-foreground'
+                }`}>
                   {formatPrice(price)}
                 </span>
               )}

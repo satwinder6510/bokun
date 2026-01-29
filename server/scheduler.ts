@@ -292,6 +292,12 @@ async function refreshPackageFlights(pkg: any): Promise<{ success: boolean; upda
     
     await storage.updateFlightPackageRefreshTimestamp(pkg.id);
     
+    // Auto-update the lead price shown in banners/cards
+    const leadPriceResult = await storage.updatePackageLeadPriceFromFlights(pkg.id);
+    if (leadPriceResult.updated) {
+      console.log(`[AutoRefresh] Lead price updated: twin=${leadPriceResult.newPrice}, single=${leadPriceResult.newSinglePrice}`);
+    }
+    
     console.log(`[AutoRefresh] Updated ${updatedCount} flight entries for package ${pkg.id}`);
     return { success: true, updated: updatedCount };
     

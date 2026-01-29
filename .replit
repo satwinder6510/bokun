@@ -51,3 +51,7 @@ integrations = ["stripe:1.0.0"]
 
 [objectStorage]
 defaultBucketID = "replit-objstore-f4c3777d-1500-49ca-836b-24ea546da6c2"
+
+[[ports]]
+localPort = 5000
+externalPort = 80

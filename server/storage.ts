@@ -173,6 +173,7 @@ export interface IStorage {
   getPackagesWithAutoRefresh(): Promise<FlightPackage[]>;
   updateFlightPackageRefreshTimestamp(id: number): Promise<void>;
   updateFlightPackageAutoRefreshConfig(id: number, config: { destinationAirport: string; returnAirport?: string; departureAirports: string[]; markup: number; flightType?: "roundtrip" | "openjaw" }, enabled: boolean): Promise<void>;
+  updatePackageLeadPriceFromFlights(packageId: number): Promise<{ updated: boolean; newPrice?: number; newSinglePrice?: number }>;
   
   // Site settings helper
   getSiteSettings(): Promise<SiteSetting | null>;
@@ -1738,6 +1739,94 @@ export class MemStorage implements IStorage {
         .where(eq(flightPackages.id, id));
     } catch (error) {
       console.error("Error updating flight package auto-refresh config:", error);
+    }
+  }
+
+  async updatePackageLeadPriceFromFlights(packageId: number): Promise<{ updated: boolean; newPrice?: number; newSinglePrice?: number }> {
+    try {
+      // Get all departures for this package
+      const departures = await this.getBokunDepartures(packageId);
+      if (departures.length === 0) {
+        console.log(`[LeadPrice] No departures found for package ${packageId}`);
+        return { updated: false };
+      }
+
+      // Get all rate IDs
+      const allRateIds = departures.flatMap(d => (d.rates || []).map(r => r.id));
+      if (allRateIds.length === 0) {
+        console.log(`[LeadPrice] No rates found for package ${packageId}`);
+        return { updated: false };
+      }
+
+      // Get all flight prices for these rates
+      const flightPrices = await this.getDepartureRateFlights(allRateIds);
+      if (flightPrices.length === 0) {
+        console.log(`[LeadPrice] No flight prices found for package ${packageId}`);
+        return { updated: false };
+      }
+
+      // Group prices by rate to identify twin/double vs single
+      const rateIdToTitle = new Map<number, string>();
+      for (const dep of departures) {
+        for (const rate of dep.rates || []) {
+          rateIdToTitle.set(rate.id, rate.rateTitle);
+        }
+      }
+
+      // Find min price for twin/double rates and single rates
+      let minTwinPrice = Infinity;
+      let minSinglePrice = Infinity;
+
+      for (const fp of flightPrices) {
+        const rateTitle = rateIdToTitle.get(fp.rateId) || "";
+        const isSingleRate = /single/i.test(rateTitle);
+        const isChildOrInfant = /child|infant|kid|baby/i.test(rateTitle);
+        
+        // Skip child/infant rates - they shouldn't be used for lead prices
+        if (isChildOrInfant) {
+          continue;
+        }
+        
+        if (isSingleRate) {
+          if (fp.combinedPriceGbp < minSinglePrice) {
+            minSinglePrice = fp.combinedPriceGbp;
+          }
+        } else {
+          // Treat as twin/double rate (default for adult rates)
+          if (fp.combinedPriceGbp < minTwinPrice) {
+            minTwinPrice = fp.combinedPriceGbp;
+          }
+        }
+      }
+
+      // Update the package with new prices
+      const updateData: { price?: number; singlePrice?: number; updatedAt: Date } = { updatedAt: new Date() };
+      
+      if (minTwinPrice !== Infinity) {
+        updateData.price = minTwinPrice;
+      }
+      if (minSinglePrice !== Infinity) {
+        updateData.singlePrice = minSinglePrice;
+      }
+
+      if (updateData.price === undefined && updateData.singlePrice === undefined) {
+        console.log(`[LeadPrice] No valid prices to update for package ${packageId}`);
+        return { updated: false };
+      }
+
+      await db.update(flightPackages)
+        .set(updateData)
+        .where(eq(flightPackages.id, packageId));
+
+      console.log(`[LeadPrice] Updated package ${packageId}: twin=${updateData.price}, single=${updateData.singlePrice}`);
+      return { 
+        updated: true, 
+        newPrice: updateData.price, 
+        newSinglePrice: updateData.singlePrice 
+      };
+    } catch (error) {
+      console.error(`[LeadPrice] Error updating lead price for package ${packageId}:`, error);
+      return { updated: false };
     }
   }
 }

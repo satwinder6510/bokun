@@ -4491,11 +4491,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue without failing the entire request - flight prices were already saved
       }
       
+      // Auto-update the lead price shown in banners/cards
+      let leadPriceResult: { updated: boolean; newPrice?: number; newSinglePrice?: number } = { updated: false };
+      try {
+        leadPriceResult = await storage.updatePackageLeadPriceFromFlights(packageId);
+        if (leadPriceResult.updated) {
+          console.log(`[BokunFlights] Lead price updated: twin=${leadPriceResult.newPrice}, single=${leadPriceResult.newSinglePrice}`);
+        }
+      } catch (leadPriceError: any) {
+        console.error(`[BokunFlights] Failed to update lead price:`, leadPriceError.message);
+      }
+      
       res.json({ 
         success: true, 
         updated: updatedCount,
         flightDates: Object.keys(flightPrices).length,
-        autoRefreshEnabled
+        autoRefreshEnabled,
+        leadPriceUpdated: leadPriceResult.updated,
+        newLeadPrice: leadPriceResult.newPrice,
+        newSinglePrice: leadPriceResult.newSinglePrice
       });
     } catch (error: any) {
       console.error("Error fetching Bokun departure flights:", error);

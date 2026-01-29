@@ -662,6 +662,7 @@ export default function PackageDetailTest() {
       return data;
     },
     enabled: !!pkg?.id,
+    staleTime: 30000, // Refetch after 30 seconds to pick up admin price changes
   });
 
   // Bokun departure pricing (from Bokun Departures + Flights module)
@@ -696,6 +697,7 @@ export default function PackageDetailTest() {
       return data;
     },
     enabled: !!pkg?.id,
+    staleTime: 30000, // Refetch after 30 seconds to pick up admin price changes
   });
 
   // Bokun pricing state - Airport is primary selection, rates are secondary

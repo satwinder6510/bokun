@@ -1646,6 +1646,25 @@ export default function PackageDetailTest() {
                 </div>
               </div>
 
+              {/* What's Included - After About This Package */}
+              {whatsIncluded.length > 0 && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Included</h2>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {whatsIncluded.map((item, index) => (
+                          <div key={index} className="flex items-start gap-2" data-testid={`included-desktop-${index}`}>
+                            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* Package Details - Tabbed Content (Desktop) */}
               <div>
                 <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
@@ -1671,70 +1690,6 @@ export default function PackageDetailTest() {
                           className="prose prose-sm md:prose-base max-w-none dark:prose-invert whitespace-pre-line [&>p]:mb-4"
                           dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.description) }}
                         />
-                      </CardContent>
-                    </Card>
-                    
-                    {/* What's Included - Inside Description Tab */}
-                    {whatsIncluded.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>What's Included</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {whatsIncluded.map((item, index) => (
-                              <div key={index} className="flex items-start gap-2" data-testid={`included-desc-tab-${index}`}>
-                                <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                                <span>{item}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Highlights */}
-                    {highlights.length > 0 && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Tour Highlights</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {highlights.map((highlight, index) => (
-                              <li key={index} className="flex items-start gap-2">
-                                <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
-                                <span>{highlight}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* What's Not Included */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>What's Not Included</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-3">
-                          {exclusionsList.map((item, index) => (
-                            <li key={index} className="flex items-start gap-2" data-testid={`not-included-${index}-desktop`}>
-                              <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                              {item.toLowerCase().includes("city/tourist tax") || item.toLowerCase().includes("city tax") || item.toLowerCase().includes("tourist tax") ? (
-                                <div>
-                                  <span className="font-medium">{item}</span>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {getCityTaxDisclosure(pkg.category || "")}
-                                  </p>
-                                </div>
-                              ) : (
-                                <span>{item}</span>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -1884,6 +1839,51 @@ export default function PackageDetailTest() {
                     </TabsContent>
                   )}
                 </Tabs>
+              </div>
+
+              {/* Tour Highlights - After Tabs */}
+              {highlights.length > 0 && (
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Tour Highlights</h2>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {highlights.map((highlight, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <Check className="w-5 h-5 text-secondary flex-shrink-0 mt-0.5" />
+                            <span>{highlight}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* What's Not Included - Last */}
+              <div>
+                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Not Included</h2>
+                <Card>
+                  <CardContent className="pt-6">
+                    <ul className="space-y-3">
+                      {exclusionsList.map((item, index) => (
+                        <li key={index} className="flex items-start gap-2" data-testid={`not-included-${index}-desktop`}>
+                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          {item.toLowerCase().includes("city/tourist tax") || item.toLowerCase().includes("city tax") || item.toLowerCase().includes("tourist tax") ? (
+                            <div>
+                              <span className="font-medium">{item}</span>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {getCityTaxDisclosure(pkg.category || "")}
+                              </p>
+                            </div>
+                          ) : (
+                            <span>{item}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
               </div>
             </div>
 

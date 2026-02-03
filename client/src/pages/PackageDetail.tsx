@@ -1646,25 +1646,6 @@ export default function PackageDetailTest() {
                 </div>
               </div>
 
-              {/* What's Included */}
-              {whatsIncluded.length > 0 && (
-                <div>
-                  <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Included</h2>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {whatsIncluded.map((item, index) => (
-                          <div key={index} className="flex items-start gap-2" data-testid={`included-desktop-${index}`}>
-                            <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                            <span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
               {/* Package Details - Tabbed Content (Desktop) */}
               <div>
                 <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
@@ -1693,6 +1674,25 @@ export default function PackageDetailTest() {
                       </CardContent>
                     </Card>
                     
+                    {/* What's Included - Inside Description Tab */}
+                    {whatsIncluded.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>What's Included</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {whatsIncluded.map((item, index) => (
+                              <div key={index} className="flex items-start gap-2" data-testid={`included-desc-tab-${index}`}>
+                                <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                <span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
                     {/* Highlights */}
                     {highlights.length > 0 && (
                       <Card>

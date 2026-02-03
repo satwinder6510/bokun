@@ -42,6 +42,27 @@ function CheckoutForm({ serverAmount, serverCurrency, paymentIntentId }: Checkou
   const subtotal = serverAmount;
   const currency = serverCurrency;
 
+  // Fetch product details for each cart item to get country information
+  const productQueries = useQueries({
+    queries: items.map((item) => ({
+      queryKey: ["/api/bokun/product", item.productId],
+      enabled: !!item.productId,
+      staleTime: 5 * 60 * 1000,
+    })),
+  });
+
+  // Extract unique countries from product details
+  const countries = productQueries
+    .filter((q) => q.data)
+    .map((q) => {
+      const product = q.data as BokunProductDetails;
+      return product.locationCode?.country || "";
+    })
+    .filter(Boolean);
+
+  const uniqueCountryList = uniqueCountries(countries);
+  const taxDisclosures = uniqueCountryList.map((code) => getCityTaxDisclosure(code));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -270,6 +291,38 @@ function CheckoutForm({ serverAmount, serverCurrency, paymentIntentId }: Checkou
                 <span>Total</span>
                 <span data-testid="text-total">{formatCurrency(subtotal)}</span>
               </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            <div data-testid="section-not-included">
+              <div className="flex items-center gap-2 mb-4">
+                <AlertCircle className="w-5 h-5 text-muted-foreground" />
+                <h3 className="text-lg font-semibold">What's not included</h3>
+              </div>
+              <ul className="space-y-3 text-sm text-muted-foreground">
+                {taxDisclosures.length > 0 ? (
+                  taxDisclosures.map((disclosure, index) => (
+                    <li key={index} className="flex items-start gap-2" data-testid={`text-tax-disclosure-${index}`}>
+                      <span className="text-foreground mt-0.5">•</span>
+                      <span>{disclosure}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="flex items-start gap-2" data-testid="text-tax-disclosure-fallback">
+                    <span className="text-foreground mt-0.5">•</span>
+                    <span>Local city/tourist tax (payable locally) – A local tourist/city tax may apply and is payable locally; amount depends on the municipality and accommodation type.</span>
+                  </li>
+                )}
+                <li className="flex items-start gap-2" data-testid="text-visa-fees">
+                  <span className="text-foreground mt-0.5">•</span>
+                  <span>Visa fees</span>
+                </li>
+                <li className="flex items-start gap-2" data-testid="text-not-mentioned">
+                  <span className="text-foreground mt-0.5">•</span>
+                  <span>Anything else not specifically mentioned in What's included</span>
+                </li>
+              </ul>
             </div>
           </Card>
         </form>

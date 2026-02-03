@@ -1,17 +1,67 @@
 type CountryKey = string;
 
-const COUNTRY_TAX_RULES: Record<CountryKey, string> = {
-  "AT": "Austria: Local tourist tax is commonly charged and collected by the accommodation. Amount varies by municipality and hotel; often a small per-person, per-night charge, and in some places percentage-based. Payable locally at check-in/out.",
-  "IT": "Italy: A municipal 'tourist/city tax' is widely charged (per person per night) and collected by the accommodation. Amount varies by city, season and property category; commonly ~€1–€10 per person per night, often capped after a set number of nights. Payable locally at check-in/out.",
-  "PT": "Portugal: Tourist tax applies in several major municipalities and is collected by the accommodation. Where charged, it is typically €2–€4 per person per night (often capped after ~7 nights). Payable locally at check-in/out.",
-  "NL": "Netherlands: Municipal tourist tax is commonly charged and collected by the accommodation. It may be a percentage of the room price or a fixed amount depending on the city (e.g., Amsterdam uses a %). Payable locally at check-in/out unless your booking states it is included.",
-  "DE": "Germany: Some cities levy a local 'city/bed/culture tax' collected by the accommodation. Amount and method vary by city (fixed per person/night or % of room price). Payable locally where applicable.",
-  "ES": "Spain: Tourist taxes are regional/municipal and apply in some destinations (not nationwide). Where applicable, they are collected by the accommodation and vary by region, city and property category (often a per-person, per-night charge). Payable locally where applicable.",
-  "FR": "France: 'Taxe de séjour' (tourist tax) may apply depending on the municipality and accommodation classification. It is collected by the accommodation, typically per person per night or as a % for some property types. Payable locally unless your booking states it is included.",
-  "GR": "Greece: A mandatory accommodation fee (often described as a climate resilience/civic charge) is collected by the accommodation. Amount varies by property category and season and is typically charged per room per night. Payable locally at check-in/out.",
-  "CH": "Switzerland: A local visitor/'Kurtaxe' is common in many destinations and is collected by the accommodation. Amount varies by municipality (often a per-person, per-night charge) and may include guest card benefits. Payable locally.",
-  "BE": "Belgium: Tourist tax is set locally and is common in major cities. It may be charged per person per night or per room per night depending on the municipality. Payable locally to the accommodation.",
-  "HR": "Croatia: A tourist/sojourn tax is generally charged for overnight stays and collected by the accommodation. Amount varies by season and destination and is typically per person per night. Payable locally.",
+interface TaxInfo {
+  countryName: string;
+  typicalCharge: string;
+  notes: string;
+}
+
+const COUNTRY_TAX_INFO: Record<CountryKey, TaxInfo> = {
+  "AT": {
+    countryName: "Austria",
+    typicalCharge: "€0.50–€3.00 per person/night",
+    notes: "Varies by municipality and hotel category"
+  },
+  "IT": {
+    countryName: "Italy",
+    typicalCharge: "€1–€10 per person/night",
+    notes: "Varies by city, season and property; often capped after set nights"
+  },
+  "PT": {
+    countryName: "Portugal",
+    typicalCharge: "€2–€4 per person/night",
+    notes: "Major municipalities; often capped after ~7 nights"
+  },
+  "NL": {
+    countryName: "Netherlands",
+    typicalCharge: "3–7% of room rate",
+    notes: "Amsterdam uses percentage; other cities may use fixed rate"
+  },
+  "DE": {
+    countryName: "Germany",
+    typicalCharge: "€1–€5 per person/night or 5%",
+    notes: "Some cities only; varies by city"
+  },
+  "ES": {
+    countryName: "Spain",
+    typicalCharge: "€0.50–€4 per person/night",
+    notes: "Regional/municipal; not nationwide"
+  },
+  "FR": {
+    countryName: "France",
+    typicalCharge: "€0.20–€4 per person/night",
+    notes: "Taxe de séjour; varies by municipality and hotel class"
+  },
+  "GR": {
+    countryName: "Greece",
+    typicalCharge: "€0.50–€4 per room/night",
+    notes: "Climate resilience fee; varies by property category"
+  },
+  "CH": {
+    countryName: "Switzerland",
+    typicalCharge: "CHF 1–6 per person/night",
+    notes: "Kurtaxe; may include guest card benefits"
+  },
+  "BE": {
+    countryName: "Belgium",
+    typicalCharge: "€2–€8 per person/night",
+    notes: "Major cities; varies by municipality"
+  },
+  "HR": {
+    countryName: "Croatia",
+    typicalCharge: "€1–€2 per person/night",
+    notes: "Sojourn tax; varies by season"
+  },
 };
 
 const COUNTRY_NAME_ALIASES: Record<string, string> = {
@@ -35,11 +85,22 @@ export function getCityTaxDisclosure(country: string): string {
 
   const trimmed = country.trim();
   const code = trimmed.length === 2 ? trimmed.toUpperCase() : (COUNTRY_NAME_ALIASES[trimmed] ?? "");
+  const info = COUNTRY_TAX_INFO[code];
 
-  return (
-    COUNTRY_TAX_RULES[code] ??
-    "A local tourist/city tax may apply and is payable locally; amount depends on the municipality and accommodation type."
-  );
+  if (info) {
+    return `${info.countryName}: ${info.typicalCharge}. ${info.notes}. Payable locally.`;
+  }
+
+  return "A local tourist/city tax may apply and is payable locally; amount depends on the municipality and accommodation type.";
+}
+
+export function getTaxInfo(country: string): TaxInfo | null {
+  if (!country) return null;
+
+  const trimmed = country.trim();
+  const code = trimmed.length === 2 ? trimmed.toUpperCase() : (COUNTRY_NAME_ALIASES[trimmed] ?? "");
+
+  return COUNTRY_TAX_INFO[code] || null;
 }
 
 export function uniqueCountries(countries: string[]): string[] {

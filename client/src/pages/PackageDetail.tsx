@@ -21,7 +21,7 @@ import { ExpandableText } from "@/components/ExpandableText";
 import { apiRequest } from "@/lib/queryClient";
 import { getProxiedImageUrl, getHeroImageUrl, getGalleryImageUrl } from "@/lib/imageProxy";
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
-import { getCityTaxDisclosure, uniqueCountries } from "@/lib/cityTaxRules";
+import { getCityTaxDisclosure, getTaxInfo, uniqueCountries } from "@/lib/cityTaxRules";
 import { 
   capturePackageViewed,
   captureCallCtaClicked, 
@@ -1498,42 +1498,66 @@ export default function PackageDetailTest() {
                 <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Not Included</h2>
                 <Card>
                   <CardContent className="pt-6">
-                    <ul className="space-y-3">
-                      {destinationCountries.map((countryCode, index) => (
-                        <li key={countryCode} className="flex items-start gap-2" data-testid={`not-included-tax-desktop-${index}`}>
-                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {getCityTaxDisclosure(countryCode)}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                      {destinationCountries.length === 0 && (
-                        <li className="flex items-start gap-2" data-testid="not-included-tax-desktop-fallback">
-                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                            <p className="text-sm text-muted-foreground mt-1">
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-2">
+                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <span className="font-medium">Local city/tourist tax (payable locally)</span>
+                          <p className="text-sm text-muted-foreground mt-1 mb-3">
+                            These taxes are not included in your package price and are payable directly to your accommodation.
+                          </p>
+                          {destinationCountries.length > 0 ? (
+                            <div className="overflow-x-auto" data-testid="tax-table-desktop">
+                              <table className="w-full text-sm border-collapse">
+                                <thead>
+                                  <tr className="border-b bg-muted/50">
+                                    <th className="text-left py-2 px-3 font-medium">Country</th>
+                                    <th className="text-left py-2 px-3 font-medium">Typical Charge</th>
+                                    <th className="text-left py-2 px-3 font-medium hidden sm:table-cell">Notes</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {destinationCountries.map((countryCode, index) => {
+                                    const taxInfo = getTaxInfo(countryCode);
+                                    return taxInfo ? (
+                                      <tr key={countryCode} className="border-b last:border-b-0" data-testid={`tax-row-desktop-${index}`}>
+                                        <td className="py-2 px-3 font-medium">{taxInfo.countryName}</td>
+                                        <td className="py-2 px-3">{taxInfo.typicalCharge}</td>
+                                        <td className="py-2 px-3 text-muted-foreground hidden sm:table-cell">{taxInfo.notes}</td>
+                                      </tr>
+                                    ) : (
+                                      <tr key={countryCode} className="border-b last:border-b-0" data-testid={`tax-row-desktop-${index}`}>
+                                        <td className="py-2 px-3 font-medium">{countryCode}</td>
+                                        <td className="py-2 px-3">Varies</td>
+                                        <td className="py-2 px-3 text-muted-foreground hidden sm:table-cell">Check with accommodation</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground" data-testid="tax-fallback-desktop">
                               {getCityTaxDisclosure("")}
                             </p>
-                          </div>
+                          )}
+                        </div>
+                      </div>
+                      <ul className="space-y-3 mt-4">
+                        <li className="flex items-start gap-2" data-testid="not-included-personal-desktop">
+                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          <span>Travel insurance</span>
                         </li>
-                      )}
-                      <li className="flex items-start gap-2" data-testid="not-included-personal-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <span>Travel insurance</span>
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="not-included-tips-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <span>Tips and gratuities</span>
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="not-included-expenses-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <span>Personal expenses and optional excursions</span>
-                      </li>
-                    </ul>
+                        <li className="flex items-start gap-2" data-testid="not-included-tips-desktop">
+                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          <span>Tips and gratuities</span>
+                        </li>
+                        <li className="flex items-start gap-2" data-testid="not-included-expenses-desktop">
+                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          <span>Personal expenses and optional excursions</span>
+                        </li>
+                      </ul>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -2144,42 +2168,63 @@ export default function PackageDetailTest() {
           <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Not Included</h2>
           <Card>
             <CardContent className="pt-6">
-              <ul className="space-y-3">
-                {destinationCountries.map((countryCode, index) => (
-                  <li key={countryCode} className="flex items-start gap-2" data-testid={`not-included-tax-mobile-${index}`}>
-                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {getCityTaxDisclosure(countryCode)}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-                {destinationCountries.length === 0 && (
-                  <li className="flex items-start gap-2" data-testid="not-included-tax-mobile-fallback">
-                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                      <p className="text-sm text-muted-foreground mt-1">
+              <div className="space-y-4">
+                <div className="flex items-start gap-2">
+                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span className="font-medium">Local city/tourist tax (payable locally)</span>
+                    <p className="text-sm text-muted-foreground mt-1 mb-3">
+                      These taxes are not included in your package price and are payable directly to your accommodation.
+                    </p>
+                    {destinationCountries.length > 0 ? (
+                      <div className="overflow-x-auto" data-testid="tax-table-mobile">
+                        <table className="w-full text-sm border-collapse">
+                          <thead>
+                            <tr className="border-b bg-muted/50">
+                              <th className="text-left py-2 px-3 font-medium">Country</th>
+                              <th className="text-left py-2 px-3 font-medium">Typical Charge</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {destinationCountries.map((countryCode, index) => {
+                              const taxInfo = getTaxInfo(countryCode);
+                              return taxInfo ? (
+                                <tr key={countryCode} className="border-b last:border-b-0" data-testid={`tax-row-mobile-${index}`}>
+                                  <td className="py-2 px-3 font-medium">{taxInfo.countryName}</td>
+                                  <td className="py-2 px-3">{taxInfo.typicalCharge}</td>
+                                </tr>
+                              ) : (
+                                <tr key={countryCode} className="border-b last:border-b-0" data-testid={`tax-row-mobile-${index}`}>
+                                  <td className="py-2 px-3 font-medium">{countryCode}</td>
+                                  <td className="py-2 px-3">Varies</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground" data-testid="tax-fallback-mobile">
                         {getCityTaxDisclosure("")}
                       </p>
-                    </div>
+                    )}
+                  </div>
+                </div>
+                <ul className="space-y-3 mt-4">
+                  <li className="flex items-start gap-2" data-testid="not-included-personal-mobile">
+                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <span>Travel insurance</span>
                   </li>
-                )}
-                <li className="flex items-start gap-2" data-testid="not-included-personal-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Travel insurance</span>
-                </li>
-                <li className="flex items-start gap-2" data-testid="not-included-tips-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Tips and gratuities</span>
-                </li>
-                <li className="flex items-start gap-2" data-testid="not-included-expenses-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Personal expenses and optional excursions</span>
-                </li>
-              </ul>
+                  <li className="flex items-start gap-2" data-testid="not-included-tips-mobile">
+                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <span>Tips and gratuities</span>
+                  </li>
+                  <li className="flex items-start gap-2" data-testid="not-included-expenses-mobile">
+                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <span>Personal expenses and optional excursions</span>
+                  </li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
         </div>

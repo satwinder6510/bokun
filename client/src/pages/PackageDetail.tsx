@@ -1665,32 +1665,6 @@ export default function PackageDetailTest() {
                 </div>
               )}
 
-              {/* What's Not Included */}
-              <div>
-                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Not Included</h2>
-                <Card>
-                  <CardContent className="pt-6">
-                    <ul className="space-y-3">
-                      {exclusionsList.map((item, index) => (
-                        <li key={index} className="flex items-start gap-2" data-testid={`not-included-${index}-desktop`}>
-                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          {item.toLowerCase().includes("city/tourist tax") || item.toLowerCase().includes("city tax") || item.toLowerCase().includes("tourist tax") ? (
-                            <div>
-                              <span className="font-medium">{item}</span>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {getCityTaxDisclosure(pkg.category || "")}
-                              </p>
-                            </div>
-                          ) : (
-                            <span>{item}</span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-
               {/* Package Details - Tabbed Content (Desktop) */}
               <div>
                 <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
@@ -1737,6 +1711,32 @@ export default function PackageDetailTest() {
                         </CardContent>
                       </Card>
                     )}
+
+                    {/* What's Not Included */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>What's Not Included</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-3">
+                          {exclusionsList.map((item, index) => (
+                            <li key={index} className="flex items-start gap-2" data-testid={`not-included-${index}-desktop`}>
+                              <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                              {item.toLowerCase().includes("city/tourist tax") || item.toLowerCase().includes("city tax") || item.toLowerCase().includes("tourist tax") ? (
+                                <div>
+                                  <span className="font-medium">{item}</span>
+                                  <p className="text-sm text-muted-foreground mt-1">
+                                    {getCityTaxDisclosure(pkg.category || "")}
+                                  </p>
+                                </div>
+                              ) : (
+                                <span>{item}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
                   </TabsContent>
 
                   <TabsContent value="itinerary" className="space-y-4">
@@ -2303,34 +2303,6 @@ export default function PackageDetailTest() {
         </section>
       )}
 
-      {/* What's Not Included Section - Mobile only */}
-      <section className="py-6 md:py-8 lg:hidden">
-        <div className="container mx-auto px-4 md:px-8">
-          <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Not Included</h2>
-          <Card>
-            <CardContent className="pt-6">
-              <ul className="space-y-3">
-                {exclusionsList.map((item, index) => (
-                  <li key={index} className="flex items-start gap-2" data-testid={`not-included-${index}-mobile`}>
-                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    {item.toLowerCase().includes("city/tourist tax") || item.toLowerCase().includes("city tax") || item.toLowerCase().includes("tourist tax") ? (
-                      <div>
-                        <span className="font-medium">{item}</span>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {getCityTaxDisclosure(pkg.category || "")}
-                        </p>
-                      </div>
-                    ) : (
-                      <span>{item}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
       {/* Availability Calendar Section - Hidden on desktop (sidebar has calendar) */}
       <section className="py-6 md:py-8 bg-muted/30 lg:hidden" id="availability-calendar">
         <div className="container mx-auto px-4 md:px-8">
@@ -2493,6 +2465,32 @@ export default function PackageDetailTest() {
                   </CardContent>
                 </Card>
               )}
+
+              {/* What's Not Included */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>What's Not Included</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {exclusionsList.map((item, index) => (
+                      <li key={index} className="flex items-start gap-2" data-testid={`not-included-${index}-mobile`}>
+                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        {item.toLowerCase().includes("city/tourist tax") || item.toLowerCase().includes("city tax") || item.toLowerCase().includes("tourist tax") ? (
+                          <div>
+                            <span className="font-medium">{item}</span>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {getCityTaxDisclosure(pkg.category || "")}
+                            </p>
+                          </div>
+                        ) : (
+                          <span>{item}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="itinerary" className="space-y-4">

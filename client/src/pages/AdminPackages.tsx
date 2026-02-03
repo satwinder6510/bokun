@@ -139,6 +139,8 @@ type PackageFormData = {
   customExclusions: string[];
   videos: VideoItem[];
   duration: string;
+  boardBasisOverride: string;
+  hotelOverride: string;
   metaTitle: string;
   metaDescription: string;
   isPublished: boolean;
@@ -199,6 +201,8 @@ const emptyPackage: PackageFormData = {
   customExclusions: [],
   videos: [],
   duration: "",
+  boardBasisOverride: "",
+  hotelOverride: "",
   metaTitle: "",
   metaDescription: "",
   isPublished: false,
@@ -711,6 +715,8 @@ export default function AdminPackages() {
       customExclusions: (pkg.customExclusions || []) as string[],
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
+      boardBasisOverride: pkg.boardBasisOverride || "",
+      hotelOverride: pkg.hotelOverride || "",
       metaTitle: pkg.metaTitle || "",
       metaDescription: pkg.metaDescription || "",
       isPublished: pkg.isPublished,
@@ -2503,6 +2509,31 @@ export default function AdminPackages() {
                           onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
                           data-testid="input-display-order"
                         />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="boardBasisOverride">Board Basis Override</Label>
+                        <Input
+                          id="boardBasisOverride"
+                          value={formData.boardBasisOverride || ""}
+                          onChange={(e) => setFormData({ ...formData, boardBasisOverride: e.target.value })}
+                          placeholder="e.g., Half Board, All Inclusive"
+                          data-testid="input-board-basis-override"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Leave blank to show "As per itinerary"</p>
+                      </div>
+                      <div>
+                        <Label htmlFor="hotelOverride">Hotel Override</Label>
+                        <Input
+                          id="hotelOverride"
+                          value={formData.hotelOverride || ""}
+                          onChange={(e) => setFormData({ ...formData, hotelOverride: e.target.value })}
+                          placeholder="e.g., 4-Star, Luxury Resort"
+                          data-testid="input-hotel-override"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">Leave blank to show hotel count</p>
                       </div>
                     </div>
 

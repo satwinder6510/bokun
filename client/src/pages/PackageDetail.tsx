@@ -1636,12 +1636,12 @@ export default function PackageDetailTest() {
                   <Card className="text-center p-4">
                     <Hotel className="w-8 h-8 mx-auto mb-2 text-secondary" />
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Accommodation</p>
-                    <p className="font-semibold text-sm md:text-base">{accommodations.length > 0 ? `${accommodations.length} Hotel${accommodations.length > 1 ? 's' : ''}` : 'Included'}</p>
+                    <p className="font-semibold text-sm md:text-base">{pkg.hotelOverride || (accommodations.length > 0 ? `${accommodations.length} Hotel${accommodations.length > 1 ? 's' : ''}` : 'Included')}</p>
                   </Card>
                   <Card className="text-center p-4">
                     <Utensils className="w-8 h-8 mx-auto mb-2 text-secondary" />
                     <p className="text-xs text-muted-foreground uppercase tracking-wide">Board</p>
-                    <p className="font-semibold text-sm md:text-base">As per itinerary</p>
+                    <p className="font-semibold text-sm md:text-base">{pkg.boardBasisOverride || 'As per itinerary'}</p>
                   </Card>
                 </div>
               </div>
@@ -2269,14 +2269,14 @@ export default function PackageDetailTest() {
             <Card className="text-center p-4">
               <Hotel className="w-8 h-8 mx-auto mb-2 text-secondary" />
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Accommodation</p>
-              <p className="font-semibold text-sm md:text-base">{accommodations.length > 0 ? `${accommodations.length} Hotel${accommodations.length > 1 ? 's' : ''}` : 'Included'}</p>
+              <p className="font-semibold text-sm md:text-base">{pkg.hotelOverride || (accommodations.length > 0 ? `${accommodations.length} Hotel${accommodations.length > 1 ? 's' : ''}` : 'Included')}</p>
             </Card>
             
             {/* Board Card */}
             <Card className="text-center p-4">
               <Utensils className="w-8 h-8 mx-auto mb-2 text-secondary" />
               <p className="text-xs text-muted-foreground uppercase tracking-wide">Board</p>
-              <p className="font-semibold text-sm md:text-base">As per itinerary</p>
+              <p className="font-semibold text-sm md:text-base">{pkg.boardBasisOverride || 'As per itinerary'}</p>
             </Card>
           </div>
         </div>

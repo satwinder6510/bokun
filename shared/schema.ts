@@ -423,6 +423,10 @@ export const flightPackages = pgTable("flight_packages", {
   // Duration info
   duration: text("duration"), // e.g., "11 Nights / 12 Days"
   
+  // About This Package overrides for the 4 info cards
+  boardBasisOverride: text("board_basis_override"), // Overrides default "As per itinerary" in Board card
+  hotelOverride: text("hotel_override"), // Overrides default hotel count in Accommodation card
+  
   // Meta
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),

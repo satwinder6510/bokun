@@ -21,7 +21,7 @@ import { ExpandableText } from "@/components/ExpandableText";
 import { apiRequest } from "@/lib/queryClient";
 import { getProxiedImageUrl, getHeroImageUrl, getGalleryImageUrl } from "@/lib/imageProxy";
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
-import { getCityTaxDisclosure } from "@/lib/cityTaxRules";
+import { getCityTaxDisclosure, uniqueCountries } from "@/lib/cityTaxRules";
 import { 
   capturePackageViewed,
   captureCallCtaClicked, 
@@ -1155,6 +1155,13 @@ export default function PackageDetailTest() {
   const accommodations = pkg.accommodations || [];
   const whatsIncluded = cleanFragmentedHtmlArray(pkg.whatsIncluded || []);
   const highlights = cleanFragmentedHtmlArray(pkg.highlights || []);
+  
+  // Get unique destination countries for tax disclosures
+  // Combine primary category with countries array and deduplicate
+  const destinationCountries = useMemo(() => {
+    const allCountries = [pkg.category, ...(pkg.countries || [])].filter(Boolean) as string[];
+    return uniqueCountries(allCountries);
+  }, [pkg.category, pkg.countries]);
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -1490,15 +1497,28 @@ export default function PackageDetailTest() {
                 <Card>
                   <CardContent className="pt-6">
                     <ul className="space-y-3">
-                      <li className="flex items-start gap-2" data-testid="not-included-tax-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {getCityTaxDisclosure(pkg.category || "")}
-                          </p>
-                        </div>
-                      </li>
+                      {destinationCountries.map((countryCode, index) => (
+                        <li key={countryCode} className="flex items-start gap-2" data-testid={`not-included-tax-desktop-${index}`}>
+                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-medium">Local city/tourist tax (payable locally)</span>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {getCityTaxDisclosure(countryCode)}
+                            </p>
+                          </div>
+                        </li>
+                      ))}
+                      {destinationCountries.length === 0 && (
+                        <li className="flex items-start gap-2" data-testid="not-included-tax-desktop-fallback">
+                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-medium">Local city/tourist tax (payable locally)</span>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {getCityTaxDisclosure("")}
+                            </p>
+                          </div>
+                        </li>
+                      )}
                       <li className="flex items-start gap-2" data-testid="not-included-personal-desktop">
                         <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                         <span>Travel insurance</span>
@@ -2123,15 +2143,28 @@ export default function PackageDetailTest() {
           <Card>
             <CardContent className="pt-6">
               <ul className="space-y-3">
-                <li className="flex items-start gap-2" data-testid="not-included-tax-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {getCityTaxDisclosure(pkg.category || "")}
-                    </p>
-                  </div>
-                </li>
+                {destinationCountries.map((countryCode, index) => (
+                  <li key={countryCode} className="flex items-start gap-2" data-testid={`not-included-tax-mobile-${index}`}>
+                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium">Local city/tourist tax (payable locally)</span>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {getCityTaxDisclosure(countryCode)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+                {destinationCountries.length === 0 && (
+                  <li className="flex items-start gap-2" data-testid="not-included-tax-mobile-fallback">
+                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium">Local city/tourist tax (payable locally)</span>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {getCityTaxDisclosure("")}
+                      </p>
+                    </div>
+                  </li>
+                )}
                 <li className="flex items-start gap-2" data-testid="not-included-personal-mobile">
                   <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                   <span>Travel insurance</span>

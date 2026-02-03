@@ -609,6 +609,9 @@ export default function PackageDetailTest() {
   // Hotel image lightbox state
   const [hotelLightbox, setHotelLightbox] = useState<{ images: string[]; index: number; hotelName: string } | null>(null);
   
+  // Gallery lightbox state for hero gallery images
+  const [galleryLightbox, setGalleryLightbox] = useState<{ images: string[]; index: number } | null>(null);
+  
   // Embla carousel for gallery
   const [emblaRef, emblaApi] = useEmblaCarousel({ 
     loop: false, 
@@ -1356,38 +1359,51 @@ export default function PackageDetailTest() {
               <div className="relative group">
                 <div className="overflow-hidden" ref={emblaRef}>
                   <div className="flex gap-4">
-                    {allGalleryItems.map((item, index) => (
-                      <div 
-                        key={index} 
-                        className={`flex-[0_0_auto] w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative bg-muted ${item.type === 'video' ? 'cursor-pointer' : ''}`}
-                        onClick={() => item.type === 'video' && item.video && setActiveVideo(item.video)}
-                      >
-                        <img
-                          src={item.url}
-                          alt={item.type === 'video' ? `Video: ${item.video?.title || 'Watch video'}` : `${pkg.title} photo ${index + 1}`}
-                          width={400}
-                          height={300}
-                          className="w-full h-full object-cover"
-                          data-testid={item.type === 'video' ? `video-gallery-desktop-${index}` : `img-gallery-desktop-${index}`}
-                          loading="lazy"
-                          decoding="async"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
+                    {allGalleryItems.map((item, index) => {
+                      const imageOnlyItems = allGalleryItems.filter(i => i.type === 'image');
+                      const imageIndex = item.type === 'image' ? imageOnlyItems.findIndex(i => i.url === item.url) : -1;
+                      return (
+                        <div 
+                          key={index} 
+                          className="flex-[0_0_auto] w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative bg-muted cursor-pointer"
+                          onClick={() => {
+                            if (item.type === 'video' && item.video) {
+                              setActiveVideo(item.video);
+                            } else if (item.type === 'image' && imageIndex >= 0) {
+                              setGalleryLightbox({ 
+                                images: imageOnlyItems.map(i => i.url), 
+                                index: imageIndex 
+                              });
+                            }
                           }}
-                        />
-                        {item.type === 'video' && (
-                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
-                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                              <Play className="w-5 h-5 text-red-600 ml-1" fill="currentColor" />
+                        >
+                          <img
+                            src={item.url}
+                            alt={item.type === 'video' ? `Video: ${item.video?.title || 'Watch video'}` : `${pkg.title} photo ${index + 1}`}
+                            width={400}
+                            height={300}
+                            className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                            data-testid={item.type === 'video' ? `video-gallery-desktop-${index}` : `img-gallery-desktop-${index}`}
+                            loading="lazy"
+                            decoding="async"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
+                            }}
+                          />
+                          {item.type === 'video' && (
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
+                              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                                <Play className="w-5 h-5 text-red-600 ml-1" fill="currentColor" />
+                              </div>
+                              <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-0.5 rounded">
+                                {item.video?.platform === 'youtube' ? 'YouTube' : 'Vimeo'}
+                              </span>
                             </div>
-                            <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-0.5 rounded">
-                              {item.video?.platform === 'youtube' ? 'YouTube' : 'Vimeo'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 
@@ -1495,38 +1511,51 @@ export default function PackageDetailTest() {
             <div className="relative group">
               <div className="overflow-hidden" ref={emblaRef}>
                 <div className="flex gap-4">
-                  {allGalleryItems.map((item, index) => (
-                    <div 
-                      key={index} 
-                      className={`flex-[0_0_auto] w-[80%] sm:w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative bg-muted ${item.type === 'video' ? 'cursor-pointer' : ''}`}
-                      onClick={() => item.type === 'video' && item.video && setActiveVideo(item.video)}
-                    >
-                      <img
-                        src={item.url}
-                        alt={item.type === 'video' ? `Video: ${item.video?.title || 'Watch video'}` : `${pkg.title} photo ${index + 1}`}
-                        width={400}
-                        height={300}
-                        className="w-full h-full object-cover"
-                        data-testid={item.type === 'video' ? `video-gallery-${index}` : `img-gallery-${index}`}
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
+                  {allGalleryItems.map((item, index) => {
+                    const imageOnlyItems = allGalleryItems.filter(i => i.type === 'image');
+                    const imageIndex = item.type === 'image' ? imageOnlyItems.findIndex(i => i.url === item.url) : -1;
+                    return (
+                      <div 
+                        key={index} 
+                        className="flex-[0_0_auto] w-[80%] sm:w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.667rem)] lg:w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative bg-muted cursor-pointer"
+                        onClick={() => {
+                          if (item.type === 'video' && item.video) {
+                            setActiveVideo(item.video);
+                          } else if (item.type === 'image' && imageIndex >= 0) {
+                            setGalleryLightbox({ 
+                              images: imageOnlyItems.map(i => i.url), 
+                              index: imageIndex 
+                            });
+                          }
                         }}
-                      />
-                      {item.type === 'video' && (
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
-                          <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                            <Play className="w-5 h-5 text-red-600 ml-1" fill="currentColor" />
+                      >
+                        <img
+                          src={item.url}
+                          alt={item.type === 'video' ? `Video: ${item.video?.title || 'Watch video'}` : `${pkg.title} photo ${index + 1}`}
+                          width={400}
+                          height={300}
+                          className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                          data-testid={item.type === 'video' ? `video-gallery-${index}` : `img-gallery-${index}`}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
+                          }}
+                        />
+                        {item.type === 'video' && (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
+                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                              <Play className="w-5 h-5 text-red-600 ml-1" fill="currentColor" />
+                            </div>
+                            <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-0.5 rounded">
+                              {item.video?.platform === 'youtube' ? 'YouTube' : 'Vimeo'}
+                            </span>
                           </div>
-                          <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-0.5 rounded">
-                            {item.video?.platform === 'youtube' ? 'YouTube' : 'Vimeo'}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
               
@@ -3921,6 +3950,79 @@ export default function PackageDetailTest() {
 
       {/* Add bottom padding to prevent content being hidden by sticky bar on mobile */}
       <div className="h-20 lg:hidden" aria-hidden="true" />
+
+      {/* Gallery Image Lightbox */}
+      <Dialog open={!!galleryLightbox} onOpenChange={() => setGalleryLightbox(null)}>
+        <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 bg-black border-none">
+          <button
+            onClick={() => setGalleryLightbox(null)}
+            className="absolute top-4 right-4 z-20 bg-white/20 hover:bg-white/40 rounded-full p-3 transition-colors"
+            aria-label="Close lightbox"
+          >
+            <X className="w-8 h-8 text-white" />
+          </button>
+          
+          <DialogHeader className="absolute top-0 left-0 right-16 z-10 p-4 bg-gradient-to-b from-black/60 to-transparent">
+            <DialogTitle className="text-white text-lg">
+              {pkg?.title} ({(galleryLightbox?.index ?? 0) + 1}/{galleryLightbox?.images.length})
+            </DialogTitle>
+          </DialogHeader>
+          
+          {galleryLightbox && (
+            <div className="relative flex items-center justify-center min-h-[50vh] md:min-h-[70vh]">
+              <img
+                src={galleryLightbox.images[galleryLightbox.index]}
+                alt={`${pkg?.title} ${galleryLightbox.index + 1}`}
+                className="max-w-full max-h-[80vh] object-contain"
+              />
+              
+              {galleryLightbox.images.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setGalleryLightbox({
+                      ...galleryLightbox,
+                      index: galleryLightbox.index === 0 ? galleryLightbox.images.length - 1 : galleryLightbox.index - 1
+                    })}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-3 transition-colors"
+                  >
+                    <ChevronLeft className="w-8 h-8 text-white" />
+                  </button>
+                  <button
+                    onClick={() => setGalleryLightbox({
+                      ...galleryLightbox,
+                      index: galleryLightbox.index === galleryLightbox.images.length - 1 ? 0 : galleryLightbox.index + 1
+                    })}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-3 transition-colors"
+                  >
+                    <ChevronRight className="w-8 h-8 text-white" />
+                  </button>
+                </>
+              )}
+              
+              {/* Thumbnail strip */}
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 p-2 overflow-x-auto">
+                <div className="flex gap-2 justify-center">
+                  {galleryLightbox.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setGalleryLightbox({ ...galleryLightbox, index: idx })}
+                      className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
+                        idx === galleryLightbox.index ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Hotel Image Lightbox */}
       <Dialog open={!!hotelLightbox} onOpenChange={() => setHotelLightbox(null)}>

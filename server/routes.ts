@@ -9676,7 +9676,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!hotel) {
         return res.status(404).json({ error: "Hotel not found" });
       }
-      res.json(hotel);
+      
+      // Sync hotel updates to all packages that use this hotel
+      const syncResult = await storage.syncHotelToPackages(hotel);
+      if (syncResult.updatedCount > 0) {
+        console.log(`[Hotel Sync] Updated ${syncResult.updatedCount} packages with hotel "${hotel.name}" changes`);
+      }
+      
+      res.json({ 
+        ...hotel, 
+        syncedPackages: syncResult.updatedCount 
+      });
     } catch (error: any) {
       console.error("Error updating hotel:", error);
       res.status(500).json({ error: error.message || "Failed to update hotel" });

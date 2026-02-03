@@ -150,6 +150,7 @@ export interface IStorage {
   createHotel(hotel: InsertHotel): Promise<Hotel>;
   updateHotel(id: number, updates: Partial<InsertHotel>): Promise<Hotel | undefined>;
   deleteHotel(id: number): Promise<boolean>;
+  syncHotelToPackages(hotel: Hotel): Promise<{ updatedCount: number; packageIds: number[] }>;
   searchHotels(query: string): Promise<Hotel[]>;
   
   // Content images methods (for collections and destinations)
@@ -1397,6 +1398,43 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error("Error deleting hotel:", error);
       return false;
+    }
+  }
+  
+  // Sync hotel data to all packages that use this hotel (by matching name)
+  async syncHotelToPackages(hotel: Hotel): Promise<{ updatedCount: number; packageIds: number[] }> {
+    try {
+      const allPackages = await this.getAllFlightPackages();
+      const updatedPackageIds: number[] = [];
+      
+      for (const pkg of allPackages) {
+        const accommodations = pkg.accommodations || [];
+        let wasUpdated = false;
+        
+        // Check each accommodation to see if it matches this hotel by name
+        const updatedAccommodations = accommodations.map((acc: { name: string; images: string[]; description: string }) => {
+          // Match by name (case-insensitive)
+          if (acc.name.toLowerCase().trim() === hotel.name.toLowerCase().trim()) {
+            wasUpdated = true;
+            return {
+              name: hotel.name,
+              images: hotel.images || acc.images || [],
+              description: hotel.description || acc.description || ""
+            };
+          }
+          return acc;
+        });
+        
+        if (wasUpdated) {
+          await this.updateFlightPackage(pkg.id, { accommodations: updatedAccommodations });
+          updatedPackageIds.push(pkg.id);
+        }
+      }
+      
+      return { updatedCount: updatedPackageIds.length, packageIds: updatedPackageIds };
+    } catch (error) {
+      console.error("Error syncing hotel to packages:", error);
+      return { updatedCount: 0, packageIds: [] };
     }
   }
   

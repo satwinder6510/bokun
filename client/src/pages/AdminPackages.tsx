@@ -136,6 +136,7 @@ type PackageFormData = {
   gallery: string[];
   mobileHeroVideo: string;
   desktopHeroVideo: string;
+  customExclusions: string[];
   videos: VideoItem[];
   duration: string;
   metaTitle: string;
@@ -195,6 +196,7 @@ const emptyPackage: PackageFormData = {
   gallery: [],
   mobileHeroVideo: "",
   desktopHeroVideo: "",
+  customExclusions: [],
   videos: [],
   duration: "",
   metaTitle: "",
@@ -274,6 +276,9 @@ export default function AdminPackages() {
   const [editingHighlightValue, setEditingHighlightValue] = useState("");
   const [editingIncludedIndex, setEditingIncludedIndex] = useState<number | null>(null);
   const [editingIncludedValue, setEditingIncludedValue] = useState("");
+  const [newExclusion, setNewExclusion] = useState("");
+  const [editingExclusionIndex, setEditingExclusionIndex] = useState<number | null>(null);
+  const [editingExclusionValue, setEditingExclusionValue] = useState("");
   const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const [isUploadingMobileVideo, setIsUploadingMobileVideo] = useState(false);
@@ -703,6 +708,7 @@ export default function AdminPackages() {
       gallery: (pkg.gallery || []) as string[],
       mobileHeroVideo: pkg.mobileHeroVideo || "",
       desktopHeroVideo: pkg.desktopHeroVideo || "",
+      customExclusions: (pkg.customExclusions || []) as string[],
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
       metaTitle: pkg.metaTitle || "",
@@ -3168,6 +3174,122 @@ export default function AdminPackages() {
                           </li>
                         ))}
                       </ul>
+                    </div>
+
+                    <div>
+                      <Label>What's Not Included (Custom)</Label>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Customize the "What's Not Included" section for this package. If empty, default items will be shown.
+                      </p>
+                      <div className="flex gap-2 mt-2">
+                        <Input
+                          value={newExclusion}
+                          onChange={(e) => setNewExclusion(e.target.value)}
+                          placeholder="Add exclusion item..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newExclusion) {
+                              e.preventDefault();
+                              setFormData({ ...formData, customExclusions: [...(formData.customExclusions || []), newExclusion] });
+                              setNewExclusion("");
+                            }
+                          }}
+                          data-testid="input-exclusion"
+                        />
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => {
+                            if (newExclusion) {
+                              setFormData({ ...formData, customExclusions: [...(formData.customExclusions || []), newExclusion] });
+                              setNewExclusion("");
+                            }
+                          }}
+                          data-testid="button-add-exclusion"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {(formData.customExclusions || []).length === 0 && (
+                        <p className="text-xs text-muted-foreground mt-2 italic">
+                          Using default exclusions: Local city/tourist tax, Visa fees, Travel insurance, Tips and gratuities, Personal expenses, Anything else not in What's Included
+                        </p>
+                      )}
+                      <ul className="mt-2 space-y-1">
+                        {(formData.customExclusions || []).map((item, i) => (
+                          <li key={i} className="flex items-center justify-between gap-2 bg-red-50 dark:bg-red-950/30 px-3 py-1.5 rounded-md text-sm">
+                            {editingExclusionIndex === i ? (
+                              <Input
+                                value={editingExclusionValue}
+                                onChange={(e) => setEditingExclusionValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const updated = [...(formData.customExclusions || [])];
+                                    updated[i] = editingExclusionValue;
+                                    setFormData({ ...formData, customExclusions: updated });
+                                    setEditingExclusionIndex(null);
+                                  } else if (e.key === 'Escape') {
+                                    setEditingExclusionIndex(null);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  const updated = [...(formData.customExclusions || [])];
+                                  updated[i] = editingExclusionValue;
+                                  setFormData({ ...formData, customExclusions: updated });
+                                  setEditingExclusionIndex(null);
+                                }}
+                                autoFocus
+                                className="h-7 flex-1"
+                                data-testid={`input-edit-exclusion-${i}`}
+                              />
+                            ) : (
+                              <span 
+                                className="flex-1 cursor-pointer hover:text-primary"
+                                onClick={() => {
+                                  setEditingExclusionIndex(i);
+                                  setEditingExclusionValue(item);
+                                }}
+                                data-testid={`text-exclusion-${i}`}
+                              >
+                                {item}
+                              </span>
+                            )}
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingExclusionIndex(i);
+                                  setEditingExclusionValue(item);
+                                }}
+                                className="text-muted-foreground hover:text-foreground"
+                                data-testid={`button-edit-exclusion-${i}`}
+                              >
+                                <Edit2 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, customExclusions: (formData.customExclusions || []).filter((_, idx) => idx !== i) })}
+                                className="text-destructive hover:text-destructive/80"
+                                data-testid={`button-remove-exclusion-${i}`}
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                      {(formData.customExclusions || []).length > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 text-xs"
+                          onClick={() => setFormData({ ...formData, customExclusions: [] })}
+                          data-testid="button-reset-exclusions"
+                        >
+                          Reset to Defaults
+                        </Button>
+                      )}
                     </div>
 
                     <Separator className="my-4" />

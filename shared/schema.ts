@@ -417,6 +417,9 @@ export const flightPackages = pgTable("flight_packages", {
   // Desktop hero video (shown instead of image on desktop devices)
   desktopHeroVideo: text("desktop_hero_video"),
   
+  // Custom "What's Not Included" items - if set, overrides the default hardcoded list
+  customExclusions: jsonb("custom_exclusions").$type<string[]>().default([]),
+  
   // Duration info
   duration: text("duration"), // e.g., "11 Nights / 12 Days"
   

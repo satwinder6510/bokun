@@ -1156,6 +1156,21 @@ export default function PackageDetailTest() {
   const whatsIncluded = cleanFragmentedHtmlArray(pkg.whatsIncluded || []);
   const highlights = cleanFragmentedHtmlArray(pkg.highlights || []);
 
+  // Default exclusions list
+  const defaultExclusions = [
+    "Local city/tourist tax (payable locally)",
+    "Visa fees",
+    "Travel insurance",
+    "Tips and gratuities",
+    "Personal expenses and optional excursions",
+    "Anything else not specifically mentioned in What's Included"
+  ];
+  
+  // Use custom exclusions if set, otherwise use defaults
+  const exclusionsList = (pkg.customExclusions && pkg.customExclusions.length > 0) 
+    ? pkg.customExclusions 
+    : defaultExclusions;
+
   return (
     <div className="min-h-screen bg-stone-50">
       <Header />
@@ -1627,35 +1642,21 @@ export default function PackageDetailTest() {
                 <Card>
                   <CardContent className="pt-6">
                     <ul className="space-y-3">
-                      <li className="flex items-start gap-2" data-testid="not-included-tax-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {getCityTaxDisclosure(pkg.category || "")}
-                          </p>
-                        </div>
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="not-included-visa-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <span>Visa fees</span>
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="not-included-personal-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <span>Travel insurance</span>
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="not-included-tips-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <span>Tips and gratuities</span>
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="not-included-expenses-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <span>Personal expenses and optional excursions</span>
-                      </li>
-                      <li className="flex items-start gap-2" data-testid="not-included-other-desktop">
-                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <span>Anything else not specifically mentioned in What's Included</span>
-                      </li>
+                      {exclusionsList.map((item, index) => (
+                        <li key={index} className="flex items-start gap-2" data-testid={`not-included-${index}-desktop`}>
+                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                          {item.toLowerCase().includes("city/tourist tax") || item.toLowerCase().includes("city tax") || item.toLowerCase().includes("tourist tax") ? (
+                            <div>
+                              <span className="font-medium">{item}</span>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {getCityTaxDisclosure(pkg.category || "")}
+                              </p>
+                            </div>
+                          ) : (
+                            <span>{item}</span>
+                          )}
+                        </li>
+                      ))}
                     </ul>
                   </CardContent>
                 </Card>
@@ -2268,35 +2269,21 @@ export default function PackageDetailTest() {
           <Card>
             <CardContent className="pt-6">
               <ul className="space-y-3">
-                <li className="flex items-start gap-2" data-testid="not-included-tax-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {getCityTaxDisclosure(pkg.category || "")}
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-2" data-testid="not-included-visa-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Visa fees</span>
-                </li>
-                <li className="flex items-start gap-2" data-testid="not-included-personal-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Travel insurance</span>
-                </li>
-                <li className="flex items-start gap-2" data-testid="not-included-tips-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Tips and gratuities</span>
-                </li>
-                <li className="flex items-start gap-2" data-testid="not-included-expenses-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Personal expenses and optional excursions</span>
-                </li>
-                <li className="flex items-start gap-2" data-testid="not-included-other-mobile">
-                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <span>Anything else not specifically mentioned in What's Included</span>
-                </li>
+                {exclusionsList.map((item, index) => (
+                  <li key={index} className="flex items-start gap-2" data-testid={`not-included-${index}-mobile`}>
+                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    {item.toLowerCase().includes("city/tourist tax") || item.toLowerCase().includes("city tax") || item.toLowerCase().includes("tourist tax") ? (
+                      <div>
+                        <span className="font-medium">{item}</span>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {getCityTaxDisclosure(pkg.category || "")}
+                        </p>
+                      </div>
+                    ) : (
+                      <span>{item}</span>
+                    )}
+                  </li>
+                ))}
               </ul>
             </CardContent>
           </Card>

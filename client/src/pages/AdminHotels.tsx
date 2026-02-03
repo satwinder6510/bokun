@@ -90,14 +90,23 @@ export default function AdminHotels() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: { id: number; updates: Partial<HotelType> }) => 
-      adminFetch(`/api/admin/hotels/${data.id}`, { 
+    mutationFn: async (data: { id: number; updates: Partial<HotelType> }) => {
+      const response = await adminFetch(`/api/admin/hotels/${data.id}`, { 
         method: 'PATCH',
         body: JSON.stringify(data.updates),
-      }),
-    onSuccess: () => {
+      });
+      return response;
+    },
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/hotels"] });
-      toast({ title: "Hotel updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/packages"] });
+      const syncMessage = data.syncedPackages > 0 
+        ? `Updated ${data.syncedPackages} package${data.syncedPackages > 1 ? 's' : ''} using this hotel`
+        : undefined;
+      toast({ 
+        title: "Hotel updated successfully",
+        description: syncMessage
+      });
       setEditingHotel(null);
     },
     onError: (error: Error) => {

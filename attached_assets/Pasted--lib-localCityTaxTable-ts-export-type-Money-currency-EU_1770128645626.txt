@@ -1,0 +1,267 @@
+// lib/localCityTaxTable.ts
+
+export type Money = {
+  currency: "EUR" | "GBP" | "USD" | "AED" | "JPY" | "CZK" | "CHF";
+  amount: number;
+};
+
+export type TaxBasis =
+  | "per_person_per_night"
+  | "per_room_per_night"
+  | "percent_of_room_rate"
+  | "mixed";
+
+export type TaxRule = {
+  city: string;          // display name
+  countryCode: string;   // ISO-2
+  payableLocally: true;  // as requested: only locally collected items
+  basis: TaxBasis;
+
+  // One of the following should be populated:
+  fixed?: Money;                 // fixed exact amount (e.g., Lisbon €4)
+  range?: { min: Money; max: Money }; // official range when it varies (e.g., Venice)
+  percent?: { rate: number; cap?: Money; appliesTo?: "net_room_rate" | "room_rate" };
+
+  // Optional detail tables when “exact” depends on category:
+  byHotelStars?: Record<"1" | "2" | "3" | "4" | "5", Money>;
+  notes?: string;
+
+  // Common caps
+  capNights?: number;
+
+  // Optional: age exemptions etc (for display only)
+  exemptions?: string[];
+};
+
+// IMPORTANT: this is a starter set focused on the cities you listed + a couple of high-volume global ones.
+// Extend as you add destinations.
+export const LOCAL_CITY_TAX_TABLE: Record<string, TaxRule> = {
+  // ===== AUSTRIA =====
+  "AT_VIENNA": {
+    city: "Vienna",
+    countryCode: "AT",
+    payableLocally: true,
+    basis: "percent_of_room_rate",
+    percent: { rate: 5, appliesTo: "net_room_rate" },
+    notes:
+      "Local accommodation tax. Some hotels may show it as included; otherwise collected at check-in/out. Rate rule is the ‘exact’ part; the € amount depends on your room price.",
+  },
+
+  // ===== ITALY =====
+  "IT_VENICE": {
+    city: "Venice",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    range: {
+      min: { currency: "EUR", amount: 1 },
+      max: { currency: "EUR", amount: 5 },
+    },
+    notes:
+      "Accommodation tax varies by season and accommodation category. This is separate from Venice day-tripper Access Fee (not a hotel-collected overnight tax).",
+  },
+
+  "IT_FLORENCE": {
+    city: "Florence",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    byHotelStars: {
+      "1": { currency: "EUR", amount: 3.5 },
+      "2": { currency: "EUR", amount: 4.5 },
+      "3": { currency: "EUR", amount: 6.0 },
+      "4": { currency: "EUR", amount: 7.0 },
+      "5": { currency: "EUR", amount: 8.0 },
+    },
+    capNights: 7,
+    notes: "Rates depend on official accommodation category; collected by the property.",
+  },
+
+  "IT_ROME": {
+    city: "Rome",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    byHotelStars: {
+      "1": { currency: "EUR", amount: 4.0 },
+      "2": { currency: "EUR", amount: 5.0 },
+      "3": { currency: "EUR", amount: 6.0 },
+      "4": { currency: "EUR", amount: 7.5 },
+      "5": { currency: "EUR", amount: 10.0 },
+    },
+    capNights: 10,
+    notes: "Collected locally by accommodation; rates vary by category/type.",
+  },
+
+  "IT_SORRENTO": {
+    city: "Sorrento",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    range: {
+      min: { currency: "EUR", amount: 2 },
+      max: { currency: "EUR", amount: 5 },
+    },
+    capNights: 7,
+    notes:
+      "Varies by accommodation category; confirm exact amount once hotel class/type is known.",
+  },
+
+  "IT_PALERMO": {
+    city: "Palermo",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    range: {
+      min: { currency: "EUR", amount: 1.5 },
+      max: { currency: "EUR", amount: 3.0 },
+    },
+    capNights: 4,
+    notes: "Varies by accommodation type/category; commonly capped after 4 nights.",
+  },
+
+  "IT_CATANIA": {
+    city: "Catania",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    byHotelStars: {
+      "1": { currency: "EUR", amount: 2.0 },
+      "2": { currency: "EUR", amount: 2.0 },
+      "3": { currency: "EUR", amount: 2.5 },
+      "4": { currency: "EUR", amount: 3.5 },
+      "5": { currency: "EUR", amount: 5.0 },
+    },
+    capNights: 4,
+    notes: "Tariff depends on property category; collected locally.",
+  },
+
+  "IT_SYRACUSE": {
+    city: "Syracuse (Siracusa)",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "percent_of_room_rate",
+    percent: {
+      rate: 4,
+      cap: { currency: "EUR", amount: 5 },
+      appliesTo: "net_room_rate",
+    },
+    capNights: 7,
+    notes:
+      "4% of (net) room price per person/night capped at €5; collected by the accommodation.",
+  },
+
+  "IT_VERONA": {
+    city: "Verona",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    range: {
+      min: { currency: "EUR", amount: 2.0 },
+      max: { currency: "EUR", amount: 5.0 },
+    },
+    capNights: 5,
+    notes:
+      "Varies by accommodation type/category. Use range until hotel class is known.",
+  },
+
+  "IT_LAKE_GARDA": {
+    city: "Lake Garda (varies by town)",
+    countryCode: "IT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    range: {
+      min: { currency: "EUR", amount: 1.0 },
+      max: { currency: "EUR", amount: 4.2 },
+    },
+    capNights: 7,
+    notes:
+      "Not one single rate: each municipality sets its own tariff. Use range unless you know the exact town + hotel category.",
+  },
+
+  // ===== PORTUGAL =====
+  "PT_LISBON": {
+    city: "Lisbon",
+    countryCode: "PT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    fixed: { currency: "EUR", amount: 4 },
+    capNights: 7,
+    exemptions: ["Children under 13 (commonly exempt)"],
+    notes: "Collected locally by the accommodation.",
+  },
+
+  "PT_PORTO": {
+    city: "Porto",
+    countryCode: "PT",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    fixed: { currency: "EUR", amount: 3 },
+    capNights: 7,
+    notes: "Collected locally by the accommodation.",
+  },
+
+  // ===== NETHERLANDS =====
+  "NL_AMSTERDAM": {
+    city: "Amsterdam",
+    countryCode: "NL",
+    payableLocally: true,
+    basis: "percent_of_room_rate",
+    percent: { rate: 12.5, appliesTo: "net_room_rate" },
+    notes:
+      "Tourist tax is % of the overnight price (excluding VAT). The € amount depends on room price.",
+  },
+
+  // ===== UAE =====
+  "AE_DUBAI": {
+    city: "Dubai",
+    countryCode: "AE",
+    payableLocally: true,
+    basis: "per_room_per_night",
+    range: {
+      min: { currency: "AED", amount: 7 },
+      max: { currency: "AED", amount: 20 },
+    },
+    capNights: 30,
+    notes:
+      "Tourism Dirham fee per room/night depends on hotel category; collected by the hotel.",
+  },
+
+  // ===== USA (examples; add more as needed) =====
+  "US_NEW_YORK_CITY": {
+    city: "New York City",
+    countryCode: "US",
+    payableLocally: true,
+    basis: "mixed",
+    percent: { rate: 14.75, appliesTo: "room_rate" },
+    notes:
+      "NYC commonly has a % occupancy-related tax plus fixed nightly government fees. Amount depends on room price and property. If you want, I can model this as percent + fixed fields per your exact rule set.",
+  },
+
+  // ===== JAPAN (examples; add more as needed) =====
+  "JP_TOKYO": {
+    city: "Tokyo",
+    countryCode: "JP",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    range: {
+      min: { currency: "JPY", amount: 100 },
+      max: { currency: "JPY", amount: 200 },
+    },
+    notes:
+      "Varies by nightly rate bracket; property collects locally.",
+  },
+
+  "JP_KYOTO": {
+    city: "Kyoto",
+    countryCode: "JP",
+    payableLocally: true,
+    basis: "per_person_per_night",
+    range: {
+      min: { currency: "JPY", amount: 200 },
+      max: { currency: "JPY", amount: 1000 },
+    },
+    notes:
+      "Varies by nightly rate bracket; property collects locally.",
+  },
+};

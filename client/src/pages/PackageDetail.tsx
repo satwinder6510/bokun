@@ -1546,7 +1546,10 @@ export default function PackageDetailTest() {
                                           {displayedCities.map((cityTax, cityIndex) => (
                                             <tr key={cityTax.city} className="border-b last:border-b-0" data-testid={`tax-row-desktop-${countryIndex}-${cityIndex}`}>
                                               <td className="py-2 px-3">{cityTax.city}</td>
-                                              <td className="py-2 px-3 font-medium">{cityTax.charge}</td>
+                                              <td className="py-2 px-3 font-medium">
+                                                {cityTax.charge} <span className="text-muted-foreground font-normal text-xs">{cityTax.basis}</span>
+                                                {cityTax.capNights && <span className="text-muted-foreground font-normal text-xs ml-1">(max {cityTax.capNights} nights)</span>}
+                                              </td>
                                               <td className="py-2 px-3 text-muted-foreground text-xs hidden md:table-cell">{cityTax.notes || "—"}</td>
                                             </tr>
                                           ))}
@@ -2265,7 +2268,10 @@ export default function PackageDetailTest() {
                                     {displayedCities.map((cityTax, cityIndex) => (
                                       <tr key={cityTax.city} className="border-b last:border-b-0" data-testid={`tax-row-mobile-${countryIndex}-${cityIndex}`}>
                                         <td className="py-2 px-3">{cityTax.city}</td>
-                                        <td className="py-2 px-3 font-medium">{cityTax.charge}</td>
+                                        <td className="py-2 px-3 font-medium">
+                                          {cityTax.charge} <span className="text-muted-foreground font-normal text-xs">{cityTax.basis}</span>
+                                          {cityTax.capNights && <span className="block text-muted-foreground font-normal text-xs">(max {cityTax.capNights} nights)</span>}
+                                        </td>
                                       </tr>
                                     ))}
                                   </tbody>

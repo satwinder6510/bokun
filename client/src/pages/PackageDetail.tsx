@@ -1041,6 +1041,15 @@ export default function PackageDetailTest() {
     }
   };
 
+  // Get unique destination countries for tax disclosures
+  // Combine primary category with countries array and deduplicate
+  // Must be before early returns to satisfy React's Rules of Hooks
+  const destinationCountries = useMemo(() => {
+    if (!pkg) return [];
+    const allCountries = [pkg.category, ...(pkg.countries || [])].filter(Boolean) as string[];
+    return uniqueCountries(allCountries);
+  }, [pkg]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-stone-50">
@@ -1156,13 +1165,6 @@ export default function PackageDetailTest() {
   const whatsIncluded = cleanFragmentedHtmlArray(pkg.whatsIncluded || []);
   const highlights = cleanFragmentedHtmlArray(pkg.highlights || []);
   
-  // Get unique destination countries for tax disclosures
-  // Combine primary category with countries array and deduplicate
-  const destinationCountries = useMemo(() => {
-    const allCountries = [pkg.category, ...(pkg.countries || [])].filter(Boolean) as string[];
-    return uniqueCountries(allCountries);
-  }, [pkg.category, pkg.countries]);
-
   return (
     <div className="min-h-screen bg-stone-50">
       <Header />

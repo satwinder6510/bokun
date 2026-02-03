@@ -1267,8 +1267,145 @@ export default function PackageDetailTest() {
         </section>
       )}
 
-      {/* Gallery - Hidden on mobile in test layout */}
-      <section id="package-gallery-section" className="hidden lg:block pt-4 pb-8">
+      {/* Desktop Full-Screen Video Hero (if available) */}
+      {pkg.desktopHeroVideo && (
+        <section className="hidden lg:block relative w-full bg-black overflow-hidden pt-4 pb-8">
+          <div className="container mx-auto px-6 md:px-8">
+            <div className="relative rounded-xl overflow-hidden mb-4">
+              <video
+                src={pkg.desktopHeroVideo}
+                className="w-full aspect-[21/9] object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={allGalleryItems[0]?.url || "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1920&q=80"}
+                data-testid="video-package-hero-desktop"
+                onError={(e) => {
+                  const target = e.target as HTMLVideoElement;
+                  const section = target.closest('section');
+                  if (section) section.style.display = 'none';
+                  const fallbackSection = document.getElementById('package-gallery-section');
+                  if (fallbackSection) fallbackSection.classList.remove('hidden');
+                }}
+              />
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+              {/* Title Overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 text-[10px] sm:text-xs" data-testid="badge-category-overlay-video">
+                    {pkg.category}
+                  </Badge>
+                  <Badge variant="outline" className="bg-white/10 text-white border-white/30 gap-1 text-[10px] sm:text-xs">
+                    <Plane className="w-3 h-3 shrink-0" />
+                    <span>Flights Included</span>
+                  </Badge>
+                  {pkg.bokunProductId && (
+                    <Badge variant="outline" className="bg-blue-600/80 backdrop-blur-sm text-white border-blue-400/60 text-[10px] sm:text-xs" data-testid="badge-bokun-ref-video">
+                      B{pkg.bokunProductId}
+                    </Badge>
+                  )}
+                </div>
+                <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-white mb-2 drop-shadow-lg" data-testid="text-title-overlay-video">
+                  {pkg.title}
+                </h1>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-white/90">
+                  {pkg.duration && (
+                    <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+                      <Clock className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                      <span>{pkg.duration}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                    <span>{pkg.category}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Desktop Price Badge - Top Right */}
+              <div className="absolute top-6 right-6">
+                <div className="bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg">
+                  <p className="text-xs text-muted-foreground">From</p>
+                  <p className="text-2xl font-bold text-secondary" data-testid="hero-price-desktop-video">
+                    {formatPrice(pkg.price)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">per person</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Gallery Carousel - Desktop Video Section */}
+            {allGalleryItems.length > 1 && (
+              <div className="relative group">
+                <div className="overflow-hidden" ref={emblaRef}>
+                  <div className="flex gap-4">
+                    {allGalleryItems.map((item, index) => (
+                      <div 
+                        key={index} 
+                        className={`flex-[0_0_auto] w-[calc(16.666%-0.833rem)] rounded-lg overflow-hidden aspect-[4/3] relative bg-muted ${item.type === 'video' ? 'cursor-pointer' : ''}`}
+                        onClick={() => item.type === 'video' && item.video && setActiveVideo(item.video)}
+                      >
+                        <img
+                          src={item.url}
+                          alt={item.type === 'video' ? `Video: ${item.video?.title || 'Watch video'}` : `${pkg.title} photo ${index + 1}`}
+                          width={400}
+                          height={300}
+                          className="w-full h-full object-cover"
+                          data-testid={item.type === 'video' ? `video-gallery-desktop-${index}` : `img-gallery-desktop-${index}`}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&q=80";
+                          }}
+                        />
+                        {item.type === 'video' && (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center hover:bg-black/40 transition-colors">
+                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                              <Play className="w-5 h-5 text-red-600 ml-1" fill="currentColor" />
+                            </div>
+                            <span className="absolute bottom-2 left-2 text-xs bg-black/70 text-white px-2 py-0.5 rounded">
+                              {item.video?.platform === 'youtube' ? 'YouTube' : 'Vimeo'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {allGalleryItems.length > 6 && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
+                      onClick={scrollPrev}
+                      data-testid="button-gallery-prev-video"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur"
+                      onClick={scrollNext}
+                      data-testid="button-gallery-next-video"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Gallery - Hidden on mobile, and hidden on desktop when video hero is shown */}
+      <section id="package-gallery-section" className={`hidden lg:block pt-4 pb-8 ${pkg.desktopHeroVideo ? 'lg:hidden' : ''}`}>
         <div className="container mx-auto px-6 md:px-8">
           {/* Hero Image with Title Overlay - 21:9 aspect ratio */}
           <div className="relative rounded-xl overflow-hidden mb-4 bg-muted">

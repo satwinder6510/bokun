@@ -414,6 +414,9 @@ export const flightPackages = pgTable("flight_packages", {
   // Mobile hero video (shown instead of image on mobile devices)
   mobileHeroVideo: text("mobile_hero_video"),
   
+  // Desktop hero video (shown instead of image on desktop devices)
+  desktopHeroVideo: text("desktop_hero_video"),
+  
   // Duration info
   duration: text("duration"), // e.g., "11 Nights / 12 Days"
   

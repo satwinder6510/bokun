@@ -135,6 +135,7 @@ type PackageFormData = {
   featuredImage: string;
   gallery: string[];
   mobileHeroVideo: string;
+  desktopHeroVideo: string;
   videos: VideoItem[];
   duration: string;
   metaTitle: string;
@@ -193,6 +194,7 @@ const emptyPackage: PackageFormData = {
   featuredImage: "",
   gallery: [],
   mobileHeroVideo: "",
+  desktopHeroVideo: "",
   videos: [],
   duration: "",
   metaTitle: "",
@@ -275,6 +277,7 @@ export default function AdminPackages() {
   const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const [isUploadingMobileVideo, setIsUploadingMobileVideo] = useState(false);
+  const [isUploadingDesktopVideo, setIsUploadingDesktopVideo] = useState(false);
   const [uploadingHotelIndex, setUploadingHotelIndex] = useState<number | null>(null);
   const [draggedImageIndex, setDraggedImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
   const [dragOverImageIndex, setDragOverImageIndex] = useState<{ hotelIndex: number; imageIndex: number } | null>(null);
@@ -288,6 +291,7 @@ export default function AdminPackages() {
   const featuredImageRef = useRef<HTMLInputElement>(null);
   const galleryImagesRef = useRef<HTMLInputElement>(null);
   const mobileVideoRef = useRef<HTMLInputElement>(null);
+  const desktopVideoRef = useRef<HTMLInputElement>(null);
   const hotelImageRefs = useRef<{ [key: number]: HTMLInputElement | null }>({});
   
   // Scraper test state
@@ -698,6 +702,7 @@ export default function AdminPackages() {
       featuredImage: pkg.featuredImage || "",
       gallery: (pkg.gallery || []) as string[],
       mobileHeroVideo: pkg.mobileHeroVideo || "",
+      desktopHeroVideo: pkg.desktopHeroVideo || "",
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
       metaTitle: pkg.metaTitle || "",
@@ -1553,6 +1558,48 @@ export default function AdminPackages() {
       setIsUploadingMobileVideo(false);
       if (mobileVideoRef.current) {
         mobileVideoRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDesktopVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('video/')) {
+      toast({ title: "Please select a video file", variant: "destructive" });
+      return;
+    }
+    
+    if (file.size > 100 * 1024 * 1024) {
+      toast({ title: "Video must be under 100MB", variant: "destructive" });
+      return;
+    }
+    
+    setIsUploadingDesktopVideo(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('video', file);
+      
+      const response = await fetch('/api/admin/upload-video', {
+        method: 'POST',
+        credentials: 'include',
+        body: formDataUpload,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      const data = await response.json();
+      setFormData({ ...formData, desktopHeroVideo: data.url });
+      toast({ title: "Desktop video uploaded successfully" });
+    } catch (error) {
+      toast({ title: "Failed to upload video", variant: "destructive" });
+    } finally {
+      setIsUploadingDesktopVideo(false);
+      if (desktopVideoRef.current) {
+        desktopVideoRef.current.value = '';
       }
     }
   };
@@ -2692,6 +2739,66 @@ export default function AdminPackages() {
                           <div className="relative">
                             <video 
                               src={formData.mobileHeroVideo} 
+                              className="h-40 w-auto rounded-md object-cover"
+                              controls
+                              muted
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label>Desktop Hero Video (Optional)</Label>
+                      <p className="text-xs text-muted-foreground mt-1 mb-2">
+                        Upload a video to display as the hero background on desktop devices. Max <strong>100MB</strong>. MP4 format recommended.
+                      </p>
+                      <div className="mt-2 space-y-3">
+                        <input
+                          ref={desktopVideoRef}
+                          type="file"
+                          accept="video/*"
+                          onChange={handleDesktopVideoUpload}
+                          className="hidden"
+                          data-testid="input-desktop-video-file"
+                        />
+                        <div className="flex flex-col sm:flex-row gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => desktopVideoRef.current?.click()}
+                            disabled={isUploadingDesktopVideo}
+                            className="w-full sm:flex-1"
+                            data-testid="button-upload-desktop-video"
+                          >
+                            {isUploadingDesktopVideo ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Uploading Video...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4 mr-2" />
+                                Upload Desktop Video
+                              </>
+                            )}
+                          </Button>
+                          {formData.desktopHeroVideo && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setFormData({ ...formData, desktopHeroVideo: "" })}
+                              data-testid="button-remove-desktop-video"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        {formData.desktopHeroVideo && (
+                          <div className="relative">
+                            <video 
+                              src={formData.desktopHeroVideo} 
                               className="h-40 w-auto rounded-md object-cover"
                               controls
                               muted

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRoute, Link, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X, Loader2, Hotel, Utensils } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageCircle, Play, X, Loader2, Hotel, Utensils } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -567,6 +567,7 @@ export default function PackageDetailTest() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
+  const [expandedTaxCountries, setExpandedTaxCountries] = useState<Set<string>>(new Set());
   
   // Handler to select date and scroll to CTA section
   // isAutoSelect = true means this is an auto-selection on page load, so don't open dialog
@@ -1517,6 +1518,12 @@ export default function PackageDetailTest() {
                                     </div>
                                   );
                                 }
+                                const isExpanded = expandedTaxCountries.has(countryCode);
+                                const showExpandButton = taxData.cities.length > 3;
+                                const displayedCities = showExpandButton && !isExpanded 
+                                  ? taxData.cities.slice(0, 3) 
+                                  : taxData.cities;
+                                const hiddenCount = taxData.cities.length - 3;
                                 return (
                                   <div key={countryCode} data-testid={`tax-country-desktop-${countryIndex}`}>
                                     <div className="flex items-center gap-2 font-medium mb-2">
@@ -1536,7 +1543,7 @@ export default function PackageDetailTest() {
                                           </tr>
                                         </thead>
                                         <tbody>
-                                          {taxData.cities.map((cityTax, cityIndex) => (
+                                          {displayedCities.map((cityTax, cityIndex) => (
                                             <tr key={cityTax.city} className="border-b last:border-b-0" data-testid={`tax-row-desktop-${countryIndex}-${cityIndex}`}>
                                               <td className="py-2 px-3">{cityTax.city}</td>
                                               <td className="py-2 px-3 font-medium">{cityTax.charge}</td>
@@ -1546,6 +1553,36 @@ export default function PackageDetailTest() {
                                         </tbody>
                                       </table>
                                     </div>
+                                    {showExpandButton && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setExpandedTaxCountries(prev => {
+                                            const next = new Set(prev);
+                                            if (next.has(countryCode)) {
+                                              next.delete(countryCode);
+                                            } else {
+                                              next.add(countryCode);
+                                            }
+                                            return next;
+                                          });
+                                        }}
+                                        className="mt-2 text-sm text-primary hover:underline flex items-center gap-1"
+                                        data-testid={`tax-expand-desktop-${countryIndex}`}
+                                      >
+                                        {isExpanded ? (
+                                          <>
+                                            <ChevronUp className="w-4 h-4" />
+                                            Show less
+                                          </>
+                                        ) : (
+                                          <>
+                                            <ChevronDown className="w-4 h-4" />
+                                            Show {hiddenCount} more cities
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -2201,6 +2238,12 @@ export default function PackageDetailTest() {
                               </div>
                             );
                           }
+                          const isExpanded = expandedTaxCountries.has(countryCode);
+                          const showExpandButton = taxData.cities.length > 3;
+                          const displayedCities = showExpandButton && !isExpanded 
+                            ? taxData.cities.slice(0, 3) 
+                            : taxData.cities;
+                          const hiddenCount = taxData.cities.length - 3;
                           return (
                             <div key={countryCode} data-testid={`tax-country-mobile-${countryIndex}`}>
                               <div className="flex items-center gap-2 font-medium mb-2">
@@ -2219,7 +2262,7 @@ export default function PackageDetailTest() {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {taxData.cities.map((cityTax, cityIndex) => (
+                                    {displayedCities.map((cityTax, cityIndex) => (
                                       <tr key={cityTax.city} className="border-b last:border-b-0" data-testid={`tax-row-mobile-${countryIndex}-${cityIndex}`}>
                                         <td className="py-2 px-3">{cityTax.city}</td>
                                         <td className="py-2 px-3 font-medium">{cityTax.charge}</td>
@@ -2228,6 +2271,36 @@ export default function PackageDetailTest() {
                                   </tbody>
                                 </table>
                               </div>
+                              {showExpandButton && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setExpandedTaxCountries(prev => {
+                                      const next = new Set(prev);
+                                      if (next.has(countryCode)) {
+                                        next.delete(countryCode);
+                                      } else {
+                                        next.add(countryCode);
+                                      }
+                                      return next;
+                                    });
+                                  }}
+                                  className="mt-2 text-sm text-primary hover:underline flex items-center gap-1"
+                                  data-testid={`tax-expand-mobile-${countryIndex}`}
+                                >
+                                  {isExpanded ? (
+                                    <>
+                                      <ChevronUp className="w-4 h-4" />
+                                      Show less
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ChevronDown className="w-4 h-4" />
+                                      Show {hiddenCount} more cities
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           );
                         })}

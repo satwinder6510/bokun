@@ -1499,6 +1499,10 @@ export default function PackageDetailTest() {
                           </p>
                         </div>
                       </li>
+                      <li className="flex items-start gap-2" data-testid="not-included-visa-desktop">
+                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <span>Visa fees</span>
+                      </li>
                       <li className="flex items-start gap-2" data-testid="not-included-personal-desktop">
                         <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                         <span>Travel insurance</span>
@@ -1510,6 +1514,10 @@ export default function PackageDetailTest() {
                       <li className="flex items-start gap-2" data-testid="not-included-expenses-desktop">
                         <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                         <span>Personal expenses and optional excursions</span>
+                      </li>
+                      <li className="flex items-start gap-2" data-testid="not-included-other-desktop">
+                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <span>Anything else not specifically mentioned in What's Included</span>
                       </li>
                     </ul>
                   </CardContent>
@@ -2132,6 +2140,10 @@ export default function PackageDetailTest() {
                     </p>
                   </div>
                 </li>
+                <li className="flex items-start gap-2" data-testid="not-included-visa-mobile">
+                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>Visa fees</span>
+                </li>
                 <li className="flex items-start gap-2" data-testid="not-included-personal-mobile">
                   <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                   <span>Travel insurance</span>
@@ -2143,6 +2155,10 @@ export default function PackageDetailTest() {
                 <li className="flex items-start gap-2" data-testid="not-included-expenses-mobile">
                   <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                   <span>Personal expenses and optional excursions</span>
+                </li>
+                <li className="flex items-start gap-2" data-testid="not-included-other-mobile">
+                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>Anything else not specifically mentioned in What's Included</span>
                 </li>
               </ul>
             </CardContent>

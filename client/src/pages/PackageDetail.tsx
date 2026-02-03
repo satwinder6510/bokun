@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRoute, Link, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MessageCircle, Play, X, Loader2, Hotel, Utensils } from "lucide-react";
+import { ArrowLeft, Clock, MapPin, Plane, Check, Calendar as CalendarIcon, Users, Phone, Mail, ChevronLeft, ChevronRight, MessageCircle, Play, X, Loader2, Hotel, Utensils } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Button } from "@/components/ui/button";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -21,7 +21,7 @@ import { ExpandableText } from "@/components/ExpandableText";
 import { apiRequest } from "@/lib/queryClient";
 import { getProxiedImageUrl, getHeroImageUrl, getGalleryImageUrl } from "@/lib/imageProxy";
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
-import { getCityTaxDisclosure, getCountryTaxData, uniqueCountries } from "@/lib/cityTaxRules";
+import { getCityTaxDisclosure } from "@/lib/cityTaxRules";
 import { 
   capturePackageViewed,
   captureCallCtaClicked, 
@@ -567,7 +567,6 @@ export default function PackageDetailTest() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
   const [showStickyBar, setShowStickyBar] = useState(false);
-  const [expandedTaxCountries, setExpandedTaxCountries] = useState<Set<string>>(new Set());
   
   // Handler to select date and scroll to CTA section
   // isAutoSelect = true means this is an auto-selection on page load, so don't open dialog
@@ -1042,15 +1041,6 @@ export default function PackageDetailTest() {
     }
   };
 
-  // Get unique destination countries for tax disclosures
-  // Combine primary category with countries array and deduplicate
-  // Must be before early returns to satisfy React's Rules of Hooks
-  const destinationCountries = useMemo(() => {
-    if (!pkg) return [];
-    const allCountries = [pkg.category, ...(pkg.countries || [])].filter(Boolean) as string[];
-    return uniqueCountries(allCountries);
-  }, [pkg]);
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-stone-50">
@@ -1165,7 +1155,7 @@ export default function PackageDetailTest() {
   const accommodations = pkg.accommodations || [];
   const whatsIncluded = cleanFragmentedHtmlArray(pkg.whatsIncluded || []);
   const highlights = cleanFragmentedHtmlArray(pkg.highlights || []);
-  
+
   return (
     <div className="min-h-screen bg-stone-50">
       <Header />
@@ -1499,119 +1489,29 @@ export default function PackageDetailTest() {
                 <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Not Included</h2>
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-2">
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-2" data-testid="not-included-tax-desktop">
                         <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
+                        <div>
                           <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                          <p className="text-sm text-muted-foreground mt-1 mb-3">
-                            These taxes are not included in your package price and are payable directly to your accommodation.
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {getCityTaxDisclosure(pkg.category || "")}
                           </p>
-                          {destinationCountries.length > 0 ? (
-                            <div className="space-y-4" data-testid="tax-table-desktop">
-                              {destinationCountries.map((countryCode, countryIndex) => {
-                                const taxData = getCountryTaxData(countryCode);
-                                if (!taxData) {
-                                  return (
-                                    <div key={countryCode} className="text-sm text-muted-foreground" data-testid={`tax-country-desktop-${countryIndex}`}>
-                                      {countryCode}: Tax rates vary; check with accommodation.
-                                    </div>
-                                  );
-                                }
-                                const isExpanded = expandedTaxCountries.has(countryCode);
-                                const showExpandButton = taxData.cities.length > 3;
-                                const displayedCities = showExpandButton && !isExpanded 
-                                  ? taxData.cities.slice(0, 3) 
-                                  : taxData.cities;
-                                const hiddenCount = taxData.cities.length - 3;
-                                return (
-                                  <div key={countryCode} data-testid={`tax-country-desktop-${countryIndex}`}>
-                                    <div className="flex items-center gap-2 font-medium mb-2">
-                                      <span>{taxData.flag}</span>
-                                      <span>{taxData.countryName}</span>
-                                    </div>
-                                    {taxData.generalNote && (
-                                      <p className="text-xs text-muted-foreground mb-2 italic">{taxData.generalNote}</p>
-                                    )}
-                                    <div className="overflow-x-auto">
-                                      <table className="w-full text-sm border-collapse">
-                                        <thead>
-                                          <tr className="border-b bg-muted/50">
-                                            <th className="text-left py-2 px-3 font-medium">City/Area</th>
-                                            <th className="text-left py-2 px-3 font-medium">Charge</th>
-                                            <th className="text-left py-2 px-3 font-medium hidden md:table-cell">Notes</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {displayedCities.map((cityTax, cityIndex) => (
-                                            <tr key={cityTax.city} className="border-b last:border-b-0" data-testid={`tax-row-desktop-${countryIndex}-${cityIndex}`}>
-                                              <td className="py-2 px-3">{cityTax.city}</td>
-                                              <td className="py-2 px-3 font-medium">
-                                                {cityTax.charge} <span className="text-muted-foreground font-normal text-xs">{cityTax.basis}</span>
-                                                {cityTax.capNights && <span className="text-muted-foreground font-normal text-xs ml-1">(max {cityTax.capNights} nights)</span>}
-                                              </td>
-                                              <td className="py-2 px-3 text-muted-foreground text-xs hidden md:table-cell">{cityTax.notes || "—"}</td>
-                                            </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                    {showExpandButton && (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setExpandedTaxCountries(prev => {
-                                            const next = new Set(prev);
-                                            if (next.has(countryCode)) {
-                                              next.delete(countryCode);
-                                            } else {
-                                              next.add(countryCode);
-                                            }
-                                            return next;
-                                          });
-                                        }}
-                                        className="mt-2 text-sm text-primary hover:underline flex items-center gap-1"
-                                        data-testid={`tax-expand-desktop-${countryIndex}`}
-                                      >
-                                        {isExpanded ? (
-                                          <>
-                                            <ChevronUp className="w-4 h-4" />
-                                            Show less
-                                          </>
-                                        ) : (
-                                          <>
-                                            <ChevronDown className="w-4 h-4" />
-                                            Show {hiddenCount} more cities
-                                          </>
-                                        )}
-                                      </button>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground" data-testid="tax-fallback-desktop">
-                              {getCityTaxDisclosure("")}
-                            </p>
-                          )}
                         </div>
-                      </div>
-                      <ul className="space-y-3 mt-4">
-                        <li className="flex items-start gap-2" data-testid="not-included-personal-desktop">
-                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <span>Travel insurance</span>
-                        </li>
-                        <li className="flex items-start gap-2" data-testid="not-included-tips-desktop">
-                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <span>Tips and gratuities</span>
-                        </li>
-                        <li className="flex items-start gap-2" data-testid="not-included-expenses-desktop">
-                          <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                          <span>Personal expenses and optional excursions</span>
-                        </li>
-                      </ul>
-                    </div>
+                      </li>
+                      <li className="flex items-start gap-2" data-testid="not-included-personal-desktop">
+                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <span>Travel insurance</span>
+                      </li>
+                      <li className="flex items-start gap-2" data-testid="not-included-tips-desktop">
+                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <span>Tips and gratuities</span>
+                      </li>
+                      <li className="flex items-start gap-2" data-testid="not-included-expenses-desktop">
+                        <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <span>Personal expenses and optional excursions</span>
+                      </li>
+                    </ul>
                   </CardContent>
                 </Card>
               </div>
@@ -2222,117 +2122,29 @@ export default function PackageDetailTest() {
           <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">What's Not Included</h2>
           <Card>
             <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div className="flex items-start gap-2">
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2" data-testid="not-included-tax-mobile">
                   <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
+                  <div>
                     <span className="font-medium">Local city/tourist tax (payable locally)</span>
-                    <p className="text-sm text-muted-foreground mt-1 mb-3">
-                      These taxes are not included in your package price and are payable directly to your accommodation.
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {getCityTaxDisclosure(pkg.category || "")}
                     </p>
-                    {destinationCountries.length > 0 ? (
-                      <div className="space-y-4" data-testid="tax-table-mobile">
-                        {destinationCountries.map((countryCode, countryIndex) => {
-                          const taxData = getCountryTaxData(countryCode);
-                          if (!taxData) {
-                            return (
-                              <div key={countryCode} className="text-sm text-muted-foreground" data-testid={`tax-country-mobile-${countryIndex}`}>
-                                {countryCode}: Tax rates vary; check with accommodation.
-                              </div>
-                            );
-                          }
-                          const isExpanded = expandedTaxCountries.has(countryCode);
-                          const showExpandButton = taxData.cities.length > 3;
-                          const displayedCities = showExpandButton && !isExpanded 
-                            ? taxData.cities.slice(0, 3) 
-                            : taxData.cities;
-                          const hiddenCount = taxData.cities.length - 3;
-                          return (
-                            <div key={countryCode} data-testid={`tax-country-mobile-${countryIndex}`}>
-                              <div className="flex items-center gap-2 font-medium mb-2">
-                                <span>{taxData.flag}</span>
-                                <span>{taxData.countryName}</span>
-                              </div>
-                              {taxData.generalNote && (
-                                <p className="text-xs text-muted-foreground mb-2 italic">{taxData.generalNote}</p>
-                              )}
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-sm border-collapse">
-                                  <thead>
-                                    <tr className="border-b bg-muted/50">
-                                      <th className="text-left py-2 px-3 font-medium">City/Area</th>
-                                      <th className="text-left py-2 px-3 font-medium">Charge</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {displayedCities.map((cityTax, cityIndex) => (
-                                      <tr key={cityTax.city} className="border-b last:border-b-0" data-testid={`tax-row-mobile-${countryIndex}-${cityIndex}`}>
-                                        <td className="py-2 px-3">{cityTax.city}</td>
-                                        <td className="py-2 px-3 font-medium">
-                                          {cityTax.charge} <span className="text-muted-foreground font-normal text-xs">{cityTax.basis}</span>
-                                          {cityTax.capNights && <span className="block text-muted-foreground font-normal text-xs">(max {cityTax.capNights} nights)</span>}
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                              {showExpandButton && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setExpandedTaxCountries(prev => {
-                                      const next = new Set(prev);
-                                      if (next.has(countryCode)) {
-                                        next.delete(countryCode);
-                                      } else {
-                                        next.add(countryCode);
-                                      }
-                                      return next;
-                                    });
-                                  }}
-                                  className="mt-2 text-sm text-primary hover:underline flex items-center gap-1"
-                                  data-testid={`tax-expand-mobile-${countryIndex}`}
-                                >
-                                  {isExpanded ? (
-                                    <>
-                                      <ChevronUp className="w-4 h-4" />
-                                      Show less
-                                    </>
-                                  ) : (
-                                    <>
-                                      <ChevronDown className="w-4 h-4" />
-                                      Show {hiddenCount} more cities
-                                    </>
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground" data-testid="tax-fallback-mobile">
-                        {getCityTaxDisclosure("")}
-                      </p>
-                    )}
                   </div>
-                </div>
-                <ul className="space-y-3 mt-4">
-                  <li className="flex items-start gap-2" data-testid="not-included-personal-mobile">
-                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <span>Travel insurance</span>
-                  </li>
-                  <li className="flex items-start gap-2" data-testid="not-included-tips-mobile">
-                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <span>Tips and gratuities</span>
-                  </li>
-                  <li className="flex items-start gap-2" data-testid="not-included-expenses-mobile">
-                    <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <span>Personal expenses and optional excursions</span>
-                  </li>
-                </ul>
-              </div>
+                </li>
+                <li className="flex items-start gap-2" data-testid="not-included-personal-mobile">
+                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>Travel insurance</span>
+                </li>
+                <li className="flex items-start gap-2" data-testid="not-included-tips-mobile">
+                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>Tips and gratuities</span>
+                </li>
+                <li className="flex items-start gap-2" data-testid="not-included-expenses-mobile">
+                  <X className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                  <span>Personal expenses and optional excursions</span>
+                </li>
+              </ul>
             </CardContent>
           </Card>
         </div>

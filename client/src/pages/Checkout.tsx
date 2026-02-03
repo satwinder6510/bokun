@@ -2,16 +2,19 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useCart } from "@/contexts/CartContext";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { useQueries } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, ShoppingCart, Trash2, CreditCard, Lock } from "lucide-react";
+import { Loader2, ShoppingCart, Trash2, CreditCard, Lock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { loadStripe, StripeElementsOptions } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { apiRequest } from "@/lib/queryClient";
+import { getCityTaxDisclosure, uniqueCountries } from "@/lib/cityTaxRules";
+import type { BokunProductDetails } from "@shared/schema";
 
 interface CheckoutFormProps {
   serverAmount: number;

@@ -53,14 +53,12 @@ import {
 } from "@/components/ui/dialog";
 import type { FlightPackage, PackagePricing } from "@shared/schema";
 
-// Window type with HappyFox chat
-interface WindowWithHappyFox extends Window {
-  HappyFoxChat?: {
+// Window type with Tidio chat
+interface WindowWithTidio extends Window {
+  tidioChatApi?: {
+    show: () => void;
+    hide: () => void;
     open: () => void;
-    close: () => void;
-    toggle: () => void;
-    expandWidget: () => void;
-    collapseWidget: () => void;
   };
 }
 
@@ -3456,7 +3454,7 @@ export default function PackageDetailTest() {
                       size="lg" 
                       disabled={isChatLoading}
                       onClick={() => {
-                        const win = window as WindowWithHappyFox;
+                        const win = window as WindowWithTidio;
                         
                         // Track PostHog event
                         captureChatCtaClicked({
@@ -3470,33 +3468,30 @@ export default function PackageDetailTest() {
                           content_category: pkg?.category || 'Flight Package'
                         });
                         
-                        // Open HappyFox chat
-                        const openHappyFox = () => {
+                        // Open Tidio chat
+                        const openTidio = () => {
                           setIsChatLoading(false);
-                          if (win.HappyFoxChat) {
-                            win.HappyFoxChat.expandWidget();
-                            win.HappyFoxChat.open();
+                          if (win.tidioChatApi) {
+                            win.tidioChatApi.show();
+                            win.tidioChatApi.open();
                           }
                         };
                         
-                        if (win.HappyFoxChat) {
-                          openHappyFox();
+                        if (win.tidioChatApi) {
+                          openTidio();
                         } else {
-                          // Show loading state while waiting for HappyFox
+                          // Show loading state while waiting for Tidio
                           setIsChatLoading(true);
-                          // Poll for HappyFoxChat availability
-                          let attempts = 0;
-                          const maxAttempts = 50;
-                          const pollInterval = setInterval(() => {
-                            attempts++;
-                            if (win.HappyFoxChat) {
-                              clearInterval(pollInterval);
-                              openHappyFox();
-                            } else if (attempts >= maxAttempts) {
-                              clearInterval(pollInterval);
-                              setIsChatLoading(false);
-                            }
-                          }, 100);
+                          const handleReady = () => {
+                            openTidio();
+                            document.removeEventListener("tidioChat-ready", handleReady);
+                          };
+                          document.addEventListener("tidioChat-ready", handleReady);
+                          // Timeout after 5 seconds to prevent infinite loading
+                          setTimeout(() => {
+                            setIsChatLoading(false);
+                            document.removeEventListener("tidioChat-ready", handleReady);
+                          }, 5000);
                         }
                       }}
                       data-testid="button-chat"

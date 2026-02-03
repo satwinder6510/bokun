@@ -9,7 +9,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import { usePostHogPageView } from "@/hooks/usePostHogPageView";
-import { useHappyFox } from "@/hooks/use-happyfox";
+import { useTidio } from "@/hooks/use-tidio";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -28,9 +28,9 @@ function PostHogPageTracker() {
   return null;
 }
 
-// HappyFox chat loader for tour/package detail pages
-function HappyFoxLoader() {
-  useHappyFox();
+// Tidio chat loader for tour/package detail pages
+function TidioLoader() {
+  useTidio();
   return null;
 }
 import Homepage from "@/pages/Homepage";
@@ -202,7 +202,7 @@ function App() {
             <TooltipProvider>
               <ScrollToTop />
               <PostHogPageTracker />
-              <HappyFoxLoader />
+              <TidioLoader />
               <Toaster />
               <Router />
             </TooltipProvider>

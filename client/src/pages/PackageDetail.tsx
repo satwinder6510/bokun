@@ -1790,19 +1790,31 @@ export default function PackageDetailTest() {
                             />
                             {hotel.images && hotel.images.length > 0 && (
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                {hotel.images.slice(0, 4).map((img, imgIndex) => (
-                                  <img 
-                                    key={imgIndex}
-                                    src={img}
-                                    alt={`${hotel.name} ${imgIndex + 1}`}
-                                    className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
-                                    }}
-                                  />
-                                ))}
+                                {hotel.images.slice(0, 8).map((img, imgIndex) => {
+                                  const isLastVisible = imgIndex === 7 && hotel.images.length > 8;
+                                  return (
+                                    <div key={imgIndex} className="relative">
+                                      <img 
+                                        src={img}
+                                        alt={`${hotel.name} ${imgIndex + 1}`}
+                                        className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                                        }}
+                                      />
+                                      {isLastVisible && (
+                                        <button
+                                          onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                          className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-medium rounded-lg hover:bg-black/60 transition-colors"
+                                        >
+                                          +{hotel.images.length - 8} more
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </CardContent>
@@ -2534,28 +2546,32 @@ export default function PackageDetailTest() {
                       />
                       {hotel.images && hotel.images.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          {hotel.images.slice(0, 4).map((img, imgIndex) => (
-                            <img 
-                              key={imgIndex}
-                              src={img}
-                              alt={`${hotel.name} ${imgIndex + 1}`}
-                              className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                              data-testid={`hotel-image-new-${index}-${imgIndex}`}
-                              onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
-                              }}
-                            />
-                          ))}
-                          {hotel.images.length > 4 && (
-                            <button
-                              onClick={() => setHotelLightbox({ images: hotel.images, index: 0, hotelName: hotel.name })}
-                              className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded"
-                            >
-                              +{hotel.images.length - 4} more
-                            </button>
-                          )}
+                          {hotel.images.slice(0, 8).map((img, imgIndex) => {
+                            const isLastVisible = imgIndex === 7 && hotel.images.length > 8;
+                            return (
+                              <div key={imgIndex} className="relative">
+                                <img 
+                                  src={img}
+                                  alt={`${hotel.name} ${imgIndex + 1}`}
+                                  className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                  data-testid={`hotel-image-new-${index}-${imgIndex}`}
+                                  onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                                  }}
+                                />
+                                {isLastVisible && (
+                                  <button
+                                    onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                    className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-medium rounded-lg hover:bg-black/60 transition-colors"
+                                  >
+                                    +{hotel.images.length - 8} more
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </CardContent>
@@ -3008,18 +3024,31 @@ export default function PackageDetailTest() {
                             />
                             {hotel.images && hotel.images.length > 0 && (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {hotel.images.slice(0, 4).map((img, imgIndex) => (
-                                  <img 
-                                    key={imgIndex}
-                                    src={img}
-                                    alt={`${hotel.name} ${imgIndex + 1}`}
-                                    className="w-full aspect-[4/3] object-cover rounded-lg"
-                                    onError={(e) => {
-                                      const target = e.target as HTMLImageElement;
-                                      target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
-                                    }}
-                                  />
-                                ))}
+                                {hotel.images.slice(0, 4).map((img, imgIndex) => {
+                                  const isLastVisible = imgIndex === 3 && hotel.images.length > 4;
+                                  return (
+                                    <div key={imgIndex} className="relative">
+                                      <img 
+                                        src={img}
+                                        alt={`${hotel.name} ${imgIndex + 1}`}
+                                        className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                                        }}
+                                      />
+                                      {isLastVisible && (
+                                        <button
+                                          onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                          className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-medium rounded-lg hover:bg-black/60 transition-colors"
+                                        >
+                                          +{hotel.images.length - 4} more
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </CardContent>
@@ -3258,19 +3287,32 @@ export default function PackageDetailTest() {
                           />
                           {hotel.images && hotel.images.length > 0 && (
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                              {hotel.images.slice(0, 4).map((img, imgIndex) => (
-                                <img 
-                                  key={imgIndex}
-                                  src={img}
-                                  alt={`${hotel.name} ${imgIndex + 1}`}
-                                  className="w-full aspect-[4/3] object-cover rounded-lg"
-                                  data-testid={`hotel-image-${index}-${imgIndex}`}
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
-                                  }}
-                                />
-                              ))}
+                              {hotel.images.slice(0, 8).map((img, imgIndex) => {
+                                const isLastVisible = imgIndex === 7 && hotel.images.length > 8;
+                                return (
+                                  <div key={imgIndex} className="relative">
+                                    <img 
+                                      src={img}
+                                      alt={`${hotel.name} ${imgIndex + 1}`}
+                                      className="w-full aspect-[4/3] object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                      data-testid={`hotel-image-${index}-${imgIndex}`}
+                                      onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                      onError={(e) => {
+                                        const target = e.target as HTMLImageElement;
+                                        target.src = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&q=80";
+                                      }}
+                                    />
+                                    {isLastVisible && (
+                                      <button
+                                        onClick={() => setHotelLightbox({ images: hotel.images, index: imgIndex, hotelName: hotel.name })}
+                                        className="absolute inset-0 bg-black/50 flex items-center justify-center text-white font-medium rounded-lg hover:bg-black/60 transition-colors"
+                                      >
+                                        +{hotel.images.length - 8} more
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </CardContent>

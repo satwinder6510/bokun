@@ -21,7 +21,7 @@ import { ExpandableText } from "@/components/ExpandableText";
 import { apiRequest } from "@/lib/queryClient";
 import { getProxiedImageUrl, getHeroImageUrl, getGalleryImageUrl } from "@/lib/imageProxy";
 import { cleanFragmentedHtmlArray } from "@/lib/utils";
-import { getCityTaxDisclosure, getTaxInfo, uniqueCountries } from "@/lib/cityTaxRules";
+import { getCityTaxDisclosure, getCountryTaxData, uniqueCountries } from "@/lib/cityTaxRules";
 import { 
   capturePackageViewed,
   captureCallCtaClicked, 
@@ -1507,34 +1507,48 @@ export default function PackageDetailTest() {
                             These taxes are not included in your package price and are payable directly to your accommodation.
                           </p>
                           {destinationCountries.length > 0 ? (
-                            <div className="overflow-x-auto" data-testid="tax-table-desktop">
-                              <table className="w-full text-sm border-collapse">
-                                <thead>
-                                  <tr className="border-b bg-muted/50">
-                                    <th className="text-left py-2 px-3 font-medium">Country</th>
-                                    <th className="text-left py-2 px-3 font-medium">Typical Charge</th>
-                                    <th className="text-left py-2 px-3 font-medium hidden sm:table-cell">Notes</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {destinationCountries.map((countryCode, index) => {
-                                    const taxInfo = getTaxInfo(countryCode);
-                                    return taxInfo ? (
-                                      <tr key={countryCode} className="border-b last:border-b-0" data-testid={`tax-row-desktop-${index}`}>
-                                        <td className="py-2 px-3 font-medium">{taxInfo.countryName}</td>
-                                        <td className="py-2 px-3">{taxInfo.typicalCharge}</td>
-                                        <td className="py-2 px-3 text-muted-foreground hidden sm:table-cell">{taxInfo.notes}</td>
-                                      </tr>
-                                    ) : (
-                                      <tr key={countryCode} className="border-b last:border-b-0" data-testid={`tax-row-desktop-${index}`}>
-                                        <td className="py-2 px-3 font-medium">{countryCode}</td>
-                                        <td className="py-2 px-3">Varies</td>
-                                        <td className="py-2 px-3 text-muted-foreground hidden sm:table-cell">Check with accommodation</td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
+                            <div className="space-y-4" data-testid="tax-table-desktop">
+                              {destinationCountries.map((countryCode, countryIndex) => {
+                                const taxData = getCountryTaxData(countryCode);
+                                if (!taxData) {
+                                  return (
+                                    <div key={countryCode} className="text-sm text-muted-foreground" data-testid={`tax-country-desktop-${countryIndex}`}>
+                                      {countryCode}: Tax rates vary; check with accommodation.
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div key={countryCode} data-testid={`tax-country-desktop-${countryIndex}`}>
+                                    <div className="flex items-center gap-2 font-medium mb-2">
+                                      <span>{taxData.flag}</span>
+                                      <span>{taxData.countryName}</span>
+                                    </div>
+                                    {taxData.generalNote && (
+                                      <p className="text-xs text-muted-foreground mb-2 italic">{taxData.generalNote}</p>
+                                    )}
+                                    <div className="overflow-x-auto">
+                                      <table className="w-full text-sm border-collapse">
+                                        <thead>
+                                          <tr className="border-b bg-muted/50">
+                                            <th className="text-left py-2 px-3 font-medium">City/Area</th>
+                                            <th className="text-left py-2 px-3 font-medium">Charge</th>
+                                            <th className="text-left py-2 px-3 font-medium hidden md:table-cell">Notes</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {taxData.cities.map((cityTax, cityIndex) => (
+                                            <tr key={cityTax.city} className="border-b last:border-b-0" data-testid={`tax-row-desktop-${countryIndex}-${cityIndex}`}>
+                                              <td className="py-2 px-3">{cityTax.city}</td>
+                                              <td className="py-2 px-3 font-medium">{cityTax.charge}</td>
+                                              <td className="py-2 px-3 text-muted-foreground text-xs hidden md:table-cell">{cityTax.notes || "—"}</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                );
+                              })}
                             </div>
                           ) : (
                             <p className="text-sm text-muted-foreground" data-testid="tax-fallback-desktop">
@@ -2177,31 +2191,46 @@ export default function PackageDetailTest() {
                       These taxes are not included in your package price and are payable directly to your accommodation.
                     </p>
                     {destinationCountries.length > 0 ? (
-                      <div className="overflow-x-auto" data-testid="tax-table-mobile">
-                        <table className="w-full text-sm border-collapse">
-                          <thead>
-                            <tr className="border-b bg-muted/50">
-                              <th className="text-left py-2 px-3 font-medium">Country</th>
-                              <th className="text-left py-2 px-3 font-medium">Typical Charge</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {destinationCountries.map((countryCode, index) => {
-                              const taxInfo = getTaxInfo(countryCode);
-                              return taxInfo ? (
-                                <tr key={countryCode} className="border-b last:border-b-0" data-testid={`tax-row-mobile-${index}`}>
-                                  <td className="py-2 px-3 font-medium">{taxInfo.countryName}</td>
-                                  <td className="py-2 px-3">{taxInfo.typicalCharge}</td>
-                                </tr>
-                              ) : (
-                                <tr key={countryCode} className="border-b last:border-b-0" data-testid={`tax-row-mobile-${index}`}>
-                                  <td className="py-2 px-3 font-medium">{countryCode}</td>
-                                  <td className="py-2 px-3">Varies</td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                      <div className="space-y-4" data-testid="tax-table-mobile">
+                        {destinationCountries.map((countryCode, countryIndex) => {
+                          const taxData = getCountryTaxData(countryCode);
+                          if (!taxData) {
+                            return (
+                              <div key={countryCode} className="text-sm text-muted-foreground" data-testid={`tax-country-mobile-${countryIndex}`}>
+                                {countryCode}: Tax rates vary; check with accommodation.
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={countryCode} data-testid={`tax-country-mobile-${countryIndex}`}>
+                              <div className="flex items-center gap-2 font-medium mb-2">
+                                <span>{taxData.flag}</span>
+                                <span>{taxData.countryName}</span>
+                              </div>
+                              {taxData.generalNote && (
+                                <p className="text-xs text-muted-foreground mb-2 italic">{taxData.generalNote}</p>
+                              )}
+                              <div className="overflow-x-auto">
+                                <table className="w-full text-sm border-collapse">
+                                  <thead>
+                                    <tr className="border-b bg-muted/50">
+                                      <th className="text-left py-2 px-3 font-medium">City/Area</th>
+                                      <th className="text-left py-2 px-3 font-medium">Charge</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {taxData.cities.map((cityTax, cityIndex) => (
+                                      <tr key={cityTax.city} className="border-b last:border-b-0" data-testid={`tax-row-mobile-${countryIndex}-${cityIndex}`}>
+                                        <td className="py-2 px-3">{cityTax.city}</td>
+                                        <td className="py-2 px-3 font-medium">{cityTax.charge}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p className="text-sm text-muted-foreground" data-testid="tax-fallback-mobile">

@@ -3983,18 +3983,20 @@ export default function PackageDetailTest() {
                       ...galleryLightbox,
                       index: galleryLightbox.index === 0 ? galleryLightbox.images.length - 1 : galleryLightbox.index - 1
                     })}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-3 transition-colors"
+                    className="absolute left-2 top-[calc(50%-2rem)] -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
+                    aria-label="Previous image"
                   >
-                    <ChevronLeft className="w-8 h-8 text-white" />
+                    <ChevronLeft className="w-6 h-6 text-white" />
                   </button>
                   <button
                     onClick={() => setGalleryLightbox({
                       ...galleryLightbox,
                       index: galleryLightbox.index === galleryLightbox.images.length - 1 ? 0 : galleryLightbox.index + 1
                     })}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-3 transition-colors"
+                    className="absolute right-2 top-[calc(50%-2rem)] -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
+                    aria-label="Next image"
                   >
-                    <ChevronRight className="w-8 h-8 text-white" />
+                    <ChevronRight className="w-6 h-6 text-white" />
                   </button>
                 </>
               )}
@@ -4062,7 +4064,7 @@ export default function PackageDetailTest() {
                       ...hotelLightbox,
                       index: hotelLightbox.index === 0 ? hotelLightbox.images.length - 1 : hotelLightbox.index - 1
                     })}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
+                    className="absolute left-2 top-[calc(50%-2rem)] -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
                     aria-label="Previous image"
                   >
                     <ChevronLeft className="w-6 h-6 text-white" />
@@ -4072,7 +4074,7 @@ export default function PackageDetailTest() {
                       ...hotelLightbox,
                       index: hotelLightbox.index === hotelLightbox.images.length - 1 ? 0 : hotelLightbox.index + 1
                     })}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
+                    className="absolute right-2 top-[calc(50%-2rem)] -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-colors"
                     aria-label="Next image"
                   >
                     <ChevronRight className="w-6 h-6 text-white" />

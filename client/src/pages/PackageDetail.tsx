@@ -1694,7 +1694,7 @@ export default function PackageDetailTest() {
               {/* Package Details - Tabbed Content (Desktop) */}
               <div>
                 <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
-                <Tabs defaultValue="description" className="w-full">
+                <Tabs defaultValue="accommodation" className="w-full">
                   <TabsList className="w-full justify-start mb-6 overflow-x-auto">
                     <TabsTrigger value="description" className="text-lg font-semibold" data-testid="tab-description-desktop">Description</TabsTrigger>
                     {itinerary.length > 0 && (
@@ -2450,7 +2450,7 @@ export default function PackageDetailTest() {
       <section className="py-8 md:py-12 lg:hidden">
         <div className="container mx-auto px-4 md:px-8">
           <h2 className="text-xl md:text-2xl font-bold mb-6">Package Details</h2>
-          <Tabs defaultValue="description" className="w-full">
+          <Tabs defaultValue="accommodation" className="w-full">
             <TabsList className="w-full justify-start mb-6 overflow-x-auto">
               <TabsTrigger value="description" className="text-base font-semibold" data-testid="tab-description-new">Description</TabsTrigger>
               {itinerary.length > 0 && (

@@ -1073,7 +1073,7 @@ export default function PackageDetailTest() {
                 alt={comingSoonData.title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-stone-50" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-stone-50" />
             </div>
           )}
           <div className="relative container mx-auto px-6 md:px-8 pt-32 pb-16">
@@ -1199,10 +1199,10 @@ export default function PackageDetailTest() {
               if (fallbackSection) fallbackSection.classList.remove('hidden');
             }}
           />
-          {/* Strong Gradient Overlay for text visibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />
+          {/* Gradient Overlay for text visibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none" />
           {/* Title Overlay with backdrop - positioned at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-12">
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/60 via-black/40 to-transparent pt-12">
             <div className="flex flex-wrap items-center gap-2 mb-3">
               <Badge className="bg-black/60 backdrop-blur-md text-white border-white/40 text-xs font-medium shadow-lg" data-testid="badge-category-overlay-mobile">
                 {pkg.category}
@@ -1254,7 +1254,7 @@ export default function PackageDetailTest() {
             data-testid="img-package-hero-mobile"
           />
           {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
           {/* Title Overlay */}
           <div className="absolute bottom-6 left-0 right-0 px-6">
             <h1 className="text-2xl font-bold text-white mb-2">{pkg.title}</h1>
@@ -1308,7 +1308,7 @@ export default function PackageDetailTest() {
                 }}
               />
               {/* Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent pointer-events-none" />
               {/* Title Overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
                 <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -1458,7 +1458,7 @@ export default function PackageDetailTest() {
               }}
             />
             {/* Gradient Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent" />
             {/* Title Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8">
               <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -4002,7 +4002,7 @@ export default function PackageDetailTest() {
             <X className="w-8 h-8 text-white" />
           </button>
           
-          <DialogHeader className="absolute top-0 left-0 right-16 z-10 p-4 bg-gradient-to-b from-black/60 to-transparent">
+          <DialogHeader className="absolute top-0 left-0 right-16 z-10 p-4 bg-gradient-to-b from-black/40 to-transparent">
             <DialogTitle className="text-white text-lg">
               {pkg?.title} ({(galleryLightbox?.index ?? 0) + 1}/{galleryLightbox?.images.length})
             </DialogTitle>
@@ -4078,7 +4078,7 @@ export default function PackageDetailTest() {
             <X className="w-8 h-8 text-white" />
           </button>
           
-          <DialogHeader className="absolute top-0 left-0 right-16 z-10 p-4 bg-gradient-to-b from-black/60 to-transparent">
+          <DialogHeader className="absolute top-0 left-0 right-16 z-10 p-4 bg-gradient-to-b from-black/40 to-transparent">
             <DialogTitle className="text-white text-lg">
               {hotelLightbox?.hotelName} ({(hotelLightbox?.index ?? 0) + 1}/{hotelLightbox?.images.length})
             </DialogTitle>

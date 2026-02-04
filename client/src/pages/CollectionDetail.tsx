@@ -12,6 +12,54 @@ import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import type { FlightPackage, BokunProduct } from "@shared/schema";
 
+interface CityTax {
+  id: number;
+  cityName: string;
+  countryCode: string;
+  pricingType: 'flat_rate' | 'star_rating';
+  taxPerNightPerPerson: number;
+  rate1Star?: number | null;
+  rate2Star?: number | null;
+  rate3Star?: number | null;
+  rate4Star?: number | null;
+  rate5Star?: number | null;
+  currency: string;
+}
+
+interface CityTaxInfo {
+  totalTaxPerPerson: number;
+  cityName: string;
+  nights: number;
+  ratePerNight: number;
+  currency: string;
+}
+
+const countryToCode: Record<string, string> = {
+  'italy': 'IT', 'spain': 'ES', 'france': 'FR', 'germany': 'DE',
+  'portugal': 'PT', 'greece': 'GR', 'croatia': 'HR', 'austria': 'AT',
+  'netherlands': 'NL', 'belgium': 'BE', 'switzerland': 'CH',
+};
+
+const capitalCities: Record<string, string> = {
+  'IT': 'Rome', 'ES': 'Madrid', 'FR': 'Paris', 'DE': 'Berlin',
+  'PT': 'Lisbon', 'GR': 'Athens', 'HR': 'Zagreb', 'AT': 'Vienna',
+  'NL': 'Amsterdam', 'BE': 'Brussels', 'CH': 'Bern',
+};
+
+function parseDurationNights(duration: string | null | undefined): number {
+  if (!duration) return 0;
+  const match = duration.match(/(\d+)\s*night/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+function getCountryCode(countryName: string): string | null {
+  const lower = countryName.toLowerCase();
+  for (const [name, code] of Object.entries(countryToCode)) {
+    if (lower.includes(name)) return code;
+  }
+  return null;
+}
+
 // Known collection tag slugs - if a slug is not in this list, it might be a destination
 const KNOWN_COLLECTION_SLUGS = new Set([
   "beach", "city-breaks", "city-break", "family", "adventure", "luxury", "budget",
@@ -59,12 +107,15 @@ function formatGBP(price: number): string {
   }).format(price);
 }
 
-function FlightPackageCard({ pkg, showSinglePrice = false }: { pkg: FlightPackage; showSinglePrice?: boolean }) {
+function FlightPackageCard({ pkg, showSinglePrice = false, cityTaxInfo }: { pkg: FlightPackage; showSinglePrice?: boolean; cityTaxInfo?: CityTaxInfo }) {
   const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
   // For solo collection, prefer single price; otherwise prefer double/twin price
-  const displayPrice = showSinglePrice 
+  const basePrice = showSinglePrice 
     ? (pkg.singlePrice || pkg.price) 
     : (pkg.price || pkg.singlePrice);
+  
+  const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
+  const totalPrice = (basePrice || 0) + cityTax;
   
   // Add ?pricing=solo when linking from solo collection
   const packageUrl = showSinglePrice 
@@ -105,9 +156,12 @@ function FlightPackageCard({ pkg, showSinglePrice = false }: { pkg: FlightPackag
             <div>
               <span className="text-sm text-muted-foreground">From</span>
               <p className="text-xl font-bold text-primary">
-                {displayPrice ? formatGBP(displayPrice) : "Price on request"}
+                {basePrice ? formatGBP(totalPrice) : "Price on request"}
               </p>
-              <span className="text-xs text-muted-foreground">per person</span>
+              <span className="text-xs text-muted-foreground">total cost per person</span>
+              {cityTax > 0 && basePrice && (
+                <p className="text-xs text-muted-foreground">{formatGBP(basePrice)} + {formatGBP(cityTax)} locally</p>
+              )}
             </div>
           </div>
         </CardContent>

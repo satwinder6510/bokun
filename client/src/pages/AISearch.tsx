@@ -16,6 +16,54 @@ import { Footer } from "@/components/Footer";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 
+interface CityTax {
+  id: number;
+  cityName: string;
+  countryCode: string;
+  pricingType: 'flat_rate' | 'star_rating';
+  taxPerNightPerPerson: number;
+  rate1Star?: number | null;
+  rate2Star?: number | null;
+  rate3Star?: number | null;
+  rate4Star?: number | null;
+  rate5Star?: number | null;
+  currency: string;
+}
+
+interface CityTaxInfo {
+  totalTaxPerPerson: number;
+  cityName: string;
+  nights: number;
+  ratePerNight: number;
+  currency: string;
+}
+
+const countryToCode: Record<string, string> = {
+  'italy': 'IT', 'spain': 'ES', 'france': 'FR', 'germany': 'DE',
+  'portugal': 'PT', 'greece': 'GR', 'croatia': 'HR', 'austria': 'AT',
+  'netherlands': 'NL', 'belgium': 'BE', 'switzerland': 'CH',
+};
+
+const capitalCities: Record<string, string> = {
+  'IT': 'Rome', 'ES': 'Madrid', 'FR': 'Paris', 'DE': 'Berlin',
+  'PT': 'Lisbon', 'GR': 'Athens', 'HR': 'Zagreb', 'AT': 'Vienna',
+  'NL': 'Amsterdam', 'BE': 'Brussels', 'CH': 'Bern',
+};
+
+function parseDurationNights(duration: string | null | undefined): number {
+  if (!duration) return 0;
+  const match = duration.match(/(\d+)\s*night/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+function getCountryCode(countryName: string): string | null {
+  const lower = countryName.toLowerCase();
+  for (const [name, code] of Object.entries(countryToCode)) {
+    if (lower.includes(name)) return code;
+  }
+  return null;
+}
+
 interface AISearchResult {
   id: number | string;
   type: "package" | "tour";
@@ -54,7 +102,7 @@ const HOLIDAY_TYPES = [
 
 const MAX_HOLIDAY_TYPES = 3;
 
-function ResultCard({ result }: { result: AISearchResult }) {
+function ResultCard({ result, cityTaxInfo }: { result: AISearchResult; cityTaxInfo?: CityTaxInfo }) {
   const countrySlug = result.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
   
   const formatPrice = (price: number) => {
@@ -65,6 +113,10 @@ function ResultCard({ result }: { result: AISearchResult }) {
       maximumFractionDigits: 0,
     }).format(price);
   };
+
+  const basePrice = result.price || 0;
+  const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
+  const totalPrice = basePrice + cityTax;
 
   const href = result.type === "package" 
     ? `/Holidays/${countrySlug}/${result.slug}` 
@@ -140,12 +192,19 @@ function ResultCard({ result }: { result: AISearchResult }) {
             )}
           </div>
           {result.price && (
-            <div className="flex items-baseline gap-2 mb-3 sm:mb-4 flex-wrap">
-              <span className="text-xs sm:text-sm text-white/80">from</span>
-              <span className="text-2xl sm:text-3xl font-bold text-white">
-                {formatPrice(result.price)}
-              </span>
-              <span className="text-[10px] sm:text-xs text-white/60">pp</span>
+            <div className="mb-3 sm:mb-4">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="text-xs sm:text-sm text-white/80">from</span>
+                <span className="text-2xl sm:text-3xl font-bold text-white">
+                  {formatPrice(totalPrice)}
+                </span>
+                <span className="text-[10px] sm:text-xs text-white/60">total pp</span>
+              </div>
+              {cityTax > 0 && (
+                <p className="text-[10px] sm:text-xs text-white/60 mt-1">
+                  {formatPrice(basePrice)} + {formatPrice(cityTax)} locally
+                </p>
+              )}
             </div>
           )}
           <Button variant="secondary" size="sm" className="w-full">
@@ -201,6 +260,60 @@ export default function AISearch() {
   }>({
     queryKey: ["/api/ai-search/filters"],
   });
+
+  // Fetch city taxes for city tax calculation
+  const { data: cityTaxes } = useQuery<CityTax[]>({
+    queryKey: ['/api/city-taxes'],
+  });
+
+  // Fetch EUR to GBP exchange rate
+  const { data: siteSettings } = useQuery<{ eurToGbpRate?: number }>({
+    queryKey: ['/api/admin/site-settings'],
+  });
+  const eurToGbpRate = siteSettings?.eurToGbpRate ?? 0.84;
+
+  // Calculate city tax for a search result
+  const calculateCityTaxForResult = (result: AISearchResult): CityTaxInfo | undefined => {
+    if (!cityTaxes || cityTaxes.length === 0) return undefined;
+    if (result.type !== "package") return undefined; // Only for packages
+    
+    const country = result.category;
+    if (!country) return undefined;
+    
+    const nights = parseDurationNights(result.duration);
+    if (nights <= 0) return undefined;
+    
+    const countryCode = getCountryCode(country);
+    if (!countryCode) return undefined;
+    
+    const capitalCityName = capitalCities[countryCode];
+    if (!capitalCityName) return undefined;
+    
+    const capitalTax = cityTaxes.find(
+      t => t.cityName.toLowerCase() === capitalCityName.toLowerCase() && t.countryCode === countryCode
+    );
+    if (!capitalTax) return undefined;
+    
+    let ratePerNight = 0;
+    if (capitalTax.pricingType === 'flat_rate') {
+      ratePerNight = capitalTax.taxPerNightPerPerson || 0;
+    } else {
+      ratePerNight = capitalTax.rate4Star || capitalTax.rate3Star || capitalTax.taxPerNightPerPerson || 0;
+    }
+    
+    if (ratePerNight <= 0) return undefined;
+    
+    const totalTaxEUR = ratePerNight * nights;
+    const totalTaxGBP = Math.round(totalTaxEUR * eurToGbpRate);
+    
+    return {
+      totalTaxPerPerson: totalTaxGBP,
+      cityName: capitalCityName,
+      nights,
+      ratePerNight,
+      currency: 'GBP',
+    };
+  };
 
   const destinations = filterOptions?.destinations || [];
   const maxPrice = filterOptions?.maxPrice || 10000;
@@ -511,7 +624,11 @@ export default function AISearch() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {results.map((result) => (
-                  <ResultCard key={`${result.type}-${result.id}`} result={result} />
+                  <ResultCard 
+                    key={`${result.type}-${result.id}`} 
+                    result={result} 
+                    cityTaxInfo={calculateCityTaxForResult(result)}
+                  />
                 ))}
               </div>
             </>

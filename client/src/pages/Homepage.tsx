@@ -55,6 +55,55 @@ const fallbackTestimonials = [
   }
 ];
 
+// City tax interfaces and helpers
+interface CityTax {
+  id: number;
+  cityName: string;
+  countryCode: string;
+  pricingType: 'flat_rate' | 'star_rating';
+  taxPerNightPerPerson: number;
+  rate1Star?: number | null;
+  rate2Star?: number | null;
+  rate3Star?: number | null;
+  rate4Star?: number | null;
+  rate5Star?: number | null;
+  currency: string;
+}
+
+interface CityTaxInfo {
+  totalTaxPerPerson: number;
+  cityName: string;
+  nights: number;
+  ratePerNight: number;
+  currency: string;
+}
+
+const countryToCodeMap: Record<string, string> = {
+  'italy': 'IT', 'spain': 'ES', 'france': 'FR', 'germany': 'DE',
+  'portugal': 'PT', 'greece': 'GR', 'croatia': 'HR', 'austria': 'AT',
+  'netherlands': 'NL', 'belgium': 'BE', 'switzerland': 'CH',
+};
+
+const capitalCitiesMap: Record<string, string> = {
+  'IT': 'Rome', 'ES': 'Madrid', 'FR': 'Paris', 'DE': 'Berlin',
+  'PT': 'Lisbon', 'GR': 'Athens', 'HR': 'Zagreb', 'AT': 'Vienna',
+  'NL': 'Amsterdam', 'BE': 'Brussels', 'CH': 'Bern',
+};
+
+function parseDurationNightsHome(duration: string | null | undefined): number {
+  if (!duration) return 0;
+  const match = duration.match(/(\d+)\s*night/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
+
+function getCountryCodeHome(countryName: string): string | null {
+  const lower = countryName.toLowerCase();
+  for (const [name, code] of Object.entries(countryToCodeMap)) {
+    if (lower.includes(name)) return code;
+  }
+  return null;
+}
+
 // AI Search interfaces and constants
 interface AISearchResult {
   id: number | string;
@@ -268,6 +317,60 @@ export default function Homepage() {
     enabled: hasSearched,
     staleTime: 0,
   });
+
+  // Fetch city taxes for city tax calculation
+  const { data: cityTaxes } = useQuery<CityTax[]>({
+    queryKey: ['/api/city-taxes'],
+  });
+
+  // Fetch EUR to GBP exchange rate
+  const { data: siteSettings } = useQuery<{ eurToGbpRate?: number }>({
+    queryKey: ['/api/admin/site-settings'],
+  });
+  const eurToGbpRate = siteSettings?.eurToGbpRate ?? 0.84;
+
+  // Calculate city tax for an AI search result
+  const calculateCityTaxForResult = (result: AISearchResult): CityTaxInfo | undefined => {
+    if (!cityTaxes || cityTaxes.length === 0) return undefined;
+    if (result.type !== "package") return undefined;
+    
+    const country = result.category;
+    if (!country) return undefined;
+    
+    const nights = parseDurationNightsHome(result.duration);
+    if (nights <= 0) return undefined;
+    
+    const countryCode = getCountryCodeHome(country);
+    if (!countryCode) return undefined;
+    
+    const capitalCityName = capitalCitiesMap[countryCode];
+    if (!capitalCityName) return undefined;
+    
+    const capitalTax = cityTaxes.find(
+      t => t.cityName.toLowerCase() === capitalCityName.toLowerCase() && t.countryCode === countryCode
+    );
+    if (!capitalTax) return undefined;
+    
+    let ratePerNight = 0;
+    if (capitalTax.pricingType === 'flat_rate') {
+      ratePerNight = capitalTax.taxPerNightPerPerson || 0;
+    } else {
+      ratePerNight = capitalTax.rate4Star || capitalTax.rate3Star || capitalTax.taxPerNightPerPerson || 0;
+    }
+    
+    if (ratePerNight <= 0) return undefined;
+    
+    const totalTaxEUR = ratePerNight * nights;
+    const totalTaxGBP = Math.round(totalTaxEUR * eurToGbpRate);
+    
+    return {
+      totalTaxPerPerson: totalTaxGBP,
+      cityName: capitalCityName,
+      nights,
+      ratePerNight,
+      currency: 'GBP',
+    };
+  };
 
   // Track AI searches in PostHog
   useEffect(() => {
@@ -737,15 +840,27 @@ export default function Homepage() {
                                 {result.category}
                               </p>
                             )}
-                            {result.price && (
-                              <div className="flex items-baseline gap-1 mb-2">
-                                <span className="text-xs text-white/80">from</span>
-                                <span className="text-xl font-bold text-white">
-                                  {formatAiPrice(result.price)}
-                                </span>
-                                <span className="text-[10px] text-white/60">pp</span>
-                              </div>
-                            )}
+                            {result.price && (() => {
+                              const cityTaxInfo = calculateCityTaxForResult(result);
+                              const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
+                              const totalPrice = result.price + cityTax;
+                              return (
+                                <div className="mb-2">
+                                  <div className="flex items-baseline gap-1">
+                                    <span className="text-xs text-white/80">from</span>
+                                    <span className="text-xl font-bold text-white">
+                                      {formatAiPrice(totalPrice)}
+                                    </span>
+                                    <span className="text-[10px] text-white/60">total pp</span>
+                                  </div>
+                                  {cityTax > 0 && (
+                                    <p className="text-[10px] text-white/60 mt-0.5">
+                                      {formatAiPrice(result.price)} + {formatAiPrice(cityTax)} locally
+                                    </p>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             <Button variant="secondary" size="sm" className="w-full text-xs">
                               View Details
                             </Button>

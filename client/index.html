@@ -121,5 +121,12 @@
     </script>
     <!-- Tidio Chat Widget -->
     <script src="//code.tidio.co/umkdiuqjxuccie7jbxsnr0f6pj3lkfcs.js" async></script>
+    <script>
+      document.addEventListener("tidioChat-ready", function() {
+        if (window.tidioChatApi) {
+          window.tidioChatApi.show();
+        }
+      });
+    </script>
   </body>
 </html>

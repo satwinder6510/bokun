@@ -414,3 +414,13 @@ html, body {
   }
 }
 
+/* Tidio Chat Widget - ensure visibility */
+#tidio-chat-iframe,
+#tidio-chat,
+iframe[src*="tidio"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 2147483647 !important;
+}
+

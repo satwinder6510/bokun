@@ -5615,15 +5615,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Calculate tax rate based on pricing type and star rating
           let taxRate = matchingTax.taxPerNightPerPerson || 0;
           
-          if (matchingTax.pricingType === 'star_rating' && config.starRating) {
-            // Use star-rating based pricing
-            switch (config.starRating) {
+          if (matchingTax.pricingType === 'star_rating') {
+            // Use star-rating based pricing, default to 4-star if not specified
+            const starRating = config.starRating || 4;
+            switch (starRating) {
               case 1: taxRate = matchingTax.rate1Star || 0; break;
               case 2: taxRate = matchingTax.rate2Star || 0; break;
               case 3: taxRate = matchingTax.rate3Star || 0; break;
               case 4: taxRate = matchingTax.rate4Star || 0; break;
               case 5: taxRate = matchingTax.rate5Star || 0; break;
-              default: taxRate = matchingTax.rate3Star || matchingTax.taxPerNightPerPerson || 0;
+              default: taxRate = matchingTax.rate4Star || 0;
             }
           }
           

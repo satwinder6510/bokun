@@ -434,14 +434,16 @@ export default function AdminPackages() {
   
   // Helper to get tax rate based on pricing type and star rating
   const getCityTaxRate = (taxInfo: CityTaxItem, starRating?: number): number => {
-    if (taxInfo.pricingType === 'star_rating' && starRating) {
-      switch (starRating) {
+    if (taxInfo.pricingType === 'star_rating') {
+      // Default to 4-star rating if not specified
+      const rating = starRating || 4;
+      switch (rating) {
         case 1: return taxInfo.rate1Star || 0;
         case 2: return taxInfo.rate2Star || 0;
         case 3: return taxInfo.rate3Star || 0;
         case 4: return taxInfo.rate4Star || 0;
         case 5: return taxInfo.rate5Star || 0;
-        default: return taxInfo.rate3Star || 0;
+        default: return taxInfo.rate4Star || 0;
       }
     }
     return taxInfo.taxPerNightPerPerson || 0;

@@ -427,6 +427,7 @@ export const flightPackages = pgTable("flight_packages", {
   cityTaxConfig: jsonb("city_tax_config").$type<{
     city: string;  // Must match a city name in city_taxes table
     nights: number;
+    starRating?: number;  // 1-5 star rating for hotels (used for star-rating based taxes)
   }[]>().default([]),
   
   // Duration info

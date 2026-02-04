@@ -5595,16 +5595,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use explicit cityTaxConfig from the package
       // This is simpler and more reliable than parsing itinerary
       const cityTaxConfig = pkg.cityTaxConfig || [];
-      const cityNights: { city: string; nights: number; tax: number; currency: string }[] = [];
+      const cityNights: { city: string; nights: number; tax: number; currency: string; starRating?: number }[] = [];
       
       for (const config of cityTaxConfig) {
         const matchingTax = allTaxes.find(t => t.cityName.toLowerCase() === config.city.toLowerCase());
         if (matchingTax && config.nights > 0) {
+          // Calculate tax rate based on pricing type and star rating
+          let taxRate = matchingTax.taxPerNightPerPerson || 0;
+          
+          if (matchingTax.pricingType === 'star_rating' && config.starRating) {
+            // Use star-rating based pricing
+            switch (config.starRating) {
+              case 1: taxRate = matchingTax.rate1Star || 0; break;
+              case 2: taxRate = matchingTax.rate2Star || 0; break;
+              case 3: taxRate = matchingTax.rate3Star || 0; break;
+              case 4: taxRate = matchingTax.rate4Star || 0; break;
+              case 5: taxRate = matchingTax.rate5Star || 0; break;
+              default: taxRate = matchingTax.rate3Star || matchingTax.taxPerNightPerPerson || 0;
+            }
+          }
+          
           cityNights.push({
             city: matchingTax.cityName,
             nights: config.nights,
-            tax: matchingTax.taxPerNightPerPerson,
+            tax: taxRate,
             currency: matchingTax.currency,
+            starRating: config.starRating,
           });
         }
       }

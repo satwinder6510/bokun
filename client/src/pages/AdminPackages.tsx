@@ -137,7 +137,7 @@ type PackageFormData = {
   mobileHeroVideo: string;
   desktopHeroVideo: string;
   customExclusions: string[];
-  cityTaxConfig: { city: string; nights: number }[];
+  cityTaxConfig: { city: string; nights: number; starRating?: number }[];
   videos: VideoItem[];
   duration: string;
   boardBasisOverride: string;
@@ -412,11 +412,40 @@ export default function AdminPackages() {
   });
   
   // City taxes query for city tax configuration
-  type CityTaxItem = { id: number; cityName: string; taxPerNightPerPerson: number; currency: string };
+  type CityTaxItem = { 
+    id: number; 
+    cityName: string; 
+    taxPerNightPerPerson: number; 
+    currency: string; 
+    pricingType: string;
+    rate1Star?: number;
+    rate2Star?: number;
+    rate3Star?: number;
+    rate4Star?: number;
+    rate5Star?: number;
+  };
   const { data: cityTaxes = [] } = useQuery<CityTaxItem[]>({
     queryKey: ["/api/admin/city-taxes"],
     queryFn: () => adminQueryFn("/api/admin/city-taxes"),
   });
+  
+  // Star rating state for adding new city tax entries
+  const [cityTaxStarRating, setCityTaxStarRating] = useState<number>(4);
+  
+  // Helper to get tax rate based on pricing type and star rating
+  const getCityTaxRate = (taxInfo: CityTaxItem, starRating?: number): number => {
+    if (taxInfo.pricingType === 'star_rating' && starRating) {
+      switch (starRating) {
+        case 1: return taxInfo.rate1Star || 0;
+        case 2: return taxInfo.rate2Star || 0;
+        case 3: return taxInfo.rate3Star || 0;
+        case 4: return taxInfo.rate4Star || 0;
+        case 5: return taxInfo.rate5Star || 0;
+        default: return taxInfo.rate3Star || 0;
+      }
+    }
+    return taxInfo.taxPerNightPerPerson || 0;
+  };
   
   // Filter hotels based on search
   const filteredHotels = hotelsLibrary.filter(hotel => 
@@ -724,7 +753,7 @@ export default function AdminPackages() {
       mobileHeroVideo: pkg.mobileHeroVideo || "",
       desktopHeroVideo: pkg.desktopHeroVideo || "",
       customExclusions: (pkg.customExclusions || []) as string[],
-      cityTaxConfig: ((pkg as any).cityTaxConfig || []) as { city: string; nights: number }[],
+      cityTaxConfig: ((pkg as any).cityTaxConfig || []) as { city: string; nights: number; starRating?: number }[],
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
       boardBasisOverride: pkg.boardBasisOverride || "",
@@ -3347,11 +3376,11 @@ export default function AdminPackages() {
                         </p>
                       ) : (
                         <>
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <select
                               value={selectedCityTax}
                               onChange={(e) => setSelectedCityTax(e.target.value)}
-                              className="flex-1 p-2 border rounded-md bg-background text-sm"
+                              className="flex-1 min-w-[150px] p-2 border rounded-md bg-background text-sm"
                               data-testid="select-city-tax"
                             >
                               <option value="">Select a city...</option>
@@ -3359,7 +3388,7 @@ export default function AdminPackages() {
                                 .filter(tax => !(formData.cityTaxConfig || []).find(c => c.city.toLowerCase() === tax.cityName.toLowerCase()))
                                 .map(tax => (
                                   <option key={tax.id} value={tax.cityName}>
-                                    {tax.cityName} ({tax.currency} {tax.taxPerNightPerPerson}/night/person)
+                                    {tax.cityName} {tax.pricingType === 'star_rating' ? '(by star)' : `(${tax.currency} ${tax.taxPerNightPerPerson}/night)`}
                                   </option>
                                 ))
                               }
@@ -3373,17 +3402,44 @@ export default function AdminPackages() {
                               placeholder="Nights"
                               data-testid="input-city-tax-nights"
                             />
+                            {(() => {
+                              const selectedTaxInfo = cityTaxes.find(t => t.cityName === selectedCityTax);
+                              if (selectedTaxInfo?.pricingType === 'star_rating') {
+                                return (
+                                  <select
+                                    value={cityTaxStarRating}
+                                    onChange={(e) => setCityTaxStarRating(parseInt(e.target.value))}
+                                    className="w-24 p-2 border rounded-md bg-background text-sm"
+                                    data-testid="select-city-tax-star"
+                                  >
+                                    <option value={3}>3★</option>
+                                    <option value={4}>4★</option>
+                                    <option value={5}>5★</option>
+                                  </select>
+                                );
+                              }
+                              return null;
+                            })()}
                             <Button
                               type="button"
                               variant="secondary"
                               onClick={() => {
                                 if (selectedCityTax) {
+                                  const selectedTaxInfo = cityTaxes.find(t => t.cityName === selectedCityTax);
+                                  const newEntry: { city: string; nights: number; starRating?: number } = {
+                                    city: selectedCityTax,
+                                    nights: cityTaxNights,
+                                  };
+                                  if (selectedTaxInfo?.pricingType === 'star_rating') {
+                                    newEntry.starRating = cityTaxStarRating;
+                                  }
                                   setFormData({
                                     ...formData,
-                                    cityTaxConfig: [...(formData.cityTaxConfig || []), { city: selectedCityTax, nights: cityTaxNights }]
+                                    cityTaxConfig: [...(formData.cityTaxConfig || []), newEntry]
                                   });
                                   setSelectedCityTax("");
                                   setCityTaxNights(1);
+                                  setCityTaxStarRating(4);
                                 }
                               }}
                               data-testid="button-add-city-tax"
@@ -3395,11 +3451,29 @@ export default function AdminPackages() {
                             <div className="space-y-1">
                               {(formData.cityTaxConfig || []).map((config, i) => {
                                 const taxInfo = cityTaxes.find(t => t.cityName.toLowerCase() === config.city.toLowerCase());
-                                const taxPerPerson = taxInfo ? config.nights * taxInfo.taxPerNightPerPerson : 0;
+                                const taxRate = taxInfo ? getCityTaxRate(taxInfo, config.starRating) : 0;
+                                const taxPerPerson = config.nights * taxRate;
+                                const isStarRatingBased = taxInfo?.pricingType === 'star_rating';
                                 return (
                                   <div key={i} className="flex items-center justify-between gap-2 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-md text-sm">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex flex-wrap items-center gap-2">
                                       <span className="font-medium">{config.city}</span>
+                                      {isStarRatingBased && (
+                                        <select
+                                          value={config.starRating || 4}
+                                          onChange={(e) => {
+                                            const updated = [...(formData.cityTaxConfig || [])];
+                                            updated[i] = { ...updated[i], starRating: parseInt(e.target.value) };
+                                            setFormData({ ...formData, cityTaxConfig: updated });
+                                          }}
+                                          className="w-16 h-7 text-center border rounded bg-background text-sm"
+                                          data-testid={`select-star-rating-${i}`}
+                                        >
+                                          <option value={3}>3★</option>
+                                          <option value={4}>4★</option>
+                                          <option value={5}>5★</option>
+                                        </select>
+                                      )}
                                       <span className="text-muted-foreground">×</span>
                                       <Input
                                         type="number"
@@ -3416,7 +3490,7 @@ export default function AdminPackages() {
                                       <span className="text-muted-foreground">nights</span>
                                       {taxInfo && (
                                         <span className="text-xs text-muted-foreground">
-                                          = {taxInfo.currency} {taxPerPerson.toFixed(2)}/person
+                                          @ {taxInfo.currency} {taxRate.toFixed(2)} = {taxInfo.currency} {taxPerPerson.toFixed(2)}/person
                                         </span>
                                       )}
                                     </div>
@@ -3441,7 +3515,8 @@ export default function AdminPackages() {
                               {(() => {
                                 const totalTax = (formData.cityTaxConfig || []).reduce((sum, config) => {
                                   const taxInfo = cityTaxes.find(t => t.cityName.toLowerCase() === config.city.toLowerCase());
-                                  return sum + (taxInfo ? config.nights * taxInfo.taxPerNightPerPerson : 0);
+                                  const rate = taxInfo ? getCityTaxRate(taxInfo, config.starRating) : 0;
+                                  return sum + (config.nights * rate);
                                 }, 0);
                                 const currency = cityTaxes[0]?.currency || "EUR";
                                 return totalTax > 0 ? (

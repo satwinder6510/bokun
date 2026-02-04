@@ -5527,14 +5527,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/city-taxes", verifyAdminSession, async (req, res) => {
     try {
-      const { cityName, countryCode, taxPerNightPerPerson, currency, notes, effectiveDate } = req.body;
-      if (!cityName || taxPerNightPerPerson === undefined) {
-        return res.status(400).json({ error: "City name and tax amount are required" });
+      const { cityName, countryCode, pricingType, taxPerNightPerPerson, rate1Star, rate2Star, rate3Star, rate4Star, rate5Star, currency, notes, effectiveDate } = req.body;
+      if (!cityName) {
+        return res.status(400).json({ error: "City name is required" });
       }
       const tax = await storage.createCityTax({
         cityName,
         countryCode: countryCode || "",
-        taxPerNightPerPerson: parseFloat(taxPerNightPerPerson),
+        pricingType: pricingType || "flat",
+        taxPerNightPerPerson: parseFloat(taxPerNightPerPerson) || 0,
+        rate1Star: rate1Star != null ? parseFloat(rate1Star) : null,
+        rate2Star: rate2Star != null ? parseFloat(rate2Star) : null,
+        rate3Star: rate3Star != null ? parseFloat(rate3Star) : null,
+        rate4Star: rate4Star != null ? parseFloat(rate4Star) : null,
+        rate5Star: rate5Star != null ? parseFloat(rate5Star) : null,
         currency: currency || "EUR",
         notes: notes || null,
         effectiveDate: effectiveDate ? new Date(effectiveDate) : null,
@@ -5549,11 +5555,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/admin/city-taxes/:id", verifyAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
-      const { cityName, countryCode, taxPerNightPerPerson, currency, notes, effectiveDate } = req.body;
+      const { cityName, countryCode, pricingType, taxPerNightPerPerson, rate1Star, rate2Star, rate3Star, rate4Star, rate5Star, currency, notes, effectiveDate } = req.body;
       const tax = await storage.updateCityTax(parseInt(id), {
         cityName,
         countryCode,
+        pricingType,
         taxPerNightPerPerson: taxPerNightPerPerson !== undefined ? parseFloat(taxPerNightPerPerson) : undefined,
+        rate1Star: rate1Star !== undefined ? (rate1Star != null ? parseFloat(rate1Star) : null) : undefined,
+        rate2Star: rate2Star !== undefined ? (rate2Star != null ? parseFloat(rate2Star) : null) : undefined,
+        rate3Star: rate3Star !== undefined ? (rate3Star != null ? parseFloat(rate3Star) : null) : undefined,
+        rate4Star: rate4Star !== undefined ? (rate4Star != null ? parseFloat(rate4Star) : null) : undefined,
+        rate5Star: rate5Star !== undefined ? (rate5Star != null ? parseFloat(rate5Star) : null) : undefined,
         currency,
         notes,
         effectiveDate: effectiveDate ? new Date(effectiveDate) : null,

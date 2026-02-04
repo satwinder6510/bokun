@@ -2115,10 +2115,22 @@ export default function PackageDetailTest() {
                                       year: 'numeric'
                                     })}
                                   </p>
-                                  <p className="text-2xl font-bold text-blue-600 mt-1">
-                                    {formatPrice(selectedBokunPricing.combinedPrice)}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">per person incl. flights</p>
+                                  {/* Show total cost if city tax exists, otherwise just show price */}
+                                  {cityTaxData && cityTaxData.totalTaxPerPerson > 0 ? (
+                                    <>
+                                      <p className="text-2xl font-bold text-blue-600 mt-1">
+                                        {formatPrice(selectedBokunPricing.combinedPrice + cityTaxData.totalTaxPerPerson)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">total cost per person</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="text-2xl font-bold text-blue-600 mt-1">
+                                        {formatPrice(selectedBokunPricing.combinedPrice)}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">per person incl. flights</p>
+                                    </>
+                                  )}
                                 </div>
                                 
                                 {/* Pay Now / Pay Locally breakdown */}
@@ -2129,7 +2141,7 @@ export default function PackageDetailTest() {
                                       <span className="font-medium">{formatPrice(selectedBokunPricing.combinedPrice)}</span>
                                     </div>
                                     <div className="flex justify-between text-sm mt-1">
-                                      <span className="text-muted-foreground">Pay locally (city tax):</span>
+                                      <span className="text-muted-foreground">Pay locally:</span>
                                       <span className="font-medium">{cityTaxData.currency} {cityTaxData.totalTaxPerPerson.toFixed(2)}</span>
                                     </div>
                                     {cityTaxData.lastUpdated && (

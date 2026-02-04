@@ -256,20 +256,32 @@ export default function DestinationDetail() {
 
   // Calculate city tax for a package based on its destination country and duration
   const calculateCityTaxForPackage = (pkg: FlightPackage): CityTaxInfo | undefined => {
-    if (!cityTaxes || cityTaxes.length === 0) return undefined;
+    console.log('[DestinationDetail] calculateCityTaxForPackage called for:', pkg.title);
+    console.log('[DestinationDetail] cityTaxes available:', cityTaxes?.length || 0);
+    
+    if (!cityTaxes || cityTaxes.length === 0) {
+      console.log('[DestinationDetail] No city taxes available');
+      return undefined;
+    }
     
     const country = pkg.category;
-    if (!country) return undefined;
+    if (!country) {
+      console.log('[DestinationDetail] No country category for package');
+      return undefined;
+    }
     
     const nights = parseDurationNights(pkg.duration);
+    console.log('[DestinationDetail] Nights parsed:', nights, 'from duration:', pkg.duration);
     if (nights <= 0) return undefined;
     
     // Get country code from country name
     const countryCode = getCountryCode(country);
+    console.log('[DestinationDetail] Country code for', country, ':', countryCode);
     if (!countryCode) return undefined;
     
     // Get capital city name for this country
     const capitalCityName = capitalCities[countryCode];
+    console.log('[DestinationDetail] Capital city for', countryCode, ':', capitalCityName);
     if (!capitalCityName) return undefined;
     
     // Find capital city tax

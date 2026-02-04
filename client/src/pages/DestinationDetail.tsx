@@ -244,18 +244,9 @@ export default function DestinationDetail() {
   });
 
   // Fetch city taxes for city tax calculation
-  const { data: cityTaxes, isLoading: cityTaxesLoading } = useQuery<CityTax[]>({
+  const { data: cityTaxes } = useQuery<CityTax[]>({
     queryKey: ['/api/city-taxes'],
-    queryFn: async () => {
-      console.log('[DestinationDetail] Fetching city taxes...');
-      const res = await fetch('/api/city-taxes');
-      const data = await res.json();
-      console.log('[DestinationDetail] City taxes fetched:', data?.length || 0, 'records');
-      return data;
-    },
   });
-  
-  console.log('[DestinationDetail] cityTaxes state:', cityTaxes?.length || 0, 'loading:', cityTaxesLoading);
 
   // Fetch EUR to GBP exchange rate
   const { data: siteSettings } = useQuery<{ eurToGbpRate?: number }>({
@@ -265,32 +256,20 @@ export default function DestinationDetail() {
 
   // Calculate city tax for a package based on its destination country and duration
   const calculateCityTaxForPackage = (pkg: FlightPackage): CityTaxInfo | undefined => {
-    console.log('[DestinationDetail] calculateCityTaxForPackage called for:', pkg.title);
-    console.log('[DestinationDetail] cityTaxes available:', cityTaxes?.length || 0);
-    
-    if (!cityTaxes || cityTaxes.length === 0) {
-      console.log('[DestinationDetail] No city taxes available');
-      return undefined;
-    }
+    if (!cityTaxes || cityTaxes.length === 0) return undefined;
     
     const country = pkg.category;
-    if (!country) {
-      console.log('[DestinationDetail] No country category for package');
-      return undefined;
-    }
+    if (!country) return undefined;
     
     const nights = parseDurationNights(pkg.duration);
-    console.log('[DestinationDetail] Nights parsed:', nights, 'from duration:', pkg.duration);
     if (nights <= 0) return undefined;
     
     // Get country code from country name
     const countryCode = getCountryCode(country);
-    console.log('[DestinationDetail] Country code for', country, ':', countryCode);
     if (!countryCode) return undefined;
     
     // Get capital city name for this country
     const capitalCityName = capitalCities[countryCode];
-    console.log('[DestinationDetail] Capital city for', countryCode, ':', capitalCityName);
     if (!capitalCityName) return undefined;
     
     // Find capital city tax

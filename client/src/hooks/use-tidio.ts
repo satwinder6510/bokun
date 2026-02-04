@@ -14,32 +14,51 @@ declare global {
 let tidioLoaded = false;
 
 export function useTidio() {
-  // Tidio is now loaded directly in index.html
-  // This hook just ensures the widget is shown when ready
+  // Tidio is loaded directly in index.html
+  // This hook ensures the widget is shown and visible
   useEffect(() => {
     if (!tidioLoaded) {
       tidioLoaded = true;
       
-      // Show the widget when Tidio is ready
-      const handleTidioReady = () => {
-        console.log('[Tidio] Chat ready, showing widget');
+      const showTidioWidget = () => {
+        // Call the API to show the widget
         if (window.tidioChatApi) {
           window.tidioChatApi.show();
         }
+        
+        // Also force the iframe to be visible via DOM
+        const tidioFrame = document.getElementById('tidio-chat-code');
+        if (tidioFrame) {
+          tidioFrame.style.display = 'block';
+          console.log('[Tidio] Forced iframe visible');
+        }
+        
+        // Also check for the button iframe
+        const tidioButton = document.getElementById('tidio-chat');
+        if (tidioButton) {
+          tidioButton.style.display = 'block';
+        }
+      };
+      
+      // Show when Tidio is ready
+      const handleTidioReady = () => {
+        console.log('[Tidio] Chat ready');
+        showTidioWidget();
       };
       
       document.addEventListener('tidioChat-ready', handleTidioReady);
       
-      // Also poll for API availability as backup
+      // Poll for Tidio elements and make them visible
       let attempts = 0;
       const checkApi = setInterval(() => {
         attempts++;
-        if (window.tidioChatApi) {
-          console.log('[Tidio] API available, showing widget');
-          window.tidioChatApi.show();
+        showTidioWidget();
+        
+        if (window.tidioChatApi && attempts > 20) {
+          console.log('[Tidio] Widget should be visible now');
           clearInterval(checkApi);
         } else if (attempts > 100) {
-          console.log('[Tidio] API not available after 10s');
+          console.log('[Tidio] Giving up after 10s');
           clearInterval(checkApi);
         }
       }, 100);

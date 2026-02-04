@@ -1309,9 +1309,16 @@ export default function PackageDetailTest() {
               <div className="mt-3 inline-block bg-white backdrop-blur-sm rounded-lg px-4 py-2 shadow-xl">
                 <p className="text-xs text-muted-foreground">From</p>
                 <p className="text-xl font-bold text-secondary">
-                  {formatPrice(pkg.price)}
+                  {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
                 </p>
-                <p className="text-xs text-muted-foreground">per person</p>
+                <p className="text-xs text-muted-foreground">total cost per person</p>
+                {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                  <div className="text-xs text-muted-foreground mt-1 border-t pt-1">
+                    <span>{formatPrice(pkg.price)} pay now</span>
+                    <span className="mx-1">+</span>
+                    <span>{formatPrice(cityTaxData.totalTaxPerPerson)} locally</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2373,8 +2380,11 @@ export default function PackageDetailTest() {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <span className="text-sm text-muted-foreground">From</span>
-                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price)}</p>
-                    <span className="text-xs text-muted-foreground">per person</span>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
+                    <span className="text-xs text-muted-foreground">total cost per person</span>
+                    {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                    )}
                   </div>
                   <Badge className="bg-secondary text-white">
                     <Plane className="w-4 h-4 mr-1" />
@@ -2424,8 +2434,11 @@ export default function PackageDetailTest() {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <span className="text-sm text-muted-foreground">From</span>
-                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price)}</p>
-                    <span className="text-xs text-muted-foreground">per person</span>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
+                    <span className="text-xs text-muted-foreground">total cost per person</span>
+                    {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                    )}
                   </div>
                   <Badge className="bg-blue-600 text-white">
                     <Plane className="w-4 h-4 mr-1" />

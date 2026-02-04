@@ -5514,6 +5514,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public City Tax endpoint (for card displays)
+  app.get("/api/city-taxes", async (req, res) => {
+    try {
+      const taxes = await storage.getAllCityTaxes();
+      res.json(taxes);
+    } catch (error: any) {
+      console.error("Error fetching city taxes:", error);
+      res.status(500).json({ error: "Failed to fetch city taxes" });
+    }
+  });
+
   // City Tax routes (admin)
   app.get("/api/admin/city-taxes", verifyAdminSession, async (req, res) => {
     try {

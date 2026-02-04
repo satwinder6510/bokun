@@ -5603,6 +5603,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all city taxes
       const allTaxes = await storage.getAllCityTaxes();
       const latestUpdate = await storage.getLatestCityTaxUpdate();
+      
+      // Get EUR to GBP exchange rate for conversion
+      const eurToGbpSetting = await storage.getSiteSettingByKey('eur_to_gbp_rate');
+      const eurToGbp = eurToGbpSetting ? parseFloat(eurToGbpSetting.value) : 0.84;
 
       // Capital cities mapping for auto-calculation (use highest rate city as default)
       const capitalCities: Record<string, string> = {
@@ -5682,7 +5686,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const cityNights: { city: string; nights: number; tax: number; currency: string; starRating?: number; autoCalculated?: boolean }[] = [];
+      const cityNights: { city: string; nights: number; tax: number; currency: string; taxOriginal: number; currencyOriginal: string; starRating?: number; autoCalculated?: boolean }[] = [];
       
       for (const config of cityTaxConfig) {
         const matchingTax = allTaxes.find(t => t.cityName.toLowerCase() === config.city.toLowerCase());
@@ -5703,27 +5707,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
+          // Convert to GBP if currency is EUR
+          const taxInGbp = matchingTax.currency === 'EUR' 
+            ? Math.round(taxRate * eurToGbp * 100) / 100
+            : taxRate; // Assume other currencies might already be GBP or handle separately
+          
           cityNights.push({
             city: matchingTax.cityName,
             nights: config.nights,
-            tax: taxRate,
-            currency: matchingTax.currency,
+            taxOriginal: taxRate,
+            currencyOriginal: matchingTax.currency,
+            tax: taxInGbp,
+            currency: 'GBP',
             starRating: config.starRating,
             autoCalculated: (pkg.cityTaxConfig || []).length === 0,
           });
         }
       }
 
-      // Calculate total tax per person
-      const totalTaxPerPerson = cityNights.reduce((sum, cn) => sum + (cn.nights * cn.tax), 0);
+      // Calculate total tax per person (in GBP)
+      const totalTaxPerPerson = Math.round(cityNights.reduce((sum, cn) => sum + (cn.nights * cn.tax), 0) * 100) / 100;
       const isAutoCalculated = (pkg.cityTaxConfig || []).length === 0 && cityNights.length > 0;
       
       res.json({
         cityNights,
         totalTaxPerPerson,
-        currency: cityNights[0]?.currency || "EUR",
+        currency: 'GBP',
         lastUpdated: latestUpdate?.toISOString() || null,
         autoCalculated: isAutoCalculated,
+        eurToGbpRate: eurToGbp,
       });
     } catch (error: any) {
       console.error("Error calculating city taxes:", error);

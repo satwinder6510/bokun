@@ -2142,7 +2142,7 @@ export default function PackageDetailTest() {
                                     </div>
                                     <div className="flex justify-between text-sm mt-1">
                                       <span className="text-muted-foreground">Pay locally:</span>
-                                      <span className="font-medium">{cityTaxData.currency} {cityTaxData.totalTaxPerPerson.toFixed(2)}</span>
+                                      <span className="font-medium">{formatPrice(cityTaxData.totalTaxPerPerson)}</span>
                                     </div>
                                     {cityTaxData.lastUpdated && (
                                       <p className="text-xs text-muted-foreground mt-2 text-center">

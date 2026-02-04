@@ -52,7 +52,13 @@ const COUNTRY_CODES = [
 interface TaxFormData {
   cityName: string;
   countryCode: string;
+  pricingType: "flat" | "star_rating";
   taxPerNightPerPerson: string;
+  rate1Star: string;
+  rate2Star: string;
+  rate3Star: string;
+  rate4Star: string;
+  rate5Star: string;
   currency: string;
   notes: string;
   effectiveDate: string;
@@ -61,7 +67,13 @@ interface TaxFormData {
 const defaultFormData: TaxFormData = {
   cityName: "",
   countryCode: "IT",
+  pricingType: "flat",
   taxPerNightPerPerson: "",
+  rate1Star: "",
+  rate2Star: "",
+  rate3Star: "",
+  rate4Star: "",
+  rate5Star: "",
   currency: "EUR",
   notes: "",
   effectiveDate: "",
@@ -80,8 +92,17 @@ export default function AdminCityTaxes() {
   const createMutation = useMutation({
     mutationFn: (data: TaxFormData) =>
       apiRequest("POST", "/api/admin/city-taxes", {
-        ...data,
-        taxPerNightPerPerson: parseFloat(data.taxPerNightPerPerson),
+        cityName: data.cityName,
+        countryCode: data.countryCode,
+        pricingType: data.pricingType,
+        taxPerNightPerPerson: parseFloat(data.taxPerNightPerPerson) || 0,
+        rate1Star: data.rate1Star ? parseFloat(data.rate1Star) : null,
+        rate2Star: data.rate2Star ? parseFloat(data.rate2Star) : null,
+        rate3Star: data.rate3Star ? parseFloat(data.rate3Star) : null,
+        rate4Star: data.rate4Star ? parseFloat(data.rate4Star) : null,
+        rate5Star: data.rate5Star ? parseFloat(data.rate5Star) : null,
+        currency: data.currency,
+        notes: data.notes || null,
         effectiveDate: data.effectiveDate || null,
       }),
     onSuccess: () => {
@@ -97,8 +118,17 @@ export default function AdminCityTaxes() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: TaxFormData }) =>
       apiRequest("PUT", `/api/admin/city-taxes/${id}`, {
-        ...data,
-        taxPerNightPerPerson: parseFloat(data.taxPerNightPerPerson),
+        cityName: data.cityName,
+        countryCode: data.countryCode,
+        pricingType: data.pricingType,
+        taxPerNightPerPerson: parseFloat(data.taxPerNightPerPerson) || 0,
+        rate1Star: data.rate1Star ? parseFloat(data.rate1Star) : null,
+        rate2Star: data.rate2Star ? parseFloat(data.rate2Star) : null,
+        rate3Star: data.rate3Star ? parseFloat(data.rate3Star) : null,
+        rate4Star: data.rate4Star ? parseFloat(data.rate4Star) : null,
+        rate5Star: data.rate5Star ? parseFloat(data.rate5Star) : null,
+        currency: data.currency,
+        notes: data.notes || null,
         effectiveDate: data.effectiveDate || null,
       }),
     onSuccess: () => {
@@ -133,7 +163,13 @@ export default function AdminCityTaxes() {
     setFormData({
       cityName: tax.cityName,
       countryCode: tax.countryCode || "IT",
-      taxPerNightPerPerson: tax.taxPerNightPerPerson.toString(),
+      pricingType: (tax.pricingType as "flat" | "star_rating") || "flat",
+      taxPerNightPerPerson: tax.taxPerNightPerPerson?.toString() || "",
+      rate1Star: tax.rate1Star?.toString() || "",
+      rate2Star: tax.rate2Star?.toString() || "",
+      rate3Star: tax.rate3Star?.toString() || "",
+      rate4Star: tax.rate4Star?.toString() || "",
+      rate5Star: tax.rate5Star?.toString() || "",
       currency: tax.currency || "EUR",
       notes: tax.notes || "",
       effectiveDate: tax.effectiveDate ? new Date(tax.effectiveDate).toISOString().split("T")[0] : "",
@@ -149,9 +185,20 @@ export default function AdminCityTaxes() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.cityName || !formData.taxPerNightPerPerson) {
-      toast({ title: "City name and tax amount are required", variant: "destructive" });
+    if (!formData.cityName) {
+      toast({ title: "City name is required", variant: "destructive" });
       return;
+    }
+    if (formData.pricingType === "flat" && !formData.taxPerNightPerPerson) {
+      toast({ title: "Tax amount is required for flat rate", variant: "destructive" });
+      return;
+    }
+    if (formData.pricingType === "star_rating") {
+      const hasAtLeastOneRate = formData.rate1Star || formData.rate2Star || formData.rate3Star || formData.rate4Star || formData.rate5Star;
+      if (!hasAtLeastOneRate) {
+        toast({ title: "At least one star rating rate is required", variant: "destructive" });
+        return;
+      }
     }
     if (editingTax) {
       updateMutation.mutate({ id: editingTax.id, data: formData });
@@ -242,16 +289,19 @@ export default function AdminCityTaxes() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="taxPerNightPerPerson">Tax per Night per Person *</Label>
-                    <Input
-                      id="taxPerNightPerPerson"
-                      type="number"
-                      step="0.01"
-                      value={formData.taxPerNightPerPerson}
-                      onChange={(e) => setFormData({ ...formData, taxPerNightPerPerson: e.target.value })}
-                      placeholder="e.g., 3.50"
-                      data-testid="input-tax-amount"
-                    />
+                    <Label htmlFor="pricingType">Pricing Type</Label>
+                    <Select
+                      value={formData.pricingType}
+                      onValueChange={(value: "flat" | "star_rating") => setFormData({ ...formData, pricingType: value })}
+                    >
+                      <SelectTrigger data-testid="select-pricing-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flat">Flat Rate</SelectItem>
+                        <SelectItem value="star_rating">By Star Rating</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="currency">Currency</Label>
@@ -272,6 +322,86 @@ export default function AdminCityTaxes() {
                     </Select>
                   </div>
                 </div>
+                {formData.pricingType === "flat" ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="taxPerNightPerPerson">Tax per Night per Person *</Label>
+                    <Input
+                      id="taxPerNightPerPerson"
+                      type="number"
+                      step="0.01"
+                      value={formData.taxPerNightPerPerson}
+                      onChange={(e) => setFormData({ ...formData, taxPerNightPerPerson: e.target.value })}
+                      placeholder="e.g., 3.50"
+                      data-testid="input-tax-amount"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Label>Rates by Hotel Star Rating (per night per person)</Label>
+                    <div className="grid grid-cols-5 gap-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="rate1Star" className="text-xs text-muted-foreground">1 Star</Label>
+                        <Input
+                          id="rate1Star"
+                          type="number"
+                          step="0.01"
+                          value={formData.rate1Star}
+                          onChange={(e) => setFormData({ ...formData, rate1Star: e.target.value })}
+                          placeholder="0.00"
+                          data-testid="input-rate-1-star"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="rate2Star" className="text-xs text-muted-foreground">2 Star</Label>
+                        <Input
+                          id="rate2Star"
+                          type="number"
+                          step="0.01"
+                          value={formData.rate2Star}
+                          onChange={(e) => setFormData({ ...formData, rate2Star: e.target.value })}
+                          placeholder="0.00"
+                          data-testid="input-rate-2-star"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="rate3Star" className="text-xs text-muted-foreground">3 Star</Label>
+                        <Input
+                          id="rate3Star"
+                          type="number"
+                          step="0.01"
+                          value={formData.rate3Star}
+                          onChange={(e) => setFormData({ ...formData, rate3Star: e.target.value })}
+                          placeholder="0.00"
+                          data-testid="input-rate-3-star"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="rate4Star" className="text-xs text-muted-foreground">4 Star</Label>
+                        <Input
+                          id="rate4Star"
+                          type="number"
+                          step="0.01"
+                          value={formData.rate4Star}
+                          onChange={(e) => setFormData({ ...formData, rate4Star: e.target.value })}
+                          placeholder="0.00"
+                          data-testid="input-rate-4-star"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label htmlFor="rate5Star" className="text-xs text-muted-foreground">5 Star</Label>
+                        <Input
+                          id="rate5Star"
+                          type="number"
+                          step="0.01"
+                          value={formData.rate5Star}
+                          onChange={(e) => setFormData({ ...formData, rate5Star: e.target.value })}
+                          placeholder="0.00"
+                          data-testid="input-rate-5-star"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="effectiveDate">Effective Date (optional)</Label>
                   <Input
@@ -344,10 +474,10 @@ export default function AdminCityTaxes() {
                   <TableRow>
                     <TableHead>City</TableHead>
                     <TableHead>Country</TableHead>
-                    <TableHead className="text-right">Tax/Night/Person</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead className="text-right">Tax Rate(s)</TableHead>
                     <TableHead>Effective Date</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead>Last Updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -356,14 +486,28 @@ export default function AdminCityTaxes() {
                     <TableRow key={tax.id} data-testid={`city-tax-row-${tax.id}`}>
                       <TableCell className="font-medium">{tax.cityName}</TableCell>
                       <TableCell>{getCountryName(tax.countryCode)}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        {tax.currency} {tax.taxPerNightPerPerson.toFixed(2)}
+                      <TableCell>
+                        <span className={`text-xs px-2 py-1 rounded ${tax.pricingType === 'star_rating' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'}`}>
+                          {tax.pricingType === 'star_rating' ? 'By Star' : 'Flat'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {tax.pricingType === 'star_rating' ? (
+                          <div className="space-y-0.5">
+                            {tax.rate1Star != null && <div>1★: {tax.currency} {tax.rate1Star.toFixed(2)}</div>}
+                            {tax.rate2Star != null && <div>2★: {tax.currency} {tax.rate2Star.toFixed(2)}</div>}
+                            {tax.rate3Star != null && <div>3★: {tax.currency} {tax.rate3Star.toFixed(2)}</div>}
+                            {tax.rate4Star != null && <div>4★: {tax.currency} {tax.rate4Star.toFixed(2)}</div>}
+                            {tax.rate5Star != null && <div>5★: {tax.currency} {tax.rate5Star.toFixed(2)}</div>}
+                          </div>
+                        ) : (
+                          <div>{tax.currency} {tax.taxPerNightPerPerson?.toFixed(2) || '0.00'}</div>
+                        )}
                       </TableCell>
                       <TableCell>{formatDate(tax.effectiveDate)}</TableCell>
-                      <TableCell className="max-w-[200px] truncate" title={tax.notes || ""}>
+                      <TableCell className="max-w-[150px] truncate" title={tax.notes || ""}>
                         {tax.notes || "-"}
                       </TableCell>
-                      <TableCell>{formatDate(tax.updatedAt)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button

@@ -1280,11 +1280,19 @@ export type ContentImage = typeof contentImages.$inferSelect;
 export type InsertContentImage = z.infer<typeof insertContentImageSchema>;
 
 // City Taxes - locally paid taxes per city (per night per person)
+// Supports both flat rate and star-rating based pricing
 export const cityTaxes = pgTable("city_taxes", {
   id: serial("id").primaryKey(),
   cityName: text("city_name").notNull(), // e.g., "Rome", "Venice", "Florence"
   countryCode: text("country_code").notNull().default(""), // e.g., "IT", "ES", "FR"
-  taxPerNightPerPerson: real("tax_per_night_per_person").notNull(), // Amount in currency
+  pricingType: text("pricing_type").notNull().default("flat"), // "flat" or "star_rating"
+  taxPerNightPerPerson: real("tax_per_night_per_person").notNull(), // Flat rate (used when pricingType is "flat")
+  // Star rating based rates (used when pricingType is "star_rating")
+  rate1Star: real("rate_1_star"), // Rate for 1-star hotels
+  rate2Star: real("rate_2_star"), // Rate for 2-star hotels
+  rate3Star: real("rate_3_star"), // Rate for 3-star hotels
+  rate4Star: real("rate_4_star"), // Rate for 4-star hotels
+  rate5Star: real("rate_5_star"), // Rate for 5-star hotels
   currency: text("currency").notNull().default("EUR"), // Currency code
   notes: text("notes"), // Optional notes about the tax
   effectiveDate: timestamp("effective_date"), // When this rate became effective

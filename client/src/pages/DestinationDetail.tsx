@@ -244,9 +244,18 @@ export default function DestinationDetail() {
   });
 
   // Fetch city taxes for city tax calculation
-  const { data: cityTaxes } = useQuery<CityTax[]>({
+  const { data: cityTaxes, isLoading: cityTaxesLoading } = useQuery<CityTax[]>({
     queryKey: ['/api/city-taxes'],
+    queryFn: async () => {
+      console.log('[DestinationDetail] Fetching city taxes...');
+      const res = await fetch('/api/city-taxes');
+      const data = await res.json();
+      console.log('[DestinationDetail] City taxes fetched:', data?.length || 0, 'records');
+      return data;
+    },
   });
+  
+  console.log('[DestinationDetail] cityTaxes state:', cityTaxes?.length || 0, 'loading:', cityTaxesLoading);
 
   // Fetch EUR to GBP exchange rate
   const { data: siteSettings } = useQuery<{ eurToGbpRate?: number }>({

@@ -1269,9 +1269,12 @@ export default function PackageDetailTest() {
             <div className="mt-4 inline-block bg-white backdrop-blur-sm rounded-lg px-4 py-2 shadow-xl">
               <p className="text-xs text-muted-foreground">From</p>
               <p className="text-xl font-bold text-secondary" data-testid="hero-price-mobile-video">
-                {formatPrice(pkg.price)}
+                {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
               </p>
-              <p className="text-xs text-muted-foreground">per person</p>
+              <p className="text-xs text-muted-foreground">total cost per person</p>
+              {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+              )}
             </div>
           </div>
         </section>
@@ -1387,9 +1390,12 @@ export default function PackageDetailTest() {
                 <div className="bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg">
                   <p className="text-xs text-muted-foreground">From</p>
                   <p className="text-2xl font-bold text-secondary" data-testid="hero-price-desktop-video">
-                    {formatPrice(pkg.price)}
+                    {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
                   </p>
-                  <p className="text-xs text-muted-foreground">per person</p>
+                  <p className="text-xs text-muted-foreground">total cost per person</p>
+                  {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                    <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -1538,9 +1544,12 @@ export default function PackageDetailTest() {
               <div className="bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg">
                 <p className="text-xs text-muted-foreground">From</p>
                 <p className="text-2xl font-bold text-secondary" data-testid="hero-price-desktop">
-                  {formatPrice(pkg.price)}
+                  {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
                 </p>
-                <p className="text-xs text-muted-foreground">per person</p>
+                <p className="text-xs text-muted-foreground">total cost per person</p>
+                {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                  <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                )}
               </div>
             </div>
             
@@ -2724,8 +2733,11 @@ export default function PackageDetailTest() {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-muted-foreground">From</span>
-                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price)}</p>
-                    <span className="text-xs text-muted-foreground">per person</span>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
+                    <span className="text-xs text-muted-foreground">total cost per person</span>
+                    {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                    )}
                   </div>
                   <Badge className="bg-secondary text-white">
                     <Plane className="w-4 h-4 mr-1" />
@@ -3532,17 +3544,23 @@ export default function PackageDetailTest() {
                           {(pkg.pricingDisplay === "both" || pkg.pricingDisplay === "twin" || !pkg.pricingDisplay) && (
                             <div>
                               <p className="text-3xl font-bold text-foreground" data-testid="text-price">
-                                {formatPrice(pkg.price)}
+                                {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
                               </p>
-                              <span className="text-xs text-muted-foreground">pp twin share</span>
+                              <span className="text-xs text-muted-foreground">total cost pp twin share</span>
+                              {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                                <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                              )}
                             </div>
                           )}
                           {pkg.pricingDisplay === "single" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
                             <div>
                               <p className="text-3xl font-bold text-foreground" data-testid="text-single-price">
-                                {formatPrice(pkg.singlePrice)}
+                                {formatPrice(pkg.singlePrice + (cityTaxData?.totalTaxPerPerson || 0))}
                               </p>
-                              <span className="text-xs text-muted-foreground">pp solo</span>
+                              <span className="text-xs text-muted-foreground">total cost pp solo</span>
+                              {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                                <p className="text-xs text-muted-foreground">{formatPrice(pkg.singlePrice)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                              )}
                             </div>
                           )}
                           {pkg.pricingDisplay === "both" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (

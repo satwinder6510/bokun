@@ -5604,10 +5604,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allTaxes = await storage.getAllCityTaxes();
       const latestUpdate = await storage.getLatestCityTaxUpdate();
 
-      // Use explicit cityTaxConfig from the package
-      // This is simpler and more reliable than parsing itinerary
-      const cityTaxConfig = pkg.cityTaxConfig || [];
-      const cityNights: { city: string; nights: number; tax: number; currency: string; starRating?: number }[] = [];
+      // Capital cities mapping for auto-calculation (use highest rate city as default)
+      const capitalCities: Record<string, string> = {
+        'IT': 'Rome', 'FR': 'Paris', 'ES': 'Barcelona', 'PT': 'Lisbon',
+        'GR': 'Greece', 'DE': 'Hamburg', 'AT': 'Vienna', 'CH': 'Geneva',
+        'BE': 'Brussels', 'CZ': 'Prague', 'HU': 'Budapest', 'PL': 'Krakow',
+        'HR': 'Croatia', 'ME': 'Montenegro', 'RO': 'Bucharest', 'LV': 'Riga',
+        'IS': 'Reykjavik', 'AE': 'Dubai', 'MA': 'Morocco', 'MV': 'Maldives',
+        'MU': 'Mauritius', 'MT': 'Malta', 'CV': 'Cape Verde'
+      };
+
+      // Use explicit cityTaxConfig from the package, or auto-calculate for single-country
+      let cityTaxConfig = pkg.cityTaxConfig || [];
+      
+      // Auto-calculate if no manual config and package has category (destination country) + duration
+      const packageCountry = pkg.category || ''; // category holds the country e.g., "India", "Italy"
+      if (cityTaxConfig.length === 0 && packageCountry && pkg.duration) {
+        // Parse nights from duration (e.g., "7 nights", "10 days/9 nights")
+        const nightsMatch = pkg.duration.match(/(\d+)\s*nights?/i);
+        const daysMatch = pkg.duration.match(/(\d+)\s*days?/i);
+        let nights = 0;
+        if (nightsMatch) {
+          nights = parseInt(nightsMatch[1]);
+        } else if (daysMatch) {
+          nights = parseInt(daysMatch[1]) - 1; // days - 1 = nights
+        }
+        
+        if (nights > 0) {
+          // Country name to code mapping for auto-calculation
+          const countryToCode: Record<string, string> = {
+            'italy': 'IT', 'italian': 'IT',
+            'france': 'FR', 'french': 'FR',
+            'spain': 'ES', 'spanish': 'ES',
+            'portugal': 'PT', 'portuguese': 'PT',
+            'greece': 'GR', 'greek': 'GR',
+            'germany': 'DE', 'german': 'DE',
+            'austria': 'AT', 'austrian': 'AT',
+            'switzerland': 'CH', 'swiss': 'CH',
+            'belgium': 'BE',
+            'czech': 'CZ', 'czechia': 'CZ',
+            'hungary': 'HU', 'hungarian': 'HU',
+            'croatia': 'HR', 'croatian': 'HR',
+            'montenegro': 'ME',
+            'romania': 'RO', 'romanian': 'RO',
+            'latvia': 'LV',
+            'iceland': 'IS', 'icelandic': 'IS',
+            'dubai': 'AE', 'uae': 'AE', 'emirates': 'AE',
+            'morocco': 'MA', 'moroccan': 'MA',
+            'maldives': 'MV',
+            'mauritius': 'MU',
+            'malta': 'MT', 'maltese': 'MT',
+            'cape verde': 'CV'
+          };
+          
+          // Find country code from package category
+          const destLower = packageCountry.toLowerCase();
+          let countryCode: string | null = null;
+          for (const [name, code] of Object.entries(countryToCode)) {
+            if (destLower.includes(name)) {
+              countryCode = code;
+              break;
+            }
+          }
+          
+          // Look up capital/highest-rate city for this country
+          if (countryCode && capitalCities[countryCode]) {
+            const capitalCity = capitalCities[countryCode];
+            const capitalTax = allTaxes.find(t => 
+              t.cityName.toLowerCase() === capitalCity.toLowerCase() && 
+              t.countryCode === countryCode
+            );
+            
+            if (capitalTax) {
+              cityTaxConfig = [{ city: capitalTax.cityName, nights, starRating: 4 }];
+            }
+          }
+        }
+      }
+      
+      const cityNights: { city: string; nights: number; tax: number; currency: string; starRating?: number; autoCalculated?: boolean }[] = [];
       
       for (const config of cityTaxConfig) {
         const matchingTax = allTaxes.find(t => t.cityName.toLowerCase() === config.city.toLowerCase());
@@ -5634,18 +5709,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tax: taxRate,
             currency: matchingTax.currency,
             starRating: config.starRating,
+            autoCalculated: (pkg.cityTaxConfig || []).length === 0,
           });
         }
       }
 
       // Calculate total tax per person
       const totalTaxPerPerson = cityNights.reduce((sum, cn) => sum + (cn.nights * cn.tax), 0);
+      const isAutoCalculated = (pkg.cityTaxConfig || []).length === 0 && cityNights.length > 0;
       
       res.json({
         cityNights,
         totalTaxPerPerson,
         currency: cityNights[0]?.currency || "EUR",
         lastUpdated: latestUpdate?.toISOString() || null,
+        autoCalculated: isAutoCalculated,
       });
     } catch (error: any) {
       console.error("Error calculating city taxes:", error);

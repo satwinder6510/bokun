@@ -414,20 +414,3 @@ html, body {
   }
 }
 
-/* Force Tidio chat widget to be visible and positioned correctly */
-#tidio-chat-code,
-#tidio-chat,
-[id^="tidio"] {
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* Ensure Tidio container is positioned in bottom-right */
-#tidio-chat-code {
-  position: fixed !important;
-  bottom: 20px !important;
-  right: 20px !important;
-  z-index: 999999 !important;
-}
-

@@ -54,15 +54,6 @@ import {
 } from "@/components/ui/dialog";
 import type { FlightPackage, PackagePricing } from "@shared/schema";
 
-// Window type with Tidio chat
-interface WindowWithTidio extends Window {
-  tidioChatApi?: {
-    show: () => void;
-    hide: () => void;
-    open: () => void;
-  };
-}
-
 // Video type for gallery
 type VideoItem = {
   url: string;
@@ -562,7 +553,6 @@ export default function PackageDetailTest() {
   
   const [enquiryOpen, setEnquiryOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isChatLoading, setIsChatLoading] = useState(false);
   const [selectedAirport, setSelectedAirport] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [activeVideo, setActiveVideo] = useState<VideoItem | null>(null);
@@ -3769,61 +3759,6 @@ export default function PackageDetailTest() {
                         <Phone className="w-5 h-5 mr-2" />
                         {phoneNumber}
                       </a>
-                    </Button>
-                    <Button 
-                      variant="secondary" 
-                      className="w-full" 
-                      size="lg" 
-                      disabled={isChatLoading}
-                      onClick={() => {
-                        const win = window as WindowWithTidio;
-                        
-                        // Track PostHog event
-                        captureChatCtaClicked({
-                          package_title: pkg?.title,
-                          package_id: pkg?.id,
-                          package_slug: slug
-                        });
-                        // Track Meta Pixel event
-                        trackChatCta({
-                          content_name: pkg?.title,
-                          content_category: pkg?.category || 'Flight Package'
-                        });
-                        
-                        // Open Tidio chat
-                        const openTidio = () => {
-                          setIsChatLoading(false);
-                          if (win.tidioChatApi) {
-                            win.tidioChatApi.show();
-                            win.tidioChatApi.open();
-                          }
-                        };
-                        
-                        if (win.tidioChatApi) {
-                          openTidio();
-                        } else {
-                          // Show loading state while waiting for Tidio
-                          setIsChatLoading(true);
-                          const handleReady = () => {
-                            openTidio();
-                            document.removeEventListener("tidioChat-ready", handleReady);
-                          };
-                          document.addEventListener("tidioChat-ready", handleReady);
-                          // Timeout after 5 seconds to prevent infinite loading
-                          setTimeout(() => {
-                            setIsChatLoading(false);
-                            document.removeEventListener("tidioChat-ready", handleReady);
-                          }, 5000);
-                        }
-                      }}
-                      data-testid="button-chat"
-                    >
-                      {isChatLoading ? (
-                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      ) : (
-                        <MessageCircle className="w-5 h-5 mr-2" />
-                      )}
-                      {isChatLoading ? "Opening chat..." : "Chat with us"}
                     </Button>
                     <Dialog open={enquiryOpen} onOpenChange={setEnquiryOpen}>
                       <DialogTrigger asChild>

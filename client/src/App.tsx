@@ -9,8 +9,6 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import { usePostHogPageView } from "@/hooks/usePostHogPageView";
-import { useTidio } from "@/hooks/use-tidio";
-import { FloatingChatButton } from "@/components/FloatingChatButton";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -29,11 +27,6 @@ function PostHogPageTracker() {
   return null;
 }
 
-// Tidio chat loader for tour/package detail pages
-function TidioLoader() {
-  useTidio();
-  return null;
-}
 import Homepage from "@/pages/Homepage";
 import { Redirect } from "wouter";
 import Terms from "@/pages/Terms";
@@ -209,8 +202,6 @@ function App() {
             <TooltipProvider>
               <ScrollToTop />
               <PostHogPageTracker />
-              <TidioLoader />
-              <FloatingChatButton />
               <Toaster />
               <Router />
             </TooltipProvider>

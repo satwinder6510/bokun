@@ -17,11 +17,17 @@ export function useTidio() {
   useEffect(() => {
     // Load Tidio once across the entire site
     if (!tidioLoaded) {
-      const script = document.createElement('script');
-      script.src = '//code.tidio.co/umkdiuqjxuccie7jbxsnr0f6pj3lkfcs.js';
-      script.async = true;
-      document.body.appendChild(script);
       tidioLoaded = true;
+      const script = document.createElement('script');
+      script.src = 'https://code.tidio.co/umkdiuqjxuccie7jbxsnr0f6pj3lkfcs.js';
+      script.async = true;
+      script.onload = () => {
+        console.log('[Tidio] Script loaded successfully');
+      };
+      script.onerror = () => {
+        console.error('[Tidio] Failed to load script');
+      };
+      document.body.appendChild(script);
     }
   }, []);
 }

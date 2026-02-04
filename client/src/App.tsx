@@ -9,6 +9,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import { usePostHogPageView } from "@/hooks/usePostHogPageView";
+import { useTidio } from "@/hooks/use-tidio";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -24,6 +25,12 @@ function ScrollToTop() {
 // PostHog page view tracking
 function PostHogPageTracker() {
   usePostHogPageView();
+  return null;
+}
+
+// Tidio chat loader
+function TidioLoader() {
+  useTidio();
   return null;
 }
 
@@ -202,6 +209,7 @@ function App() {
             <TooltipProvider>
               <ScrollToTop />
               <PostHogPageTracker />
+              <TidioLoader />
               <Toaster />
               <Router />
             </TooltipProvider>

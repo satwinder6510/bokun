@@ -10,6 +10,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import { AdminAuthProvider } from "@/contexts/AdminAuthContext";
 import { usePostHogPageView } from "@/hooks/usePostHogPageView";
 import { useTidio } from "@/hooks/use-tidio";
+import { FloatingChatButton } from "@/components/FloatingChatButton";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -209,6 +210,7 @@ function App() {
               <ScrollToTop />
               <PostHogPageTracker />
               <TidioLoader />
+              <FloatingChatButton />
               <Toaster />
               <Router />
             </TooltipProvider>

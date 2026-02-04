@@ -1174,6 +1174,30 @@ export default function PackageDetailTest() {
     ? pkg.customExclusions 
     : defaultExclusions;
 
+  // Default More Info content for flight packages
+  const defaultRequirements = `<ul>
+    <li>Valid passport with at least 6 months validity from your return date</li>
+    <li>Any required visas for your destination</li>
+    <li>Travel insurance documents</li>
+    <li>Printed or digital copies of your booking confirmation</li>
+    <li>Comfortable clothing and footwear suitable for the destination</li>
+    <li>Any prescribed medications you may need</li>
+  </ul>`;
+
+  const defaultAttention = `<ul>
+    <li>Please ensure your passport is valid for at least 6 months beyond your return date</li>
+    <li>Check visa requirements for your destination well in advance</li>
+    <li>We strongly recommend purchasing comprehensive travel insurance</li>
+    <li>Flight times and hotel arrangements are subject to change</li>
+    <li>Special requests (dietary, accessibility, etc.) should be communicated at time of booking</li>
+    <li>Check-in times vary by hotel - early check-in or late check-out may incur additional charges</li>
+  </ul>`;
+
+  // Use package data if available, otherwise use defaults
+  const moreInfoRequirements = pkg.requirements || defaultRequirements;
+  const moreInfoAttention = pkg.attention || defaultAttention;
+  const hasMoreInfo = true; // Always show More Info for flight packages
+
   return (
     <div className="min-h-screen bg-stone-50">
       <Header />
@@ -1675,9 +1699,7 @@ export default function PackageDetailTest() {
                       <TabsTrigger value="itinerary" className="text-lg font-semibold" data-testid="tab-itinerary-desktop">Itinerary</TabsTrigger>
                     )}
                     <TabsTrigger value="accommodation" className="text-lg font-semibold" data-testid="tab-accommodation-desktop">Accommodation</TabsTrigger>
-                    {(pkg.excluded || pkg.requirements || pkg.attention) && (
-                      <TabsTrigger value="info" className="text-lg font-semibold" data-testid="tab-info-desktop">More Info</TabsTrigger>
-                    )}
+                    <TabsTrigger value="info" className="text-lg font-semibold" data-testid="tab-info-desktop">More Info</TabsTrigger>
                     {pkg.review && (
                       <TabsTrigger value="reviews" className="text-lg font-semibold" data-testid="tab-reviews-desktop">Reviews</TabsTrigger>
                     )}
@@ -1793,33 +1815,29 @@ export default function PackageDetailTest() {
                       </Card>
                     )}
 
-                    {pkg.requirements && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>What Do I Need to Bring?</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div 
-                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.requirements) }}
-                          />
-                        </CardContent>
-                      </Card>
-                    )}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>What Do I Need to Bring?</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(moreInfoRequirements) }}
+                        />
+                      </CardContent>
+                    </Card>
 
-                    {pkg.attention && (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>Please Note</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div 
-                            className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.attention) }}
-                          />
-                        </CardContent>
-                      </Card>
-                    )}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Please Note</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div 
+                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(moreInfoAttention) }}
+                        />
+                      </CardContent>
+                    </Card>
 
                   </TabsContent>
 
@@ -2429,9 +2447,7 @@ export default function PackageDetailTest() {
                 <TabsTrigger value="itinerary" className="text-base font-semibold" data-testid="tab-itinerary-new">Itinerary</TabsTrigger>
               )}
               <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-new">Accommodation</TabsTrigger>
-              {(pkg.excluded || pkg.requirements || pkg.attention) && (
-                <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-new">More Info</TabsTrigger>
-              )}
+              <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-new">More Info</TabsTrigger>
               {pkg.review && (
                 <TabsTrigger value="reviews" className="text-base font-semibold" data-testid="tab-reviews-new">Reviews</TabsTrigger>
               )}
@@ -2593,33 +2609,29 @@ export default function PackageDetailTest() {
                 </Card>
               )}
 
-              {pkg.requirements && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>What Do I Need to Bring?</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div 
-                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.requirements) }}
-                    />
-                  </CardContent>
-                </Card>
-              )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>What Do I Need to Bring?</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div 
+                    className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(moreInfoRequirements) }}
+                  />
+                </CardContent>
+              </Card>
 
-              {pkg.attention && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Please Note</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div 
-                      className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.attention) }}
-                    />
-                  </CardContent>
-                </Card>
-              )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Please Note</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div 
+                    className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(moreInfoAttention) }}
+                  />
+                </CardContent>
+              </Card>
 
             </TabsContent>
 
@@ -3335,35 +3347,31 @@ export default function PackageDetailTest() {
                     </Card>
                   )}
 
-                  {pkg.requirements && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>What Do I Need to Bring?</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div 
-                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.requirements) }}
-                          data-testid="content-requirements"
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>What Do I Need to Bring?</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(moreInfoRequirements) }}
+                        data-testid="content-requirements"
+                      />
+                    </CardContent>
+                  </Card>
 
-                  {pkg.attention && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Please Note</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div 
-                          className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
-                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(pkg.attention) }}
-                          data-testid="content-attention"
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Please Note</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div 
+                        className="prose prose-sm md:prose-base max-w-none dark:prose-invert"
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(moreInfoAttention) }}
+                        data-testid="content-attention"
+                      />
+                    </CardContent>
+                  </Card>
 
                   <Card>
                     <CardHeader>

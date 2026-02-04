@@ -1676,7 +1676,7 @@ export default function PackageDetailTest() {
                     )}
                     <TabsTrigger value="accommodation" className="text-lg font-semibold" data-testid="tab-accommodation-desktop">Accommodation</TabsTrigger>
                     {(pkg.excluded || pkg.requirements || pkg.attention) && (
-                      <TabsTrigger value="info" className="text-lg font-semibold" data-testid="tab-info-desktop">Info</TabsTrigger>
+                      <TabsTrigger value="info" className="text-lg font-semibold" data-testid="tab-info-desktop">More Info</TabsTrigger>
                     )}
                     {pkg.review && (
                       <TabsTrigger value="reviews" className="text-lg font-semibold" data-testid="tab-reviews-desktop">Reviews</TabsTrigger>
@@ -2430,7 +2430,7 @@ export default function PackageDetailTest() {
               )}
               <TabsTrigger value="accommodation" className="text-base font-semibold" data-testid="tab-accommodation-new">Accommodation</TabsTrigger>
               {(pkg.excluded || pkg.requirements || pkg.attention) && (
-                <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-new">Info</TabsTrigger>
+                <TabsTrigger value="info" className="text-base font-semibold" data-testid="tab-info-new">More Info</TabsTrigger>
               )}
               {pkg.review && (
                 <TabsTrigger value="reviews" className="text-base font-semibold" data-testid="tab-reviews-new">Reviews</TabsTrigger>
@@ -3193,7 +3193,7 @@ export default function PackageDetailTest() {
                   <TabsTrigger value="overview" data-testid="tab-overview">Overview</TabsTrigger>
                   <TabsTrigger value="itinerary" data-testid="tab-itinerary">Itinerary</TabsTrigger>
                   <TabsTrigger value="accommodation" data-testid="tab-accommodation">Hotels</TabsTrigger>
-                  <TabsTrigger value="info" data-testid="tab-info">Info</TabsTrigger>
+                  <TabsTrigger value="info" data-testid="tab-info">More Info</TabsTrigger>
                   {pkg.review && (
                     <TabsTrigger value="reviews" data-testid="tab-reviews">Reviews</TabsTrigger>
                   )}

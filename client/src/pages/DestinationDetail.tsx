@@ -11,13 +11,19 @@ import { ArrowLeft, Clock, MapPin, Plane, Map, BookOpen, Calendar, User } from "
 import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
-import type { FlightPackage, BokunProduct, BlogPost } from "@shared/schema";
+import type { FlightPackage, BokunProduct, BlogPost, CityTax } from "@shared/schema";
 
 interface DestinationData {
   destination: string;
   flightPackages: FlightPackage[];
   landTours: BokunProduct[];
   blogPosts: BlogPost[];
+}
+
+interface CityTaxInfo {
+  totalTaxPerPerson: number;
+  taxPerNight: number;
+  nights: number;
 }
 
 function formatGBP(price: number): string {
@@ -39,7 +45,11 @@ function formatDate(dateString: string | Date | null): string {
   });
 }
 
-function FlightPackageCard({ pkg, countrySlug }: { pkg: FlightPackage; countrySlug: string }) {
+function FlightPackageCard({ pkg, countrySlug, cityTaxInfo }: { pkg: FlightPackage; countrySlug: string; cityTaxInfo?: CityTaxInfo }) {
+  const basePrice = pkg.price || pkg.singlePrice || 0;
+  const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
+  const totalPrice = basePrice + cityTax;
+  
   return (
     <Link href={`/Holidays/${countrySlug}/${pkg.slug}`}>
       <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
@@ -74,9 +84,12 @@ function FlightPackageCard({ pkg, countrySlug }: { pkg: FlightPackage; countrySl
             <div>
               <span className="text-sm text-muted-foreground">From</span>
               <p className="text-xl font-bold text-primary">
-                {(pkg.price || pkg.singlePrice) ? formatGBP(pkg.price || pkg.singlePrice || 0) : "Price on request"}
+                {basePrice > 0 ? formatGBP(totalPrice) : "Price on request"}
               </p>
-              <span className="text-xs text-muted-foreground">per person</span>
+              <span className="text-xs text-muted-foreground">total cost per person</span>
+              {cityTax > 0 && basePrice > 0 && (
+                <p className="text-xs text-muted-foreground">{formatGBP(basePrice)} + {formatGBP(cityTax)} locally</p>
+              )}
             </div>
           </div>
         </CardContent>
@@ -146,6 +159,77 @@ function BlogCard({ post }: { post: BlogPost }) {
 }
 
 
+// Helper to parse duration string like "9 Days / 7 Nights" into nights
+function parseDurationNights(duration: string | null): number {
+  if (!duration) return 0;
+  const nightsMatch = duration.match(/(\d+)\s*nights?/i);
+  if (nightsMatch) return parseInt(nightsMatch[1], 10);
+  const daysMatch = duration.match(/(\d+)\s*days?/i);
+  if (daysMatch) return Math.max(0, parseInt(daysMatch[1], 10) - 1);
+  return 0;
+}
+
+// Helper to get city tax rate for a star rating (default 4★)
+function getCityTaxRate(cityTax: CityTax, starRating: number = 4): number {
+  if (cityTax.pricingType === 'star_rating') {
+    switch (starRating) {
+      case 1: return cityTax.rate1Star ?? cityTax.taxPerNightPerPerson ?? 0;
+      case 2: return cityTax.rate2Star ?? cityTax.taxPerNightPerPerson ?? 0;
+      case 3: return cityTax.rate3Star ?? cityTax.taxPerNightPerPerson ?? 0;
+      case 4: return cityTax.rate4Star ?? cityTax.taxPerNightPerPerson ?? 0;
+      case 5: return cityTax.rate5Star ?? cityTax.taxPerNightPerPerson ?? 0;
+      default: return cityTax.taxPerNightPerPerson ?? 0;
+    }
+  }
+  return cityTax.taxPerNightPerPerson ?? 0;
+}
+
+// Country name to code mapping
+const countryToCode: Record<string, string> = {
+  'india': 'IN', 'indian': 'IN',
+  'italy': 'IT', 'italian': 'IT',
+  'france': 'FR', 'french': 'FR',
+  'spain': 'ES', 'spanish': 'ES',
+  'portugal': 'PT', 'portuguese': 'PT',
+  'greece': 'GR', 'greek': 'GR',
+  'germany': 'DE', 'german': 'DE',
+  'austria': 'AT', 'austrian': 'AT',
+  'switzerland': 'CH', 'swiss': 'CH',
+  'belgium': 'BE',
+  'czech': 'CZ', 'czechia': 'CZ',
+  'hungary': 'HU', 'hungarian': 'HU',
+  'croatia': 'HR', 'croatian': 'HR',
+  'montenegro': 'ME',
+  'romania': 'RO', 'romanian': 'RO',
+  'latvia': 'LV',
+  'iceland': 'IS', 'icelandic': 'IS',
+  'dubai': 'AE', 'uae': 'AE', 'emirates': 'AE',
+  'morocco': 'MA', 'moroccan': 'MA',
+  'maldives': 'MV',
+  'mauritius': 'MU',
+  'malta': 'MT', 'maltese': 'MT',
+  'cape verde': 'CV'
+};
+
+// Capital cities per country code
+const capitalCities: Record<string, string> = {
+  'IT': 'Rome', 'FR': 'Paris', 'ES': 'Madrid', 'PT': 'Lisbon',
+  'GR': 'Athens', 'DE': 'Berlin', 'AT': 'Vienna', 'CH': 'Zurich',
+  'BE': 'Brussels', 'CZ': 'Prague', 'HU': 'Budapest', 'HR': 'Zagreb',
+  'ME': 'Podgorica', 'RO': 'Bucharest', 'LV': 'Riga', 'IS': 'Reykjavik',
+  'AE': 'Dubai', 'MA': 'Marrakech', 'MV': 'Male', 'MU': 'Port Louis',
+  'MT': 'Valletta', 'CV': 'Praia', 'IN': 'Delhi'
+};
+
+// Get country code from country name
+function getCountryCode(countryName: string): string | null {
+  const lower = countryName.toLowerCase();
+  for (const [name, code] of Object.entries(countryToCode)) {
+    if (lower.includes(name)) return code;
+  }
+  return null;
+}
+
 export default function DestinationDetail() {
   const [, holidaysParams] = useRoute("/Holidays/:country");
   const [, destinationsParams] = useRoute("/destinations/:country");
@@ -158,6 +242,59 @@ export default function DestinationDetail() {
     queryFn: () => apiRequest('GET', `/api/destinations/${encodeURIComponent(countrySlug)}`),
     enabled: !!countrySlug,
   });
+
+  // Fetch city taxes for city tax calculation
+  const { data: cityTaxes } = useQuery<CityTax[]>({
+    queryKey: ['/api/city-taxes'],
+  });
+
+  // Fetch EUR to GBP exchange rate
+  const { data: siteSettings } = useQuery<{ eurToGbpRate?: number }>({
+    queryKey: ['/api/admin/site-settings'],
+  });
+  const eurToGbpRate = siteSettings?.eurToGbpRate ?? 0.84;
+
+  // Calculate city tax for a package based on its destination country and duration
+  const calculateCityTaxForPackage = (pkg: FlightPackage): CityTaxInfo | undefined => {
+    if (!cityTaxes || cityTaxes.length === 0) return undefined;
+    
+    const country = pkg.category;
+    if (!country) return undefined;
+    
+    const nights = parseDurationNights(pkg.duration);
+    if (nights <= 0) return undefined;
+    
+    // Get country code from country name
+    const countryCode = getCountryCode(country);
+    if (!countryCode) return undefined;
+    
+    // Get capital city name for this country
+    const capitalCityName = capitalCities[countryCode];
+    if (!capitalCityName) return undefined;
+    
+    // Find capital city tax
+    const capitalTax = cityTaxes.find(
+      t => t.cityName.toLowerCase() === capitalCityName.toLowerCase() && t.countryCode === countryCode
+    );
+    
+    if (!capitalTax) return undefined;
+    
+    // Use 4-star rate as default
+    let taxPerNight = getCityTaxRate(capitalTax, 4);
+    
+    // Convert EUR to GBP if needed
+    if (capitalTax.currency === 'EUR') {
+      taxPerNight = taxPerNight * eurToGbpRate;
+    }
+    
+    const totalTaxPerPerson = Math.round(taxPerNight * nights * 100) / 100;
+    
+    return {
+      totalTaxPerPerson,
+      taxPerNight,
+      nights
+    };
+  };
 
   const displayName = data?.destination || destinationName;
   const blogPosts = data?.blogPosts || [];
@@ -243,7 +380,7 @@ export default function DestinationDetail() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {data.flightPackages.map((pkg) => (
-                      <FlightPackageCard key={pkg.id} pkg={pkg} countrySlug={countrySlug} />
+                      <FlightPackageCard key={pkg.id} pkg={pkg} countrySlug={countrySlug} cityTaxInfo={calculateCityTaxForPackage(pkg)} />
                     ))}
                   </div>
                 </section>

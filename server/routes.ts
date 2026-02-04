@@ -5514,6 +5514,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // City Tax routes (admin)
+  app.get("/api/admin/city-taxes", verifyAdminSession, async (req, res) => {
+    try {
+      const taxes = await storage.getAllCityTaxes();
+      res.json(taxes);
+    } catch (error: any) {
+      console.error("Error fetching city taxes:", error);
+      res.status(500).json({ error: "Failed to fetch city taxes" });
+    }
+  });
+
+  app.post("/api/admin/city-taxes", verifyAdminSession, async (req, res) => {
+    try {
+      const { cityName, countryCode, taxPerNightPerPerson, currency, notes, effectiveDate } = req.body;
+      if (!cityName || taxPerNightPerPerson === undefined) {
+        return res.status(400).json({ error: "City name and tax amount are required" });
+      }
+      const tax = await storage.createCityTax({
+        cityName,
+        countryCode: countryCode || "",
+        taxPerNightPerPerson: parseFloat(taxPerNightPerPerson),
+        currency: currency || "EUR",
+        notes: notes || null,
+        effectiveDate: effectiveDate ? new Date(effectiveDate) : null,
+      });
+      res.json(tax);
+    } catch (error: any) {
+      console.error("Error creating city tax:", error);
+      res.status(500).json({ error: "Failed to create city tax" });
+    }
+  });
+
+  app.put("/api/admin/city-taxes/:id", verifyAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { cityName, countryCode, taxPerNightPerPerson, currency, notes, effectiveDate } = req.body;
+      const tax = await storage.updateCityTax(parseInt(id), {
+        cityName,
+        countryCode,
+        taxPerNightPerPerson: taxPerNightPerPerson !== undefined ? parseFloat(taxPerNightPerPerson) : undefined,
+        currency,
+        notes,
+        effectiveDate: effectiveDate ? new Date(effectiveDate) : null,
+      });
+      if (!tax) {
+        return res.status(404).json({ error: "City tax not found" });
+      }
+      res.json(tax);
+    } catch (error: any) {
+      console.error("Error updating city tax:", error);
+      res.status(500).json({ error: "Failed to update city tax" });
+    }
+  });
+
+  app.delete("/api/admin/city-taxes/:id", verifyAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteCityTax(parseInt(id));
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting city tax:", error);
+      res.status(500).json({ error: "Failed to delete city tax" });
+    }
+  });
+
+  // Public endpoint to get city taxes for a package (calculates based on itinerary)
+  app.get("/api/packages/:slug/city-taxes", async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const pkg = await storage.getFlightPackageBySlug(slug);
+      if (!pkg) {
+        return res.status(404).json({ error: "Package not found" });
+      }
+
+      // Get all city taxes
+      const allTaxes = await storage.getAllCityTaxes();
+      const latestUpdate = await storage.getLatestCityTaxUpdate();
+
+      // Use explicit cityTaxConfig from the package
+      // This is simpler and more reliable than parsing itinerary
+      const cityTaxConfig = pkg.cityTaxConfig || [];
+      const cityNights: { city: string; nights: number; tax: number; currency: string }[] = [];
+      
+      for (const config of cityTaxConfig) {
+        const matchingTax = allTaxes.find(t => t.cityName.toLowerCase() === config.city.toLowerCase());
+        if (matchingTax && config.nights > 0) {
+          cityNights.push({
+            city: matchingTax.cityName,
+            nights: config.nights,
+            tax: matchingTax.taxPerNightPerPerson,
+            currency: matchingTax.currency,
+          });
+        }
+      }
+
+      // Calculate total tax per person
+      const totalTaxPerPerson = cityNights.reduce((sum, cn) => sum + (cn.nights * cn.tax), 0);
+      
+      res.json({
+        cityNights,
+        totalTaxPerPerson,
+        currency: cityNights[0]?.currency || "EUR",
+        lastUpdated: latestUpdate?.toISOString() || null,
+      });
+    } catch (error: any) {
+      console.error("Error calculating city taxes:", error);
+      res.status(500).json({ error: "Failed to calculate city taxes" });
+    }
+  });
+
   // Download pricing CSV (admin)
   app.get("/api/admin/packages/:id/pricing/download-csv", verifyAdminSession, async (req, res) => {
     try {

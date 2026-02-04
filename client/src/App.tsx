@@ -57,6 +57,7 @@ import AdminSettings from "@/pages/AdminSettings";
 import AdminMedia from "@/pages/AdminMedia";
 import AdminHotels from "@/pages/AdminHotels";
 import AdminContentImages from "@/pages/AdminContentImages";
+import AdminCityTaxes from "@/pages/AdminCityTaxes";
 import AdminNewsletter from "@/pages/AdminNewsletter";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -181,6 +182,11 @@ function Router() {
       <Route path="/admin/content-images">
         <ProtectedRoute>
           <AdminContentImages />
+        </ProtectedRoute>
+      </Route>
+      <Route path="/admin/city-taxes">
+        <ProtectedRoute>
+          <AdminCityTaxes />
         </ProtectedRoute>
       </Route>
       <Route path="/admin/newsletter">

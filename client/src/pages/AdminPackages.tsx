@@ -137,6 +137,7 @@ type PackageFormData = {
   mobileHeroVideo: string;
   desktopHeroVideo: string;
   customExclusions: string[];
+  cityTaxConfig: { city: string; nights: number }[];
   videos: VideoItem[];
   duration: string;
   boardBasisOverride: string;
@@ -199,6 +200,7 @@ const emptyPackage: PackageFormData = {
   mobileHeroVideo: "",
   desktopHeroVideo: "",
   customExclusions: [],
+  cityTaxConfig: [],
   videos: [],
   duration: "",
   boardBasisOverride: "",
@@ -283,6 +285,8 @@ export default function AdminPackages() {
   const [newExclusion, setNewExclusion] = useState("");
   const [editingExclusionIndex, setEditingExclusionIndex] = useState<number | null>(null);
   const [editingExclusionValue, setEditingExclusionValue] = useState("");
+  const [selectedCityTax, setSelectedCityTax] = useState("");
+  const [cityTaxNights, setCityTaxNights] = useState(1);
   const [isUploadingFeatured, setIsUploadingFeatured] = useState(false);
   const [isUploadingGallery, setIsUploadingGallery] = useState(false);
   const [isUploadingMobileVideo, setIsUploadingMobileVideo] = useState(false);
@@ -405,6 +409,13 @@ export default function AdminPackages() {
     queryKey: ["/api/admin/hotels"],
     queryFn: () => adminQueryFn("/api/admin/hotels"),
     enabled: hotelPickerOpen,
+  });
+  
+  // City taxes query for city tax configuration
+  type CityTaxItem = { id: number; cityName: string; taxPerNightPerPerson: number; currency: string };
+  const { data: cityTaxes = [] } = useQuery<CityTaxItem[]>({
+    queryKey: ["/api/admin/city-taxes"],
+    queryFn: () => adminQueryFn("/api/admin/city-taxes"),
   });
   
   // Filter hotels based on search
@@ -713,6 +724,7 @@ export default function AdminPackages() {
       mobileHeroVideo: pkg.mobileHeroVideo || "",
       desktopHeroVideo: pkg.desktopHeroVideo || "",
       customExclusions: (pkg.customExclusions || []) as string[],
+      cityTaxConfig: ((pkg as any).cityTaxConfig || []) as { city: string; nights: number }[],
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
       boardBasisOverride: pkg.boardBasisOverride || "",
@@ -3320,6 +3332,127 @@ export default function AdminPackages() {
                         >
                           Reset to Defaults
                         </Button>
+                      )}
+                    </div>
+
+                    <Separator className="my-4" />
+                    <h4 className="font-medium text-sm text-muted-foreground mb-3">City Tax Configuration</h4>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Specify which cities guests will stay in and for how many nights. This calculates the local city tax shown as "Pay Locally".
+                    </p>
+                    <div className="space-y-2">
+                      {cityTaxes.length === 0 ? (
+                        <p className="text-xs text-muted-foreground italic">
+                          No city taxes configured. <Link href="/admin/city-taxes" className="text-primary underline">Add city taxes</Link> first.
+                        </p>
+                      ) : (
+                        <>
+                          <div className="flex gap-2">
+                            <select
+                              value={selectedCityTax}
+                              onChange={(e) => setSelectedCityTax(e.target.value)}
+                              className="flex-1 p-2 border rounded-md bg-background text-sm"
+                              data-testid="select-city-tax"
+                            >
+                              <option value="">Select a city...</option>
+                              {cityTaxes
+                                .filter(tax => !(formData.cityTaxConfig || []).find(c => c.city.toLowerCase() === tax.cityName.toLowerCase()))
+                                .map(tax => (
+                                  <option key={tax.id} value={tax.cityName}>
+                                    {tax.cityName} ({tax.currency} {tax.taxPerNightPerPerson}/night/person)
+                                  </option>
+                                ))
+                              }
+                            </select>
+                            <Input
+                              type="number"
+                              min="1"
+                              value={cityTaxNights}
+                              onChange={(e) => setCityTaxNights(parseInt(e.target.value) || 1)}
+                              className="w-20"
+                              placeholder="Nights"
+                              data-testid="input-city-tax-nights"
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => {
+                                if (selectedCityTax) {
+                                  setFormData({
+                                    ...formData,
+                                    cityTaxConfig: [...(formData.cityTaxConfig || []), { city: selectedCityTax, nights: cityTaxNights }]
+                                  });
+                                  setSelectedCityTax("");
+                                  setCityTaxNights(1);
+                                }
+                              }}
+                              data-testid="button-add-city-tax"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          {(formData.cityTaxConfig || []).length > 0 && (
+                            <div className="space-y-1">
+                              {(formData.cityTaxConfig || []).map((config, i) => {
+                                const taxInfo = cityTaxes.find(t => t.cityName.toLowerCase() === config.city.toLowerCase());
+                                const taxPerPerson = taxInfo ? config.nights * taxInfo.taxPerNightPerPerson : 0;
+                                return (
+                                  <div key={i} className="flex items-center justify-between gap-2 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 rounded-md text-sm">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{config.city}</span>
+                                      <span className="text-muted-foreground">×</span>
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        value={config.nights}
+                                        className="w-16 h-7 text-center"
+                                        onChange={(e) => {
+                                          const updated = [...(formData.cityTaxConfig || [])];
+                                          updated[i] = { ...updated[i], nights: parseInt(e.target.value) || 1 };
+                                          setFormData({ ...formData, cityTaxConfig: updated });
+                                        }}
+                                        data-testid={`input-city-nights-${i}`}
+                                      />
+                                      <span className="text-muted-foreground">nights</span>
+                                      {taxInfo && (
+                                        <span className="text-xs text-muted-foreground">
+                                          = {taxInfo.currency} {taxPerPerson.toFixed(2)}/person
+                                        </span>
+                                      )}
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={() => {
+                                        setFormData({
+                                          ...formData,
+                                          cityTaxConfig: (formData.cityTaxConfig || []).filter((_, idx) => idx !== i)
+                                        });
+                                      }}
+                                      data-testid={`button-remove-city-tax-${i}`}
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                              {(() => {
+                                const totalTax = (formData.cityTaxConfig || []).reduce((sum, config) => {
+                                  const taxInfo = cityTaxes.find(t => t.cityName.toLowerCase() === config.city.toLowerCase());
+                                  return sum + (taxInfo ? config.nights * taxInfo.taxPerNightPerPerson : 0);
+                                }, 0);
+                                const currency = cityTaxes[0]?.currency || "EUR";
+                                return totalTax > 0 ? (
+                                  <div className="flex justify-end text-sm font-medium text-amber-700 dark:text-amber-400">
+                                    Total city tax: {currency} {totalTax.toFixed(2)}/person
+                                  </div>
+                                ) : null;
+                              })()}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 

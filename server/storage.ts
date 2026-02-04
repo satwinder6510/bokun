@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, type PackageSeason, type InsertPackageSeason, type PricingExport, type InsertPricingExport, type BokunDeparture, type BokunDepartureRate, type BokunDepartureRateFlight, flightPackages, packageEnquiries, tourEnquiries, packagePricing, packageSeasons, pricingExports, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages, bokunDepartures, bokunDepartureRates, bokunDepartureRateFlights } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, type PackageSeason, type InsertPackageSeason, type PricingExport, type InsertPricingExport, type BokunDeparture, type BokunDepartureRate, type BokunDepartureRateFlight, type CityTax, type InsertCityTax, flightPackages, packageEnquiries, tourEnquiries, packagePricing, packageSeasons, pricingExports, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages, bokunDepartures, bokunDepartureRates, bokunDepartureRateFlights, cityTaxes } from "@shared/schema";
 import { type ParsedDeparture } from "./bokun";
 
 // Extended rate type with flight pricing per airport
@@ -159,6 +159,14 @@ export interface IStorage {
   getContentImage(type: string, name: string): Promise<ContentImage | undefined>;
   upsertContentImage(type: string, name: string, imageUrl: string): Promise<ContentImage>;
   deleteContentImage(id: number): Promise<boolean>;
+  
+  // City tax methods
+  getAllCityTaxes(): Promise<CityTax[]>;
+  getCityTaxByName(cityName: string): Promise<CityTax | undefined>;
+  createCityTax(tax: InsertCityTax): Promise<CityTax>;
+  updateCityTax(id: number, tax: Partial<InsertCityTax>): Promise<CityTax | undefined>;
+  deleteCityTax(id: number): Promise<boolean>;
+  getLatestCityTaxUpdate(): Promise<Date | null>;
   
   // Bokun departures methods
   syncBokunDepartures(packageId: number, bokunProductId: string, departures: ParsedDeparture[], durationNights?: number | null): Promise<{ departuresCount: number; ratesCount: number }>;
@@ -1512,6 +1520,49 @@ export class MemStorage implements IStorage {
       console.error("Error deleting content image:", error);
       return false;
     }
+  }
+  
+  // City tax methods
+  async getAllCityTaxes(): Promise<CityTax[]> {
+    return await db.select().from(cityTaxes).orderBy(asc(cityTaxes.cityName));
+  }
+  
+  async getCityTaxByName(cityName: string): Promise<CityTax | undefined> {
+    const result = await db.select().from(cityTaxes)
+      .where(sql`LOWER(${cityTaxes.cityName}) = LOWER(${cityName})`)
+      .limit(1);
+    return result[0];
+  }
+  
+  async createCityTax(tax: InsertCityTax): Promise<CityTax> {
+    const [created] = await db.insert(cityTaxes).values(tax).returning();
+    return created;
+  }
+  
+  async updateCityTax(id: number, tax: Partial<InsertCityTax>): Promise<CityTax | undefined> {
+    const [updated] = await db.update(cityTaxes)
+      .set({ ...tax, updatedAt: new Date() })
+      .where(eq(cityTaxes.id, id))
+      .returning();
+    return updated;
+  }
+  
+  async deleteCityTax(id: number): Promise<boolean> {
+    try {
+      await db.delete(cityTaxes).where(eq(cityTaxes.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting city tax:", error);
+      return false;
+    }
+  }
+  
+  async getLatestCityTaxUpdate(): Promise<Date | null> {
+    const result = await db.select({ updatedAt: cityTaxes.updatedAt })
+      .from(cityTaxes)
+      .orderBy(desc(cityTaxes.updatedAt))
+      .limit(1);
+    return result[0]?.updatedAt || null;
   }
   
   // Bokun departures methods

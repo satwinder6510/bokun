@@ -704,6 +704,25 @@ export default function PackageDetailTest() {
     staleTime: 30000, // Refetch after 30 seconds to pick up admin price changes
   });
 
+  // City tax query for Pay Now / Pay Locally display
+  type CityTaxResponse = {
+    cityNights: { city: string; nights: number; tax: number; currency: string }[];
+    totalTaxPerPerson: number;
+    currency: string;
+    lastUpdated: string | null;
+  };
+
+  const { data: cityTaxData } = useQuery<CityTaxResponse>({
+    queryKey: ["/api/packages", slug, "city-taxes"],
+    queryFn: async () => {
+      const response = await fetch(`/api/packages/${slug}/city-taxes`);
+      if (!response.ok) throw new Error("Failed to fetch city taxes");
+      return response.json();
+    },
+    enabled: !!slug,
+    staleTime: 60000, // Refetch after 1 minute
+  });
+
   // Bokun pricing state - Airport is primary selection, rates are secondary
   const [selectedBokunAirport, setSelectedBokunAirport] = useState<string>("");
   const [selectedBokunRate, setSelectedBokunRate] = useState<string>("");
@@ -2111,6 +2130,25 @@ export default function PackageDetailTest() {
                                   </p>
                                   <p className="text-xs text-muted-foreground">per person incl. flights</p>
                                 </div>
+                                
+                                {/* Pay Now / Pay Locally breakdown */}
+                                {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                                  <div className="mt-3 pt-3 border-t border-blue-200">
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-muted-foreground">Pay now:</span>
+                                      <span className="font-medium">{formatPrice(selectedBokunPricing.combinedPrice)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm mt-1">
+                                      <span className="text-muted-foreground">Pay locally (city tax):</span>
+                                      <span className="font-medium">{cityTaxData.currency} {cityTaxData.totalTaxPerPerson.toFixed(2)}</span>
+                                    </div>
+                                    {cityTaxData.lastUpdated && (
+                                      <p className="text-xs text-muted-foreground mt-2 text-center">
+                                        City tax correct as of {new Date(cityTaxData.lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

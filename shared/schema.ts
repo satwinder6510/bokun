@@ -383,6 +383,8 @@ export const flightPackages = pgTable("flight_packages", {
     day: number;
     title: string;
     description: string;
+    city?: string; // City name for tax calculation (optional - falls back to text matching)
+    nights?: number; // Number of nights in this city (default 1)
   }[]>().notNull().default([]),
   accommodations: jsonb("accommodations").$type<{
     name: string;
@@ -419,6 +421,13 @@ export const flightPackages = pgTable("flight_packages", {
   
   // Custom "What's Not Included" items - if set, overrides the default hardcoded list
   customExclusions: jsonb("custom_exclusions").$type<string[]>().default([]),
+  
+  // City tax configuration - explicit city nights for tax calculation
+  // Much simpler than parsing itinerary - admin specifies cities and nights directly
+  cityTaxConfig: jsonb("city_tax_config").$type<{
+    city: string;  // Must match a city name in city_taxes table
+    nights: number;
+  }[]>().default([]),
   
   // Duration info
   duration: text("duration"), // e.g., "11 Nights / 12 Days"
@@ -1269,3 +1278,25 @@ export const insertContentImageSchema = createInsertSchema(contentImages).omit({
 
 export type ContentImage = typeof contentImages.$inferSelect;
 export type InsertContentImage = z.infer<typeof insertContentImageSchema>;
+
+// City Taxes - locally paid taxes per city (per night per person)
+export const cityTaxes = pgTable("city_taxes", {
+  id: serial("id").primaryKey(),
+  cityName: text("city_name").notNull(), // e.g., "Rome", "Venice", "Florence"
+  countryCode: text("country_code").notNull().default(""), // e.g., "IT", "ES", "FR"
+  taxPerNightPerPerson: real("tax_per_night_per_person").notNull(), // Amount in currency
+  currency: text("currency").notNull().default("EUR"), // Currency code
+  notes: text("notes"), // Optional notes about the tax
+  effectiveDate: timestamp("effective_date"), // When this rate became effective
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCityTaxSchema = createInsertSchema(cityTaxes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type CityTax = typeof cityTaxes.$inferSelect;
+export type InsertCityTax = z.infer<typeof insertCityTaxSchema>;

@@ -32,14 +32,14 @@ const countryToCode: Record<string, string> = {
   'italy': 'IT', 'spain': 'ES', 'france': 'FR', 'germany': 'DE',
   'portugal': 'PT', 'greece': 'GR', 'croatia': 'HR', 'austria': 'AT',
   'netherlands': 'NL', 'belgium': 'BE', 'switzerland': 'CH',
-  'bulgaria': 'BG', 'slovakia': 'SK', 'hungary': 'HU', 'denmark': 'DK',
+  'bulgaria': 'BG', 'slovakia': 'SK', 'hungary': 'HU', 'denmark': 'DK', 'estonia': 'EE',
 };
 
 const capitalCities: Record<string, string> = {
   'IT': 'Rome', 'ES': 'Madrid', 'FR': 'Paris', 'DE': 'Berlin',
   'PT': 'Lisbon', 'GR': 'Athens', 'HR': 'Zagreb', 'AT': 'Vienna',
   'NL': 'Amsterdam', 'BE': 'Brussels', 'CH': 'Bern',
-  'BG': 'Sofia', 'SK': 'Bratislava', 'HU': 'Budapest', 'DK': 'Copenhagen',
+  'BG': 'Sofia', 'SK': 'Bratislava', 'HU': 'Budapest', 'DK': 'Copenhagen', 'EE': 'Tallinn',
 };
 
 function parseDurationNights(duration: string | null | undefined): number {

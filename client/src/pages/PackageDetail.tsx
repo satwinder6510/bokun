@@ -2097,6 +2097,7 @@ export default function PackageDetailTest() {
                         {selectedAirport && (
                           <div className="space-y-3">
                             <PriceCalendarWidget
+                              key={`calendar-desktop-${selectedAirport}`}
                               pricingData={sortedPricing}
                               selectedDate={selectedDate}
                               onDateSelect={handleDateSelect}
@@ -2197,6 +2198,7 @@ export default function PackageDetailTest() {
                         {selectedBokunAirport && filteredBokunPricing.length > 0 && (
                           <div className="space-y-3">
                             <BokunPriceCalendarWidget
+                              key={`bokun-calendar-desktop-${selectedBokunAirport}`}
                               pricingData={filteredBokunPricing}
                               selectedDate={selectedBokunDate}
                               onDateSelect={setSelectedBokunDate}
@@ -2510,6 +2512,7 @@ export default function PackageDetailTest() {
 
                 {selectedAirport && (
                   <PriceCalendarWidget
+                    key={`calendar-mobile-sidebar-${selectedAirport}`}
                     pricingData={sortedPricing}
                     selectedDate={selectedDate}
                     onDateSelect={handleDateSelect}
@@ -2855,6 +2858,7 @@ export default function PackageDetailTest() {
                 {selectedAirport && (
                   <div className="space-y-3">
                     <PriceCalendarWidget
+                      key={`calendar-mobile-${selectedAirport}`}
                       pricingData={sortedPricing}
                       selectedDate={selectedDate}
                       onDateSelect={handleDateSelect}
@@ -3004,6 +3008,7 @@ export default function PackageDetailTest() {
                 {selectedBokunAirport && filteredBokunPricing.length > 0 && (
                   <div className="space-y-3">
                     <BokunPriceCalendarWidget
+                      key={`bokun-calendar-mobile-${selectedBokunAirport}`}
                       pricingData={filteredBokunPricing}
                       selectedDate={selectedBokunDate}
                       onDateSelect={setSelectedBokunDate}
@@ -3713,6 +3718,7 @@ export default function PackageDetailTest() {
                           {selectedAirport && (
                             <div className="space-y-3">
                               <PriceCalendarWidget
+                                key={`calendar-sidebar-${selectedAirport}`}
                                 pricingData={sortedPricing}
                                 selectedDate={selectedDate}
                                 onDateSelect={handleDateSelect}
@@ -3823,6 +3829,7 @@ export default function PackageDetailTest() {
                           {selectedBokunAirport && filteredBokunPricing.length > 0 && (
                             <div className="space-y-3">
                               <BokunPriceCalendarWidget
+                                key={`bokun-calendar-sidebar-${selectedBokunAirport}`}
                                 pricingData={filteredBokunPricing}
                                 selectedDate={selectedBokunDate}
                                 onDateSelect={setSelectedBokunDate}

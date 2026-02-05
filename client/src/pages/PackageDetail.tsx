@@ -2044,9 +2044,14 @@ export default function PackageDetailTest() {
                                     })}
                                   </p>
                                   <p className="text-2xl font-bold text-white mt-1">
-                                    {formatPrice(selectedPricing.price)}
+                                    {formatPrice(selectedPricing.price + (cityTaxData?.totalTaxPerPerson || 0))}
                                   </p>
-                                  <p className="text-xs text-white/80">per person</p>
+                                  <p className="text-xs text-white/80">total cost per person</p>
+                                  {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                                    <p className="text-[10px] text-white/70 mt-0.5">
+                                      {formatPrice(selectedPricing.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             )}

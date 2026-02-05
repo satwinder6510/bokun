@@ -107,12 +107,14 @@ function PriceCalendarWidget({
   pricingData, 
   selectedDate, 
   onDateSelect,
-  formatPrice 
+  formatPrice,
+  localChargesPerPerson = 0
 }: { 
   pricingData: PackagePricing[];
   selectedDate: Date | undefined;
   onDateSelect: (date: Date | undefined, isAutoSelect?: boolean) => void;
   formatPrice: (price: number) => string;
+  localChargesPerPerson?: number; // City tax + additional charges
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
@@ -308,7 +310,7 @@ function PriceCalendarWidget({
                     ? 'text-white/90 font-medium' 
                     : 'text-muted-foreground'
                 }`}>
-                  {formatPrice(price)}
+                  {formatPrice(price + localChargesPerPerson)}
                 </span>
               )}
             </div>
@@ -341,12 +343,14 @@ function BokunPriceCalendarWidget({
   pricingData, 
   selectedDate, 
   onDateSelect,
-  formatPrice 
+  formatPrice,
+  localChargesPerPerson = 0
 }: { 
   pricingData: BokunPricingEntryType[];
   selectedDate: Date | undefined;
   onDateSelect: (date: Date | undefined, isAutoSelect?: boolean) => void;
   formatPrice: (price: number) => string;
+  localChargesPerPerson?: number; // City tax + additional charges
 }) {
   const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
@@ -540,7 +544,7 @@ function BokunPriceCalendarWidget({
                       ? 'text-green-700 dark:text-green-300 font-bold' 
                       : 'text-blue-600 dark:text-blue-400'
                 } ${!available ? 'opacity-50' : ''}`}>
-                  {formatPrice(price)}
+                  {formatPrice(price + localChargesPerPerson)}
                 </span>
               )}
             </div>
@@ -2097,6 +2101,7 @@ export default function PackageDetailTest() {
                               selectedDate={selectedDate}
                               onDateSelect={handleDateSelect}
                               formatPrice={formatPrice}
+                              localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
                             />
                             
                             {selectedDate && selectedPricing && (
@@ -2196,6 +2201,7 @@ export default function PackageDetailTest() {
                               selectedDate={selectedBokunDate}
                               onDateSelect={setSelectedBokunDate}
                               formatPrice={formatPrice}
+                              localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
                             />
                             
                             {selectedBokunDate && selectedBokunPricing && (
@@ -2508,6 +2514,7 @@ export default function PackageDetailTest() {
                     selectedDate={selectedDate}
                     onDateSelect={handleDateSelect}
                     formatPrice={formatPrice}
+                    localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
                   />
                 )}
               </CardContent>
@@ -2852,6 +2859,7 @@ export default function PackageDetailTest() {
                       selectedDate={selectedDate}
                       onDateSelect={handleDateSelect}
                       formatPrice={formatPrice}
+                      localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
                     />
                     
                     {selectedDate && selectedPricing && (
@@ -2871,7 +2879,7 @@ export default function PackageDetailTest() {
                           </div>
                           <div className="text-right">
                             <p className="text-xl font-bold text-secondary">
-                              {formatPrice(selectedPricing.price)}
+                              {formatPrice(selectedPricing.price + (cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount)}
                             </p>
                             <p className="text-xs text-muted-foreground">per person</p>
                           </div>
@@ -3000,6 +3008,7 @@ export default function PackageDetailTest() {
                       selectedDate={selectedBokunDate}
                       onDateSelect={setSelectedBokunDate}
                       formatPrice={formatPrice}
+                      localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
                     />
                     
                     {selectedBokunDate && selectedBokunPricing && (
@@ -3708,6 +3717,7 @@ export default function PackageDetailTest() {
                                 selectedDate={selectedDate}
                                 onDateSelect={handleDateSelect}
                                 formatPrice={formatPrice}
+                                localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
                               />
                               
                               {selectedDate && selectedPricing && (
@@ -3728,7 +3738,7 @@ export default function PackageDetailTest() {
                                     </div>
                                     <div className="text-right">
                                       <p className="text-2xl font-bold text-secondary">
-                                        {formatPrice(selectedPricing.price)}
+                                        {formatPrice(selectedPricing.price + (cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount)}
                                       </p>
                                       <p className="text-xs text-muted-foreground">per person</p>
                                     </div>
@@ -3817,6 +3827,7 @@ export default function PackageDetailTest() {
                                 selectedDate={selectedBokunDate}
                                 onDateSelect={setSelectedBokunDate}
                                 formatPrice={formatPrice}
+                                localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
                               />
                               
                               {selectedBokunDate && selectedBokunPricing && (

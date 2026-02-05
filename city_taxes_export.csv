@@ -1,0 +1,62 @@
+id,cityName,countryCode,pricingType,taxPerNightPerPerson,rate1Star,rate2Star,rate3Star,rate4Star,rate5Star,currency,notes
+11,Agrigento,IT,star_rating,0,,,2,3,3,EUR,
+12,Alberobello,IT,star_rating,0,,,3,3,4,EUR,
+54,Algarve,PT,flat,2,,,,,,EUR,"€2/night, max 7 nights. Under 12s exempt. Half price Nov-Mar"
+52,Azores,PT,flat,2,,,,,,EUR,"€2/night, max 7 nights. Under 12s exempt. Half price Nov-Mar"
+59,Balearic Islands,ES,star_rating,0,1,2,3,4,6,EUR,Up to €6 depending on star rating. Under 16s exempt
+60,Barcelona,ES,star_rating,0,2.5,3.5,5.5,7,8.5,EUR,Includes up to €4 city tax. Under 17s exempt
+37,Bologna,IT,flat,5,,,,,,EUR,Up to €5 depending on accommodation cost. Under 14s exempt
+25,Bordeaux,FR,flat,3.6,,,,,,EUR,"€3.60 per person, per night"
+21,Brussels,BE,flat,4.24,,,,,,EUR,"€4.24 per person, per night"
+55,Bucharest,RO,flat,2,,,,,,EUR,"€2 per person, per night"
+35,Budapest,HU,flat,1000,,,,,,HUF,Max 6 nights and 4 people
+26,Cannes,FR,flat,2.25,,,,,,EUR,Up to €2.25 depending on star rating
+22,Cape Verde,CV,flat,2.5,,,,,,EUR,Capped at €25 total per person. Under 16s exempt
+19,Catania,IT,star_rating,0,,,2,2.5,3.5,EUR,
+10,Cefalù,IT,star_rating,0,,,2,2.5,5,EUR,
+23,Croatia,HR,flat,1,,,,,,EUR,Average €1/night. Reduced €0.50 for 12-18. Under 12s exempt
+62,Dubai,AE,star_rating,0,7,10,15,20,20,AED,"Up to 20 AED per room, per night depending on star rating"
+32,Dusseldorf,DE,flat,3,,,,,,EUR,"€3 per person, per night"
+5,Florence,IT,star_rating,0,,,4,6,8,EUR,
+33,Frankfurt,DE,flat,2,,,,,,EUR,"€2 per person, per night"
+47,Gdansk,PL,flat,0.3,,,,,,EUR,"€0.30 per person, per night"
+56,Geneva,CH,flat,3.75,,,,,,CHF,"3.75 CHF per person, per night"
+38,Genoa,IT,flat,4,,,,,,EUR,Up to €4 depending on star rating. Under 13s exempt
+58,Greece,GR,star_rating,0,2,2,5,10,15,EUR,Per room (not per person). Reduced rates Nov-Feb
+34,Hamburg,DE,flat,4,,,,,,EUR,"Up to €4 per person, per night"
+8,Ischia,IT,star_rating,0,,,2,3,3,EUR,
+48,Krakow,PL,flat,0.3,,,,,,EUR,"€0.30 per person, per night"
+16,Lake Como,IT,star_rating,0,,,4,5,5,EUR,
+15,Lake Garda,IT,star_rating,0,,,1.8,2.8,4.2,EUR,
+17,Lake Maggiore,IT,star_rating,0,,,1.5,2.5,3.5,EUR,
+14,Lecce,IT,star_rating,0,,,3,4,5,EUR,HS - High Season rates
+49,Lisbon,PT,flat,4,,,,,,EUR,"€4/night, max 7 nights. Under 12s exempt"
+27,Lyon,FR,flat,3.3,,,,,,EUR,Up to €3.30 depending on star rating. Under 18s exempt
+51,Madeira,PT,flat,2,,,,,,EUR,"€2/night, max 7 nights. Under 12s exempt. Half price Nov-Mar"
+42,Maldives,MV,flat,12,,,,,,USD,"$12 per person, per night. Under 12s exempt"
+44,Malta,MT,flat,1.5,,,,,,EUR,"€1.50 per person, per night. Under 18s exempt"
+18,Matera,IT,star_rating,0,,,2,4,4,EUR,
+43,Mauritius,MU,flat,3,,,,,,EUR,"€3 per guest, per night. Under 12s exempt"
+4,Milan,IT,star_rating,0,,,6.3,7,7,EUR,
+45,Montenegro,ME,flat,1,,,,,,EUR,"€1 per person, per night. Under 12s exempt"
+28,Montpelier,FR,flat,4.6,,,,,,EUR,Up to €4.60 depending on star rating. Under 18s exempt
+46,Morocco,MA,flat,28.6,,,,,,MAD,"28.60 MAD per person, per night. Under 12s exempt"
+6,Naples,IT,star_rating,0,,,4.5,5.5,6,EUR,
+29,Nice,FR,flat,4.2,,,,,,EUR,Up to €4.20 depending on star rating
+13,Ostuni,IT,star_rating,0,,,2,4,4,EUR,
+61,Palma,ES,star_rating,0,1,1.5,2,3,4,EUR,Up to €4 depending on star rating
+30,Paris,FR,flat,10.73,,,,,,EUR,Up to €10.73 depending on star rating
+53,Porto,PT,flat,2,,,,,,EUR,"€2/night, max 7 nights. Under 12s exempt. Half price Nov-Mar"
+24,Prague,CZ,flat,50,,,,,,CZK,"CZK 50 per person, per night"
+57,Ras Al Khaimah,AE,flat,15,,,,,,AED,"15 AED per room, per night"
+9,Ravello,IT,star_rating,0,,,2,3,4,EUR,
+36,Reykjavik,IS,flat,600,,,,,,ISK,"ISK 600 per room, per night"
+41,Riga,LV,flat,1,,,,,,EUR,"€1 per person, per night"
+2,Rome,IT,star_rating,0,,,6,7.5,10,EUR,
+7,Sorrento,IT,star_rating,0,,,2,4,4,EUR,
+31,Toulouse,FR,flat,3.6,,,,,,EUR,"€3.60 per person, per night"
+39,Turin,IT,flat,5,,,,,,EUR,Up to €5 depending on star rating
+3,Venice,IT,star_rating,0,,,5,8,10,EUR,FYI
+40,Verona,IT,flat,5,,,,,,EUR,Up to €5 depending on star rating. Under 15s exempt. Over 70s get 20% discount
+20,Vienna,AT,flat,3.2,,,,,,EUR,"Up to €3.20 per person, per night"
+50,Évora,PT,flat,1.5,,,,,,EUR,Max 3 nights. 16+ only

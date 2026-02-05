@@ -219,8 +219,20 @@ function PriceCalendarWidget({
   };
 
   // Check if there are prices in adjacent months for navigation (using timezone-safe parsing)
-  const hasPricesInPrevMonth = pricingData.some(p => {
+  // Also prevent navigating to months before current month
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonthNum = today.getMonth();
+  const isCurrentMonth = year === currentYear && month === currentMonthNum;
+  
+  const hasPricesInPrevMonth = !isCurrentMonth && pricingData.some(p => {
     const d = parsePricingDate(p.departureDate);
+    const prevMonthDate = new Date(year, month - 1, 1);
+    // Only allow navigation if previous month is not before current month
+    if (prevMonthDate.getFullYear() < currentYear || 
+        (prevMonthDate.getFullYear() === currentYear && prevMonthDate.getMonth() < currentMonthNum)) {
+      return false;
+    }
     return d.getFullYear() < year || (d.getFullYear() === year && d.getMonth() < month);
   });
 
@@ -436,8 +448,20 @@ function BokunPriceCalendarWidget({
   };
 
   // Check if there are prices in adjacent months for navigation
-  const hasPricesInPrevMonth = pricingData.some(p => {
+  // Also prevent navigating to months before current month
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonthNum = today.getMonth();
+  const isCurrentMonth = year === currentYear && month === currentMonthNum;
+  
+  const hasPricesInPrevMonth = !isCurrentMonth && pricingData.some(p => {
     const d = parsePricingDate(p.departureDate);
+    const prevMonthDate = new Date(year, month - 1, 1);
+    // Only allow navigation if previous month is not before current month
+    if (prevMonthDate.getFullYear() < currentYear || 
+        (prevMonthDate.getFullYear() === currentYear && prevMonthDate.getMonth() < currentMonthNum)) {
+      return false;
+    }
     return d.getFullYear() < year || (d.getFullYear() === year && d.getMonth() < month);
   });
 

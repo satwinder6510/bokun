@@ -907,20 +907,31 @@ export default function PackageDetailTest() {
     }
   }, [bokunAirports, selectedBokunAirport]);
 
-  // Get unique airports from pricing data, sorted by cheapest price
-  // Only include airports that have valid prices
-  const airports = Array.from(new Set(pricing.map(p => p.departureAirport)))
-    .map(code => {
-      const entry = pricing.find(p => p.departureAirport === code);
-      const airportPrices = pricing.filter(p => p.departureAirport === code && p.price > 0);
-      // Find the minimum price for this airport (only if there are valid prices)
-      const minPrice = airportPrices.length > 0 
-        ? Math.min(...airportPrices.map(p => p.price))
-        : Infinity;
-      return { code, name: entry?.departureAirportName || code, minPrice, hasValidPrices: airportPrices.length > 0 };
-    })
-    .filter(airport => airport.hasValidPrices) // Exclude airports with no valid prices
-    .sort((a, b) => a.minPrice - b.minPrice); // Sort by cheapest price first
+  // Get unique airports from pricing data, sorted by cheapest FUTURE price
+  // Only include airports that have valid future prices
+  const airports = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return Array.from(new Set(pricing.map(p => p.departureAirport)))
+      .map(code => {
+        const entry = pricing.find(p => p.departureAirport === code);
+        // Only consider future dates with valid prices
+        const futurePrices = pricing.filter(p => {
+          if (p.departureAirport !== code || p.price <= 0) return false;
+          const [year, month, day] = p.departureDate.split('-').map(Number);
+          const depDate = new Date(year, month - 1, day);
+          return depDate >= today;
+        });
+        // Find the minimum price for this airport (only future dates)
+        const minPrice = futurePrices.length > 0 
+          ? Math.min(...futurePrices.map(p => p.price))
+          : Infinity;
+        return { code, name: entry?.departureAirportName || code, minPrice, hasValidPrices: futurePrices.length > 0 };
+      })
+      .filter(airport => airport.hasValidPrices) // Exclude airports with no valid future prices
+      .sort((a, b) => a.minPrice - b.minPrice); // Sort by cheapest price first
+  }, [pricing]);
 
   // Track scroll depth on package detail page
   useScrollDepth({

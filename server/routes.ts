@@ -3663,7 +3663,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      const pkg = await storage.updateFlightPackage(parseInt(id), parseResult.data);
+      // Sanitize numeric fields - convert empty strings to null for PostgreSQL
+      const sanitizedData = { ...parseResult.data };
+      const numericFields = ['additionalChargeForeignAmount', 'additionalChargeExchangeRate', 'additionalChargeAmount', 'additionalChargeEurAmount'] as const;
+      for (const field of numericFields) {
+        if (field in sanitizedData && sanitizedData[field as keyof typeof sanitizedData] === '') {
+          (sanitizedData as any)[field] = null;
+        }
+      }
+      
+      const pkg = await storage.updateFlightPackage(parseInt(id), sanitizedData);
       
       if (!pkg) {
         return res.status(404).json({ error: "Package not found" });

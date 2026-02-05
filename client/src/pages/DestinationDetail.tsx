@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TourCard } from "@/components/TourCard";
+import { FlightPackageCard, CityTaxInfo } from "@/components/FlightPackageCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,21 +21,6 @@ interface DestinationData {
   blogPosts: BlogPost[];
 }
 
-interface CityTaxInfo {
-  totalTaxPerPerson: number;
-  taxPerNight: number;
-  nights: number;
-}
-
-function formatGBP(price: number): string {
-  return new Intl.NumberFormat('en-GB', { 
-    style: 'currency', 
-    currency: 'GBP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(price);
-}
-
 function formatDate(dateString: string | Date | null): string {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -43,59 +29,6 @@ function formatDate(dateString: string | Date | null): string {
     month: 'long', 
     year: 'numeric' 
   });
-}
-
-function FlightPackageCard({ pkg, countrySlug, cityTaxInfo }: { pkg: FlightPackage; countrySlug: string; cityTaxInfo?: CityTaxInfo }) {
-  const basePrice = pkg.price || pkg.singlePrice || 0;
-  const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
-  const totalPrice = basePrice + cityTax;
-  
-  return (
-    <Link href={`/Holidays/${countrySlug}/${pkg.slug}`}>
-      <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
-        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-          <img 
-            src={pkg.featuredImage || "/placeholder.jpg"} 
-            alt={pkg.title}
-            width={400}
-            height={300}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            loading="lazy"
-            decoding="async"
-          />
-          <div className="absolute top-3 left-3 flex gap-2">
-            <Badge className="bg-blue-600 text-white">
-              <Plane className="h-3 w-3 mr-1" />
-              Flights Included
-            </Badge>
-          </div>
-        </div>
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-            {pkg.title}
-          </h3>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              <span>{pkg.duration}</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm text-muted-foreground">From</span>
-              <p className="text-xl font-bold text-primary">
-                {basePrice > 0 ? formatGBP(totalPrice) : "Price on request"}
-              </p>
-              <span className="text-xs text-muted-foreground">total cost per person</span>
-              {cityTax > 0 && basePrice > 0 && (
-                <p className="text-xs text-muted-foreground">{formatGBP(basePrice)} + {formatGBP(cityTax)} locally</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
 }
 
 function BlogCard({ post }: { post: BlogPost }) {
@@ -291,8 +224,10 @@ export default function DestinationDetail() {
     
     return {
       totalTaxPerPerson,
-      taxPerNight,
-      nights
+      cityName: capitalTax.cityName,
+      nights,
+      ratePerNight: taxPerNight,
+      currency: capitalTax.currency || 'EUR'
     };
   };
 
@@ -378,9 +313,9 @@ export default function DestinationDetail() {
                     <h2 className="text-2xl font-semibold">Flight Packages to {displayName}</h2>
                     <Badge variant="secondary">{data.flightPackages.length}</Badge>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {data.flightPackages.map((pkg) => (
-                      <FlightPackageCard key={pkg.id} pkg={pkg} countrySlug={countrySlug} cityTaxInfo={calculateCityTaxForPackage(pkg)} />
+                      <FlightPackageCard key={pkg.id} pkg={pkg} cityTaxInfo={calculateCityTaxForPackage(pkg)} />
                     ))}
                   </div>
                 </section>

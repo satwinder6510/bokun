@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TourCard } from "@/components/TourCard";
+import { FlightPackageCard, CityTaxInfo } from "@/components/FlightPackageCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,13 +27,6 @@ interface CityTax {
   currency: string;
 }
 
-interface CityTaxInfo {
-  totalTaxPerPerson: number;
-  cityName: string;
-  nights: number;
-  ratePerNight: number;
-  currency: string;
-}
 
 const countryToCode: Record<string, string> = {
   'italy': 'IT', 'spain': 'ES', 'france': 'FR', 'germany': 'DE',
@@ -98,77 +92,6 @@ interface CollectionData {
   tag: string;
 }
 
-function formatGBP(price: number): string {
-  return new Intl.NumberFormat('en-GB', { 
-    style: 'currency', 
-    currency: 'GBP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(price);
-}
-
-function FlightPackageCard({ pkg, showSinglePrice = false, cityTaxInfo }: { pkg: FlightPackage; showSinglePrice?: boolean; cityTaxInfo?: CityTaxInfo }) {
-  const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
-  // For solo collection, prefer single price; otherwise prefer double/twin price
-  const basePrice = showSinglePrice 
-    ? (pkg.singlePrice || pkg.price) 
-    : (pkg.price || pkg.singlePrice);
-  
-  const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
-  const totalPrice = (basePrice || 0) + cityTax;
-  
-  // Add ?pricing=solo when linking from solo collection
-  const packageUrl = showSinglePrice 
-    ? `/Holidays/${countrySlug}/${pkg.slug}?pricing=solo`
-    : `/Holidays/${countrySlug}/${pkg.slug}`;
-  
-  return (
-    <Link href={packageUrl}>
-      <Card className="overflow-hidden group cursor-pointer h-full hover-elevate" data-testid={`card-package-${pkg.id}`}>
-        <div className="relative aspect-[4/3] overflow-hidden">
-          <img 
-            src={pkg.featuredImage || "/placeholder.jpg"} 
-            alt={pkg.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-          <div className="absolute top-3 left-3 flex gap-2">
-            <Badge className="bg-blue-600 text-white">
-              <Plane className="h-3 w-3 mr-1" />
-              Flights Included
-            </Badge>
-          </div>
-        </div>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-            <MapPin className="h-4 w-4" />
-            <span>{pkg.category}</span>
-          </div>
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors">
-            {pkg.title}
-          </h3>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              <span>{pkg.duration}</span>
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-sm text-muted-foreground">From</span>
-              <p className="text-xl font-bold text-primary">
-                {basePrice ? formatGBP(totalPrice) : "Price on request"}
-              </p>
-              <span className="text-xs text-muted-foreground">total cost per person</span>
-              {cityTax > 0 && basePrice && (
-                <p className="text-xs text-muted-foreground">{formatGBP(basePrice)} + {formatGBP(cityTax)} locally</p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
-  );
-}
 
 function LandTourCard({ tour }: { tour: BokunProduct }) {
   return (
@@ -196,6 +119,43 @@ export default function CollectionDetail() {
     queryFn: () => apiRequest('GET', `/api/collections/${encodeURIComponent(tagSlug)}`),
     enabled: !!tagSlug && isKnownCollection,
   });
+
+  const { data: cityTaxes } = useQuery<CityTax[]>({
+    queryKey: ['/api/city-taxes'],
+  });
+
+  const calculateCityTaxForPackage = (pkg: FlightPackage): CityTaxInfo | undefined => {
+    if (!cityTaxes || cityTaxes.length === 0) return undefined;
+    
+    const country = pkg.category;
+    if (!country) return undefined;
+    
+    const nights = parseDurationNights(pkg.duration);
+    if (nights <= 0) return undefined;
+    
+    const countryCode = getCountryCode(country);
+    if (!countryCode) return undefined;
+    
+    const capitalCityName = capitalCities[countryCode];
+    if (!capitalCityName) return undefined;
+    
+    const capitalTax = cityTaxes.find(
+      t => t.cityName.toLowerCase() === capitalCityName.toLowerCase() && t.countryCode === countryCode
+    );
+    
+    if (!capitalTax) return undefined;
+    
+    const ratePerNight = capitalTax.taxPerNightPerPerson || 0;
+    const totalTax = ratePerNight * nights;
+    
+    return {
+      totalTaxPerPerson: Math.round(totalTax * 100) / 100,
+      cityName: capitalTax.cityName,
+      nights,
+      ratePerNight,
+      currency: capitalTax.currency || 'EUR'
+    };
+  };
 
   // Redirect to destination page if this is not a known collection
   // This handles case-insensitive URL matching on production servers
@@ -274,12 +234,14 @@ export default function CollectionDetail() {
                     <h2 className="text-2xl font-semibold">Flight Packages</h2>
                     <Badge variant="secondary">{data.flightPackages.length}</Badge>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                     {data.flightPackages.map((pkg) => (
                       <FlightPackageCard 
                         key={pkg.id} 
                         pkg={pkg} 
-                        showSinglePrice={tagSlug === "solo-travellers"} 
+                        showSinglePrice={tagSlug === "solo-travellers"}
+                        pricingSuffix={tagSlug === "solo-travellers" ? "?pricing=solo" : undefined}
+                        cityTaxInfo={calculateCityTaxForPackage(pkg)}
                       />
                     ))}
                   </div>

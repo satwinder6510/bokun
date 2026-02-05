@@ -7,9 +7,10 @@ id,cityName,countryCode,pricingType,taxPerNightPerPerson,rate1Star,rate2Star,rat
 60,Barcelona,ES,star_rating,0,2.5,3.5,5.5,7,8.5,EUR,Includes up to €4 city tax. Under 17s exempt
 37,Bologna,IT,flat,5,,,,,,EUR,Up to €5 depending on accommodation cost. Under 14s exempt
 25,Bordeaux,FR,flat,3.6,,,,,,EUR,"€3.60 per person, per night"
+63,Bratislava,SK,flat,3.5,,,,,,EUR,"€3.50 per person, per night"
 21,Brussels,BE,flat,4.24,,,,,,EUR,"€4.24 per person, per night"
 55,Bucharest,RO,flat,2,,,,,,EUR,"€2 per person, per night"
-35,Budapest,HU,flat,1000,,,,,,HUF,Max 6 nights and 4 people
+35,Budapest,HU,flat,3,,,,,,EUR,"€3.00 per person, per night"
 26,Cannes,FR,flat,2.25,,,,,,EUR,Up to €2.25 depending on star rating
 22,Cape Verde,CV,flat,2.5,,,,,,EUR,Capped at €25 total per person. Under 16s exempt
 19,Catania,IT,star_rating,0,,,2,2.5,3.5,EUR,
@@ -53,10 +54,11 @@ id,cityName,countryCode,pricingType,taxPerNightPerPerson,rate1Star,rate2Star,rat
 36,Reykjavik,IS,flat,600,,,,,,ISK,"ISK 600 per room, per night"
 41,Riga,LV,flat,1,,,,,,EUR,"€1 per person, per night"
 2,Rome,IT,star_rating,0,,,6,7.5,10,EUR,
+64,Sofia,BG,flat,3,,,,,,BGN,"BGN 3.00 per person, per night"
 7,Sorrento,IT,star_rating,0,,,2,4,4,EUR,
 31,Toulouse,FR,flat,3.6,,,,,,EUR,"€3.60 per person, per night"
 39,Turin,IT,flat,5,,,,,,EUR,Up to €5 depending on star rating
 3,Venice,IT,star_rating,0,,,5,8,10,EUR,FYI
 40,Verona,IT,flat,5,,,,,,EUR,Up to €5 depending on star rating. Under 15s exempt. Over 70s get 20% discount
-20,Vienna,AT,flat,3.2,,,,,,EUR,"Up to €3.20 per person, per night"
+20,Vienna,AT,flat,0,,,,,,EUR,No city tax
 50,Évora,PT,flat,1.5,,,,,,EUR,Max 3 nights. 16+ only

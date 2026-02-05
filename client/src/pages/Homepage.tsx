@@ -76,6 +76,8 @@ interface CityTaxInfo {
   nights: number;
   ratePerNight: number;
   currency: string;
+  eurAmount?: number;
+  eurToGbpRate?: number;
 }
 
 const countryToCodeMap: Record<string, string> = {
@@ -369,6 +371,8 @@ export default function Homepage() {
       nights,
       ratePerNight,
       currency: 'GBP',
+      eurAmount: capitalTax.currency === 'EUR' ? totalTaxEUR : undefined,
+      eurToGbpRate: capitalTax.currency === 'EUR' ? eurToGbpRate : undefined,
     };
   };
 
@@ -856,6 +860,9 @@ export default function Homepage() {
                                   {cityTax > 0 && (
                                     <p className="text-[10px] text-white/60 mt-0.5">
                                       {formatAiPrice(result.price)} + {formatAiPrice(cityTax)} City taxes paid locally
+                                      {cityTaxInfo?.eurAmount && cityTaxInfo.eurAmount > 0 && cityTaxInfo.eurToGbpRate && (
+                                        <span> (€{cityTaxInfo.eurAmount.toFixed(2)} @ {cityTaxInfo.eurToGbpRate.toFixed(2)})</span>
+                                      )}
                                     </p>
                                   )}
                                 </div>

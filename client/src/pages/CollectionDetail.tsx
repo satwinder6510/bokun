@@ -124,6 +124,11 @@ export default function CollectionDetail() {
     queryKey: ['/api/city-taxes'],
   });
 
+  const { data: siteSettings } = useQuery<{ eurToGbpRate?: number }>({
+    queryKey: ['/api/site-settings/eur-to-gbp'],
+  });
+  const eurToGbpRate = siteSettings?.eurToGbpRate ?? 0.84;
+
   const calculateCityTaxForPackage = (pkg: FlightPackage): CityTaxInfo | undefined => {
     if (!cityTaxes || cityTaxes.length === 0) return undefined;
     
@@ -148,12 +153,18 @@ export default function CollectionDetail() {
     const ratePerNight = capitalTax.taxPerNightPerPerson || 0;
     const totalTax = ratePerNight * nights;
     
+    // Calculate EUR amount and convert to GBP
+    const eurAmount = capitalTax.currency === 'EUR' ? totalTax : undefined;
+    const totalTaxGBP = capitalTax.currency === 'EUR' ? Math.round(totalTax * eurToGbpRate * 100) / 100 : Math.round(totalTax * 100) / 100;
+    
     return {
-      totalTaxPerPerson: Math.round(totalTax * 100) / 100,
+      totalTaxPerPerson: totalTaxGBP,
       cityName: capitalTax.cityName,
       nights,
       ratePerNight,
-      currency: capitalTax.currency || 'EUR'
+      currency: capitalTax.currency || 'EUR',
+      eurAmount,
+      eurToGbpRate: capitalTax.currency === 'EUR' ? eurToGbpRate : undefined,
     };
   };
 

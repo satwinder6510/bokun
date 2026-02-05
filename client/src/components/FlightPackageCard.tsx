@@ -10,6 +10,8 @@ interface CityTaxInfo {
   nights: number;
   ratePerNight: number;
   currency: string;
+  eurAmount?: number;
+  eurToGbpRate?: number;
 }
 
 interface FlightPackageCardProps {
@@ -101,6 +103,9 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
               {cityTax > 0 && (
                 <p className="text-[10px] text-white/60 mt-0.5">
                   {formatGBP(basePrice)} + {formatGBP(cityTax)} City taxes paid locally
+                  {cityTaxInfo?.eurAmount && cityTaxInfo.eurAmount > 0 && cityTaxInfo.eurToGbpRate && (
+                    <span> (€{cityTaxInfo.eurAmount.toFixed(2)} @ {cityTaxInfo.eurToGbpRate.toFixed(2)})</span>
+                  )}
                 </p>
               )}
             </div>

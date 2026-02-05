@@ -222,12 +222,18 @@ export default function DestinationDetail() {
     
     const totalTaxPerPerson = Math.round(taxPerNight * nights * 100) / 100;
     
+    // Calculate EUR amount before conversion
+    const originalTaxPerNight = getCityTaxRate(capitalTax, 4);
+    const eurAmount = capitalTax.currency === 'EUR' ? originalTaxPerNight * nights : undefined;
+    
     return {
       totalTaxPerPerson,
       cityName: capitalTax.cityName,
       nights,
       ratePerNight: taxPerNight,
-      currency: capitalTax.currency || 'EUR'
+      currency: capitalTax.currency || 'EUR',
+      eurAmount,
+      eurToGbpRate: capitalTax.currency === 'EUR' ? eurToGbpRate : undefined,
     };
   };
 

@@ -131,6 +131,8 @@ const countryToCode: Record<string, string> = {
   'belgium': 'BE',
   'czech': 'CZ', 'czechia': 'CZ',
   'hungary': 'HU', 'hungarian': 'HU',
+  'bulgaria': 'BG', 'bulgarian': 'BG',
+  'slovakia': 'SK', 'slovak': 'SK',
   'croatia': 'HR', 'croatian': 'HR',
   'montenegro': 'ME',
   'romania': 'RO', 'romanian': 'RO',
@@ -151,7 +153,8 @@ const capitalCities: Record<string, string> = {
   'BE': 'Brussels', 'CZ': 'Prague', 'HU': 'Budapest', 'HR': 'Zagreb',
   'ME': 'Podgorica', 'RO': 'Bucharest', 'LV': 'Riga', 'IS': 'Reykjavik',
   'AE': 'Dubai', 'MA': 'Marrakech', 'MV': 'Male', 'MU': 'Port Louis',
-  'MT': 'Valletta', 'CV': 'Praia', 'IN': 'Delhi'
+  'MT': 'Valletta', 'CV': 'Praia', 'IN': 'Delhi',
+  'BG': 'Sofia', 'SK': 'Bratislava'
 };
 
 // Get country code from country name

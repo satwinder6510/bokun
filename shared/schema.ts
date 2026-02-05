@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { pgTable, text, timestamp, jsonb, integer, serial, boolean, real, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, jsonb, integer, serial, boolean, real, uniqueIndex, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 export const bokunProductSchema = z.object({
@@ -429,6 +429,10 @@ export const flightPackages = pgTable("flight_packages", {
     nights: number;
     starRating?: number;  // 1-5 star rating for hotels (used for star-rating based taxes)
   }[]>().default([]),
+  
+  // Additional local charges (port charges, resort fees, etc.)
+  additionalChargeName: text("additional_charge_name"),
+  additionalChargeAmount: numeric("additional_charge_amount", { precision: 10, scale: 2 }),
   
   // Duration info
   duration: text("duration"), // e.g., "11 Nights / 12 Days"

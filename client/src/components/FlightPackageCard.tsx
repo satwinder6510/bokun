@@ -38,7 +38,10 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
     : (pkg.price || pkg.singlePrice);
   
   const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
-  const totalPrice = (basePrice || 0) + cityTax;
+  const additionalChargeName = (pkg as any)?.additionalChargeName || null;
+  const additionalChargeAmount = parseFloat((pkg as any)?.additionalChargeAmount) || 0;
+  const totalLocalCharges = cityTax + additionalChargeAmount;
+  const totalPrice = (basePrice || 0) + totalLocalCharges;
   
   let packageUrl = `/Holidays/${countrySlug}/${pkg.slug}`;
   if (pricingSuffix) {
@@ -100,12 +103,22 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
                 </span>
                 <span className="text-[10px] text-white/60">total pp</span>
               </div>
-              {cityTax > 0 && (
+              {totalLocalCharges > 0 && (
                 <p className="text-[10px] text-white/60 mt-0.5">
-                  {formatGBP(basePrice)} + {formatGBP(cityTax)} City taxes paid locally
-                  {cityTaxInfo?.eurAmount && cityTaxInfo.eurAmount > 0 && cityTaxInfo.eurToGbpRate && (
-                    <span> (€{cityTaxInfo.eurAmount.toFixed(2)} @ {cityTaxInfo.eurToGbpRate.toFixed(2)})</span>
-                  )}
+                  {formatGBP(basePrice)} + {(() => {
+                    const parts: string[] = [];
+                    if (cityTax > 0) {
+                      let cityPart = `${formatGBP(cityTax)} City taxes`;
+                      if (cityTaxInfo?.eurAmount && cityTaxInfo.eurAmount > 0 && cityTaxInfo.eurToGbpRate) {
+                        cityPart += ` (€${cityTaxInfo.eurAmount.toFixed(2)} @ ${cityTaxInfo.eurToGbpRate.toFixed(2)})`;
+                      }
+                      parts.push(cityPart);
+                    }
+                    if (additionalChargeName && additionalChargeAmount > 0) {
+                      parts.push(`${formatGBP(additionalChargeAmount)} ${additionalChargeName}`);
+                    }
+                    return parts.join(' + ');
+                  })()} paid locally
                 </p>
               )}
             </div>

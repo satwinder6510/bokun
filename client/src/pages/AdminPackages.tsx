@@ -138,6 +138,8 @@ type PackageFormData = {
   desktopHeroVideo: string;
   customExclusions: string[];
   cityTaxConfig: { city: string; nights: number; starRating?: number }[];
+  additionalChargeName: string;
+  additionalChargeAmount: string;
   videos: VideoItem[];
   duration: string;
   boardBasisOverride: string;
@@ -201,6 +203,8 @@ const emptyPackage: PackageFormData = {
   desktopHeroVideo: "",
   customExclusions: [],
   cityTaxConfig: [],
+  additionalChargeName: "",
+  additionalChargeAmount: "",
   videos: [],
   duration: "",
   boardBasisOverride: "",
@@ -756,6 +760,8 @@ export default function AdminPackages() {
       desktopHeroVideo: pkg.desktopHeroVideo || "",
       customExclusions: (pkg.customExclusions || []) as string[],
       cityTaxConfig: ((pkg as any).cityTaxConfig || []) as { city: string; nights: number; starRating?: number }[],
+      additionalChargeName: (pkg as any).additionalChargeName || "",
+      additionalChargeAmount: (pkg as any).additionalChargeAmount || "",
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
       boardBasisOverride: pkg.boardBasisOverride || "",
@@ -3530,6 +3536,48 @@ export default function AdminPackages() {
                             </div>
                           )}
                         </>
+                      )}
+                    </div>
+
+                    <Separator className="my-4" />
+                    
+                    {/* Additional Local Charges */}
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-sm font-medium">Additional Local Charges</Label>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Add any other charges paid locally (port charges, resort fees, etc.)
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="additionalChargeName" className="text-xs">Charge Name</Label>
+                          <Input
+                            id="additionalChargeName"
+                            value={formData.additionalChargeName || ""}
+                            onChange={(e) => setFormData({ ...formData, additionalChargeName: e.target.value })}
+                            placeholder="e.g., Port Charges"
+                            data-testid="input-additional-charge-name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="additionalChargeAmount" className="text-xs">Amount (£ per person)</Label>
+                          <Input
+                            id="additionalChargeAmount"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={formData.additionalChargeAmount || ""}
+                            onChange={(e) => setFormData({ ...formData, additionalChargeAmount: e.target.value })}
+                            placeholder="0.00"
+                            data-testid="input-additional-charge-amount"
+                          />
+                        </div>
+                      </div>
+                      {formData.additionalChargeName && formData.additionalChargeAmount && parseFloat(formData.additionalChargeAmount) > 0 && (
+                        <div className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-3 py-2 rounded-md">
+                          {formData.additionalChargeName}: £{parseFloat(formData.additionalChargeAmount).toFixed(2)} per person (paid locally)
+                        </div>
                       )}
                     </div>
 

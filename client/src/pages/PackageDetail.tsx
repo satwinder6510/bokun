@@ -749,15 +749,32 @@ export default function PackageDetailTest() {
     }, 0);
   }, [cityTaxData]);
 
+  // Get additional charge from package
+  const additionalChargeName = (pkg as any)?.additionalChargeName || null;
+  const additionalChargeAmount = parseFloat((pkg as any)?.additionalChargeAmount) || 0;
+
   // Helper to format city tax note with EUR amount and exchange rate
   const formatCityTaxNote = (basePrice: number) => {
-    if (!cityTaxData || cityTaxData.totalTaxPerPerson <= 0) return null;
-    const eurAmount = Math.round(cityTaxEurTotal * 100) / 100;
-    const rate = cityTaxData.eurToGbpRate || 0.84;
-    if (eurAmount > 0) {
-      return `${formatPrice(basePrice)} + ${formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally (€${eurAmount.toFixed(2)} @ ${rate.toFixed(2)})`;
+    const parts: string[] = [];
+    
+    // City tax part
+    if (cityTaxData && cityTaxData.totalTaxPerPerson > 0) {
+      const eurAmount = Math.round(cityTaxEurTotal * 100) / 100;
+      const rate = cityTaxData.eurToGbpRate || 0.84;
+      if (eurAmount > 0) {
+        parts.push(`${formatPrice(cityTaxData.totalTaxPerPerson)} City taxes (€${eurAmount.toFixed(2)} @ ${rate.toFixed(2)})`);
+      } else {
+        parts.push(`${formatPrice(cityTaxData.totalTaxPerPerson)} City taxes`);
+      }
     }
-    return `${formatPrice(basePrice)} + ${formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally`;
+    
+    // Additional charge part
+    if (additionalChargeName && additionalChargeAmount > 0) {
+      parts.push(`${formatPrice(additionalChargeAmount)} ${additionalChargeName}`);
+    }
+    
+    if (parts.length === 0) return null;
+    return `${formatPrice(basePrice)} + ${parts.join(' + ')} paid locally`;
   };
 
   // Bokun pricing state - Airport is primary selection, rates are secondary

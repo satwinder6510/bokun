@@ -3980,9 +3980,14 @@ export default function PackageDetailTest() {
             <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground">From</p>
               <p className="text-lg font-bold text-primary truncate" data-testid="text-sticky-price">
-                {formatPrice(bokunPricing?.enabled && bokunPricing.prices.length > 0 ? bokunDisplayMinPrice : (pkg?.price || 0))}
-                <span className="text-xs font-normal text-muted-foreground ml-1">pp</span>
+                {formatPrice((bokunPricing?.enabled && bokunPricing.prices.length > 0 ? bokunDisplayMinPrice : (pkg?.price || 0)) + (cityTaxData?.totalTaxPerPerson || 0))}
+                <span className="text-xs font-normal text-muted-foreground ml-1">total pp</span>
               </p>
+              {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  {formatPrice(bokunPricing?.enabled && bokunPricing.prices.length > 0 ? bokunDisplayMinPrice : (pkg?.price || 0))} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <a 

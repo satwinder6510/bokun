@@ -139,7 +139,8 @@ type PackageFormData = {
   customExclusions: string[];
   cityTaxConfig: { city: string; nights: number; starRating?: number }[];
   additionalChargeName: string;
-  additionalChargeEurAmount: string;
+  additionalChargeCurrency: string;
+  additionalChargeForeignAmount: string;
   additionalChargeExchangeRate: string;
   videos: VideoItem[];
   duration: string;
@@ -205,7 +206,8 @@ const emptyPackage: PackageFormData = {
   customExclusions: [],
   cityTaxConfig: [],
   additionalChargeName: "",
-  additionalChargeEurAmount: "",
+  additionalChargeCurrency: "EUR",
+  additionalChargeForeignAmount: "",
   additionalChargeExchangeRate: "0.84",
   videos: [],
   duration: "",
@@ -763,7 +765,8 @@ export default function AdminPackages() {
       customExclusions: (pkg.customExclusions || []) as string[],
       cityTaxConfig: ((pkg as any).cityTaxConfig || []) as { city: string; nights: number; starRating?: number }[],
       additionalChargeName: (pkg as any).additionalChargeName || "",
-      additionalChargeEurAmount: (pkg as any).additionalChargeEurAmount || "",
+      additionalChargeCurrency: (pkg as any).additionalChargeCurrency || "EUR",
+      additionalChargeForeignAmount: (pkg as any).additionalChargeForeignAmount || "",
       additionalChargeExchangeRate: (pkg as any).additionalChargeExchangeRate || "0.84",
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
@@ -3549,10 +3552,10 @@ export default function AdminPackages() {
                       <div>
                         <Label className="text-sm font-medium">Additional Local Charges</Label>
                         <p className="text-xs text-muted-foreground mb-2">
-                          Add any other charges paid locally (port charges, resort fees, etc.) - enter in EUR
+                          Add any other charges paid locally (port charges, resort fees, etc.) - enter in foreign currency
                         </p>
                       </div>
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-4 gap-3">
                         <div>
                           <Label htmlFor="additionalChargeName" className="text-xs">Charge Name</Label>
                           <Input
@@ -3564,20 +3567,49 @@ export default function AdminPackages() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="additionalChargeEurAmount" className="text-xs">Amount (€ per person)</Label>
+                          <Label htmlFor="additionalChargeCurrency" className="text-xs">Currency</Label>
+                          <select
+                            id="additionalChargeCurrency"
+                            value={formData.additionalChargeCurrency || "EUR"}
+                            onChange={(e) => setFormData({ ...formData, additionalChargeCurrency: e.target.value })}
+                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            data-testid="select-additional-charge-currency"
+                          >
+                            <option value="EUR">EUR (€)</option>
+                            <option value="USD">USD ($)</option>
+                            <option value="HRK">HRK (kn)</option>
+                            <option value="CZK">CZK (Kč)</option>
+                            <option value="PLN">PLN (zł)</option>
+                            <option value="HUF">HUF (Ft)</option>
+                            <option value="CHF">CHF (Fr)</option>
+                            <option value="NOK">NOK (kr)</option>
+                            <option value="SEK">SEK (kr)</option>
+                            <option value="DKK">DKK (kr)</option>
+                            <option value="TRY">TRY (₺)</option>
+                            <option value="AED">AED (د.إ)</option>
+                            <option value="THB">THB (฿)</option>
+                            <option value="INR">INR (₹)</option>
+                            <option value="JPY">JPY (¥)</option>
+                            <option value="AUD">AUD ($)</option>
+                            <option value="NZD">NZD ($)</option>
+                            <option value="ZAR">ZAR (R)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <Label htmlFor="additionalChargeForeignAmount" className="text-xs">Amount (per person)</Label>
                           <Input
-                            id="additionalChargeEurAmount"
+                            id="additionalChargeForeignAmount"
                             type="number"
                             step="0.01"
                             min="0"
-                            value={formData.additionalChargeEurAmount || ""}
-                            onChange={(e) => setFormData({ ...formData, additionalChargeEurAmount: e.target.value })}
+                            value={formData.additionalChargeForeignAmount || ""}
+                            onChange={(e) => setFormData({ ...formData, additionalChargeForeignAmount: e.target.value })}
                             placeholder="0.00"
-                            data-testid="input-additional-charge-eur-amount"
+                            data-testid="input-additional-charge-foreign-amount"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="additionalChargeExchangeRate" className="text-xs">EUR → GBP Rate</Label>
+                          <Label htmlFor="additionalChargeExchangeRate" className="text-xs">{formData.additionalChargeCurrency || "EUR"} → GBP Rate</Label>
                           <Input
                             id="additionalChargeExchangeRate"
                             type="number"
@@ -3590,9 +3622,9 @@ export default function AdminPackages() {
                           />
                         </div>
                       </div>
-                      {formData.additionalChargeName && formData.additionalChargeEurAmount && parseFloat(formData.additionalChargeEurAmount) > 0 && (
+                      {formData.additionalChargeName && formData.additionalChargeForeignAmount && parseFloat(formData.additionalChargeForeignAmount) > 0 && (
                         <div className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-3 py-2 rounded-md">
-                          {formData.additionalChargeName}: £{(parseFloat(formData.additionalChargeEurAmount) * parseFloat(formData.additionalChargeExchangeRate || "0.84")).toFixed(2)} per person (€{parseFloat(formData.additionalChargeEurAmount).toFixed(2)} @ {parseFloat(formData.additionalChargeExchangeRate || "0.84").toFixed(2)}) paid locally
+                          {formData.additionalChargeName}: £{(parseFloat(formData.additionalChargeForeignAmount) * parseFloat(formData.additionalChargeExchangeRate || "0.84")).toFixed(2)} per person ({formData.additionalChargeCurrency || "EUR"} {parseFloat(formData.additionalChargeForeignAmount).toFixed(2)} @ {parseFloat(formData.additionalChargeExchangeRate || "0.84").toFixed(2)}) paid locally
                         </div>
                       )}
                     </div>

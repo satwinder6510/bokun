@@ -39,9 +39,10 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
   
   const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
   const additionalChargeName = (pkg as any)?.additionalChargeName || null;
-  const additionalChargeEurAmount = parseFloat((pkg as any)?.additionalChargeEurAmount) || 0;
+  const additionalChargeCurrency = (pkg as any)?.additionalChargeCurrency || "EUR";
+  const additionalChargeForeignAmount = parseFloat((pkg as any)?.additionalChargeForeignAmount) || 0;
   const additionalChargeExchangeRate = parseFloat((pkg as any)?.additionalChargeExchangeRate) || 0.84;
-  const additionalChargeGbpAmount = Math.round(additionalChargeEurAmount * additionalChargeExchangeRate * 100) / 100;
+  const additionalChargeGbpAmount = Math.round(additionalChargeForeignAmount * additionalChargeExchangeRate * 100) / 100;
   const totalLocalCharges = cityTax + additionalChargeGbpAmount;
   const totalPrice = (basePrice || 0) + totalLocalCharges;
   
@@ -117,7 +118,7 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
                       parts.push(cityPart);
                     }
                     if (additionalChargeName && additionalChargeGbpAmount > 0) {
-                      parts.push(`${formatGBP(additionalChargeGbpAmount)} ${additionalChargeName} (€${additionalChargeEurAmount.toFixed(2)} @ ${additionalChargeExchangeRate.toFixed(2)})`);
+                      parts.push(`${formatGBP(additionalChargeGbpAmount)} ${additionalChargeName} (${additionalChargeCurrency} ${additionalChargeForeignAmount.toFixed(2)} @ ${additionalChargeExchangeRate.toFixed(2)})`);
                     }
                     return parts.join(' + ');
                   })()} paid locally

@@ -749,11 +749,12 @@ export default function PackageDetailTest() {
     }, 0);
   }, [cityTaxData]);
 
-  // Get additional charge from package (stored in EUR with exchange rate)
+  // Get additional charge from package (stored in foreign currency with exchange rate)
   const additionalChargeName = (pkg as any)?.additionalChargeName || null;
-  const additionalChargeEurAmount = parseFloat((pkg as any)?.additionalChargeEurAmount) || 0;
+  const additionalChargeCurrency = (pkg as any)?.additionalChargeCurrency || "EUR";
+  const additionalChargeForeignAmount = parseFloat((pkg as any)?.additionalChargeForeignAmount) || 0;
   const additionalChargeExchangeRate = parseFloat((pkg as any)?.additionalChargeExchangeRate) || 0.84;
-  const additionalChargeGbpAmount = Math.round(additionalChargeEurAmount * additionalChargeExchangeRate * 100) / 100;
+  const additionalChargeGbpAmount = Math.round(additionalChargeForeignAmount * additionalChargeExchangeRate * 100) / 100;
 
   // Helper to format city tax note with EUR amount and exchange rate
   const formatCityTaxNote = (basePrice: number) => {
@@ -770,9 +771,9 @@ export default function PackageDetailTest() {
       }
     }
     
-    // Additional charge part with EUR conversion
+    // Additional charge part with foreign currency conversion
     if (additionalChargeName && additionalChargeGbpAmount > 0) {
-      parts.push(`${formatPrice(additionalChargeGbpAmount)} ${additionalChargeName} (€${additionalChargeEurAmount.toFixed(2)} @ ${additionalChargeExchangeRate.toFixed(2)})`);
+      parts.push(`${formatPrice(additionalChargeGbpAmount)} ${additionalChargeName} (${additionalChargeCurrency} ${additionalChargeForeignAmount.toFixed(2)} @ ${additionalChargeExchangeRate.toFixed(2)})`);
     }
     
     if (parts.length === 0) return null;

@@ -430,10 +430,11 @@ export const flightPackages = pgTable("flight_packages", {
     starRating?: number;  // 1-5 star rating for hotels (used for star-rating based taxes)
   }[]>().default([]),
   
-  // Additional local charges (port charges, resort fees, etc.) - stored in EUR with conversion
+  // Additional local charges (port charges, resort fees, etc.) - stored in foreign currency with conversion
   additionalChargeName: text("additional_charge_name"),
-  additionalChargeEurAmount: numeric("additional_charge_eur_amount", { precision: 10, scale: 2 }), // Amount in EUR
-  additionalChargeExchangeRate: numeric("additional_charge_exchange_rate", { precision: 10, scale: 4 }), // EUR to GBP rate
+  additionalChargeCurrency: text("additional_charge_currency"), // Currency code (EUR, USD, HRK, etc.)
+  additionalChargeForeignAmount: numeric("additional_charge_foreign_amount", { precision: 10, scale: 2 }), // Amount in foreign currency
+  additionalChargeExchangeRate: numeric("additional_charge_exchange_rate", { precision: 10, scale: 4 }), // Foreign currency to GBP rate
   
   // Duration info
   duration: text("duration"), // e.g., "11 Nights / 12 Days"

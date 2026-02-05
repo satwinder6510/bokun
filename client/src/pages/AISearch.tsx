@@ -202,7 +202,7 @@ function ResultCard({ result, cityTaxInfo }: { result: AISearchResult; cityTaxIn
               </div>
               {cityTax > 0 && (
                 <p className="text-[10px] sm:text-xs text-white/60 mt-1">
-                  {formatPrice(basePrice)} + {formatPrice(cityTax)} locally
+                  {formatPrice(basePrice)} + {formatPrice(cityTax)} City taxes paid locally
                 </p>
               )}
             </div>

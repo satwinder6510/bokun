@@ -100,7 +100,7 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
               </div>
               {cityTax > 0 && (
                 <p className="text-[10px] text-white/60 mt-0.5">
-                  {formatGBP(basePrice)} + {formatGBP(cityTax)} locally
+                  {formatGBP(basePrice)} + {formatGBP(cityTax)} City taxes paid locally
                 </p>
               )}
             </div>

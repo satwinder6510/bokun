@@ -1273,7 +1273,7 @@ export default function PackageDetailTest() {
               </p>
               <p className="text-xs text-muted-foreground">total cost per person</p>
               {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
               )}
             </div>
           </div>
@@ -1394,7 +1394,7 @@ export default function PackageDetailTest() {
                   </p>
                   <p className="text-xs text-muted-foreground">total cost per person</p>
                   {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                    <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                    <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                   )}
                 </div>
               </div>
@@ -1548,7 +1548,7 @@ export default function PackageDetailTest() {
                 </p>
                 <p className="text-xs text-muted-foreground">total cost per person</p>
                 {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                  <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                  <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                 )}
               </div>
             </div>
@@ -1946,7 +1946,7 @@ export default function PackageDetailTest() {
                             </p>
                             <span className="text-xs text-muted-foreground">total cost pp twin share</span>
                             {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                              <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                              <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                             )}
                           </div>
                         )}
@@ -1957,7 +1957,7 @@ export default function PackageDetailTest() {
                             </p>
                             <span className="text-xs text-muted-foreground">total cost pp solo</span>
                             {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                              <p className="text-xs text-muted-foreground">{formatPrice(pkg.singlePrice)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                              <p className="text-xs text-muted-foreground">{formatPrice(pkg.singlePrice)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                             )}
                           </div>
                         )}
@@ -2398,7 +2398,7 @@ export default function PackageDetailTest() {
                     <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
                     <span className="text-xs text-muted-foreground">total cost per person</span>
                     {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                     )}
                   </div>
                   <Badge className="bg-secondary text-white">
@@ -2452,7 +2452,7 @@ export default function PackageDetailTest() {
                     <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
                     <span className="text-xs text-muted-foreground">total cost per person</span>
                     {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                     )}
                   </div>
                   <Badge className="bg-blue-600 text-white">
@@ -2736,7 +2736,7 @@ export default function PackageDetailTest() {
                     <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
                     <span className="text-xs text-muted-foreground">total cost per person</span>
                     {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                      <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                     )}
                   </div>
                   <Badge className="bg-secondary text-white">
@@ -3548,7 +3548,7 @@ export default function PackageDetailTest() {
                               </p>
                               <span className="text-xs text-muted-foreground">total cost pp twin share</span>
                               {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                                <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                                <p className="text-xs text-muted-foreground">{formatPrice(pkg.price)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                               )}
                             </div>
                           )}
@@ -3559,7 +3559,7 @@ export default function PackageDetailTest() {
                               </p>
                               <span className="text-xs text-muted-foreground">total cost pp solo</span>
                               {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
-                                <p className="text-xs text-muted-foreground">{formatPrice(pkg.singlePrice)} + {formatPrice(cityTaxData.totalTaxPerPerson)} locally</p>
+                                <p className="text-xs text-muted-foreground">{formatPrice(pkg.singlePrice)} + {formatPrice(cityTaxData.totalTaxPerPerson)} City taxes paid locally</p>
                               )}
                             </div>
                           )}

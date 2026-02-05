@@ -855,7 +855,7 @@ export default function Homepage() {
                                   </div>
                                   {cityTax > 0 && (
                                     <p className="text-[10px] text-white/60 mt-0.5">
-                                      {formatAiPrice(result.price)} + {formatAiPrice(cityTax)} locally
+                                      {formatAiPrice(result.price)} + {formatAiPrice(cityTax)} City taxes paid locally
                                     </p>
                                   )}
                                 </div>

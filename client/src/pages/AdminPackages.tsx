@@ -139,7 +139,8 @@ type PackageFormData = {
   customExclusions: string[];
   cityTaxConfig: { city: string; nights: number; starRating?: number }[];
   additionalChargeName: string;
-  additionalChargeAmount: string;
+  additionalChargeEurAmount: string;
+  additionalChargeExchangeRate: string;
   videos: VideoItem[];
   duration: string;
   boardBasisOverride: string;
@@ -204,7 +205,8 @@ const emptyPackage: PackageFormData = {
   customExclusions: [],
   cityTaxConfig: [],
   additionalChargeName: "",
-  additionalChargeAmount: "",
+  additionalChargeEurAmount: "",
+  additionalChargeExchangeRate: "0.84",
   videos: [],
   duration: "",
   boardBasisOverride: "",
@@ -761,7 +763,8 @@ export default function AdminPackages() {
       customExclusions: (pkg.customExclusions || []) as string[],
       cityTaxConfig: ((pkg as any).cityTaxConfig || []) as { city: string; nights: number; starRating?: number }[],
       additionalChargeName: (pkg as any).additionalChargeName || "",
-      additionalChargeAmount: (pkg as any).additionalChargeAmount || "",
+      additionalChargeEurAmount: (pkg as any).additionalChargeEurAmount || "",
+      additionalChargeExchangeRate: (pkg as any).additionalChargeExchangeRate || "0.84",
       videos: (pkg.videos || []) as VideoItem[],
       duration: pkg.duration || "",
       boardBasisOverride: pkg.boardBasisOverride || "",
@@ -3546,10 +3549,10 @@ export default function AdminPackages() {
                       <div>
                         <Label className="text-sm font-medium">Additional Local Charges</Label>
                         <p className="text-xs text-muted-foreground mb-2">
-                          Add any other charges paid locally (port charges, resort fees, etc.)
+                          Add any other charges paid locally (port charges, resort fees, etc.) - enter in EUR
                         </p>
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-3">
                         <div>
                           <Label htmlFor="additionalChargeName" className="text-xs">Charge Name</Label>
                           <Input
@@ -3561,22 +3564,35 @@ export default function AdminPackages() {
                           />
                         </div>
                         <div>
-                          <Label htmlFor="additionalChargeAmount" className="text-xs">Amount (£ per person)</Label>
+                          <Label htmlFor="additionalChargeEurAmount" className="text-xs">Amount (€ per person)</Label>
                           <Input
-                            id="additionalChargeAmount"
+                            id="additionalChargeEurAmount"
                             type="number"
                             step="0.01"
                             min="0"
-                            value={formData.additionalChargeAmount || ""}
-                            onChange={(e) => setFormData({ ...formData, additionalChargeAmount: e.target.value })}
+                            value={formData.additionalChargeEurAmount || ""}
+                            onChange={(e) => setFormData({ ...formData, additionalChargeEurAmount: e.target.value })}
                             placeholder="0.00"
-                            data-testid="input-additional-charge-amount"
+                            data-testid="input-additional-charge-eur-amount"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="additionalChargeExchangeRate" className="text-xs">EUR → GBP Rate</Label>
+                          <Input
+                            id="additionalChargeExchangeRate"
+                            type="number"
+                            step="0.0001"
+                            min="0"
+                            value={formData.additionalChargeExchangeRate || "0.84"}
+                            onChange={(e) => setFormData({ ...formData, additionalChargeExchangeRate: e.target.value })}
+                            placeholder="0.84"
+                            data-testid="input-additional-charge-exchange-rate"
                           />
                         </div>
                       </div>
-                      {formData.additionalChargeName && formData.additionalChargeAmount && parseFloat(formData.additionalChargeAmount) > 0 && (
+                      {formData.additionalChargeName && formData.additionalChargeEurAmount && parseFloat(formData.additionalChargeEurAmount) > 0 && (
                         <div className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-3 py-2 rounded-md">
-                          {formData.additionalChargeName}: £{parseFloat(formData.additionalChargeAmount).toFixed(2)} per person (paid locally)
+                          {formData.additionalChargeName}: £{(parseFloat(formData.additionalChargeEurAmount) * parseFloat(formData.additionalChargeExchangeRate || "0.84")).toFixed(2)} per person (€{parseFloat(formData.additionalChargeEurAmount).toFixed(2)} @ {parseFloat(formData.additionalChargeExchangeRate || "0.84").toFixed(2)}) paid locally
                         </div>
                       )}
                     </div>

@@ -39,8 +39,10 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
   
   const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
   const additionalChargeName = (pkg as any)?.additionalChargeName || null;
-  const additionalChargeAmount = parseFloat((pkg as any)?.additionalChargeAmount) || 0;
-  const totalLocalCharges = cityTax + additionalChargeAmount;
+  const additionalChargeEurAmount = parseFloat((pkg as any)?.additionalChargeEurAmount) || 0;
+  const additionalChargeExchangeRate = parseFloat((pkg as any)?.additionalChargeExchangeRate) || 0.84;
+  const additionalChargeGbpAmount = Math.round(additionalChargeEurAmount * additionalChargeExchangeRate * 100) / 100;
+  const totalLocalCharges = cityTax + additionalChargeGbpAmount;
   const totalPrice = (basePrice || 0) + totalLocalCharges;
   
   let packageUrl = `/Holidays/${countrySlug}/${pkg.slug}`;
@@ -114,8 +116,8 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
                       }
                       parts.push(cityPart);
                     }
-                    if (additionalChargeName && additionalChargeAmount > 0) {
-                      parts.push(`${formatGBP(additionalChargeAmount)} ${additionalChargeName}`);
+                    if (additionalChargeName && additionalChargeGbpAmount > 0) {
+                      parts.push(`${formatGBP(additionalChargeGbpAmount)} ${additionalChargeName} (€${additionalChargeEurAmount.toFixed(2)} @ ${additionalChargeExchangeRate.toFixed(2)})`);
                     }
                     return parts.join(' + ');
                   })()} paid locally

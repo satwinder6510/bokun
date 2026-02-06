@@ -5780,8 +5780,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (fxRate) {
               taxInGbp = Math.round(taxRate * fxRate * 100) / 100;
             } else {
-              console.error(`[CityTax] WARNING: No rate for ${matchingTax.currency}, tax will not be converted`);
-              taxInGbp = 0; // Don't add unconverted foreign amounts as GBP
+              console.error(`[CityTax] WARNING: No rate for ${matchingTax.currency}, using raw amount as fallback`);
+              // Keep taxInGbp as the raw amount but flag the warning
             }
           }
           
@@ -5798,6 +5798,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // Collect warnings for unconverted currencies
+      const warnings: string[] = [];
+      for (const cn of cityNights) {
+        if (cn.currencyOriginal && cn.currencyOriginal !== 'GBP' && cn.currencyOriginal !== 'EUR' && cn.tax === cn.taxOriginal) {
+          warnings.push(`${cn.city}: Could not convert ${cn.currencyOriginal} to GBP — exchange rate unavailable. Amount shown may be incorrect.`);
+        }
+      }
+
       // Calculate total tax per person (in GBP)
       const totalTaxPerPerson = Math.round(cityNights.reduce((sum, cn) => sum + (cn.nights * cn.tax), 0) * 100) / 100;
       const isAutoCalculated = (pkg.cityTaxConfig || []).length === 0 && cityNights.length > 0;
@@ -5809,6 +5817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         lastUpdated: latestUpdate?.toISOString() || null,
         autoCalculated: isAutoCalculated,
         eurToGbpRate: eurToGbp,
+        ...(warnings.length > 0 ? { warnings } : {}),
       });
     } catch (error: any) {
       console.error("Error calculating city taxes:", error);

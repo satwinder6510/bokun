@@ -729,6 +729,7 @@ export default function PackageDetailTest() {
     currency: string;
     lastUpdated: string | null;
     eurToGbpRate?: number;
+    warnings?: string[];
   };
 
   const { data: cityTaxData } = useQuery<CityTaxResponse>({

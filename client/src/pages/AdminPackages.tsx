@@ -3639,16 +3639,28 @@ export default function AdminPackages() {
                             onChange={async (e) => {
                               const newCurrency = e.target.value;
                               setFormData({ ...formData, additionalChargeCurrency: newCurrency });
+                              if (newCurrency === 'GBP') {
+                                setFormData(prev => ({ ...prev, additionalChargeCurrency: newCurrency, additionalChargeExchangeRate: "1" }));
+                                return;
+                              }
                               try {
                                 const resp = await fetch(`/api/admin/exchange-rate/${newCurrency}/GBP`, { credentials: 'include' });
                                 if (resp.ok) {
                                   const data = await resp.json();
                                   if (data.rate) {
                                     setFormData(prev => ({ ...prev, additionalChargeCurrency: newCurrency, additionalChargeExchangeRate: String(data.rate) }));
+                                  } else {
+                                    alert(`Warning: Could not get exchange rate for ${newCurrency} to GBP. Please enter the rate manually.`);
+                                    setFormData(prev => ({ ...prev, additionalChargeCurrency: newCurrency, additionalChargeExchangeRate: "" }));
                                   }
+                                } else {
+                                  alert(`Warning: Exchange rate not available for ${newCurrency}. Please enter the rate manually.`);
+                                  setFormData(prev => ({ ...prev, additionalChargeCurrency: newCurrency, additionalChargeExchangeRate: "" }));
                                 }
                               } catch (err) {
                                 console.error("Failed to fetch exchange rate:", err);
+                                alert(`Warning: Could not fetch exchange rate for ${newCurrency}. Please enter the rate manually.`);
+                                setFormData(prev => ({ ...prev, additionalChargeCurrency: newCurrency, additionalChargeExchangeRate: "" }));
                               }
                             }}
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"

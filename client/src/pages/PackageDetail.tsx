@@ -760,7 +760,7 @@ export default function PackageDetailTest() {
   const additionalChargeName = (pkg as any)?.additionalChargeName || null;
   const additionalChargeCurrency = (pkg as any)?.additionalChargeCurrency || "EUR";
   const additionalChargeForeignAmount = parseFloat((pkg as any)?.additionalChargeForeignAmount) || 0;
-  const additionalChargeExchangeRate = parseFloat((pkg as any)?.additionalChargeExchangeRate) || 0.84;
+  const additionalChargeExchangeRate = parseFloat((pkg as any)?.additionalChargeExchangeRate) || 0;
   const additionalChargeGbpAmount = Math.round(additionalChargeForeignAmount * additionalChargeExchangeRate * 100) / 100;
 
   // Currency symbol map for display

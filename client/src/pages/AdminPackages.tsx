@@ -17,7 +17,7 @@ import {
   ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search,
   Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
   Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling, GripVertical, Info,
-  ChevronUp, ChevronDown, PlusCircle, ExternalLink
+  ChevronUp, ChevronDown, PlusCircle, ExternalLink, Check, ChevronsUpDown
 } from "lucide-react";
 import {
   HoverCard,
@@ -48,6 +48,19 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   Table,
@@ -441,9 +454,12 @@ export default function AdminPackages() {
     resortName: string;
   }>>([]);
   const [selectedCountryId, setSelectedCountryId] = useState("");
+  const [selectedCountryName, setSelectedCountryName] = useState("");
   const [selectedResort, setSelectedResort] = useState<any>(null);
   const [isLoadingCountries, setIsLoadingCountries] = useState(false);
   const [isLoadingResorts, setIsLoadingResorts] = useState(false);
+  const [countryPopoverOpen, setCountryPopoverOpen] = useState(false);
+  const [resortPopoverOpen, setResortPopoverOpen] = useState(false);
 
   // Helper for admin fetch with cookie-based auth
   const adminQueryFn = async (url: string) => {
@@ -5117,99 +5133,223 @@ export default function AdminPackages() {
                                   <div className="space-y-2">
                                     <Label>1. Select Country</Label>
                                     <div className="flex gap-2">
-                                      <select
-                                        className="flex-1 p-2 border rounded-md bg-background"
-                                        value={selectedCountryId}
-                                        onChange={(e) => {
-                                          setSelectedCountryId(e.target.value);
-                                          setSelectedResort(null);
-                                          setSunshineResorts([]);
-                                          setHotelSearchResults([]);
-                                        }}
-                                      >
-                                        <option value="">-- Select a country --</option>
-                                        {sunshineCountries.map((country) => (
-                                          <option key={country.id} value={country.id}>
-                                            {country.name}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={async () => {
-                                          setIsLoadingCountries(true);
-                                          try {
-                                            const response = await fetch('/api/admin/sunshine/countries', { credentials: 'include' });
-                                            if (!response.ok) throw new Error("Failed to load countries");
-                                            const data = await response.json();
-                                            setSunshineCountries(data.countries || []);
-                                            toast({ title: `Loaded ${data.countries?.length || 0} countries` });
-                                          } catch (error: any) {
-                                            toast({ title: "Failed to load countries", description: error.message, variant: "destructive" });
-                                          } finally {
-                                            setIsLoadingCountries(false);
-                                          }
-                                        }}
-                                        disabled={isLoadingCountries}
-                                      >
-                                        {isLoadingCountries ? (
-                                          <><Loader2 className="w-4 h-4 animate-spin" /></>
-                                        ) : (
-                                          <>Load Countries</>
-                                        )}
-                                      </Button>
+                                      <Popover open={countryPopoverOpen} onOpenChange={setCountryPopoverOpen}>
+                                        <PopoverTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={countryPopoverOpen}
+                                            className="flex-1 justify-between"
+                                          >
+                                            {selectedCountryName || "Search for a country..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                          </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-[400px] p-0">
+                                          <Command>
+                                            <CommandInput placeholder="Type to search countries..." />
+                                            <CommandList>
+                                              <CommandEmpty>
+                                                {sunshineCountries.length === 0 ? (
+                                                  <div className="p-4 text-center">
+                                                    <p className="text-sm text-muted-foreground mb-2">No countries loaded yet</p>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      onClick={async () => {
+                                                        setIsLoadingCountries(true);
+                                                        try {
+                                                          const response = await fetch('/api/admin/sunshine/countries', { credentials: 'include' });
+                                                          if (!response.ok) throw new Error("Failed to load countries");
+                                                          const data = await response.json();
+                                                          setSunshineCountries(data.countries || []);
+                                                          toast({ title: `Loaded ${data.countries?.length || 0} countries` });
+                                                        } catch (error: any) {
+                                                          toast({ title: "Failed to load countries", description: error.message, variant: "destructive" });
+                                                        } finally {
+                                                          setIsLoadingCountries(false);
+                                                        }
+                                                      }}
+                                                      disabled={isLoadingCountries}
+                                                    >
+                                                      {isLoadingCountries ? (
+                                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading...</>
+                                                      ) : (
+                                                        <>Load Countries</>
+                                                      )}
+                                                    </Button>
+                                                  </div>
+                                                ) : (
+                                                  "No country found."
+                                                )}
+                                              </CommandEmpty>
+                                              <CommandGroup>
+                                                {sunshineCountries.map((country) => (
+                                                  <CommandItem
+                                                    key={country.id}
+                                                    value={country.name}
+                                                    onSelect={() => {
+                                                      setSelectedCountryId(country.id);
+                                                      setSelectedCountryName(country.name);
+                                                      setSelectedResort(null);
+                                                      setSunshineResorts([]);
+                                                      setHotelSearchResults([]);
+                                                      setCountryPopoverOpen(false);
+                                                    }}
+                                                  >
+                                                    <Check
+                                                      className={`mr-2 h-4 w-4 ${
+                                                        selectedCountryId === country.id ? "opacity-100" : "opacity-0"
+                                                      }`}
+                                                    />
+                                                    {country.name}
+                                                  </CommandItem>
+                                                ))}
+                                              </CommandGroup>
+                                            </CommandList>
+                                          </Command>
+                                        </PopoverContent>
+                                      </Popover>
+
+                                      {sunshineCountries.length === 0 && (
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={async () => {
+                                            setIsLoadingCountries(true);
+                                            try {
+                                              const response = await fetch('/api/admin/sunshine/countries', { credentials: 'include' });
+                                              if (!response.ok) throw new Error("Failed to load countries");
+                                              const data = await response.json();
+                                              setSunshineCountries(data.countries || []);
+                                              toast({ title: `Loaded ${data.countries?.length || 0} countries` });
+                                            } catch (error: any) {
+                                              toast({ title: "Failed to load countries", description: error.message, variant: "destructive" });
+                                            } finally {
+                                              setIsLoadingCountries(false);
+                                            }
+                                          }}
+                                          disabled={isLoadingCountries}
+                                        >
+                                          {isLoadingCountries ? (
+                                            <><Loader2 className="w-4 h-4 animate-spin" /></>
+                                          ) : (
+                                            <>Load Countries</>
+                                          )}
+                                        </Button>
+                                      )}
                                     </div>
                                   </div>
 
                                   {/* Step 2: Select City/Resort */}
                                   {selectedCountryId && (
                                     <div className="space-y-2">
-                                      <Label>2. Select City/Resort</Label>
+                                      <Label>2. Select City/Resort in {selectedCountryName}</Label>
                                       <div className="flex gap-2">
-                                        <select
-                                          className="flex-1 p-2 border rounded-md bg-background"
-                                          value={selectedResort?.resortId || ""}
-                                          onChange={(e) => {
-                                            const resort = sunshineResorts.find(r => r.resortId === e.target.value);
-                                            setSelectedResort(resort || null);
-                                            setHotelSearchResults([]);
-                                          }}
-                                        >
-                                          <option value="">-- Select a city/resort --</option>
-                                          {sunshineResorts.map((resort) => (
-                                            <option key={resort.resortId} value={resort.resortId}>
-                                              {resort.resortName}
-                                            </option>
-                                          ))}
-                                        </select>
-                                        <Button
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={async () => {
-                                            setIsLoadingResorts(true);
-                                            try {
-                                              const response = await fetch(`/api/admin/sunshine/resorts/${selectedCountryId}`, { credentials: 'include' });
-                                              if (!response.ok) throw new Error("Failed to load resorts");
-                                              const data = await response.json();
-                                              setSunshineResorts(data.resorts || []);
-                                              toast({ title: `Loaded ${data.resorts?.length || 0} resorts` });
-                                            } catch (error: any) {
-                                              toast({ title: "Failed to load resorts", description: error.message, variant: "destructive" });
-                                            } finally {
-                                              setIsLoadingResorts(false);
-                                            }
-                                          }}
-                                          disabled={isLoadingResorts}
-                                        >
-                                          {isLoadingResorts ? (
-                                            <><Loader2 className="w-4 h-4 animate-spin" /></>
-                                          ) : (
-                                            <>Load Resorts</>
-                                          )}
-                                        </Button>
+                                        <Popover open={resortPopoverOpen} onOpenChange={setResortPopoverOpen}>
+                                          <PopoverTrigger asChild>
+                                            <Button
+                                              variant="outline"
+                                              role="combobox"
+                                              aria-expanded={resortPopoverOpen}
+                                              className="flex-1 justify-between"
+                                            >
+                                              {selectedResort?.resortName || "Search for a city/resort..."}
+                                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent className="w-[400px] p-0">
+                                            <Command>
+                                              <CommandInput placeholder="Type to search cities..." />
+                                              <CommandList>
+                                                <CommandEmpty>
+                                                  {sunshineResorts.length === 0 ? (
+                                                    <div className="p-4 text-center">
+                                                      <p className="text-sm text-muted-foreground mb-2">No resorts loaded yet</p>
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={async () => {
+                                                          setIsLoadingResorts(true);
+                                                          try {
+                                                            const response = await fetch(`/api/admin/sunshine/resorts/${selectedCountryId}`, { credentials: 'include' });
+                                                            if (!response.ok) throw new Error("Failed to load resorts");
+                                                            const data = await response.json();
+                                                            setSunshineResorts(data.resorts || []);
+                                                            toast({ title: `Loaded ${data.resorts?.length || 0} resorts` });
+                                                          } catch (error: any) {
+                                                            toast({ title: "Failed to load resorts", description: error.message, variant: "destructive" });
+                                                          } finally {
+                                                            setIsLoadingResorts(false);
+                                                          }
+                                                        }}
+                                                        disabled={isLoadingResorts}
+                                                      >
+                                                        {isLoadingResorts ? (
+                                                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Loading...</>
+                                                        ) : (
+                                                          <>Load Resorts</>
+                                                        )}
+                                                      </Button>
+                                                    </div>
+                                                  ) : (
+                                                    "No resort found."
+                                                  )}
+                                                </CommandEmpty>
+                                                <CommandGroup>
+                                                  {sunshineResorts.map((resort) => (
+                                                    <CommandItem
+                                                      key={resort.resortId}
+                                                      value={resort.resortName}
+                                                      onSelect={() => {
+                                                        setSelectedResort(resort);
+                                                        setHotelSearchResults([]);
+                                                        setResortPopoverOpen(false);
+                                                      }}
+                                                    >
+                                                      <Check
+                                                        className={`mr-2 h-4 w-4 ${
+                                                          selectedResort?.resortId === resort.resortId ? "opacity-100" : "opacity-0"
+                                                        }`}
+                                                      />
+                                                      {resort.resortName}
+                                                    </CommandItem>
+                                                  ))}
+                                                </CommandGroup>
+                                              </CommandList>
+                                            </Command>
+                                          </PopoverContent>
+                                        </Popover>
+
+                                        {sunshineResorts.length === 0 && (
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={async () => {
+                                              setIsLoadingResorts(true);
+                                              try {
+                                                const response = await fetch(`/api/admin/sunshine/resorts/${selectedCountryId}`, { credentials: 'include' });
+                                                if (!response.ok) throw new Error("Failed to load resorts");
+                                                const data = await response.json();
+                                                setSunshineResorts(data.resorts || []);
+                                                toast({ title: `Loaded ${data.resorts?.length || 0} resorts` });
+                                              } catch (error: any) {
+                                                toast({ title: "Failed to load resorts", description: error.message, variant: "destructive" });
+                                              } finally {
+                                                setIsLoadingResorts(false);
+                                              }
+                                            }}
+                                            disabled={isLoadingResorts}
+                                          >
+                                            {isLoadingResorts ? (
+                                              <><Loader2 className="w-4 h-4 animate-spin" /></>
+                                            ) : (
+                                              <>Load Resorts</>
+                                            )}
+                                          </Button>
+                                        )}
                                       </div>
                                     </div>
                                   )}

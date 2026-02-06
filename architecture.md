@@ -392,12 +392,35 @@ City taxes are local charges that hotels collect from guests. They vary by city,
 1. Package has `cityTaxConfig` (jsonb) listing cities and nights per city
 2. For each city, system looks up the matching `city_taxes` entry
 3. Tax rate is selected based on hotel star rating
-4. **Currency conversion to GBP:**
+4. **Currency conversion to GBP** (via centralized `fetchExchangeRateToGbp()` helper):
+   - If currency is `GBP`: no conversion needed (rate = 1)
    - If currency is `EUR`: uses admin-configured EUR-to-GBP rate
-   - If currency is `GBP`: no conversion needed
-   - If any other currency: fetches live rate from Frankfurter API (`https://api.frankfurter.dev/v1/latest`)
+   - If currency is Frankfurter-supported: fetches live rate from Frankfurter API
+   - If currency is unsupported (e.g. AED, HRK): uses hardcoded fallback rates
+   - If no rate available at all: keeps raw amount and adds a warning to the response
 5. All taxes are summed as GBP per person
-6. Response includes both GBP total and original foreign currency breakdowns
+6. Response includes GBP total, original foreign currency breakdowns, and any `warnings` array
+
+### Exchange Rate Resolution Order
+```
+1. GBP -> rate = 1 (no conversion)
+2. EUR -> admin-configured rate from site_settings
+3. Frankfurter-supported currencies -> live API rate
+4. Fallback rates (AED: 0.22, HRK: 0.11) -> hardcoded approximations
+5. Unknown currency -> warning returned, raw amount kept
+```
+
+### Frankfurter API Supported Currencies
+```
+AUD, BRL, CAD, CHF, CNY, CZK, DKK, EUR, GBP, HKD, HUF, IDR,
+ILS, INR, ISK, JPY, KRW, MXN, MYR, NOK, NZD, PHP, PLN, RON,
+SEK, SGD, THB, TRY, USD, ZAR
+```
+
+### NOT Supported by Frankfurter (use fallback rates)
+```
+AED (UAE Dirham), HRK (Croatian Kuna - legacy, now EUR)
+```
 
 ### Supported Currencies
 ```
@@ -419,9 +442,12 @@ INR: ₹, JPY: ¥, AUD: A$, NZD: NZ$, ZAR: R, IDR: Rp
 ```
 
 ### Additional Charges
-- Packages can have a separate "additional charge" (e.g., visa fees)
+- Packages can have a separate "additional charge" (e.g., visa fees, port charges, resort fees)
 - Stored on the package: `additionalChargeName`, `additionalChargeCurrency`, `additionalChargeForeignAmount`, `additionalChargeExchangeRate`
-- Converted to GBP using stored exchange rate
+- Exchange rate is auto-fetched when admin selects a currency (via `fetchExchangeRateToGbp`)
+- If auto-fetch fails, admin gets a warning pop-up and must enter the rate manually
+- Exchange rate column: `numeric(16, 10)` - high precision to support currencies like IDR (rate ~0.000044)
+- Converted to GBP using stored exchange rate on the frontend
 - Displayed alongside city taxes in the price breakdown
 
 ---
@@ -563,13 +589,17 @@ Enhanced SEO for UK market, configured in `server/seo/ukIntentDestination.ts`.
 ### City Tax Calculation
 **Files:** `server/routes.ts` (line ~5700+), `client/src/pages/PackageDetail.tsx`
 - ALL foreign currencies must convert to GBP before adding to price
-- EUR uses admin-configured rate; other currencies use Frankfurter API live rates
+- Uses centralized `fetchExchangeRateToGbp()` with Frankfurter API + fallback rates
+- If conversion fails for a currency, a warning is returned in the API response (never silently zero out)
 - Never add raw foreign amounts as GBP (this was a critical bug, fixed 2026-02-06)
 
 ### Exchange Rate System
-- Admin-configurable USD-to-GBP rate (stored in `site_settings`)
-- Used for Bokun product price conversion (USD -> GBP)
-- Separate from city tax exchange rates (which use live Frankfurter API)
+- **Centralized helper:** `fetchExchangeRateToGbp()` at top of `server/routes.ts`
+- Resolution: GBP=1 -> EUR=admin rate -> Frankfurter API -> fallback map -> warning
+- **Fallback rates** for unsupported currencies (AED, HRK) stored in `FALLBACK_RATES_TO_GBP`
+- Admin-configurable USD-to-GBP rate (stored in `site_settings`) used for Bokun products
+- Additional charge exchange rate stored per-package with `numeric(16, 10)` precision
+- Admin panel auto-fetches rate on currency change; shows warning if unavailable
 
 ### SEO Content Injection
 **Files:** `server/seo/inject.ts`, `server/seo/routes.ts`
@@ -586,6 +616,11 @@ Enhanced SEO for UK market, configured in `server/seo/ukIntentDestination.ts`.
 - **Added:** Live exchange rate fetching via Frankfurter API for all non-EUR/non-GBP city tax currencies
 - **Updated:** Frontend city tax display to show multi-currency breakdowns with proper currency symbols
 - **Added:** Currency symbol map for 19 supported currencies in PackageDetail.tsx
+- **Added:** Centralized `fetchExchangeRateToGbp()` helper with Frankfurter API + fallback rates for AED and HRK
+- **Fixed:** Exchange rate column precision increased from `numeric(10,4)` to `numeric(16,10)` to support currencies like IDR (rate ~0.000044)
+- **Removed:** Legacy columns `additionalChargeAmount` and `additionalChargeEurAmount` from schema
+- **Added:** Warning system for unsupported currencies - admin gets pop-up alert to enter rate manually; city tax API returns `warnings` array instead of silently zeroing out
+- **Added:** Architecture reference document (this file)
 
 ### Pre-2026-02-06 (Historical)
 - Implemented Bokun Departures + Flights pricing module

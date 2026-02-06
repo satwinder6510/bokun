@@ -54,29 +54,24 @@ export interface HotelSearchResult {
  * Get list of all countries
  */
 export async function getSunshineCountries(): Promise<SunshineCountry[]> {
-  const url = `${SUNSHINE_API_BASE}?agtid=${AGENT_ID}&page=country&output=XML`;
+  const url = `${SUNSHINE_API_BASE}?agtid=${AGENT_ID}&page=country&output=JSON`;
 
   console.log("[SunshineHotel] Fetching countries from:", url);
 
   try {
     const response = await fetch(url);
-    const xmlText = await response.text();
+    const data = await response.json();
 
-    console.log("[SunshineHotel] Received response:", xmlText.substring(0, 200));
+    console.log("[SunshineHotel] Received response:", JSON.stringify(data).substring(0, 200));
 
-    // Check for error in XML
-    if (xmlText.includes("<Error>")) {
-      const errorMatch = xmlText.match(/<Error>(.*?)<\/Error>/i);
-      const errorMessage = errorMatch ? errorMatch[1] : "Unknown API error";
-      console.error("[SunshineHotel] API Error:", errorMessage);
-      throw new Error(`Sunshine API error: ${errorMessage}`);
+    // Check for error
+    if (data.Error) {
+      console.error("[SunshineHotel] API Error:", data.Error);
+      throw new Error(`Sunshine API error: ${data.Error}`);
     }
 
-    const parser = new xml2js.Parser({ explicitArray: false });
-    const result = await parser.parseStringPromise(xmlText);
-
     const countries: SunshineCountry[] = [];
-    const countryData = result.Countries?.Country;
+    const countryData = data.Countries?.Country;
 
     if (!countryData) {
       console.log("[SunshineHotel] No countries found in response");
@@ -87,8 +82,8 @@ export async function getSunshineCountries(): Promise<SunshineCountry[]> {
 
     for (const country of countryArray) {
       countries.push({
-        id: country.$.id,
-        name: country.$.name.replace(/\+/g, ' '),
+        id: country.Id || country.id,
+        name: (country.Name || country.name || '').replace(/\+/g, ' '),
       });
     }
 
@@ -109,31 +104,26 @@ export async function getSunshineDestinations(countryId: string): Promise<{
   resorts: SunshineResort[];
   hotels: SunshineHotel[];
 }> {
-  const url = `${SUNSHINE_API_BASE}?agtid=${AGENT_ID}&page=resort&countryid=${countryId}&output=XML`;
+  const url = `${SUNSHINE_API_BASE}?agtid=${AGENT_ID}&page=resort&countryid=${countryId}&output=JSON`;
 
   console.log(`[SunshineHotel] Fetching destinations for country ${countryId} from:`, url);
 
   try {
     const response = await fetch(url);
-    const xmlText = await response.text();
+    const data = await response.json();
 
-    console.log(`[SunshineHotel] Received response:`, xmlText.substring(0, 200));
+    console.log(`[SunshineHotel] Received response:`, JSON.stringify(data).substring(0, 200));
 
-    // Check for error in XML
-    if (xmlText.includes("<Error>")) {
-      const errorMatch = xmlText.match(/<Error>(.*?)<\/Error>/i);
-      const errorMessage = errorMatch ? errorMatch[1] : "Unknown API error";
-      console.error("[SunshineHotel] API Error:", errorMessage);
-      throw new Error(`Sunshine API error: ${errorMessage}`);
+    // Check for error
+    if (data.Error) {
+      console.error("[SunshineHotel] API Error:", data.Error);
+      throw new Error(`Sunshine API error: ${data.Error}`);
     }
-
-    const parser = new xml2js.Parser({ explicitArray: false });
-    const result = await parser.parseStringPromise(xmlText);
 
     const resorts: SunshineResort[] = [];
     const hotels: SunshineHotel[] = [];
 
-    const regions = result.Regions?.Region;
+    const regions = data.Regions?.Region;
     if (!regions) {
       return { resorts, hotels };
     }
@@ -150,14 +140,14 @@ export async function getSunshineDestinations(countryId: string): Promise<{
 
         for (const resort of resortArray) {
           resorts.push({
-            countryId: region.$.countryid,
-            countryName: region.$.countryname?.replace(/\+/g, ' ') || '',
-            regionId: region.$.regionid,
-            regionName: region.$.regionname?.replace(/\+/g, ' ') || '',
-            areaId: area.$.areaid,
-            areaName: area.$.areaname?.replace(/\+/g, ' ') || '',
-            resortId: resort.$.resortid,
-            resortName: resort.$.resortname?.replace(/\+/g, ' ') || '',
+            countryId: region.CountryId || region.countryid,
+            countryName: (region.CountryName || region.countryname || '').replace(/\+/g, ' '),
+            regionId: region.RegionId || region.regionid,
+            regionName: (region.RegionName || region.regionname || '').replace(/\+/g, ' '),
+            areaId: area.AreaId || area.areaid,
+            areaName: (area.AreaName || area.areaname || '').replace(/\+/g, ' '),
+            resortId: resort.ResortId || resort.resortid,
+            resortName: (resort.ResortName || resort.resortname || '').replace(/\+/g, ' '),
           });
 
           // Extract hotels from this resort
@@ -167,14 +157,14 @@ export async function getSunshineDestinations(countryId: string): Promise<{
 
             for (const hotel of hotelArray) {
               hotels.push({
-                id: hotel.$.hotelid,
-                name: hotel.$.hotelname?.replace(/\+/g, ' ') || '',
-                countryId: region.$.countryid,
-                regionId: region.$.regionid,
-                areaId: area.$.areaid,
-                resortId: resort.$.resortid,
-                resortName: resort.$.resortname?.replace(/\+/g, ' ') || '',
-                starRating: hotel.$.starrating || '0',
+                id: hotel.HotelId || hotel.hotelid,
+                name: (hotel.HotelName || hotel.hotelname || '').replace(/\+/g, ' '),
+                countryId: region.CountryId || region.countryid,
+                regionId: region.RegionId || region.regionid,
+                areaId: area.AreaId || area.areaid,
+                resortId: resort.ResortId || resort.resortid,
+                resortName: (resort.ResortName || resort.resortname || '').replace(/\+/g, ' '),
+                starRating: hotel.StarRating || hotel.starrating || '0',
               });
             }
           }
@@ -224,31 +214,26 @@ export async function searchSunshineHotels(params: {
   url.searchParams.set("children", (params.children || 0).toString());
   url.searchParams.set("duration", params.duration.toString());
   url.searchParams.set("hotelid", params.hotelId || "0");
-  url.searchParams.set("output", "XML");
+  url.searchParams.set("output", "JSON");
 
   console.log(`[SunshineHotel] Searching hotels: ${url.toString()}`);
 
   try {
     const response = await fetch(url.toString());
-    const xmlText = await response.text();
+    const data = await response.json();
 
-    // Check for XML errors
-    if (xmlText.includes("<Error>")) {
-      const errorMatch = xmlText.match(/<Error>(.*?)<\/Error>/i);
-      const errorMessage = errorMatch ? errorMatch[1] : "Unknown error";
-      console.error(`[SunshineHotel] API Error: ${errorMessage}`);
+    // Check for errors
+    if (data.Error) {
+      console.error(`[SunshineHotel] API Error: ${data.Error}`);
 
-      if (errorMessage.includes("IP Address Does Not Match")) {
+      if (data.Error.includes("IP Address Does Not Match")) {
         throw new Error("Sunshine API access denied: Server IP not whitelisted");
       }
-      throw new Error(`Sunshine API error: ${errorMessage}`);
+      throw new Error(`Sunshine API error: ${data.Error}`);
     }
 
-    const parser = new xml2js.Parser({ explicitArray: false });
-    const result = await parser.parseStringPromise(xmlText);
-
     const hotels: HotelSearchResult[] = [];
-    const hotelData = result.Hotels?.Hotel;
+    const hotelData = data.Hotels?.Hotel;
 
     if (!hotelData) {
       console.log("[SunshineHotel] No hotels found");
@@ -259,17 +244,17 @@ export async function searchSunshineHotels(params: {
 
     for (const hotel of hotelArray) {
       hotels.push({
-        refNum: hotel.$.refnum,
-        hotelSupplier: hotel.$.htlsupp?.replace(/\+/g, ' ') || '',
-        hotelName: hotel.$.htlname?.replace(/\+/g, ' ') || '',
-        resort: hotel.$.resort?.replace(/\+/g, ' ') || '',
-        checkInDate: hotel.$.checkindate,
-        stay: hotel.$.stay,
-        roomType: hotel.$.roomtype?.replace(/\+/g, ' ') || '',
-        boardBasis: hotel.$.boardbasis,
-        starRating: hotel.$.starrating,
-        pricePerPerson: parseFloat(hotel.$.htlnetpp || hotel.$.htlsellpp || '0'),
-        hotelId: hotel.$.supphotelid || hotel.$.kwikid || '',
+        refNum: hotel.RefNum || hotel.refnum,
+        hotelSupplier: (hotel.HtlSupp || hotel.htlsupp || '').replace(/\+/g, ' '),
+        hotelName: (hotel.HtlName || hotel.htlname || '').replace(/\+/g, ' '),
+        resort: (hotel.Resort || hotel.resort || '').replace(/\+/g, ' '),
+        checkInDate: hotel.CheckInDate || hotel.checkindate,
+        stay: hotel.Stay || hotel.stay,
+        roomType: (hotel.RoomType || hotel.roomtype || '').replace(/\+/g, ' '),
+        boardBasis: hotel.BoardBasis || hotel.boardbasis,
+        starRating: hotel.StarRating || hotel.starrating,
+        pricePerPerson: parseFloat(hotel.HtlNetPP || hotel.htlnetpp || hotel.HtlSellPP || hotel.htlsellpp || '0'),
+        hotelId: hotel.SuppHotelId || hotel.supphotelid || hotel.KwikId || hotel.kwikid || '',
       });
     }
 

@@ -56,11 +56,22 @@ export interface HotelSearchResult {
 export async function getSunshineCountries(): Promise<SunshineCountry[]> {
   const url = `${SUNSHINE_API_BASE}?agtid=${AGENT_ID}&page=country&output=XML`;
 
-  console.log("[SunshineHotel] Fetching countries...");
+  console.log("[SunshineHotel] Fetching countries from:", url);
 
   try {
     const response = await fetch(url);
     const xmlText = await response.text();
+
+    console.log("[SunshineHotel] Received response:", xmlText.substring(0, 200));
+
+    // Check for error in XML
+    if (xmlText.includes("<Error>")) {
+      const errorMatch = xmlText.match(/<Error>(.*?)<\/Error>/i);
+      const errorMessage = errorMatch ? errorMatch[1] : "Unknown API error";
+      console.error("[SunshineHotel] API Error:", errorMessage);
+      throw new Error(`Sunshine API error: ${errorMessage}`);
+    }
+
     const parser = new xml2js.Parser({ explicitArray: false });
     const result = await parser.parseStringPromise(xmlText);
 
@@ -68,7 +79,7 @@ export async function getSunshineCountries(): Promise<SunshineCountry[]> {
     const countryData = result.Countries?.Country;
 
     if (!countryData) {
-      console.log("[SunshineHotel] No countries found");
+      console.log("[SunshineHotel] No countries found in response");
       return [];
     }
 
@@ -86,6 +97,7 @@ export async function getSunshineCountries(): Promise<SunshineCountry[]> {
 
   } catch (error: any) {
     console.error("[SunshineHotel] Error fetching countries:", error.message);
+    console.error("[SunshineHotel] Stack:", error.stack);
     throw error;
   }
 }
@@ -99,11 +111,22 @@ export async function getSunshineDestinations(countryId: string): Promise<{
 }> {
   const url = `${SUNSHINE_API_BASE}?agtid=${AGENT_ID}&page=resort&countryid=${countryId}&output=XML`;
 
-  console.log(`[SunshineHotel] Fetching destinations for country ${countryId}...`);
+  console.log(`[SunshineHotel] Fetching destinations for country ${countryId} from:`, url);
 
   try {
     const response = await fetch(url);
     const xmlText = await response.text();
+
+    console.log(`[SunshineHotel] Received response:`, xmlText.substring(0, 200));
+
+    // Check for error in XML
+    if (xmlText.includes("<Error>")) {
+      const errorMatch = xmlText.match(/<Error>(.*?)<\/Error>/i);
+      const errorMessage = errorMatch ? errorMatch[1] : "Unknown API error";
+      console.error("[SunshineHotel] API Error:", errorMessage);
+      throw new Error(`Sunshine API error: ${errorMessage}`);
+    }
+
     const parser = new xml2js.Parser({ explicitArray: false });
     const result = await parser.parseStringPromise(xmlText);
 

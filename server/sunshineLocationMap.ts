@@ -99,6 +99,21 @@ export const SUNSHINE_LOCATIONS: Record<string, SunshineLocation> = {
   },
 
   // Portugal (Country ID: 2)
+  "lisbon": {
+    countryId: "2",
+    regionId: "5",
+    areaId: "71",
+    resortId: "441",
+    resortName: "Lisbon"
+  },
+  "porto": {
+    countryId: "2",
+    regionId: "5",
+    areaId: "48",
+    resortId: "712",
+    resortName: "Porto"
+  },
+
   // Greece (Country ID: 3)
   // Add more destinations as needed by looking up from Sunshine API
 };

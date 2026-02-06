@@ -3636,7 +3636,21 @@ export default function AdminPackages() {
                           <select
                             id="additionalChargeCurrency"
                             value={formData.additionalChargeCurrency || "EUR"}
-                            onChange={(e) => setFormData({ ...formData, additionalChargeCurrency: e.target.value })}
+                            onChange={async (e) => {
+                              const newCurrency = e.target.value;
+                              setFormData({ ...formData, additionalChargeCurrency: newCurrency });
+                              try {
+                                const resp = await fetch(`/api/admin/exchange-rate/${newCurrency}/GBP`, { credentials: 'include' });
+                                if (resp.ok) {
+                                  const data = await resp.json();
+                                  if (data.rate) {
+                                    setFormData(prev => ({ ...prev, additionalChargeCurrency: newCurrency, additionalChargeExchangeRate: String(data.rate) }));
+                                  }
+                                }
+                              } catch (err) {
+                                console.error("Failed to fetch exchange rate:", err);
+                              }
+                            }}
                             className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                             data-testid="select-additional-charge-currency"
                           >

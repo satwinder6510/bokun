@@ -405,6 +405,11 @@ export default function AdminPackages() {
     specificHotelCode?: string;
     hotelName?: string;
     starRating?: number;
+    // Location IDs for Sunshine API
+    countryId?: string;
+    regionId?: string;
+    areaId?: string;
+    resortId?: string;
   }>>([]);
   const [flightHotelArrivalAirport, setFlightHotelArrivalAirport] = useState("");
   const [flightHotelDepartureAirport, setFlightHotelDepartureAirport] = useState("");
@@ -425,6 +430,20 @@ export default function AdminPackages() {
     starRating: number;
   }>>([]);
   const [isSearchingHotels, setIsSearchingHotels] = useState(false);
+
+  // Sunshine API location selection
+  const [sunshineCountries, setSunshineCountries] = useState<Array<{ id: string; name: string }>>([]);
+  const [sunshineResorts, setSunshineResorts] = useState<Array<{
+    countryId: string;
+    regionId: string;
+    areaId: string;
+    resortId: string;
+    resortName: string;
+  }>>([]);
+  const [selectedCountryId, setSelectedCountryId] = useState("");
+  const [selectedResort, setSelectedResort] = useState<any>(null);
+  const [isLoadingCountries, setIsLoadingCountries] = useState(false);
+  const [isLoadingResorts, setIsLoadingResorts] = useState(false);
 
   // Helper for admin fetch with cookie-based auth
   const adminQueryFn = async (url: string) => {
@@ -5094,122 +5113,220 @@ export default function AdminPackages() {
                                 <div className="p-4 border-2 border-dashed rounded-lg space-y-3">
                                   <p className="text-sm font-medium">Add City</p>
 
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                    <div className="space-y-2">
-                                      <Label>City Name</Label>
-                                      <Input
-                                        placeholder="e.g., Delhi"
-                                        value={hotelSearchCity}
-                                        onChange={(e) => setHotelSearchCity(e.target.value)}
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <Label>Nights</Label>
-                                      <Input
-                                        type="number"
-                                        min="1"
-                                        defaultValue="2"
-                                        id="city-nights-input"
-                                      />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                      <Label>Board Basis</Label>
-                                      <select
-                                        className="w-full p-2 border rounded-md bg-background"
-                                        id="city-board-basis-input"
-                                        defaultValue="BB"
-                                      >
-                                        <option value="RO">Room Only</option>
-                                        <option value="BB">Bed & Breakfast</option>
-                                        <option value="HB">Half Board</option>
-                                        <option value="FB">Full Board</option>
-                                      </select>
-                                    </div>
-                                  </div>
-
+                                  {/* Step 1: Select Country */}
                                   <div className="space-y-2">
-                                    <Label>Hotel Search & Selection</Label>
+                                    <Label>1. Select Country</Label>
                                     <div className="flex gap-2">
+                                      <select
+                                        className="flex-1 p-2 border rounded-md bg-background"
+                                        value={selectedCountryId}
+                                        onChange={(e) => {
+                                          setSelectedCountryId(e.target.value);
+                                          setSelectedResort(null);
+                                          setSunshineResorts([]);
+                                          setHotelSearchResults([]);
+                                        }}
+                                      >
+                                        <option value="">-- Select a country --</option>
+                                        {sunshineCountries.map((country) => (
+                                          <option key={country.id} value={country.id}>
+                                            {country.name}
+                                          </option>
+                                        ))}
+                                      </select>
                                       <Button
                                         type="button"
                                         variant="outline"
                                         size="sm"
                                         onClick={async () => {
-                                          if (!hotelSearchCity) {
-                                            toast({ title: "Enter city name first", variant: "destructive" });
-                                            return;
-                                          }
-                                          setIsSearchingHotels(true);
+                                          setIsLoadingCountries(true);
                                           try {
-                                            const response = await fetch(
-                                              `/api/admin/hotels/search?city=${encodeURIComponent(hotelSearchCity)}`,
-                                              { credentials: 'include' }
-                                            );
-                                            if (!response.ok) throw new Error("Search failed");
+                                            const response = await fetch('/api/admin/sunshine/countries', { credentials: 'include' });
+                                            if (!response.ok) throw new Error("Failed to load countries");
                                             const data = await response.json();
-                                            setHotelSearchResults(data.hotels || []);
-                                            toast({ title: `Found ${data.hotels?.length || 0} hotels` });
+                                            setSunshineCountries(data.countries || []);
+                                            toast({ title: `Loaded ${data.countries?.length || 0} countries` });
                                           } catch (error: any) {
-                                            toast({ title: "Hotel search failed", description: error.message, variant: "destructive" });
+                                            toast({ title: "Failed to load countries", description: error.message, variant: "destructive" });
                                           } finally {
-                                            setIsSearchingHotels(false);
+                                            setIsLoadingCountries(false);
                                           }
                                         }}
-                                        disabled={isSearchingHotels || !hotelSearchCity}
+                                        disabled={isLoadingCountries}
                                       >
-                                        {isSearchingHotels ? (
-                                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Searching...</>
+                                        {isLoadingCountries ? (
+                                          <><Loader2 className="w-4 h-4 animate-spin" /></>
                                         ) : (
-                                          <><Search className="w-4 h-4 mr-2" />Search Hotels</>
+                                          <>Load Countries</>
                                         )}
                                       </Button>
                                     </div>
-
-                                    {hotelSearchResults.length > 0 && (
-                                      <select
-                                        className="w-full p-2 border rounded-md bg-background"
-                                        id="hotel-select"
-                                      >
-                                        <option value="">Select a hotel...</option>
-                                        {hotelSearchResults.map((hotel) => (
-                                          <option key={hotel.code} value={hotel.code}>
-                                            {hotel.name} ({hotel.starRating}★)
-                                          </option>
-                                        ))}
-                                      </select>
-                                    )}
                                   </div>
 
-                                  <Button
-                                    type="button"
-                                    onClick={() => {
-                                      const nightsInput = document.getElementById('city-nights-input') as HTMLInputElement;
-                                      const boardBasisInput = document.getElementById('city-board-basis-input') as HTMLSelectElement;
-                                      const hotelSelect = document.getElementById('hotel-select') as HTMLSelectElement;
+                                  {/* Step 2: Select City/Resort */}
+                                  {selectedCountryId && (
+                                    <div className="space-y-2">
+                                      <Label>2. Select City/Resort</Label>
+                                      <div className="flex gap-2">
+                                        <select
+                                          className="flex-1 p-2 border rounded-md bg-background"
+                                          value={selectedResort?.resortId || ""}
+                                          onChange={(e) => {
+                                            const resort = sunshineResorts.find(r => r.resortId === e.target.value);
+                                            setSelectedResort(resort || null);
+                                            setHotelSearchResults([]);
+                                          }}
+                                        >
+                                          <option value="">-- Select a city/resort --</option>
+                                          {sunshineResorts.map((resort) => (
+                                            <option key={resort.resortId} value={resort.resortId}>
+                                              {resort.resortName}
+                                            </option>
+                                          ))}
+                                        </select>
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={async () => {
+                                            setIsLoadingResorts(true);
+                                            try {
+                                              const response = await fetch(`/api/admin/sunshine/resorts/${selectedCountryId}`, { credentials: 'include' });
+                                              if (!response.ok) throw new Error("Failed to load resorts");
+                                              const data = await response.json();
+                                              setSunshineResorts(data.resorts || []);
+                                              toast({ title: `Loaded ${data.resorts?.length || 0} resorts` });
+                                            } catch (error: any) {
+                                              toast({ title: "Failed to load resorts", description: error.message, variant: "destructive" });
+                                            } finally {
+                                              setIsLoadingResorts(false);
+                                            }
+                                          }}
+                                          disabled={isLoadingResorts}
+                                        >
+                                          {isLoadingResorts ? (
+                                            <><Loader2 className="w-4 h-4 animate-spin" /></>
+                                          ) : (
+                                            <>Load Resorts</>
+                                          )}
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )}
 
-                                      if (!hotelSearchCity) {
-                                        toast({ title: "Enter city name", variant: "destructive" });
-                                        return;
-                                      }
+                                  {/* Configuration */}
+                                  {selectedResort && (
+                                    <>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div className="space-y-2">
+                                          <Label>Nights</Label>
+                                          <Input
+                                            type="number"
+                                            min="1"
+                                            defaultValue="2"
+                                            id="city-nights-input"
+                                          />
+                                        </div>
 
-                                      const newCity = {
-                                        cityName: hotelSearchCity,
-                                        nights: parseInt(nightsInput?.value || '2'),
-                                        boardBasis: boardBasisInput?.value || 'BB',
-                                        specificHotelCode: hotelSelect?.value || undefined,
-                                      };
+                                        <div className="space-y-2">
+                                          <Label>Board Basis</Label>
+                                          <select
+                                            className="w-full p-2 border rounded-md bg-background"
+                                            id="city-board-basis-input"
+                                            defaultValue="BB"
+                                          >
+                                            <option value="RO">Room Only</option>
+                                            <option value="BB">Bed & Breakfast</option>
+                                            <option value="HB">Half Board</option>
+                                            <option value="FB">Full Board</option>
+                                          </select>
+                                        </div>
+                                      </div>
 
-                                      setFlightHotelCities([...flightHotelCities, newCity]);
-                                      setHotelSearchCity("");
-                                      setHotelSearchResults([]);
-                                      toast({ title: "City added" });
-                                    }}
-                                  >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Add City to Itinerary
-                                  </Button>
+                                      <div className="space-y-2">
+                                        <Label>3. Search & Select Hotel (Optional)</Label>
+                                        <div className="flex gap-2">
+                                          <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={async () => {
+                                              setIsSearchingHotels(true);
+                                              try {
+                                                const params = new URLSearchParams({
+                                                  countryId: selectedResort.countryId,
+                                                  regionId: selectedResort.regionId,
+                                                  areaId: selectedResort.areaId,
+                                                  resortId: selectedResort.resortId,
+                                                  resortName: selectedResort.resortName,
+                                                });
+                                                const response = await fetch(`/api/admin/hotels/search?${params}`, { credentials: 'include' });
+                                                if (!response.ok) throw new Error("Search failed");
+                                                const data = await response.json();
+                                                setHotelSearchResults(data.hotels || []);
+                                                toast({ title: `Found ${data.hotels?.length || 0} hotels` });
+                                              } catch (error: any) {
+                                                toast({ title: "Hotel search failed", description: error.message, variant: "destructive" });
+                                              } finally {
+                                                setIsSearchingHotels(false);
+                                              }
+                                            }}
+                                            disabled={isSearchingHotels}
+                                          >
+                                            {isSearchingHotels ? (
+                                              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Searching...</>
+                                            ) : (
+                                              <><Search className="w-4 h-4 mr-2" />Search Hotels</>
+                                            )}
+                                          </Button>
+                                        </div>
+
+                                        {hotelSearchResults.length > 0 && (
+                                          <select
+                                            className="w-full p-2 border rounded-md bg-background"
+                                            id="hotel-select"
+                                          >
+                                            <option value="">Any hotel in {selectedResort.resortName}</option>
+                                            {hotelSearchResults.map((hotel) => (
+                                              <option key={hotel.code} value={hotel.code}>
+                                                {hotel.name} ({hotel.starRating}★)
+                                              </option>
+                                            ))}
+                                          </select>
+                                        )}
+                                      </div>
+
+                                      <Button
+                                        type="button"
+                                        onClick={() => {
+                                          const nightsInput = document.getElementById('city-nights-input') as HTMLInputElement;
+                                          const boardBasisInput = document.getElementById('city-board-basis-input') as HTMLSelectElement;
+                                          const hotelSelect = document.getElementById('hotel-select') as HTMLSelectElement;
+
+                                          const newCity = {
+                                            cityName: selectedResort.resortName,
+                                            nights: parseInt(nightsInput?.value || '2'),
+                                            boardBasis: boardBasisInput?.value || 'BB',
+                                            specificHotelCode: hotelSelect?.value || undefined,
+                                            countryId: selectedResort.countryId,
+                                            regionId: selectedResort.regionId,
+                                            areaId: selectedResort.areaId,
+                                            resortId: selectedResort.resortId,
+                                          };
+
+                                          setFlightHotelCities([...flightHotelCities, newCity]);
+                                          setSelectedCountryId("");
+                                          setSelectedResort(null);
+                                          setSunshineResorts([]);
+                                          setHotelSearchResults([]);
+                                          toast({ title: "City added to itinerary" });
+                                        }}
+                                      >
+                                        <Plus className="w-4 h-4 mr-2" />
+                                        Add {selectedResort.resortName} to Itinerary
+                                      </Button>
+                                    </>
+                                  )}
                                 </div>
                               </CardContent>
                             </Card>

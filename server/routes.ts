@@ -10334,26 +10334,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ADMIN: Search hotels for city (for autocomplete/dropdown)
+  // ADMIN: Get all available countries from Sunshine API
+  app.get("/api/admin/sunshine/countries", verifyAdminSession, async (req, res) => {
+    try {
+      const { getSunshineCountries } = await import("./sunshineHotelApi");
+      const countries = await getSunshineCountries();
+
+      res.json({ countries });
+    } catch (error: any) {
+      console.error("Error fetching countries:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch countries" });
+    }
+  });
+
+  // ADMIN: Get all resorts for a country from Sunshine API
+  app.get("/api/admin/sunshine/resorts/:countryId", verifyAdminSession, async (req, res) => {
+    try {
+      const { countryId } = req.params;
+      const { getSunshineDestinations } = await import("./sunshineHotelApi");
+
+      const { resorts, hotels } = await getSunshineDestinations(countryId);
+
+      res.json({
+        resorts,
+        hotelCount: hotels.length
+      });
+    } catch (error: any) {
+      console.error("Error fetching resorts:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch resorts" });
+    }
+  });
+
+  // ADMIN: Search hotels for a specific resort (using location IDs)
   app.get("/api/admin/hotels/search", verifyAdminSession, async (req, res) => {
     try {
-      const { city } = req.query as { city: string };
+      const { countryId, regionId, areaId, resortId, resortName } = req.query as {
+        countryId: string;
+        regionId: string;
+        areaId: string;
+        resortId: string;
+        resortName: string;
+      };
 
-      if (!city) {
-        return res.status(400).json({ error: "City parameter is required" });
-      }
-
-      // Find location mapping
-      const { findLocation } = await import("./sunshineLocationMap");
-      const location = findLocation(city);
-
-      if (!location) {
-        return res.json({
-          city,
-          hotels: [],
-          count: 0,
-          error: `Location "${city}" not found. Available: Delhi, Goa, Mumbai, London (add more in sunshineLocationMap.ts)`
-        });
+      if (!countryId || !regionId || !areaId || !resortId) {
+        return res.status(400).json({ error: "Location parameters (countryId, regionId, areaId, resortId) are required" });
       }
 
       // Use sample dates (1 week from now, 7 nights)
@@ -10372,10 +10396,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { searchSunshineHotels } = await import("./sunshineHotelApi");
 
       const hotels = await searchSunshineHotels({
-        countryId: location.countryId,
-        regionId: location.regionId,
-        areaId: location.areaId,
-        resortId: location.resortId,
+        countryId,
+        regionId,
+        areaId,
+        resortId,
         depDate: formatDate(checkIn),
         duration: 7,
         adults: 2,
@@ -10397,10 +10421,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       res.json({
-        city: location.resortName,
+        city: resortName || "Selected Resort",
         hotels: uniqueHotels,
         count: uniqueHotels.length,
-        location: location, // Include IDs for reference
+        location: { countryId, regionId, areaId, resortId, resortName },
       });
 
     } catch (error: any) {

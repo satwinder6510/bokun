@@ -10334,6 +10334,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ADMIN: Search hotels for city (for autocomplete/dropdown)
+  app.get("/api/admin/hotels/search", verifyAdminSession, async (req, res) => {
+    try {
+      const { city, checkIn, checkOut, boardBasis } = req.query as {
+        city: string;
+        checkIn?: string;
+        checkOut?: string;
+        boardBasis?: string;
+      };
+
+      if (!city) {
+        return res.status(400).json({ error: "City parameter is required" });
+      }
+
+      // Use sample dates if not provided (just for getting hotel list)
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const formatDate = (date: Date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
+      const { searchHotels } = await import("./hotelApi");
+
+      const hotels = await searchHotels({
+        destination: city,
+        checkIn: checkIn || formatDate(today),
+        checkOut: checkOut || formatDate(tomorrow),
+        adults: 2,
+        boardBasis: (boardBasis as string) || "BB",
+      });
+
+      // Return simplified list for admin UI
+      const hotelList = hotels.map(h => ({
+        code: h.hotelCode,
+        name: h.hotelName,
+        starRating: h.starRating,
+        city: h.city,
+        boardBasis: h.boardBasis,
+      }));
+
+      // Remove duplicates by hotel code
+      const uniqueHotels = Array.from(
+        new Map(hotelList.map(h => [h.code, h])).values()
+      );
+
+      res.json({
+        city,
+        hotels: uniqueHotels,
+        count: uniqueHotels.length,
+      });
+
+    } catch (error: any) {
+      console.error("Error searching hotels:", error);
+      res.status(500).json({ error: error.message || "Failed to search hotels" });
+    }
+  });
+
   // PUBLIC: Get flight+hotel prices for package detail page
   app.get("/api/packages/:id/flight-hotel-availability", async (req, res) => {
     try {

@@ -228,6 +228,47 @@ Save/update configuration.
 
 ---
 
+#### GET `/api/admin/hotels/search`
+Search hotels in a city (for autocomplete when admin is selecting hotels).
+
+**Query Params:**
+- `city` (required): City name (e.g., "Delhi", "Rome")
+- `checkIn` (optional): DD/MM/YYYY (defaults to today)
+- `checkOut` (optional): DD/MM/YYYY (defaults to tomorrow)
+- `boardBasis` (optional): "RO", "BB", "HB", "FB" (defaults to "BB")
+
+**Response:**
+```json
+{
+  "city": "Delhi",
+  "count": 45,
+  "hotels": [
+    {
+      "code": "DELHILTPHW",
+      "name": "The Leela Palace New Delhi",
+      "starRating": 5,
+      "city": "New Delhi",
+      "boardBasis": "BB"
+    },
+    {
+      "code": "DELHIIMPERIALHOTEL",
+      "name": "The Imperial Hotel",
+      "starRating": 5,
+      "city": "New Delhi",
+      "boardBasis": "BB"
+    }
+  ]
+}
+```
+
+**Frontend Usage:**
+1. User types city name in autocomplete field
+2. Call this endpoint with `?city=Delhi`
+3. Display hotel names in autocomplete dropdown
+4. When user selects hotel, save the `code` as `specificHotelCode`
+
+---
+
 #### POST `/api/admin/packages/:id/fetch-flight-hotel-prices`
 Trigger price calculation.
 

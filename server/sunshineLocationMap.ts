@@ -81,6 +81,90 @@ export const SUNSHINE_LOCATIONS: Record<string, SunshineLocation> = {
     resortId: "680",
     resortName: "Naples"
   },
+  "venice": {
+    countryId: "16",
+    regionId: "22",
+    areaId: "55",
+    resortId: "774",
+    resortName: "Venice"
+  },
+  "verona": {
+    countryId: "16",
+    regionId: "22",
+    areaId: "55",
+    resortId: "778",
+    resortName: "Verona"
+  },
+  "lake garda": {
+    countryId: "16",
+    regionId: "22",
+    areaId: "55",
+    resortId: "1806",
+    resortName: "Lake Garda"
+  },
+  "lake como": {
+    countryId: "16",
+    regionId: "22",
+    areaId: "55",
+    resortId: "4892",
+    resortName: "Lake Como"
+  },
+  "milan": {
+    countryId: "16",
+    regionId: "22",
+    areaId: "55",
+    resortId: "669",
+    resortName: "Milan"
+  },
+  "florence": {
+    countryId: "16",
+    regionId: "23",
+    areaId: "56",
+    resortId: "591",
+    resortName: "Florence"
+  },
+  "bologna": {
+    countryId: "16",
+    regionId: "23",
+    areaId: "56",
+    resortId: "3321",
+    resortName: "Bologna"
+  },
+  "turin": {
+    countryId: "16",
+    regionId: "22",
+    areaId: "55",
+    resortId: "3322",
+    resortName: "Turin"
+  },
+  "catania": {
+    countryId: "16",
+    regionId: "24",
+    areaId: "57",
+    resortId: "573",
+    resortName: "Catania"
+  },
+  "genoa": {
+    countryId: "16",
+    regionId: "22",
+    areaId: "261",
+    resortId: "4253",
+    resortName: "Genoa"
+  },
+  "palermo": {
+    countryId: "16",
+    regionId: "24",
+    areaId: "74",
+    resortId: "691",
+    resortName: "Palermo"
+  },
+  "syracuse": {
+    countryId: "16",
+    regionId: "24",
+    areaId: "57",
+    resortId: "5421",
+    resortName: "Syracuse"
+  },
 
   // France (Country ID: 26)
   "paris": {
@@ -112,6 +196,42 @@ export const SUNSHINE_LOCATIONS: Record<string, SunshineLocation> = {
     areaId: "48",
     resortId: "712",
     resortName: "Porto"
+  },
+
+  // Hungary (Country ID: 37)
+  "budapest": {
+    countryId: "37",
+    regionId: "29",
+    areaId: "99",
+    resortId: "558",
+    resortName: "Budapest"
+  },
+
+  // Slovakia (Country ID: 34)
+  "bratislava": {
+    countryId: "34",
+    regionId: "27",
+    areaId: "92",
+    resortId: "505",
+    resortName: "Bratislava"
+  },
+
+  // Czech Republic (Country ID: 24)
+  "prague": {
+    countryId: "24",
+    regionId: "19",
+    areaId: "70",
+    resortId: "440",
+    resortName: "Prague"
+  },
+
+  // Estonia (Country ID: 43)
+  "tallinn": {
+    countryId: "43",
+    regionId: "32",
+    areaId: "149",
+    resortId: "762",
+    resortName: "Tallinn"
   },
 
   // Greece (Country ID: 3)

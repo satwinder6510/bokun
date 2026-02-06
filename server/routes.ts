@@ -5727,10 +5727,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // Convert to GBP if currency is EUR
-          const taxInGbp = matchingTax.currency === 'EUR' 
-            ? Math.round(taxRate * eurToGbp * 100) / 100
-            : taxRate; // Assume other currencies might already be GBP or handle separately
+          // Convert to GBP using appropriate exchange rate
+          let taxInGbp = taxRate;
+          if (matchingTax.currency === 'EUR') {
+            taxInGbp = Math.round(taxRate * eurToGbp * 100) / 100;
+          } else if (matchingTax.currency !== 'GBP') {
+            // For non-EUR/non-GBP currencies, fetch live rate from Frankfurter API
+            try {
+              const fxResp = await fetch(`https://api.frankfurter.dev/v1/latest?base=${matchingTax.currency}&symbols=GBP`);
+              if (fxResp.ok) {
+                const fxData = await fxResp.json();
+                const rate = fxData.rates?.GBP;
+                if (rate) {
+                  taxInGbp = Math.round(taxRate * rate * 100) / 100;
+                }
+              }
+            } catch (fxErr) {
+              console.error(`Failed to fetch ${matchingTax.currency} to GBP rate:`, fxErr);
+            }
+          }
           
           cityNights.push({
             city: matchingTax.cityName,

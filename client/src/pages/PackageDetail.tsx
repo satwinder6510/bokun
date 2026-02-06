@@ -742,16 +742,18 @@ export default function PackageDetailTest() {
     staleTime: 60000, // Refetch after 1 minute
   });
 
-  // Calculate total EUR amount from city taxes
-  const cityTaxEurTotal = useMemo(() => {
-    if (!cityTaxData?.cityNights) return 0;
-    return cityTaxData.cityNights.reduce((sum, cn) => {
-      if (cn.currencyOriginal === 'EUR') {
-        return sum + (cn.nights * cn.taxOriginal);
-      }
-      return sum;
-    }, 0);
+  // Calculate total foreign amount from city taxes (grouped by original currency)
+  const cityTaxForeignTotals = useMemo(() => {
+    if (!cityTaxData?.cityNights) return {};
+    const totals: Record<string, number> = {};
+    for (const cn of cityTaxData.cityNights) {
+      const curr = cn.currencyOriginal || 'EUR';
+      totals[curr] = (totals[curr] || 0) + (cn.nights * cn.taxOriginal);
+    }
+    return totals;
   }, [cityTaxData]);
+  
+  const cityTaxEurTotal = cityTaxForeignTotals['EUR'] || 0;
 
   // Get additional charge from package (stored in foreign currency with exchange rate)
   const additionalChargeName = (pkg as any)?.additionalChargeName || null;
@@ -760,16 +762,26 @@ export default function PackageDetailTest() {
   const additionalChargeExchangeRate = parseFloat((pkg as any)?.additionalChargeExchangeRate) || 0.84;
   const additionalChargeGbpAmount = Math.round(additionalChargeForeignAmount * additionalChargeExchangeRate * 100) / 100;
 
-  // Helper to format city tax note with EUR amount and exchange rate
+  // Currency symbol map for display
+  const currencySymbolMap: Record<string, string> = {
+    EUR: '€', USD: '$', GBP: '£', HRK: 'kn', CZK: 'Kč', PLN: 'zł', HUF: 'Ft',
+    CHF: 'Fr', NOK: 'kr', SEK: 'kr', DKK: 'kr', TRY: '₺', AED: 'د.إ', THB: '฿',
+    INR: '₹', JPY: '¥', AUD: 'A$', NZD: 'NZ$', ZAR: 'R', IDR: 'Rp'
+  };
+
+  // Helper to format city tax note with foreign currency amounts and exchange rates
   const formatCityTaxNote = (basePrice: number) => {
     const parts: string[] = [];
     
-    // City tax part
+    // City tax part - show foreign currency breakdowns
     if (cityTaxData && cityTaxData.totalTaxPerPerson > 0) {
-      const eurAmount = Math.round(cityTaxEurTotal * 100) / 100;
-      const rate = cityTaxData.eurToGbpRate || 0.84;
-      if (eurAmount > 0) {
-        parts.push(`${formatPrice(cityTaxData.totalTaxPerPerson)} City taxes (€${eurAmount.toFixed(2)} @ ${rate.toFixed(2)})`);
+      const foreignEntries = Object.entries(cityTaxForeignTotals).filter(([, amt]) => amt > 0);
+      if (foreignEntries.length > 0) {
+        const foreignParts = foreignEntries.map(([curr, amt]) => {
+          const symbol = currencySymbolMap[curr] || curr;
+          return `${symbol}${amt.toFixed(2)}`;
+        }).join(' + ');
+        parts.push(`${formatPrice(cityTaxData.totalTaxPerPerson)} City taxes (${foreignParts} paid locally)`);
       } else {
         parts.push(`${formatPrice(cityTaxData.totalTaxPerPerson)} City taxes`);
       }

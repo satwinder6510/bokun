@@ -122,7 +122,34 @@ git push origin main
    - Pricing Module: **"flights_hotels_api"** ← NEW OPTION
    - Save
 
-2. **Configure Cities:**
+2. **Configure Cities (Two Modes):**
+
+   **MODE 1: Specific Hotel (Recommended)**
+   ```json
+   [
+     {
+       "cityName": "Delhi",
+       "nights": 2,
+       "boardBasis": "BB",
+       "specificHotelCode": "DELHILTPHW"
+     },
+     {
+       "cityName": "Agra",
+       "nights": 1,
+       "boardBasis": "BB",
+       "specificHotelCode": "AGRAOBEROITAJ"
+     },
+     {
+       "cityName": "Jaipur",
+       "nights": 2,
+       "boardBasis": "BB",
+       "specificHotelCode": "JAIPURIHG"
+     }
+   ]
+   ```
+   → System fetches **exact hotel's price** for those dates
+
+   **MODE 2: Search by Criteria (Fallback)**
    ```json
    [
      {
@@ -136,15 +163,10 @@ git push origin main
        "nights": 1,
        "starRating": 5,
        "boardBasis": "BB"
-     },
-     {
-       "cityName": "Jaipur",
-       "nights": 2,
-       "starRating": 4,
-       "boardBasis": "BB"
      }
    ]
    ```
+   → System searches hotels by star rating and picks **cheapest**
 
 3. **Configure Flights:**
    - Flight API Source: **SERP** (for India) or **European** (for Europe)

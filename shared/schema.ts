@@ -1330,9 +1330,10 @@ export const flightHotelConfigs = pgTable("flight_hotel_configs", {
     cityName: string;           // e.g., "Rome", "Venice", "Florence"
     cityCode?: string;          // Optional city code for hotel API
     nights: number;             // Number of nights in this city
-    starRating: number;         // 3, 4, or 5 star
+    starRating: number;         // 3, 4, or 5 star (used in search mode)
     boardBasis: string;         // "RO" (room only), "BB" (bed & breakfast), "HB" (half board), "FB" (full board)
-    hotelCodes?: string[];      // Optional: specific hotel codes to search
+    specificHotelCode?: string; // PREFERRED: Exact hotel code to fetch pricing for
+    hotelCodes?: string[];      // FALLBACK: Multiple hotels to search (picks cheapest)
   }[]>().notNull().default([]),
 
   // Flight configuration

@@ -16,7 +16,8 @@ interface CityConfig {
   nights: number;
   starRating: number;
   boardBasis: string;
-  hotelCodes?: string[];
+  hotelCodes?: string[];      // For search mode (fallback)
+  specificHotelCode?: string;  // For exact hotel specification (preferred)
 }
 
 /**
@@ -329,6 +330,10 @@ async function fetchFlightPricesSerp(
 
 /**
  * Fetch hotels for multi-city itinerary
+ *
+ * Two modes:
+ * 1. Specific hotel mode: Admin provides exact hotel code -> fetch that hotel's price
+ * 2. Search mode: Admin provides star rating/criteria -> search and pick cheapest
  */
 async function fetchHotelsForItinerary(
   cities: CityConfig[],
@@ -343,38 +348,83 @@ async function fetchHotelsForItinerary(
     const checkInDate = addDays(new Date(startDate), nightsSoFar);
     const checkOutDate = addDays(checkInDate, city.nights);
 
-    const hotelOffers = await searchHotels({
-      destination: city.cityCode || city.cityName,
-      checkIn: formatDateDDMMYYYY(checkInDate),
-      checkOut: formatDateDDMMYYYY(checkOutDate),
-      adults: roomType === "twin" ? 2 : 1,
-      starRating: city.starRating,
-      boardBasis: city.boardBasis,
-      hotelCodes: city.hotelCodes,
-    });
+    let hotelOffers: any[] = [];
 
-    const cheapest = getCheapestHotel(hotelOffers);
+    // MODE 1: Specific hotel code provided (preferred)
+    if (city.specificHotelCode) {
+      console.log(`[FlightHotel] Fetching specific hotel: ${city.specificHotelCode} in ${city.cityName}`);
 
-    if (!cheapest) {
-      return {
-        success: false,
-        error: `No hotels found for ${city.cityName}`
-      };
+      hotelOffers = await searchHotels({
+        destination: city.cityCode || city.cityName,
+        checkIn: formatDateDDMMYYYY(checkInDate),
+        checkOut: formatDateDDMMYYYY(checkOutDate),
+        adults: roomType === "twin" ? 2 : 1,
+        boardBasis: city.boardBasis,
+        hotelCodes: [city.specificHotelCode], // Search for this specific hotel only
+      });
+
+      // Filter to exact match (in case API returns multiple)
+      const exactMatch = hotelOffers.find(h => h.hotelCode === city.specificHotelCode);
+
+      if (!exactMatch) {
+        return {
+          success: false,
+          error: `Hotel ${city.specificHotelCode} not found in ${city.cityName} for these dates`
+        };
+      }
+
+      hotels.push({
+        cityName: city.cityName,
+        hotelCode: exactMatch.hotelCode,
+        hotelName: exactMatch.hotelName,
+        starRating: exactMatch.starRating,
+        boardBasis: exactMatch.boardBasis,
+        checkIn: checkInDate.toISOString().split('T')[0],
+        checkOut: checkOutDate.toISOString().split('T')[0],
+        nights: city.nights,
+        roomType: exactMatch.roomType,
+        pricePerRoom: exactMatch.totalPrice,
+        pricePerPerson: roomType === "twin" ? exactMatch.totalPrice / 2 : exactMatch.totalPrice,
+      });
+
     }
+    // MODE 2: Search by criteria and pick cheapest (fallback)
+    else {
+      console.log(`[FlightHotel] Searching hotels in ${city.cityName} by criteria (${city.starRating}-star, ${city.boardBasis})`);
 
-    hotels.push({
-      cityName: city.cityName,
-      hotelCode: cheapest.hotelCode,
-      hotelName: cheapest.hotelName,
-      starRating: cheapest.starRating,
-      boardBasis: cheapest.boardBasis,
-      checkIn: checkInDate.toISOString().split('T')[0],
-      checkOut: checkOutDate.toISOString().split('T')[0],
-      nights: city.nights,
-      roomType: cheapest.roomType,
-      pricePerRoom: cheapest.totalPrice,
-      pricePerPerson: roomType === "twin" ? cheapest.totalPrice / 2 : cheapest.totalPrice,
-    });
+      hotelOffers = await searchHotels({
+        destination: city.cityCode || city.cityName,
+        checkIn: formatDateDDMMYYYY(checkInDate),
+        checkOut: formatDateDDMMYYYY(checkOutDate),
+        adults: roomType === "twin" ? 2 : 1,
+        starRating: city.starRating,
+        boardBasis: city.boardBasis,
+        hotelCodes: city.hotelCodes, // Optional: restrict to specific hotels
+      });
+
+      const cheapest = getCheapestHotel(hotelOffers);
+
+      if (!cheapest) {
+        return {
+          success: false,
+          error: `No hotels found for ${city.cityName}`
+        };
+      }
+
+      hotels.push({
+        cityName: city.cityName,
+        hotelCode: cheapest.hotelCode,
+        hotelName: cheapest.hotelName,
+        starRating: cheapest.starRating,
+        boardBasis: cheapest.boardBasis,
+        checkIn: checkInDate.toISOString().split('T')[0],
+        checkOut: checkOutDate.toISOString().split('T')[0],
+        nights: city.nights,
+        roomType: cheapest.roomType,
+        pricePerRoom: cheapest.totalPrice,
+        pricePerPerson: roomType === "twin" ? cheapest.totalPrice / 2 : cheapest.totalPrice,
+      });
+    }
 
     nightsSoFar += city.nights;
 

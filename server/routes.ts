@@ -10334,30 +10334,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ADMIN: Get all available countries from Sunshine API
+  // ADMIN: Get all available countries (static data - fast)
   app.get("/api/admin/sunshine/countries", verifyAdminSession, async (req, res) => {
     try {
-      const { getSunshineCountries } = await import("./sunshineHotelApi");
-      const countries = await getSunshineCountries();
+      const { SUNSHINE_COUNTRIES } = await import("./sunshineStaticData");
 
-      res.json({ countries });
+      res.json({
+        countries: SUNSHINE_COUNTRIES.map(c => ({ id: c.id, name: c.name }))
+      });
     } catch (error: any) {
       console.error("Error fetching countries:", error);
       res.status(500).json({ error: error.message || "Failed to fetch countries" });
     }
   });
 
-  // ADMIN: Get all resorts for a country from Sunshine API
+  // ADMIN: Get all resorts for a country (static data - fast)
   app.get("/api/admin/sunshine/resorts/:countryId", verifyAdminSession, async (req, res) => {
     try {
       const { countryId } = req.params;
-      const { getSunshineDestinations } = await import("./sunshineHotelApi");
+      const { SUNSHINE_RESORTS } = await import("./sunshineStaticData");
 
-      const { resorts, hotels } = await getSunshineDestinations(countryId);
+      // Filter resorts by country
+      const resorts = SUNSHINE_RESORTS.filter(r => r.countryId === countryId);
 
       res.json({
         resorts,
-        hotelCount: hotels.length
+        hotelCount: 0 // Not tracking this in static data
       });
     } catch (error: any) {
       console.error("Error fetching resorts:", error);

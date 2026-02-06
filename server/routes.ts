@@ -3716,6 +3716,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Auto-fetch exchange rate if foreign amount is set but rate is zero/missing
+      const currency = (sanitizedData as any).additionalChargeCurrency;
+      const foreignAmt = parseFloat((sanitizedData as any).additionalChargeForeignAmount) || 0;
+      const currentRate = parseFloat((sanitizedData as any).additionalChargeExchangeRate) || 0;
+      if (currency && foreignAmt > 0 && currentRate === 0) {
+        const fetchedRate = await fetchExchangeRateToGbp(currency);
+        if (fetchedRate !== null) {
+          (sanitizedData as any).additionalChargeExchangeRate = String(fetchedRate);
+          console.log(`[FX] Auto-fetched exchange rate for ${currency}: ${fetchedRate}`);
+        }
+      }
+      
       const pkg = await storage.updateFlightPackage(parseInt(id), sanitizedData);
       
       if (!pkg) {

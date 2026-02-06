@@ -4020,11 +4020,21 @@ export default function AdminPackages() {
                                   Bokun Departures + Flights
                                 </Button>
                               )}
+                              <Button
+                                type="button"
+                                variant={formData.pricingModule === "flights_hotels_api" ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setFormData({ ...formData, pricingModule: "flights_hotels_api" })}
+                                data-testid="button-module-flights-hotels"
+                              >
+                                Flight + Hotel API
+                              </Button>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
                               {formData.pricingModule === "manual" && "Enter prices manually per departure airport and date"}
                               {formData.pricingModule === "open_jaw_seasonal" && "Define seasonal land costs, then fetch flight prices from your chosen API"}
                               {formData.pricingModule === "bokun_departures" && "Sync actual departure dates from Bokun, then add flight costs to each"}
+                              {formData.pricingModule === "flights_hotels_api" && "Combine flight + hotel pricing for multi-city itineraries with specific hotels"}
                             </p>
                           </CardContent>
                         </Card>

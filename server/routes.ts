@@ -10234,6 +10234,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ========================================
+  // FLIGHT + HOTEL API MODULE ROUTES
+  // ========================================
+
+  // Get flight+hotel config for a package
+  app.get("/api/admin/packages/:id/flight-hotel-config", verifyAdminSession, async (req, res) => {
+    try {
+      const packageId = parseInt(req.params.id);
+      const config = await storage.getFlightHotelConfig(packageId);
+
+      if (!config) {
+        return res.json(null);
+      }
+
+      res.json(config);
+    } catch (error: any) {
+      console.error("Error fetching flight+hotel config:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch config" });
+    }
+  });
+
+  // Save/update flight+hotel config
+  app.post("/api/admin/packages/:id/flight-hotel-config", verifyAdminSession, async (req, res) => {
+    try {
+      const packageId = parseInt(req.params.id);
+      const config = {
+        ...req.body,
+        packageId,
+      };
+
+      const saved = await storage.upsertFlightHotelConfig(config);
+      res.json(saved);
+    } catch (error: any) {
+      console.error("Error saving flight+hotel config:", error);
+      res.status(500).json({ error: error.message || "Failed to save config" });
+    }
+  });
+
+  // Fetch flight+hotel prices
+  app.post("/api/admin/packages/:id/fetch-flight-hotel-prices", verifyAdminSession, async (req, res) => {
+    try {
+      const packageId = parseInt(req.params.id);
+      const config = await storage.getFlightHotelConfig(packageId);
+
+      if (!config) {
+        return res.status(404).json({ error: "Flight+hotel config not found" });
+      }
+
+      // Dynamic import to avoid circular dependencies
+      const { calculateFlightHotelPrices } = await import("./flightHotelPricing");
+
+      // Run pricing calculation
+      const result = await calculateFlightHotelPrices(packageId, config);
+
+      if (result.success) {
+        res.json({
+          success: true,
+          pricesCalculated: result.pricesCalculated,
+          message: `Successfully calculated ${result.pricesCalculated} prices`,
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          pricesCalculated: result.pricesCalculated,
+          errors: result.errors,
+          message: `Completed with ${result.errors.length} errors`,
+        });
+      }
+    } catch (error: any) {
+      console.error("Error fetching flight+hotel prices:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch prices" });
+    }
+  });
+
+  // Get flight+hotel prices for a package
+  app.get("/api/admin/packages/:id/flight-hotel-prices", verifyAdminSession, async (req, res) => {
+    try {
+      const packageId = parseInt(req.params.id);
+      const roomType = req.query.roomType as string | undefined;
+
+      const prices = await storage.getFlightHotelPrices(packageId, roomType);
+      res.json(prices);
+    } catch (error: any) {
+      console.error("Error getting flight+hotel prices:", error);
+      res.status(500).json({ error: error.message || "Failed to get prices" });
+    }
+  });
+
+  // Delete flight+hotel prices
+  app.delete("/api/admin/packages/:id/flight-hotel-prices", verifyAdminSession, async (req, res) => {
+    try {
+      const packageId = parseInt(req.params.id);
+      await storage.deleteFlightHotelPrices(packageId);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting flight+hotel prices:", error);
+      res.status(500).json({ error: error.message || "Failed to delete prices" });
+    }
+  });
+
+  // PUBLIC: Get flight+hotel prices for package detail page
+  app.get("/api/packages/:id/flight-hotel-availability", async (req, res) => {
+    try {
+      const packageId = parseInt(req.params.id);
+      const roomType = (req.query.roomType as string) || "twin";
+
+      const prices = await storage.getFlightHotelPrices(packageId, roomType);
+
+      // Group by date for easier frontend consumption
+      const byDate: Record<string, any[]> = {};
+      for (const price of prices) {
+        if (!byDate[price.travelDate]) {
+          byDate[price.travelDate] = [];
+        }
+        byDate[price.travelDate].push({
+          ukAirport: price.ukAirport,
+          flightPrice: price.flightPricePerPerson,
+          hotelCost: price.totalHotelCostPerPerson,
+          finalPrice: price.finalPrice,
+          hotels: price.hotels,
+        });
+      }
+
+      res.json({
+        dates: Object.keys(byDate).sort(),
+        pricesByDate: byDate,
+      });
+    } catch (error: any) {
+      console.error("Error getting flight+hotel availability:", error);
+      res.status(500).json({ error: error.message || "Failed to get availability" });
+    }
+  });
+
   // Build keyword index for AI search on startup
   (async () => {
     try {

@@ -400,26 +400,94 @@ async function runWeeklyBokunCacheRefresh(): Promise<void> {
   console.log(`\n[BokunCache] Weekly cache refresh completed - ${new Date().toISOString()}\n`);
 }
 
+async function runWeeklyFlightHotelRefresh(): Promise<void> {
+  console.log(`\n========================================`);
+  console.log(`[FlightHotel] Starting weekly flight+hotel price refresh - ${new Date().toISOString()}`);
+  console.log(`========================================\n`);
+
+  try {
+    const packages = await storage.getPackagesWithFlightHotelAutoRefresh();
+
+    if (packages.length === 0) {
+      console.log("[FlightHotel] No packages with auto-refresh enabled");
+      return;
+    }
+
+    console.log(`[FlightHotel] Found ${packages.length} packages with auto-refresh enabled`);
+
+    // Dynamic import to avoid circular dependencies
+    const { calculateFlightHotelPrices } = await import("./flightHotelPricing");
+
+    let totalCalculated = 0;
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const pkg of packages) {
+      try {
+        console.log(`[FlightHotel] Processing package ${pkg.id}: ${pkg.title}`);
+
+        const config = (pkg as any).flightHotelConfig;
+        if (!config) {
+          console.error(`[FlightHotel] No config found for package ${pkg.id}`);
+          errorCount++;
+          continue;
+        }
+
+        const result = await calculateFlightHotelPrices(pkg.id, config);
+
+        if (result.success) {
+          successCount++;
+          totalCalculated += result.pricesCalculated;
+          await storage.updateFlightHotelRefreshTimestamp(pkg.id);
+        } else {
+          errorCount++;
+          console.error(`[FlightHotel] Errors for package ${pkg.id}:`, result.errors);
+        }
+
+      } catch (error: any) {
+        console.error(`[FlightHotel] Error processing package ${pkg.id}:`, error.message);
+        errorCount++;
+      }
+
+      // Rate limiting between packages
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    console.log(`\n[FlightHotel] Completed: ${successCount} packages successful, ${errorCount} failed, ${totalCalculated} total prices calculated`);
+
+  } catch (error: any) {
+    console.error("[FlightHotel] Critical error:", error.message);
+  }
+}
+
 export function initScheduler(): void {
   console.log("[Scheduler] Initializing scheduled tasks:");
-  console.log("  - Flight price refresh: Sundays at 3:00 AM UK time");
+  console.log("  - Bokun flight price refresh: Sundays at 3:00 AM UK time");
+  console.log("  - Flight+Hotel price refresh: Sundays at 4:00 AM UK time");
   console.log("  - Bokun product cache: Sundays at 8:00 PM UK time");
-  
-  // Flight price refresh - Sundays at 3:00 AM UK time
+
+  // Bokun flight price refresh - Sundays at 3:00 AM UK time
   cron.schedule("0 3 * * 0", () => {
     runWeeklyFlightRefresh();
   }, {
     timezone: "Europe/London"
   });
-  
+
+  // Flight+Hotel price refresh - Sundays at 4:00 AM UK time (1 hour after Bokun flights)
+  cron.schedule("0 4 * * 0", () => {
+    runWeeklyFlightHotelRefresh();
+  }, {
+    timezone: "Europe/London"
+  });
+
   // Bokun product cache refresh - Sundays at 8:00 PM UK time
   cron.schedule("0 20 * * 0", () => {
     runWeeklyBokunCacheRefresh();
   }, {
     timezone: "Europe/London"
   });
-  
+
   console.log("[Scheduler] All schedulers initialized successfully");
 }
 
-export { runWeeklyFlightRefresh, runWeeklyBokunCacheRefresh };
+export { runWeeklyFlightRefresh, runWeeklyFlightHotelRefresh, runWeeklyBokunCacheRefresh };

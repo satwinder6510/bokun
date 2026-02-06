@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, type PackageSeason, type InsertPackageSeason, type PricingExport, type InsertPricingExport, type BokunDeparture, type BokunDepartureRate, type BokunDepartureRateFlight, type CityTax, type InsertCityTax, flightPackages, packageEnquiries, tourEnquiries, packagePricing, packageSeasons, pricingExports, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages, bokunDepartures, bokunDepartureRates, bokunDepartureRateFlights, cityTaxes } from "@shared/schema";
+import { type User, type InsertUser, type BokunProduct, type Faq, type InsertFaq, type UpdateFaq, type BlogPost, type InsertBlogPost, type UpdateBlogPost, type CartItem, type InsertCartItem, type Booking, type InsertBooking, type FlightPackage, type InsertFlightPackage, type UpdateFlightPackage, type PackageEnquiry, type InsertPackageEnquiry, type TourEnquiry, type InsertTourEnquiry, type PackagePricing, type InsertPackagePricing, type Review, type InsertReview, type UpdateReview, type TrackingNumber, type InsertTrackingNumber, type UpdateTrackingNumber, type AdminUser, type InsertAdminUser, type UpdateAdminUser, type FlightTourPricingConfig, type InsertFlightTourPricingConfig, type UpdateFlightTourPricingConfig, type SiteSetting, type InsertSiteSetting, type UpdateSiteSetting, type Hotel, type InsertHotel, type ContentImage, type InsertContentImage, type PackageSeason, type InsertPackageSeason, type PricingExport, type InsertPricingExport, type BokunDeparture, type BokunDepartureRate, type BokunDepartureRateFlight, type CityTax, type InsertCityTax, flightPackages, packageEnquiries, tourEnquiries, packagePricing, packageSeasons, pricingExports, reviews, trackingNumbers, adminUsers, flightTourPricingConfigs, siteSettings, blogPosts, hotels, contentImages, bokunDepartures, bokunDepartureRates, bokunDepartureRateFlights, cityTaxes, flightHotelConfigs, flightHotelPrices } from "@shared/schema";
 import { type ParsedDeparture } from "./bokun";
 
 // Extended rate type with flight pricing per airport
@@ -186,6 +186,16 @@ export interface IStorage {
   
   // Site settings helper
   getSiteSettings(): Promise<SiteSetting | null>;
+
+  // Flight + Hotel API methods
+  getFlightHotelConfig(packageId: number): Promise<any | undefined>;
+  upsertFlightHotelConfig(config: any): Promise<any>;
+  deleteFlightHotelConfig(packageId: number): Promise<boolean>;
+  getFlightHotelPrices(packageId: number, roomType?: string): Promise<any[]>;
+  insertFlightHotelPrice(price: any): Promise<any>;
+  deleteFlightHotelPrices(packageId: number): Promise<boolean>;
+  getPackagesWithFlightHotelAutoRefresh(): Promise<any[]>;
+  updateFlightHotelRefreshTimestamp(packageId: number): Promise<void>;
 }
 
 // In-memory storage with per-currency product caching
@@ -1916,6 +1926,157 @@ export class MemStorage implements IStorage {
     } catch (error) {
       console.error(`[LeadPrice] Error updating lead price for package ${packageId}:`, error);
       return { updated: false };
+    }
+  }
+
+  // ============================================
+  // FLIGHT + HOTEL API METHODS
+  // ============================================
+
+  async getFlightHotelConfig(packageId: number) {
+    try {
+      const [config] = await db.select().from(flightHotelConfigs)
+        .where(eq(flightHotelConfigs.packageId, packageId));
+      return config;
+    } catch (error) {
+      console.error(`[Storage] Error getting flight+hotel config for package ${packageId}:`, error);
+      return undefined;
+    }
+  }
+
+  async upsertFlightHotelConfig(config: any) {
+    try {
+      const [existing] = await db.select().from(flightHotelConfigs)
+        .where(eq(flightHotelConfigs.packageId, config.packageId));
+
+      if (existing) {
+        const [updated] = await db.update(flightHotelConfigs)
+          .set({ ...config, updatedAt: new Date() })
+          .where(eq(flightHotelConfigs.packageId, config.packageId))
+          .returning();
+        return updated;
+      } else {
+        const [created] = await db.insert(flightHotelConfigs)
+          .values(config)
+          .returning();
+        return created;
+      }
+    } catch (error) {
+      console.error(`[Storage] Error upserting flight+hotel config:`, error);
+      throw error;
+    }
+  }
+
+  async deleteFlightHotelConfig(packageId: number): Promise<boolean> {
+    try {
+      await db.delete(flightHotelConfigs)
+        .where(eq(flightHotelConfigs.packageId, packageId));
+      return true;
+    } catch (error) {
+      console.error(`[Storage] Error deleting flight+hotel config for package ${packageId}:`, error);
+      return false;
+    }
+  }
+
+  async getFlightHotelPrices(packageId: number, roomType?: string) {
+    try {
+      let query = db.select().from(flightHotelPrices)
+        .where(eq(flightHotelPrices.packageId, packageId));
+
+      if (roomType) {
+        query = query.where(and(
+          eq(flightHotelPrices.packageId, packageId),
+          eq(flightHotelPrices.roomType, roomType)
+        ));
+      }
+
+      const prices = await query.orderBy(
+        asc(flightHotelPrices.travelDate),
+        asc(flightHotelPrices.ukAirport)
+      );
+
+      return prices;
+    } catch (error) {
+      console.error(`[Storage] Error getting flight+hotel prices for package ${packageId}:`, error);
+      return [];
+    }
+  }
+
+  async insertFlightHotelPrice(price: any) {
+    try {
+      // Use upsert to handle duplicates
+      const [result] = await db.insert(flightHotelPrices)
+        .values(price)
+        .onConflictDoUpdate({
+          target: [
+            flightHotelPrices.packageId,
+            flightHotelPrices.travelDate,
+            flightHotelPrices.ukAirport,
+            flightHotelPrices.roomType
+          ],
+          set: {
+            flightPricePerPerson: price.flightPricePerPerson,
+            airlineName: price.airlineName,
+            hotels: price.hotels,
+            totalFlightCost: price.totalFlightCost,
+            totalHotelCostPerPerson: price.totalHotelCostPerPerson,
+            subtotal: price.subtotal,
+            markupAmount: price.markupAmount,
+            afterMarkup: price.afterMarkup,
+            finalPrice: price.finalPrice,
+            isAvailable: price.isAvailable,
+            fetchedAt: new Date(),
+          }
+        })
+        .returning();
+
+      return result;
+    } catch (error) {
+      console.error(`[Storage] Error inserting flight+hotel price:`, error);
+      throw error;
+    }
+  }
+
+  async deleteFlightHotelPrices(packageId: number): Promise<boolean> {
+    try {
+      await db.delete(flightHotelPrices)
+        .where(eq(flightHotelPrices.packageId, packageId));
+      return true;
+    } catch (error) {
+      console.error(`[Storage] Error deleting flight+hotel prices for package ${packageId}:`, error);
+      return false;
+    }
+  }
+
+  async getPackagesWithFlightHotelAutoRefresh() {
+    try {
+      const configs = await db.select().from(flightHotelConfigs)
+        .where(eq(flightHotelConfigs.autoRefreshEnabled, true));
+
+      const packageIds = configs.map(c => c.packageId);
+      if (packageIds.length === 0) return [];
+
+      const packages = await db.select().from(flightPackages)
+        .where(inArray(flightPackages.id, packageIds));
+
+      // Attach config to each package
+      return packages.map(pkg => {
+        const config = configs.find(c => c.packageId === pkg.id);
+        return { ...pkg, flightHotelConfig: config };
+      });
+    } catch (error) {
+      console.error(`[Storage] Error getting packages with flight+hotel auto-refresh:`, error);
+      return [];
+    }
+  }
+
+  async updateFlightHotelRefreshTimestamp(packageId: number): Promise<void> {
+    try {
+      await db.update(flightHotelConfigs)
+        .set({ lastRefreshAt: new Date() })
+        .where(eq(flightHotelConfigs.packageId, packageId));
+    } catch (error) {
+      console.error(`[Storage] Error updating flight+hotel refresh timestamp for package ${packageId}:`, error);
     }
   }
 }

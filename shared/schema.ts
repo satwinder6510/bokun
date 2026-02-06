@@ -1315,3 +1315,121 @@ export const insertCityTaxSchema = createInsertSchema(cityTaxes).omit({
 
 export type CityTax = typeof cityTaxes.$inferSelect;
 export type InsertCityTax = z.infer<typeof insertCityTaxSchema>;
+
+// ============================================
+// FLIGHTS + HOTELS API MODULE
+// ============================================
+
+// Flight + Hotel configuration table
+export const flightHotelConfigs = pgTable("flight_hotel_configs", {
+  id: serial("id").primaryKey(),
+  packageId: integer("package_id").notNull().references(() => flightPackages.id, { onDelete: 'cascade' }).unique(),
+
+  // Multi-city hotel configuration
+  cities: jsonb("cities").$type<{
+    cityName: string;           // e.g., "Rome", "Venice", "Florence"
+    cityCode?: string;          // Optional city code for hotel API
+    nights: number;             // Number of nights in this city
+    starRating: number;         // 3, 4, or 5 star
+    boardBasis: string;         // "RO" (room only), "BB" (bed & breakfast), "HB" (half board), "FB" (full board)
+    hotelCodes?: string[];      // Optional: specific hotel codes to search
+  }[]>().notNull().default([]),
+
+  // Flight configuration
+  arrivalAirport: text("arrival_airport").notNull(),      // e.g., "FCO" (Rome)
+  departureAirport: text("departure_airport"),            // Optional: for open-jaw (e.g., "VCE" Venice)
+  flightType: text("flight_type").notNull().default("roundtrip"), // "roundtrip" | "openjaw"
+
+  // Flight API source selection
+  flightApiSource: text("flight_api_source").notNull().default("european"), // "european" | "serp"
+
+  // UK departure airports to search
+  ukAirports: jsonb("uk_airports").$type<string[]>().notNull().default(["LGW", "STN", "LTN", "LHR", "MAN", "BHX"]),
+
+  // Pricing settings
+  markup: real("markup").notNull().default(15),
+
+  // Date range for pricing
+  searchStartDate: text("search_start_date").notNull(), // YYYY-MM-DD
+  searchEndDate: text("search_end_date").notNull(),     // YYYY-MM-DD
+
+  // Auto-refresh
+  autoRefreshEnabled: boolean("auto_refresh_enabled").notNull().default(false),
+  lastRefreshAt: timestamp("last_refresh_at"),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertFlightHotelConfigSchema = createInsertSchema(flightHotelConfigs).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastRefreshAt: true,
+});
+
+export const updateFlightHotelConfigSchema = insertFlightHotelConfigSchema.partial();
+
+export type FlightHotelConfig = typeof flightHotelConfigs.$inferSelect;
+export type InsertFlightHotelConfig = z.infer<typeof insertFlightHotelConfigSchema>;
+export type UpdateFlightHotelConfig = z.infer<typeof updateFlightHotelConfigSchema>;
+
+// Flight + Hotel cached prices table
+export const flightHotelPrices = pgTable("flight_hotel_prices", {
+  id: serial("id").primaryKey(),
+  packageId: integer("package_id").notNull().references(() => flightPackages.id, { onDelete: 'cascade' }),
+
+  // Travel details
+  travelDate: text("travel_date").notNull(),              // YYYY-MM-DD departure date
+  ukAirport: text("uk_airport").notNull(),                // e.g., "LHR", "MAN"
+  roomType: text("room_type").notNull().default("twin"),  // "twin" | "single"
+
+  // Flight component
+  flightPricePerPerson: real("flight_price_per_person").notNull(),
+  airlineName: text("airline_name"),
+
+  // Hotel component (aggregated)
+  hotels: jsonb("hotels").$type<{
+    cityName: string;
+    hotelCode: string;
+    hotelName: string;
+    starRating: number;
+    boardBasis: string;
+    checkIn: string;            // YYYY-MM-DD
+    checkOut: string;           // YYYY-MM-DD
+    nights: number;
+    roomType: string;           // "Twin Room", "Single Room"
+    pricePerRoom: number;       // Total for all nights
+    pricePerPerson: number;     // Divided by 2 for twin, full price for single
+  }[]>().notNull().default([]),
+
+  // Pricing breakdown
+  totalFlightCost: real("total_flight_cost").notNull(),        // Per person
+  totalHotelCostPerPerson: real("total_hotel_cost_per_person").notNull(),
+  subtotal: real("subtotal").notNull(),                        // Flight + Hotels
+  markupAmount: real("markup_amount").notNull(),
+  afterMarkup: real("after_markup").notNull(),
+  finalPrice: real("final_price").notNull(),                   // Smart rounded
+
+  // Metadata
+  isAvailable: boolean("is_available").notNull().default(true),
+  fetchedAt: timestamp("fetched_at").notNull().defaultNow(),
+
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex("flight_hotel_unique").on(
+    table.packageId,
+    table.travelDate,
+    table.ukAirport,
+    table.roomType
+  ),
+]);
+
+export const insertFlightHotelPriceSchema = createInsertSchema(flightHotelPrices).omit({
+  id: true,
+  createdAt: true,
+  fetchedAt: true,
+});
+
+export type FlightHotelPrice = typeof flightHotelPrices.$inferSelect;
+export type InsertFlightHotelPrice = z.infer<typeof insertFlightHotelPriceSchema>;

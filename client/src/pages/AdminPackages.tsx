@@ -3622,6 +3622,7 @@ export default function AdminPackages() {
                             <option value="AUD">AUD ($)</option>
                             <option value="NZD">NZD ($)</option>
                             <option value="ZAR">ZAR (R)</option>
+                            <option value="IDR">IDR (Rp)</option>
                           </select>
                         </div>
                         <div>

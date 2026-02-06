@@ -397,6 +397,34 @@ export default function AdminPackages() {
   const [hotelPickerOpen, setHotelPickerOpen] = useState(false);
   const [hotelSearchQuery, setHotelSearchQuery] = useState("");
 
+  // Flight + Hotel API Module state
+  const [flightHotelCities, setFlightHotelCities] = useState<Array<{
+    cityName: string;
+    nights: number;
+    boardBasis: string;
+    specificHotelCode?: string;
+    starRating?: number;
+  }>>([]);
+  const [flightHotelArrivalAirport, setFlightHotelArrivalAirport] = useState("");
+  const [flightHotelDepartureAirport, setFlightHotelDepartureAirport] = useState("");
+  const [flightHotelFlightType, setFlightHotelFlightType] = useState<"roundtrip" | "openjaw">("roundtrip");
+  const [flightHotelApiSource, setFlightHotelApiSource] = useState<"european" | "serp">("serp");
+  const [flightHotelMarkup, setFlightHotelMarkup] = useState(15);
+  const [flightHotelStartDate, setFlightHotelStartDate] = useState("");
+  const [flightHotelEndDate, setFlightHotelEndDate] = useState("");
+  const [flightHotelAutoRefresh, setFlightHotelAutoRefresh] = useState(false);
+  const [isFetchingFlightHotelPrices, setIsFetchingFlightHotelPrices] = useState(false);
+  const [flightHotelPriceResults, setFlightHotelPriceResults] = useState<any>(null);
+  const [isLoadingFlightHotelConfig, setIsLoadingFlightHotelConfig] = useState(false);
+  const [isSavingFlightHotelConfig, setIsSavingFlightHotelConfig] = useState(false);
+  const [hotelSearchCity, setHotelSearchCity] = useState("");
+  const [hotelSearchResults, setHotelSearchResults] = useState<Array<{
+    code: string;
+    name: string;
+    starRating: number;
+  }>>([]);
+  const [isSearchingHotels, setIsSearchingHotels] = useState(false);
+
   // Helper for admin fetch with cookie-based auth
   const adminQueryFn = async (url: string) => {
     const response = await fetch(url, {
@@ -5008,73 +5036,441 @@ export default function AdminPackages() {
 
                         {/* Flight + Hotel API Module */}
                         {formData.pricingModule === "flights_hotels_api" && (
-                          <Card className="border-primary/20 bg-primary/5">
-                            <CardHeader>
-                              <CardTitle className="text-base flex items-center gap-2">
-                                <Plane className="w-4 h-4 text-primary" />
-                                Flight + Hotel Configuration
-                              </CardTitle>
-                              <CardDescription>
-                                Configure multi-city itinerary with specific hotels and flight pricing
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                              <Alert>
-                                <Info className="h-4 w-4" />
-                                <AlertTitle>Configuration Required</AlertTitle>
-                                <AlertDescription>
-                                  Use the API endpoint <code className="text-xs bg-muted px-1 py-0.5 rounded">/api/admin/packages/{formData.id}/flight-hotel-config</code> to configure cities, hotels, flights, and pricing settings.
-                                  <br /><br />
-                                  <strong>Quick Setup:</strong>
-                                  <ol className="list-decimal list-inside text-sm mt-2 space-y-1">
-                                    <li>Search hotels: <code className="text-xs bg-muted px-1 py-0.5 rounded">/api/admin/hotels/search?city=Delhi</code></li>
-                                    <li>Configure package with hotel codes and date ranges</li>
-                                    <li>Click "Fetch Prices" to calculate pricing for all dates</li>
-                                  </ol>
-                                </AlertDescription>
-                              </Alert>
+                          <>
+                            {/* Multi-City Configuration */}
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <MapPin className="w-4 h-4" />
+                                  Multi-City Itinerary & Hotels
+                                </CardTitle>
+                                <CardDescription>
+                                  Add cities with specific hotels for your multi-city package
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                {/* Cities List */}
+                                {flightHotelCities.length > 0 && (
+                                  <div className="space-y-3">
+                                    {flightHotelCities.map((city, index) => (
+                                      <div key={index} className="p-4 border rounded-lg bg-muted/30">
+                                        <div className="flex items-start justify-between mb-3">
+                                          <div className="flex-1">
+                                            <p className="font-medium">{city.cityName}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                              {city.nights} night{city.nights !== 1 ? 's' : ''} • {city.boardBasis}
+                                              {city.specificHotelCode && ` • Hotel: ${city.specificHotelCode}`}
+                                            </p>
+                                          </div>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => {
+                                              setFlightHotelCities(flightHotelCities.filter((_, i) => i !== index));
+                                            }}
+                                          >
+                                            <Trash2 className="w-4 h-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
 
-                              {/* Configuration Status */}
-                              <div className="p-4 bg-muted/50 rounded-lg">
-                                <p className="text-sm font-medium mb-2">Module Status</p>
-                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                  <CalendarIcon className="w-4 h-4" />
-                                  <span>Configuration and price fetching available via API</span>
+                                {/* Add City Form */}
+                                <div className="p-4 border-2 border-dashed rounded-lg space-y-3">
+                                  <p className="text-sm font-medium">Add City</p>
+
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div className="space-y-2">
+                                      <Label>City Name</Label>
+                                      <Input
+                                        placeholder="e.g., Delhi"
+                                        value={hotelSearchCity}
+                                        onChange={(e) => setHotelSearchCity(e.target.value)}
+                                      />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <Label>Nights</Label>
+                                      <Input
+                                        type="number"
+                                        min="1"
+                                        defaultValue="2"
+                                        id="city-nights-input"
+                                      />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                      <Label>Board Basis</Label>
+                                      <select
+                                        className="w-full p-2 border rounded-md bg-background"
+                                        id="city-board-basis-input"
+                                        defaultValue="BB"
+                                      >
+                                        <option value="RO">Room Only</option>
+                                        <option value="BB">Bed & Breakfast</option>
+                                        <option value="HB">Half Board</option>
+                                        <option value="FB">Full Board</option>
+                                      </select>
+                                    </div>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label>Hotel Search & Selection</Label>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                          if (!hotelSearchCity) {
+                                            toast({ title: "Enter city name first", variant: "destructive" });
+                                            return;
+                                          }
+                                          setIsSearchingHotels(true);
+                                          try {
+                                            const response = await fetch(
+                                              `/api/admin/hotels/search?city=${encodeURIComponent(hotelSearchCity)}`,
+                                              { credentials: 'include' }
+                                            );
+                                            if (!response.ok) throw new Error("Search failed");
+                                            const data = await response.json();
+                                            setHotelSearchResults(data.hotels || []);
+                                            toast({ title: `Found ${data.hotels?.length || 0} hotels` });
+                                          } catch (error: any) {
+                                            toast({ title: "Hotel search failed", description: error.message, variant: "destructive" });
+                                          } finally {
+                                            setIsSearchingHotels(false);
+                                          }
+                                        }}
+                                        disabled={isSearchingHotels || !hotelSearchCity}
+                                      >
+                                        {isSearchingHotels ? (
+                                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Searching...</>
+                                        ) : (
+                                          <><Search className="w-4 h-4 mr-2" />Search Hotels</>
+                                        )}
+                                      </Button>
+                                    </div>
+
+                                    {hotelSearchResults.length > 0 && (
+                                      <select
+                                        className="w-full p-2 border rounded-md bg-background"
+                                        id="hotel-select"
+                                      >
+                                        <option value="">Select a hotel...</option>
+                                        {hotelSearchResults.map((hotel) => (
+                                          <option key={hotel.code} value={hotel.code}>
+                                            {hotel.name} ({hotel.starRating}★)
+                                          </option>
+                                        ))}
+                                      </select>
+                                    )}
+                                  </div>
+
+                                  <Button
+                                    type="button"
+                                    onClick={() => {
+                                      const nightsInput = document.getElementById('city-nights-input') as HTMLInputElement;
+                                      const boardBasisInput = document.getElementById('city-board-basis-input') as HTMLSelectElement;
+                                      const hotelSelect = document.getElementById('hotel-select') as HTMLSelectElement;
+
+                                      if (!hotelSearchCity) {
+                                        toast({ title: "Enter city name", variant: "destructive" });
+                                        return;
+                                      }
+
+                                      const newCity = {
+                                        cityName: hotelSearchCity,
+                                        nights: parseInt(nightsInput?.value || '2'),
+                                        boardBasis: boardBasisInput?.value || 'BB',
+                                        specificHotelCode: hotelSelect?.value || undefined,
+                                      };
+
+                                      setFlightHotelCities([...flightHotelCities, newCity]);
+                                      setHotelSearchCity("");
+                                      setHotelSearchResults([]);
+                                      toast({ title: "City added" });
+                                    }}
+                                  >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Add City to Itinerary
+                                  </Button>
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-2">
-                                  Full admin UI coming soon. For now, use the REST API endpoints documented in FLIGHT_HOTEL_MODULE_README.md
-                                </p>
-                              </div>
+                              </CardContent>
+                            </Card>
 
-                              {/* Quick Links */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    window.open(`/api/admin/packages/${formData.id}/flight-hotel-config`, '_blank');
-                                  }}
-                                  disabled={!formData.id}
-                                >
-                                  <ExternalLink className="w-4 h-4 mr-2" />
-                                  View Config (JSON)
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    window.open(`/api/admin/packages/${formData.id}/flight-hotel-prices`, '_blank');
-                                  }}
-                                  disabled={!formData.id}
-                                >
-                                  <ExternalLink className="w-4 h-4 mr-2" />
-                                  View Prices (JSON)
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
+                            {/* Flight Configuration */}
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Plane className="w-4 h-4" />
+                                  Flight Configuration
+                                </CardTitle>
+                                <CardDescription>
+                                  Configure flight search parameters
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label>Flight Type</Label>
+                                    <select
+                                      className="w-full p-2 border rounded-md bg-background"
+                                      value={flightHotelFlightType}
+                                      onChange={(e) => setFlightHotelFlightType(e.target.value as "roundtrip" | "openjaw")}
+                                    >
+                                      <option value="roundtrip">Roundtrip</option>
+                                      <option value="openjaw">Open-Jaw (Multi-city)</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label>Flight API Source</Label>
+                                    <select
+                                      className="w-full p-2 border rounded-md bg-background"
+                                      value={flightHotelApiSource}
+                                      onChange={(e) => setFlightHotelApiSource(e.target.value as "european" | "serp")}
+                                    >
+                                      <option value="european">Sunshine European API</option>
+                                      <option value="serp">SERP (Google Flights)</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  <Label>Arrival Airport (IATA Code)</Label>
+                                  <Input
+                                    placeholder="e.g., DEL, BOM, FCO"
+                                    className="font-mono uppercase"
+                                    value={flightHotelArrivalAirport}
+                                    onChange={(e) => setFlightHotelArrivalAirport(e.target.value.toUpperCase())}
+                                  />
+                                  <p className="text-xs text-muted-foreground">First city arrival airport</p>
+                                </div>
+
+                                {flightHotelFlightType === "openjaw" && (
+                                  <div className="space-y-2">
+                                    <Label>Departure Airport (Open-Jaw)</Label>
+                                    <Input
+                                      placeholder="e.g., BOM"
+                                      className="font-mono uppercase"
+                                      value={flightHotelDepartureAirport}
+                                      onChange={(e) => setFlightHotelDepartureAirport(e.target.value.toUpperCase())}
+                                    />
+                                    <p className="text-xs text-muted-foreground">Last city departure airport</p>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+
+                            {/* Pricing & Date Range */}
+                            <Card>
+                              <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <PoundSterling className="w-4 h-4" />
+                                  Pricing & Date Range
+                                </CardTitle>
+                                <CardDescription>
+                                  Set pricing parameters and travel date range
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label>Markup %</Label>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      max="100"
+                                      value={flightHotelMarkup}
+                                      onChange={(e) => setFlightHotelMarkup(parseInt(e.target.value) || 15)}
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label>Auto-Refresh Weekly</Label>
+                                    <div className="flex items-center gap-2 pt-2">
+                                      <Switch
+                                        checked={flightHotelAutoRefresh}
+                                        onCheckedChange={setFlightHotelAutoRefresh}
+                                      />
+                                      <span className="text-sm text-muted-foreground">Refresh prices every Sunday</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label>Search Start Date</Label>
+                                    <Input
+                                      type="date"
+                                      value={flightHotelStartDate}
+                                      onChange={(e) => setFlightHotelStartDate(e.target.value)}
+                                    />
+                                  </div>
+
+                                  <div className="space-y-2">
+                                    <Label>Search End Date</Label>
+                                    <Input
+                                      type="date"
+                                      value={flightHotelEndDate}
+                                      onChange={(e) => setFlightHotelEndDate(e.target.value)}
+                                    />
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            {/* Save Configuration & Fetch Prices */}
+                            <Card className="border-primary/20 bg-primary/5">
+                              <CardHeader>
+                                <CardTitle className="text-base flex items-center gap-2">
+                                  <Save className="w-4 h-4 text-primary" />
+                                  Save & Calculate Prices
+                                </CardTitle>
+                                <CardDescription>
+                                  Save configuration and fetch pricing for all dates
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <div className="flex gap-3">
+                                  <Button
+                                    type="button"
+                                    onClick={async () => {
+                                      if (!formData.id) {
+                                        toast({ title: "Save package first", variant: "destructive" });
+                                        return;
+                                      }
+
+                                      if (flightHotelCities.length === 0) {
+                                        toast({ title: "Add at least one city", variant: "destructive" });
+                                        return;
+                                      }
+
+                                      if (!flightHotelArrivalAirport || !flightHotelStartDate || !flightHotelEndDate) {
+                                        toast({ title: "Fill all required fields", variant: "destructive" });
+                                        return;
+                                      }
+
+                                      setIsSavingFlightHotelConfig(true);
+                                      try {
+                                        const config = {
+                                          cities: flightHotelCities,
+                                          arrivalAirport: flightHotelArrivalAirport,
+                                          departureAirport: flightHotelDepartureAirport || null,
+                                          flightType: flightHotelFlightType,
+                                          flightApiSource: flightHotelApiSource,
+                                          ukAirports: ["LGW", "STN", "LTN", "LHR", "MAN", "BHX"],
+                                          markup: flightHotelMarkup,
+                                          searchStartDate: flightHotelStartDate,
+                                          searchEndDate: flightHotelEndDate,
+                                          autoRefreshEnabled: flightHotelAutoRefresh,
+                                        };
+
+                                        const response = await fetch(
+                                          `/api/admin/packages/${formData.id}/flight-hotel-config`,
+                                          {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            credentials: 'include',
+                                            body: JSON.stringify(config),
+                                          }
+                                        );
+
+                                        if (!response.ok) throw new Error("Failed to save configuration");
+
+                                        toast({ title: "Configuration saved successfully" });
+                                      } catch (error: any) {
+                                        toast({ title: "Save failed", description: error.message, variant: "destructive" });
+                                      } finally {
+                                        setIsSavingFlightHotelConfig(false);
+                                      }
+                                    }}
+                                    disabled={isSavingFlightHotelConfig || !formData.id}
+                                  >
+                                    {isSavingFlightHotelConfig ? (
+                                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
+                                    ) : (
+                                      <><Save className="w-4 h-4 mr-2" />Save Configuration</>
+                                    )}
+                                  </Button>
+
+                                  <Button
+                                    type="button"
+                                    variant="default"
+                                    onClick={async () => {
+                                      if (!formData.id) {
+                                        toast({ title: "Save package first", variant: "destructive" });
+                                        return;
+                                      }
+
+                                      setIsFetchingFlightHotelPrices(true);
+                                      setFlightHotelPriceResults(null);
+                                      try {
+                                        const response = await fetch(
+                                          `/api/admin/packages/${formData.id}/fetch-flight-hotel-prices`,
+                                          {
+                                            method: 'POST',
+                                            credentials: 'include',
+                                          }
+                                        );
+
+                                        if (!response.ok) throw new Error("Failed to fetch prices");
+
+                                        const result = await response.json();
+                                        setFlightHotelPriceResults(result);
+
+                                        if (result.success) {
+                                          toast({
+                                            title: "Prices calculated successfully",
+                                            description: `${result.pricesCalculated} prices calculated`,
+                                          });
+                                        } else {
+                                          toast({
+                                            title: "Some prices failed",
+                                            description: result.errors?.join(", "),
+                                            variant: "destructive",
+                                          });
+                                        }
+                                      } catch (error: any) {
+                                        toast({ title: "Fetch failed", description: error.message, variant: "destructive" });
+                                      } finally {
+                                        setIsFetchingFlightHotelPrices(false);
+                                      }
+                                    }}
+                                    disabled={isFetchingFlightHotelPrices || !formData.id}
+                                  >
+                                    {isFetchingFlightHotelPrices ? (
+                                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Fetching Prices...</>
+                                    ) : (
+                                      <><Download className="w-4 h-4 mr-2" />Fetch Prices</>
+                                    )}
+                                  </Button>
+                                </div>
+
+                                {/* Results Display */}
+                                {flightHotelPriceResults && (
+                                  <Alert>
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    <AlertDescription>
+                                      {flightHotelPriceResults.success ? (
+                                        <p className="text-sm">
+                                          <strong>Success!</strong> Calculated {flightHotelPriceResults.pricesCalculated} prices.
+                                        </p>
+                                      ) : (
+                                        <p className="text-sm text-destructive">
+                                          <strong>Errors:</strong> {flightHotelPriceResults.errors?.join(", ")}
+                                        </p>
+                                      )}
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </>
                         )}
 
                         <Separator />

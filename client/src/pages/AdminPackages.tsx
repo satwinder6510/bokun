@@ -3716,7 +3716,7 @@ export default function AdminPackages() {
                       </div>
                       {formData.additionalChargeName && formData.additionalChargeForeignAmount && parseFloat(formData.additionalChargeForeignAmount) > 0 && (
                         <div className="text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-3 py-2 rounded-md">
-                          {formData.additionalChargeName}: £{(parseFloat(formData.additionalChargeForeignAmount) * parseFloat(formData.additionalChargeExchangeRate || "0.84")).toFixed(2)} per person ({formData.additionalChargeCurrency || "EUR"} {parseFloat(formData.additionalChargeForeignAmount).toFixed(2)} @ {parseFloat(formData.additionalChargeExchangeRate || "0.84").toFixed(2)}) paid locally
+                          {formData.additionalChargeName}: £{(parseFloat(formData.additionalChargeForeignAmount) * parseFloat(formData.additionalChargeExchangeRate || "0.84")).toFixed(2)} per person ({formData.additionalChargeCurrency || "EUR"} {parseFloat(formData.additionalChargeForeignAmount).toFixed(2)} @ {parseFloat(formData.additionalChargeExchangeRate || "0.84") < 0.01 ? parseFloat(formData.additionalChargeExchangeRate || "0.84").toFixed(6) : parseFloat(formData.additionalChargeExchangeRate || "0.84").toFixed(4)}) paid locally
                         </div>
                       )}
                     </div>

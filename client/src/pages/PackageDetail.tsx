@@ -790,7 +790,7 @@ export default function PackageDetailTest() {
     
     // Additional charge part with foreign currency conversion
     if (additionalChargeName && additionalChargeGbpAmount > 0) {
-      parts.push(`${formatPrice(additionalChargeGbpAmount)} ${additionalChargeName} (${additionalChargeCurrency} ${additionalChargeForeignAmount.toFixed(2)} @ ${additionalChargeExchangeRate.toFixed(2)})`);
+      parts.push(`${formatPrice(additionalChargeGbpAmount)} ${additionalChargeName} (${additionalChargeCurrency} ${additionalChargeForeignAmount.toFixed(2)} @ ${additionalChargeExchangeRate < 0.01 ? additionalChargeExchangeRate.toFixed(6) : additionalChargeExchangeRate.toFixed(4)})`);
     }
     
     if (parts.length === 0) return null;

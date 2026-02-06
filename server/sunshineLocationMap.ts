@@ -22,77 +22,85 @@ export interface SunshineLocation {
  * 2. Get region/area/resort IDs: http://87.102.127.86:8119/Search/SearchOffers.dll?agtid=122&page=resort&countryid=X
  */
 export const SUNSHINE_LOCATIONS: Record<string, SunshineLocation> = {
-  // Spain
-  "barcelona": {
-    countryId: "2",
+  // Spain (Country ID: 1)
+  "alcudia": {
+    countryId: "1",
     regionId: "1",
     areaId: "1",
     resortId: "1",
-    resortName: "Barcelona"
+    resortName: "Alcudia"
   },
-  "madrid": {
-    countryId: "2",
-    regionId: "2",
+  "palma nova": {
+    countryId: "1",
+    regionId: "1",
     areaId: "1",
-    resortId: "1",
-    resortName: "Madrid"
+    resortId: "2",
+    resortName: "Palma Nova"
+  },
+  "magaluf": {
+    countryId: "1",
+    regionId: "1",
+    areaId: "1",
+    resortId: "5",
+    resortName: "Magaluf"
   },
 
-  // Italy
+  // Italy (Country ID: 16)
   "rome": {
-    countryId: "3",
-    regionId: "1",
-    areaId: "1",
-    resortId: "1",
+    countryId: "16",
+    regionId: "21",
+    areaId: "54",
+    resortId: "727",
     resortName: "Rome"
   },
-  "venice": {
-    countryId: "3",
-    regionId: "2",
-    areaId: "1",
-    resortId: "1",
-    resortName: "Venice"
+  "sorrento": {
+    countryId: "16",
+    regionId: "21",
+    areaId: "54",
+    resortId: "336",
+    resortName: "Sorrento"
   },
-  "florence": {
-    countryId: "3",
-    regionId: "3",
-    areaId: "1",
-    resortId: "1",
-    resortName: "Florence"
+  "amalfi": {
+    countryId: "16",
+    regionId: "21",
+    areaId: "54",
+    resortId: "363",
+    resortName: "Amalfi"
+  },
+  "positano": {
+    countryId: "16",
+    regionId: "21",
+    areaId: "54",
+    resortId: "365",
+    resortName: "Positano"
+  },
+  "naples": {
+    countryId: "16",
+    regionId: "21",
+    areaId: "54",
+    resortId: "680",
+    resortName: "Naples"
   },
 
-  // France
+  // France (Country ID: 26)
   "paris": {
-    countryId: "4",
-    regionId: "1",
-    areaId: "1",
-    resortId: "1",
+    countryId: "26",
+    regionId: "0",
+    areaId: "0",
+    resortId: "693",
     resortName: "Paris"
   },
-
-  // Greece
-  "athens": {
-    countryId: "5",
-    regionId: "1",
-    areaId: "1",
-    resortId: "1",
-    resortName: "Athens"
+  "nice": {
+    countryId: "26",
+    regionId: "0",
+    areaId: "0",
+    resortId: "682",
+    resortName: "Nice"
   },
 
-  // Portugal
-  "lisbon": {
-    countryId: "6",
-    regionId: "1",
-    areaId: "1",
-    resortId: "1",
-    resortName: "Lisbon"
-  },
-
-  // TODO: Update these IDs with actual values from Sunshine API
-  // The IDs above are placeholders - you need to fetch the real ones from:
-  // http://87.102.127.86:8119/Search/SearchOffers.dll?agtid=122&page=country
-  // Then for each country:
-  // http://87.102.127.86:8119/Search/SearchOffers.dll?agtid=122&page=resort&countryid=X
+  // Portugal (Country ID: 2)
+  // Greece (Country ID: 3)
+  // Add more destinations as needed by looking up from Sunshine API
 };
 
 /**

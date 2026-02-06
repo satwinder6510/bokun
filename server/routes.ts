@@ -7448,6 +7448,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get live exchange rate from Frankfurter API (free, no key needed)
+  app.get("/api/admin/exchange-rate/:from/:to", verifyAdminSession, async (req, res) => {
+    try {
+      const { from, to } = req.params;
+      const response = await fetch(`https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`);
+      if (!response.ok) {
+        throw new Error(`Frankfurter API returned ${response.status}`);
+      }
+      const data = await response.json();
+      const rate = data.rates?.[to.toUpperCase()];
+      if (rate === undefined) {
+        return res.status(404).json({ error: `Rate not found for ${from} to ${to}` });
+      }
+      res.json({ from: from.toUpperCase(), to: to.toUpperCase(), rate });
+    } catch (error: any) {
+      console.error("Error fetching live exchange rate:", error);
+      res.status(500).json({ error: "Failed to fetch exchange rate" });
+    }
+  });
+
   // Get homepage settings (public - needed for frontend)
   app.get("/api/homepage-settings", async (req, res) => {
     try {

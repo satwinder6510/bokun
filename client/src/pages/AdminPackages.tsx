@@ -5042,13 +5042,23 @@ export default function AdminPackages() {
                               <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
                                   <MapPin className="w-4 h-4" />
-                                  Multi-City Itinerary & Hotels
+                                  Step 2: Multi-City Itinerary & Hotels
                                 </CardTitle>
                                 <CardDescription>
-                                  Add cities with specific hotels for your multi-city package
+                                  Add cities with hotels (dates are calculated from flight dates below)
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
+                                {/* Warning to configure flights first */}
+                                {!flightHotelStartDate && (
+                                  <Alert>
+                                    <AlertCircle className="h-4 w-4" />
+                                    <AlertDescription>
+                                      <strong>Configure flights first!</strong> Scroll down to "Step 1: Flight Configuration" to set travel dates before adding cities.
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+
                                 {/* Cities List */}
                                 {flightHotelCities.length > 0 && (
                                   <div className="space-y-3">
@@ -5203,14 +5213,14 @@ export default function AdminPackages() {
                             </Card>
 
                             {/* Flight Configuration */}
-                            <Card>
+                            <Card className="border-primary/30">
                               <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
-                                  <Plane className="w-4 h-4" />
-                                  Flight Configuration
+                                  <Plane className="w-4 h-4 text-primary" />
+                                  Step 1: Flight Configuration (Configure This First!)
                                 </CardTitle>
                                 <CardDescription>
-                                  Configure flight search parameters
+                                  Set flight parameters and dates - these control hotel dates in cities above
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
@@ -5271,10 +5281,10 @@ export default function AdminPackages() {
                               <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
                                   <PoundSterling className="w-4 h-4" />
-                                  Pricing & Date Range
+                                  Step 3: Pricing Settings
                                 </CardTitle>
                                 <CardDescription>
-                                  Set pricing parameters and travel date range
+                                  Set markup percentage and auto-refresh options
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
@@ -5329,10 +5339,10 @@ export default function AdminPackages() {
                               <CardHeader>
                                 <CardTitle className="text-base flex items-center gap-2">
                                   <Save className="w-4 h-4 text-primary" />
-                                  Save & Calculate Prices
+                                  Step 4: Save & Calculate Prices
                                 </CardTitle>
                                 <CardDescription>
-                                  Save configuration and fetch pricing for all dates
+                                  Save your configuration and calculate pricing for all combinations
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">

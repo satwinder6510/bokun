@@ -13,11 +13,11 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search, 
+import {
+  ArrowLeft, Plus, Trash2, Edit2, Eye, Package, Search,
   Plane, Save, X, Clock, MapPin, Download, Upload, ImagePlus, Loader2,
   Globe, CheckCircle2, AlertCircle, Calendar as CalendarIcon, PoundSterling, GripVertical, Info,
-  ChevronUp, ChevronDown, PlusCircle
+  ChevronUp, ChevronDown, PlusCircle, ExternalLink
 } from "lucide-react";
 import {
   HoverCard,
@@ -48,6 +48,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   Table,
   TableBody,
@@ -5001,6 +5002,77 @@ export default function AdminPackages() {
                                   )}
                                 </div>
                               )}
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Flight + Hotel API Module */}
+                        {formData.pricingModule === "flights_hotels_api" && (
+                          <Card className="border-primary/20 bg-primary/5">
+                            <CardHeader>
+                              <CardTitle className="text-base flex items-center gap-2">
+                                <Plane className="w-4 h-4 text-primary" />
+                                Flight + Hotel Configuration
+                              </CardTitle>
+                              <CardDescription>
+                                Configure multi-city itinerary with specific hotels and flight pricing
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <Alert>
+                                <Info className="h-4 w-4" />
+                                <AlertTitle>Configuration Required</AlertTitle>
+                                <AlertDescription>
+                                  Use the API endpoint <code className="text-xs bg-muted px-1 py-0.5 rounded">/api/admin/packages/{formData.id}/flight-hotel-config</code> to configure cities, hotels, flights, and pricing settings.
+                                  <br /><br />
+                                  <strong>Quick Setup:</strong>
+                                  <ol className="list-decimal list-inside text-sm mt-2 space-y-1">
+                                    <li>Search hotels: <code className="text-xs bg-muted px-1 py-0.5 rounded">/api/admin/hotels/search?city=Delhi</code></li>
+                                    <li>Configure package with hotel codes and date ranges</li>
+                                    <li>Click "Fetch Prices" to calculate pricing for all dates</li>
+                                  </ol>
+                                </AlertDescription>
+                              </Alert>
+
+                              {/* Configuration Status */}
+                              <div className="p-4 bg-muted/50 rounded-lg">
+                                <p className="text-sm font-medium mb-2">Module Status</p>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <CalendarIcon className="w-4 h-4" />
+                                  <span>Configuration and price fetching available via API</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-2">
+                                  Full admin UI coming soon. For now, use the REST API endpoints documented in FLIGHT_HOTEL_MODULE_README.md
+                                </p>
+                              </div>
+
+                              {/* Quick Links */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    window.open(`/api/admin/packages/${formData.id}/flight-hotel-config`, '_blank');
+                                  }}
+                                  disabled={!formData.id}
+                                >
+                                  <ExternalLink className="w-4 h-4 mr-2" />
+                                  View Config (JSON)
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    window.open(`/api/admin/packages/${formData.id}/flight-hotel-prices`, '_blank');
+                                  }}
+                                  disabled={!formData.id}
+                                >
+                                  <ExternalLink className="w-4 h-4 mr-2" />
+                                  View Prices (JSON)
+                                </Button>
+                              </div>
                             </CardContent>
                           </Card>
                         )}

@@ -10337,21 +10337,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ADMIN: Search hotels for city (for autocomplete/dropdown)
   app.get("/api/admin/hotels/search", verifyAdminSession, async (req, res) => {
     try {
-      const { city, checkIn, checkOut, boardBasis } = req.query as {
-        city: string;
-        checkIn?: string;
-        checkOut?: string;
-        boardBasis?: string;
-      };
+      const { city } = req.query as { city: string };
 
       if (!city) {
         return res.status(400).json({ error: "City parameter is required" });
       }
 
-      // Use sample dates if not provided (just for getting hotel list)
+      // Find location mapping
+      const { findLocation } = await import("./sunshineLocationMap");
+      const location = findLocation(city);
+
+      if (!location) {
+        return res.json({
+          city,
+          hotels: [],
+          count: 0,
+          error: `Location "${city}" not found. Available: Delhi, Goa, Mumbai, London (add more in sunshineLocationMap.ts)`
+        });
+      }
+
+      // Use sample dates (1 week from now, 7 nights)
       const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
+      const checkIn = new Date(today);
+      checkIn.setDate(today.getDate() + 7);
 
       const formatDate = (date: Date) => {
         const day = String(date.getDate()).padStart(2, '0');
@@ -10360,34 +10368,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return `${day}/${month}/${year}`;
       };
 
-      const { searchHotels } = await import("./hotelApi");
+      // Search hotels via Sunshine API
+      const { searchSunshineHotels } = await import("./sunshineHotelApi");
 
-      const hotels = await searchHotels({
-        destination: city,
-        checkIn: checkIn || formatDate(today),
-        checkOut: checkOut || formatDate(tomorrow),
+      const hotels = await searchSunshineHotels({
+        countryId: location.countryId,
+        regionId: location.regionId,
+        areaId: location.areaId,
+        resortId: location.resortId,
+        depDate: formatDate(checkIn),
+        duration: 7,
         adults: 2,
-        boardBasis: (boardBasis as string) || "BB",
+        children: 0,
       });
 
       // Return simplified list for admin UI
       const hotelList = hotels.map(h => ({
-        code: h.hotelCode,
+        code: h.hotelId,
         name: h.hotelName,
-        starRating: h.starRating,
-        city: h.city,
+        starRating: parseInt(h.starRating) || 0,
+        resort: h.resort,
         boardBasis: h.boardBasis,
       }));
 
-      // Remove duplicates by hotel code
+      // Remove duplicates by hotel ID
       const uniqueHotels = Array.from(
         new Map(hotelList.map(h => [h.code, h])).values()
       );
 
       res.json({
-        city,
+        city: location.resortName,
         hotels: uniqueHotels,
         count: uniqueHotels.length,
+        location: location, // Include IDs for reference
       });
 
     } catch (error: any) {

@@ -1434,23 +1434,3 @@ export const insertFlightHotelPriceSchema = createInsertSchema(flightHotelPrices
 
 export type FlightHotelPrice = typeof flightHotelPrices.$inferSelect;
 export type InsertFlightHotelPrice = z.infer<typeof insertFlightHotelPriceSchema>;
-
-// Sunshine Hotels Cache table
-export const sunshineHotelsCache = pgTable("sunshine_hotels_cache", {
-  id: serial("id").primaryKey(),
-  hotelId: text("hotel_id").notNull().unique(),
-  hotelName: text("hotel_name").notNull(),
-  countryId: text("country_id").notNull(),
-  countryName: text("country_name"),
-  regionId: text("region_id").notNull(),
-  regionName: text("region_name"),
-  areaId: text("area_id").notNull(),
-  areaName: text("area_name"),
-  resortId: text("resort_id").notNull(),
-  resortName: text("resort_name").notNull(),
-  starRating: text("star_rating"),
-  lastSyncedAt: timestamp("last_synced_at").notNull().defaultNow(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export type SunshineHotelCache = typeof sunshineHotelsCache.$inferSelect;

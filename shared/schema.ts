@@ -434,7 +434,7 @@ export const flightPackages = pgTable("flight_packages", {
   additionalChargeName: text("additional_charge_name"),
   additionalChargeCurrency: text("additional_charge_currency"), // Currency code (EUR, USD, HRK, etc.)
   additionalChargeForeignAmount: numeric("additional_charge_foreign_amount", { precision: 10, scale: 2 }), // Amount in foreign currency
-  additionalChargeExchangeRate: numeric("additional_charge_exchange_rate", { precision: 10, scale: 4 }), // Foreign currency to GBP rate
+  additionalChargeExchangeRate: numeric("additional_charge_exchange_rate", { precision: 16, scale: 10 }), // Foreign currency to GBP rate (needs high precision for currencies like IDR)
   
   // Duration info
   duration: text("duration"), // e.g., "11 Nights / 12 Days"

@@ -19,6 +19,50 @@ import { promisify } from "util";
 import multer from "multer";
 
 const execPromise = promisify(exec);
+
+// Fallback exchange rates for currencies NOT supported by Frankfurter API
+// These are approximate and should be updated periodically
+const FALLBACK_RATES_TO_GBP: Record<string, number> = {
+  AED: 0.22,   // UAE Dirham
+  HRK: 0.11,   // Croatian Kuna (legacy, now EUR)
+};
+
+// Frankfurter-supported currencies (for reference)
+const FRANKFURTER_CURRENCIES = new Set([
+  'AUD', 'BRL', 'CAD', 'CHF', 'CNY', 'CZK', 'DKK', 'EUR', 'GBP',
+  'HKD', 'HUF', 'IDR', 'ILS', 'INR', 'ISK', 'JPY', 'KRW', 'MXN',
+  'MYR', 'NOK', 'NZD', 'PHP', 'PLN', 'RON', 'SEK', 'SGD', 'THB',
+  'TRY', 'USD', 'ZAR'
+]);
+
+// Fetch exchange rate for any currency to GBP, with fallbacks
+async function fetchExchangeRateToGbp(currency: string): Promise<number | null> {
+  if (currency === 'GBP') return 1;
+
+  // Try Frankfurter API first (if currency is supported)
+  if (FRANKFURTER_CURRENCIES.has(currency)) {
+    try {
+      const resp = await fetch(`https://api.frankfurter.dev/v1/latest?base=${currency}&symbols=GBP`);
+      if (resp.ok) {
+        const data = await resp.json();
+        const rate = data.rates?.GBP;
+        if (rate) return rate;
+      }
+    } catch (err) {
+      console.error(`[FX] Frankfurter API failed for ${currency}:`, err);
+    }
+  }
+
+  // Fallback for unsupported currencies
+  if (FALLBACK_RATES_TO_GBP[currency]) {
+    console.log(`[FX] Using fallback rate for ${currency}: ${FALLBACK_RATES_TO_GBP[currency]}`);
+    return FALLBACK_RATES_TO_GBP[currency];
+  }
+
+  console.error(`[FX] No exchange rate available for ${currency} to GBP`);
+  return null;
+}
+
 import path from "path";
 import fs from "fs";
 import { downloadAndProcessImage, processMultipleImages } from "./imageProcessor";
@@ -3665,7 +3709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Sanitize numeric fields - convert empty strings to null for PostgreSQL
       const sanitizedData = { ...parseResult.data };
-      const numericFields = ['additionalChargeForeignAmount', 'additionalChargeExchangeRate', 'additionalChargeAmount', 'additionalChargeEurAmount'] as const;
+      const numericFields = ['additionalChargeForeignAmount', 'additionalChargeExchangeRate'] as const;
       for (const field of numericFields) {
         if (field in sanitizedData && sanitizedData[field as keyof typeof sanitizedData] === '') {
           (sanitizedData as any)[field] = null;
@@ -5732,18 +5776,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (matchingTax.currency === 'EUR') {
             taxInGbp = Math.round(taxRate * eurToGbp * 100) / 100;
           } else if (matchingTax.currency !== 'GBP') {
-            // For non-EUR/non-GBP currencies, fetch live rate from Frankfurter API
-            try {
-              const fxResp = await fetch(`https://api.frankfurter.dev/v1/latest?base=${matchingTax.currency}&symbols=GBP`);
-              if (fxResp.ok) {
-                const fxData = await fxResp.json();
-                const rate = fxData.rates?.GBP;
-                if (rate) {
-                  taxInGbp = Math.round(taxRate * rate * 100) / 100;
-                }
-              }
-            } catch (fxErr) {
-              console.error(`Failed to fetch ${matchingTax.currency} to GBP rate:`, fxErr);
+            const fxRate = await fetchExchangeRateToGbp(matchingTax.currency);
+            if (fxRate) {
+              taxInGbp = Math.round(taxRate * fxRate * 100) / 100;
+            } else {
+              console.error(`[CityTax] WARNING: No rate for ${matchingTax.currency}, tax will not be converted`);
+              taxInGbp = 0; // Don't add unconverted foreign amounts as GBP
             }
           }
           
@@ -7467,16 +7505,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/exchange-rate/:from/:to", verifyAdminSession, async (req, res) => {
     try {
       const { from, to } = req.params;
-      const response = await fetch(`https://api.frankfurter.dev/v1/latest?base=${from.toUpperCase()}&symbols=${to.toUpperCase()}`);
-      if (!response.ok) {
-        throw new Error(`Frankfurter API returned ${response.status}`);
+      const fromCurrency = from.toUpperCase();
+      const toCurrency = to.toUpperCase();
+      
+      // Use the centralized exchange rate fetcher (supports Frankfurter + fallbacks)
+      if (toCurrency === 'GBP') {
+        const rate = await fetchExchangeRateToGbp(fromCurrency);
+        if (rate !== null) {
+          return res.json({ from: fromCurrency, to: toCurrency, rate });
+        }
+      } else {
+        // For non-GBP targets, try Frankfurter directly
+        const response = await fetch(`https://api.frankfurter.dev/v1/latest?base=${fromCurrency}&symbols=${toCurrency}`);
+        if (response.ok) {
+          const data = await response.json();
+          const rate = data.rates?.[toCurrency];
+          if (rate !== undefined) {
+            return res.json({ from: fromCurrency, to: toCurrency, rate });
+          }
+        }
       }
-      const data = await response.json();
-      const rate = data.rates?.[to.toUpperCase()];
-      if (rate === undefined) {
-        return res.status(404).json({ error: `Rate not found for ${from} to ${to}` });
-      }
-      res.json({ from: from.toUpperCase(), to: to.toUpperCase(), rate });
+      
+      return res.status(404).json({ error: `Rate not found for ${fromCurrency} to ${toCurrency}` });
     } catch (error: any) {
       console.error("Error fetching live exchange rate:", error);
       res.status(500).json({ error: "Failed to fetch exchange rate" });

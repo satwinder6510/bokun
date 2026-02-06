@@ -3705,7 +3705,7 @@ export default function AdminPackages() {
                           <Input
                             id="additionalChargeExchangeRate"
                             type="number"
-                            step="0.0001"
+                            step="any"
                             min="0"
                             value={formData.additionalChargeExchangeRate || "0.84"}
                             onChange={(e) => setFormData({ ...formData, additionalChargeExchangeRate: e.target.value })}

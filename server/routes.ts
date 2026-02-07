@@ -9990,50 +9990,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         resortName: string;
       };
 
-      if (!countryId || !regionId || !areaId || !resortId) {
-        return res.status(400).json({ error: "Location parameters (countryId, regionId, areaId, resortId) are required" });
+      if (!countryId) {
+        return res.status(400).json({ error: "countryId is required" });
       }
 
-      const today = new Date();
-      const checkIn = new Date(today);
-      checkIn.setDate(today.getDate() + 7);
+      const { getSunshineDestinations } = await import("./sunshineHotelApi");
 
-      const formatDate = (date: Date) => {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-      };
+      const { hotels: allHotels } = await getSunshineDestinations(countryId);
 
-      const { searchSunshineHotels } = await import("./sunshineHotelApi");
+      let filteredHotels = allHotels;
+      if (resortId && resortId !== "0") {
+        filteredHotels = allHotels.filter(h => h.resortId === resortId);
+      }
+      if (areaId && areaId !== "0") {
+        filteredHotels = filteredHotels.filter(h => h.areaId === areaId);
+      }
 
-      const hotels = await searchSunshineHotels({
-        countryId,
-        regionId,
-        areaId,
-        resortId,
-        depDate: formatDate(checkIn),
-        duration: 7,
-        adults: 2,
-        children: 0,
-      });
-
-      const hotelList = hotels.map(h => ({
-        code: h.hotelId,
-        name: h.hotelName,
+      const hotelList = filteredHotels.map(h => ({
+        code: h.id,
+        name: h.name,
         starRating: parseInt(h.starRating) || 0,
-        resort: h.resort,
-        boardBasis: h.boardBasis,
+        resort: h.resortName,
+        regionId: h.regionId,
+        areaId: h.areaId,
+        resortId: h.resortId,
       }));
 
       const uniqueHotels = Array.from(
         new Map(hotelList.map(h => [h.code, h])).values()
       );
 
+      console.log(`[HotelSearch] Country ${countryId}, resort ${resortId}: found ${uniqueHotels.length} hotels (filtered from ${allHotels.length} total)`);
+
       res.json({
         city: resortName || "Selected Resort",
         hotels: uniqueHotels,
         count: uniqueHotels.length,
+        totalInCountry: allHotels.length,
         location: { countryId, regionId, areaId, resortId, resortName },
       });
 

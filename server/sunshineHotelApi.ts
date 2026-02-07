@@ -201,6 +201,24 @@ export async function getSunshineDestinations(countryId: string): Promise<{
             resortId: area.Id,
             resortName: (area.Name || '').replace(/\+/g, ' '),
           });
+
+          const areaHotelData = area.Hotel;
+          if (areaHotelData) {
+            const areaHotelArray = Array.isArray(areaHotelData) ? areaHotelData : [areaHotelData];
+            for (const hotel of areaHotelArray) {
+              if (!hotel || !hotel.Id) continue;
+              hotels.push({
+                id: hotel.Id,
+                name: (hotel.Name || '').replace(/\+/g, ' '),
+                countryId: region.CountryId || countryId,
+                regionId: region.Id,
+                areaId: area.Id,
+                resortId: area.Id,
+                resortName: (area.Name || '').replace(/\+/g, ' '),
+                starRating: hotel.StarRating || '0',
+              });
+            }
+          }
         }
       }
     }

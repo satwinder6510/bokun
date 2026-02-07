@@ -9979,18 +9979,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Search hotels
-  app.get("/api/admin/hotels/search", verifyAdminSession, async (req, res) => {
-    try {
-      const query = req.query.q as string || '';
-      const hotels = await storage.searchHotels(query);
-      res.json(hotels);
-    } catch (error: any) {
-      console.error("Error searching hotels:", error);
-      res.status(500).json({ error: error.message || "Failed to search hotels" });
-    }
-  });
-  
   // Get hotel by ID
   app.get("/api/admin/hotels/:id", verifyAdminSession, async (req, res) => {
     try {

@@ -136,51 +136,71 @@ export async function getSunshineDestinations(countryId: string): Promise<{
     const resorts: SunshineResort[] = [];
     const hotels: SunshineHotel[] = [];
 
+    const mappingsCountry = result.Mappings?.Country;
     const regions = result.Regions?.Region;
-    if (!regions) {
+    const regionSource = mappingsCountry?.Region || regions;
+
+    if (!regionSource) {
+      console.log("[SunshineHotel] No regions found in response. Keys:", Object.keys(result));
       return { resorts, hotels };
     }
 
-    const regionArray = Array.isArray(regions) ? regions : [regions];
+    const regionArray = Array.isArray(regionSource) ? regionSource : [regionSource];
+    const countryId = mappingsCountry?.Id || '';
 
     for (const region of regionArray) {
       const areas = region.Area;
+      if (!areas) continue;
       const areaArray = Array.isArray(areas) ? areas : [areas];
 
       for (const area of areaArray) {
         const resortData = area.Resort;
-        const resortArray = Array.isArray(resortData) ? resortData : [resortData];
 
-        for (const resort of resortArray) {
+        if (resortData) {
+          const resortArray = Array.isArray(resortData) ? resortData : [resortData];
+
+          for (const resort of resortArray) {
+            if (!resort || !resort.Id) continue;
+            resorts.push({
+              countryId: region.CountryId || countryId,
+              countryName: (region.CountryName || mappingsCountry?.Name || '').replace(/\+/g, ' '),
+              regionId: region.Id,
+              regionName: (region.Name || '').replace(/\+/g, ' '),
+              areaId: area.Id,
+              areaName: (area.Name || '').replace(/\+/g, ' '),
+              resortId: resort.Id,
+              resortName: (resort.Name || '').replace(/\+/g, ' '),
+            });
+
+            const hotelData = resort.Hotel;
+            if (hotelData) {
+              const hotelArray = Array.isArray(hotelData) ? hotelData : [hotelData];
+              for (const hotel of hotelArray) {
+                if (!hotel || !hotel.Id) continue;
+                hotels.push({
+                  id: hotel.Id,
+                  name: (hotel.Name || '').replace(/\+/g, ' '),
+                  countryId: region.CountryId || countryId,
+                  regionId: region.Id,
+                  areaId: area.Id,
+                  resortId: resort.Id,
+                  resortName: (resort.Name || '').replace(/\+/g, ' '),
+                  starRating: hotel.StarRating || '0',
+                });
+              }
+            }
+          }
+        } else {
           resorts.push({
-            countryId: region.CountryId,
-            countryName: (region.CountryName || '').replace(/\+/g, ' '),
+            countryId: region.CountryId || countryId,
+            countryName: (region.CountryName || mappingsCountry?.Name || '').replace(/\+/g, ' '),
             regionId: region.Id,
             regionName: (region.Name || '').replace(/\+/g, ' '),
             areaId: area.Id,
             areaName: (area.Name || '').replace(/\+/g, ' '),
-            resortId: resort.Id,
-            resortName: (resort.Name || '').replace(/\+/g, ' '),
+            resortId: area.Id,
+            resortName: (area.Name || '').replace(/\+/g, ' '),
           });
-
-          // Extract hotels from this resort
-          const hotelData = resort.Hotel;
-          if (hotelData) {
-            const hotelArray = Array.isArray(hotelData) ? hotelData : [hotelData];
-
-            for (const hotel of hotelArray) {
-              hotels.push({
-                id: hotel.Id,
-                name: (hotel.Name || '').replace(/\+/g, ' '),
-                countryId: region.CountryId,
-                regionId: region.Id,
-                areaId: area.Id,
-                resortId: resort.Id,
-                resortName: (resort.Name || '').replace(/\+/g, ' '),
-                starRating: hotel.StarRating || '0',
-              });
-            }
-          }
         }
       }
     }

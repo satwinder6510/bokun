@@ -9979,6 +9979,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Search hotels via Sunshine API (must be before /:id route)
+  app.get("/api/admin/hotels/search", verifyAdminSession, async (req, res) => {
+    try {
+      const { countryId, regionId, areaId, resortId, resortName } = req.query as {
+        countryId: string;
+        regionId: string;
+        areaId: string;
+        resortId: string;
+        resortName: string;
+      };
+
+      if (!countryId || !regionId || !areaId || !resortId) {
+        return res.status(400).json({ error: "Location parameters (countryId, regionId, areaId, resortId) are required" });
+      }
+
+      const today = new Date();
+      const checkIn = new Date(today);
+      checkIn.setDate(today.getDate() + 7);
+
+      const formatDate = (date: Date) => {
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
+      const { searchSunshineHotels } = await import("./sunshineHotelApi");
+
+      const hotels = await searchSunshineHotels({
+        countryId,
+        regionId,
+        areaId,
+        resortId,
+        depDate: formatDate(checkIn),
+        duration: 7,
+        adults: 2,
+        children: 0,
+      });
+
+      const hotelList = hotels.map(h => ({
+        code: h.hotelId,
+        name: h.hotelName,
+        starRating: parseInt(h.starRating) || 0,
+        resort: h.resort,
+        boardBasis: h.boardBasis,
+      }));
+
+      const uniqueHotels = Array.from(
+        new Map(hotelList.map(h => [h.code, h])).values()
+      );
+
+      res.json({
+        city: resortName || "Selected Resort",
+        hotels: uniqueHotels,
+        count: uniqueHotels.length,
+        location: { countryId, regionId, areaId, resortId, resortName },
+      });
+
+    } catch (error: any) {
+      console.error("Error searching hotels:", error);
+      res.status(500).json({ error: error.message || "Failed to search hotels" });
+    }
+  });
+
   // Get hotel by ID
   app.get("/api/admin/hotels/:id", verifyAdminSession, async (req, res) => {
     try {
@@ -10471,74 +10535,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error fetching resorts:", error);
       res.status(500).json({ error: error.message || "Failed to fetch resorts" });
-    }
-  });
-
-  // ADMIN: Search hotels for a specific resort (using location IDs)
-  app.get("/api/admin/hotels/search", verifyAdminSession, async (req, res) => {
-    try {
-      const { countryId, regionId, areaId, resortId, resortName } = req.query as {
-        countryId: string;
-        regionId: string;
-        areaId: string;
-        resortId: string;
-        resortName: string;
-      };
-
-      if (!countryId || !regionId || !areaId || !resortId) {
-        return res.status(400).json({ error: "Location parameters (countryId, regionId, areaId, resortId) are required" });
-      }
-
-      // Use sample dates (1 week from now, 7 nights)
-      const today = new Date();
-      const checkIn = new Date(today);
-      checkIn.setDate(today.getDate() + 7);
-
-      const formatDate = (date: Date) => {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-      };
-
-      // Search hotels via Sunshine API
-      const { searchSunshineHotels } = await import("./sunshineHotelApi");
-
-      const hotels = await searchSunshineHotels({
-        countryId,
-        regionId,
-        areaId,
-        resortId,
-        depDate: formatDate(checkIn),
-        duration: 7,
-        adults: 2,
-        children: 0,
-      });
-
-      // Return simplified list for admin UI
-      const hotelList = hotels.map(h => ({
-        code: h.hotelId,
-        name: h.hotelName,
-        starRating: parseInt(h.starRating) || 0,
-        resort: h.resort,
-        boardBasis: h.boardBasis,
-      }));
-
-      // Remove duplicates by hotel ID
-      const uniqueHotels = Array.from(
-        new Map(hotelList.map(h => [h.code, h])).values()
-      );
-
-      res.json({
-        city: resortName || "Selected Resort",
-        hotels: uniqueHotels,
-        count: uniqueHotels.length,
-        location: { countryId, regionId, areaId, resortId, resortName },
-      });
-
-    } catch (error: any) {
-      console.error("Error searching hotels:", error);
-      res.status(500).json({ error: error.message || "Failed to search hotels" });
     }
   });
 

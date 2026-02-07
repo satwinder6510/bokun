@@ -10454,18 +10454,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // ADMIN: Get all resorts for a country (static data - fast)
+  // ADMIN: Get all resorts for a country (static data with live API fallback)
   app.get("/api/admin/sunshine/resorts/:countryId", verifyAdminSession, async (req, res) => {
     try {
       const { countryId } = req.params;
       const { SUNSHINE_RESORTS } = await import("./sunshineStaticData");
 
-      // Filter resorts by country
-      const resorts = SUNSHINE_RESORTS.filter(r => r.countryId === countryId);
+      // Check static data first
+      const staticResorts = SUNSHINE_RESORTS.filter(r => r.countryId === countryId);
+
+      if (staticResorts.length > 0) {
+        return res.json({
+          resorts: staticResorts,
+          hotelCount: 0,
+        });
+      }
+
+      // Fallback: fetch from live Sunshine API
+      console.log(`[Resorts] No static data for country ${countryId}, fetching from live API`);
+      const { getSunshineDestinations } = await import("./sunshineHotelApi");
+      const { resorts: liveResorts } = await getSunshineDestinations(countryId);
+
+      const mapped = liveResorts.map(r => ({
+        countryId: r.countryId,
+        regionId: r.regionId,
+        areaId: r.areaId,
+        resortId: r.resortId,
+        resortName: r.resortName,
+      }));
 
       res.json({
-        resorts,
-        hotelCount: 0 // Not tracking this in static data
+        resorts: mapped,
+        hotelCount: 0,
       });
     } catch (error: any) {
       console.error("Error fetching resorts:", error);

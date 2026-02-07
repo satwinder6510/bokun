@@ -10460,12 +10460,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { countryId } = req.params;
       const { SUNSHINE_RESORTS } = await import("./sunshineStaticData");
 
-      // Filter resorts by country
-      const resorts = SUNSHINE_RESORTS.filter(r => r.countryId === countryId);
+      let resorts = SUNSHINE_RESORTS.filter(r => r.countryId === countryId);
+
+      if (resorts.length === 0) {
+        console.log(`[Resorts] No static data for country ${countryId}, fetching from Sunshine API...`);
+        const { getSunshineDestinations } = await import("./sunshineHotelApi");
+        const liveData = await getSunshineDestinations(countryId);
+        resorts = liveData.resorts.map(r => ({
+          countryId: r.countryId,
+          regionId: r.regionId,
+          areaId: r.areaId,
+          resortId: r.resortId,
+          resortName: r.resortName,
+        }));
+        console.log(`[Resorts] Fetched ${resorts.length} resorts from live API for country ${countryId}`);
+      }
 
       res.json({
         resorts,
-        hotelCount: 0 // Not tracking this in static data
+        hotelCount: 0
       });
     } catch (error: any) {
       console.error("Error fetching resorts:", error);

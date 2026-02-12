@@ -2982,6 +2982,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           image: pkg.featuredImage || undefined,
           slug: pkg.slug,
           score,
+          additionalChargeName: (pkg as any).additionalChargeName || undefined,
+          additionalChargeCurrency: (pkg as any).additionalChargeCurrency || undefined,
+          additionalChargeForeignAmount: (pkg as any).additionalChargeForeignAmount || undefined,
+          additionalChargeExchangeRate: (pkg as any).additionalChargeExchangeRate || undefined,
         });
       }
       
@@ -5684,14 +5688,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const eurToGbpSetting = await storage.getSiteSettingByKey('eur_to_gbp_rate');
       const eurToGbp = eurToGbpSetting ? parseFloat(eurToGbpSetting.value) : 0.84;
 
-      // Capital cities mapping for auto-calculation (use highest rate city as default)
       const capitalCities: Record<string, string> = {
         'IT': 'Rome', 'FR': 'Paris', 'ES': 'Barcelona', 'PT': 'Lisbon',
         'GR': 'Greece', 'DE': 'Hamburg', 'AT': 'Vienna', 'CH': 'Geneva',
         'BE': 'Brussels', 'CZ': 'Prague', 'HU': 'Budapest', 'PL': 'Krakow',
         'HR': 'Croatia', 'ME': 'Montenegro', 'RO': 'Bucharest', 'LV': 'Riga',
         'IS': 'Reykjavik', 'AE': 'Dubai', 'MA': 'Morocco', 'MV': 'Maldives',
-        'MU': 'Mauritius', 'MT': 'Malta', 'CV': 'Cape Verde'
+        'MU': 'Mauritius', 'MT': 'Malta', 'CV': 'Cape Verde',
+        'BG': 'Sofia', 'SK': 'Bratislava', 'DK': 'Copenhagen', 'EE': 'Tallinn',
       };
 
       // Use explicit cityTaxConfig from the package, or auto-calculate for single-country

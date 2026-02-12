@@ -762,6 +762,7 @@ export default function PackageDetailTest() {
   const additionalChargeForeignAmount = parseFloat((pkg as any)?.additionalChargeForeignAmount) || 0;
   const additionalChargeExchangeRate = parseFloat((pkg as any)?.additionalChargeExchangeRate) || 0;
   const additionalChargeGbpAmount = Math.round(additionalChargeForeignAmount * additionalChargeExchangeRate * 100) / 100;
+  const totalLocalCharges = (cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount;
 
   // Currency symbol map for display
   const currencySymbolMap: Record<string, string> = {
@@ -1364,7 +1365,7 @@ export default function PackageDetailTest() {
             <div className="mt-4 inline-block bg-white backdrop-blur-sm rounded-lg px-4 py-2 shadow-xl">
               <p className="text-xs text-muted-foreground">From</p>
               <p className="text-xl font-bold text-secondary" data-testid="hero-price-mobile-video">
-                {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
+                {formatPrice(pkg.price + totalLocalCharges)}
               </p>
               <p className="text-xs text-muted-foreground">total cost per person</p>
               {formatCityTaxNote(pkg.price) && (
@@ -1407,14 +1408,14 @@ export default function PackageDetailTest() {
               <div className="mt-3 inline-block bg-white backdrop-blur-sm rounded-lg px-4 py-2 shadow-xl">
                 <p className="text-xs text-muted-foreground">From</p>
                 <p className="text-xl font-bold text-secondary">
-                  {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
+                  {formatPrice(pkg.price + totalLocalCharges)}
                 </p>
                 <p className="text-xs text-muted-foreground">total cost per person</p>
-                {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                {totalLocalCharges > 0 && (
                   <div className="text-xs text-muted-foreground mt-1 border-t pt-1">
                     <span>{formatPrice(pkg.price)} pay now</span>
                     <span className="mx-1">+</span>
-                    <span>{formatPrice(cityTaxData.totalTaxPerPerson)} locally</span>
+                    <span>{formatPrice(totalLocalCharges)} locally</span>
                   </div>
                 )}
               </div>
@@ -1485,7 +1486,7 @@ export default function PackageDetailTest() {
                 <div className="bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg">
                   <p className="text-xs text-muted-foreground">From</p>
                   <p className="text-2xl font-bold text-secondary" data-testid="hero-price-desktop-video">
-                    {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
+                    {formatPrice(pkg.price + totalLocalCharges)}
                   </p>
                   <p className="text-xs text-muted-foreground">total cost per person</p>
                   {formatCityTaxNote(pkg.price) && (
@@ -1639,7 +1640,7 @@ export default function PackageDetailTest() {
               <div className="bg-white/95 backdrop-blur-sm rounded-lg px-4 py-3 shadow-lg">
                 <p className="text-xs text-muted-foreground">From</p>
                 <p className="text-2xl font-bold text-secondary" data-testid="hero-price-desktop">
-                  {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
+                  {formatPrice(pkg.price + totalLocalCharges)}
                 </p>
                 <p className="text-xs text-muted-foreground">total cost per person</p>
                 {formatCityTaxNote(pkg.price) && (
@@ -2037,7 +2038,7 @@ export default function PackageDetailTest() {
                         {(pkg.pricingDisplay === "both" || pkg.pricingDisplay === "twin" || !pkg.pricingDisplay) && (
                           <div>
                             <p className="text-3xl font-bold text-foreground" data-testid="text-price-desktop">
-                              {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
+                              {formatPrice(pkg.price + totalLocalCharges)}
                             </p>
                             <span className="text-xs text-muted-foreground">total cost pp twin share</span>
                             {formatCityTaxNote(pkg.price) && (
@@ -2048,7 +2049,7 @@ export default function PackageDetailTest() {
                         {pkg.pricingDisplay === "single" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
                           <div>
                             <p className="text-3xl font-bold text-foreground">
-                              {formatPrice(pkg.singlePrice + (cityTaxData?.totalTaxPerPerson || 0))}
+                              {formatPrice(pkg.singlePrice + totalLocalCharges)}
                             </p>
                             <span className="text-xs text-muted-foreground">total cost pp solo</span>
                             {formatCityTaxNote(pkg.singlePrice) && (
@@ -2059,7 +2060,7 @@ export default function PackageDetailTest() {
                         {pkg.pricingDisplay === "both" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
                           <div className="border-l pl-3 border-border">
                             <p className="text-xl font-semibold text-foreground">
-                              {formatPrice(pkg.singlePrice + (cityTaxData?.totalTaxPerPerson || 0))}
+                              {formatPrice(pkg.singlePrice + totalLocalCharges)}
                             </p>
                             <span className="text-xs text-muted-foreground">total cost pp solo</span>
                           </div>
@@ -2126,7 +2127,7 @@ export default function PackageDetailTest() {
                               selectedDate={selectedDate}
                               onDateSelect={handleDateSelect}
                               formatPrice={formatPrice}
-                              localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
+                              localChargesPerPerson={totalLocalCharges}
                             />
                             
                             {selectedDate && selectedPricing && (
@@ -2141,7 +2142,7 @@ export default function PackageDetailTest() {
                                     })}
                                   </p>
                                   <p className="text-2xl font-bold text-white mt-1">
-                                    {formatPrice(selectedPricing.price + (cityTaxData?.totalTaxPerPerson || 0))}
+                                    {formatPrice(selectedPricing.price + totalLocalCharges)}
                                   </p>
                                   <p className="text-xs text-white/80">total cost per person</p>
                                   {formatCityTaxNote(selectedPricing.price) && (
@@ -2227,7 +2228,7 @@ export default function PackageDetailTest() {
                               selectedDate={selectedBokunDate}
                               onDateSelect={setSelectedBokunDate}
                               formatPrice={formatPrice}
-                              localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
+                              localChargesPerPerson={totalLocalCharges}
                             />
                             
                             {selectedBokunDate && selectedBokunPricing && (
@@ -2241,11 +2242,11 @@ export default function PackageDetailTest() {
                                       year: 'numeric'
                                     })}
                                   </p>
-                                  {/* Show total cost if city tax exists, otherwise just show price */}
-                                  {cityTaxData && cityTaxData.totalTaxPerPerson > 0 ? (
+                                  {/* Show total cost if local charges exist, otherwise just show price */}
+                                  {totalLocalCharges > 0 ? (
                                     <>
                                       <p className="text-2xl font-bold text-blue-600 mt-1">
-                                        {formatPrice(selectedBokunPricing.combinedPrice + cityTaxData.totalTaxPerPerson)}
+                                        {formatPrice(selectedBokunPricing.combinedPrice + totalLocalCharges)}
                                       </p>
                                       <p className="text-xs text-muted-foreground">total cost per person</p>
                                     </>
@@ -2260,7 +2261,7 @@ export default function PackageDetailTest() {
                                 </div>
                                 
                                 {/* Pay Now / Pay Locally breakdown */}
-                                {cityTaxData && cityTaxData.totalTaxPerPerson > 0 && (
+                                {totalLocalCharges > 0 && (
                                   <div className="mt-3 pt-3 border-t border-blue-200">
                                     <div className="flex justify-between text-sm">
                                       <span className="text-muted-foreground">Pay now:</span>
@@ -2268,9 +2269,9 @@ export default function PackageDetailTest() {
                                     </div>
                                     <div className="flex justify-between text-sm mt-1">
                                       <span className="text-muted-foreground">Pay locally:</span>
-                                      <span className="font-medium">{formatPrice(cityTaxData.totalTaxPerPerson)}</span>
+                                      <span className="font-medium">{formatPrice(totalLocalCharges)}</span>
                                     </div>
-                                    {cityTaxData.lastUpdated && (
+                                    {cityTaxData?.lastUpdated && (
                                       <p className="text-xs text-muted-foreground mt-2 text-center">
                                         City tax correct as of {new Date(cityTaxData.lastUpdated).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                                       </p>
@@ -2499,7 +2500,7 @@ export default function PackageDetailTest() {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <span className="text-sm text-muted-foreground">From</span>
-                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + totalLocalCharges)}</p>
                     <span className="text-xs text-muted-foreground">total cost per person</span>
                     {formatCityTaxNote(pkg.price) && (
                       <p className="text-xs text-muted-foreground">{formatCityTaxNote(pkg.price)}</p>
@@ -2541,7 +2542,7 @@ export default function PackageDetailTest() {
                     selectedDate={selectedDate}
                     onDateSelect={handleDateSelect}
                     formatPrice={formatPrice}
-                    localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
+                    localChargesPerPerson={totalLocalCharges}
                   />
                 )}
               </CardContent>
@@ -2555,7 +2556,7 @@ export default function PackageDetailTest() {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <span className="text-sm text-muted-foreground">From</span>
-                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + totalLocalCharges)}</p>
                     <span className="text-xs text-muted-foreground">total cost per person</span>
                     {formatCityTaxNote(pkg.price) && (
                       <p className="text-xs text-muted-foreground">{formatCityTaxNote(pkg.price)}</p>
@@ -2839,7 +2840,7 @@ export default function PackageDetailTest() {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-sm text-muted-foreground">From</span>
-                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}</p>
+                    <p className="text-2xl font-bold text-foreground">{formatPrice(pkg.price + totalLocalCharges)}</p>
                     <span className="text-xs text-muted-foreground">total cost per person</span>
                     {formatCityTaxNote(pkg.price) && (
                       <p className="text-xs text-muted-foreground">{formatCityTaxNote(pkg.price)}</p>
@@ -2887,7 +2888,7 @@ export default function PackageDetailTest() {
                       selectedDate={selectedDate}
                       onDateSelect={handleDateSelect}
                       formatPrice={formatPrice}
-                      localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
+                      localChargesPerPerson={totalLocalCharges}
                     />
                     
                     {selectedDate && selectedPricing && (
@@ -2907,7 +2908,7 @@ export default function PackageDetailTest() {
                           </div>
                           <div className="text-right">
                             <p className="text-xl font-bold text-secondary">
-                              {formatPrice(selectedPricing.price + (cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount)}
+                              {formatPrice(selectedPricing.price + totalLocalCharges)}
                             </p>
                             <p className="text-xs text-muted-foreground">per person</p>
                           </div>
@@ -3037,7 +3038,7 @@ export default function PackageDetailTest() {
                       selectedDate={selectedBokunDate}
                       onDateSelect={setSelectedBokunDate}
                       formatPrice={formatPrice}
-                      localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
+                      localChargesPerPerson={totalLocalCharges}
                     />
                     
                     {selectedBokunDate && selectedBokunPricing && (
@@ -3654,7 +3655,7 @@ export default function PackageDetailTest() {
                           {(pkg.pricingDisplay === "both" || pkg.pricingDisplay === "twin" || !pkg.pricingDisplay) && (
                             <div>
                               <p className="text-3xl font-bold text-foreground" data-testid="text-price">
-                                {formatPrice(pkg.price + (cityTaxData?.totalTaxPerPerson || 0))}
+                                {formatPrice(pkg.price + totalLocalCharges)}
                               </p>
                               <span className="text-xs text-muted-foreground">total cost pp twin share</span>
                               {formatCityTaxNote(pkg.price) && (
@@ -3665,7 +3666,7 @@ export default function PackageDetailTest() {
                           {pkg.pricingDisplay === "single" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
                             <div>
                               <p className="text-3xl font-bold text-foreground" data-testid="text-single-price">
-                                {formatPrice(pkg.singlePrice + (cityTaxData?.totalTaxPerPerson || 0))}
+                                {formatPrice(pkg.singlePrice + totalLocalCharges)}
                               </p>
                               <span className="text-xs text-muted-foreground">total cost pp solo</span>
                               {formatCityTaxNote(pkg.singlePrice) && (
@@ -3747,7 +3748,7 @@ export default function PackageDetailTest() {
                                 selectedDate={selectedDate}
                                 onDateSelect={handleDateSelect}
                                 formatPrice={formatPrice}
-                                localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
+                                localChargesPerPerson={totalLocalCharges}
                               />
                               
                               {selectedDate && selectedPricing && (
@@ -3768,7 +3769,7 @@ export default function PackageDetailTest() {
                                     </div>
                                     <div className="text-right">
                                       <p className="text-2xl font-bold text-secondary">
-                                        {formatPrice(selectedPricing.price + (cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount)}
+                                        {formatPrice(selectedPricing.price + totalLocalCharges)}
                                       </p>
                                       <p className="text-xs text-muted-foreground">per person</p>
                                     </div>
@@ -3858,7 +3859,7 @@ export default function PackageDetailTest() {
                                 selectedDate={selectedBokunDate}
                                 onDateSelect={setSelectedBokunDate}
                                 formatPrice={formatPrice}
-                                localChargesPerPerson={(cityTaxData?.totalTaxPerPerson || 0) + additionalChargeGbpAmount}
+                                localChargesPerPerson={totalLocalCharges}
                               />
                               
                               {selectedBokunDate && selectedBokunPricing && (
@@ -4094,7 +4095,7 @@ export default function PackageDetailTest() {
             <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground">From</p>
               <p className="text-lg font-bold text-primary truncate" data-testid="text-sticky-price">
-                {formatPrice((bokunPricing?.enabled && bokunPricing.prices.length > 0 ? bokunDisplayMinPrice : (pkg?.price || 0)) + (cityTaxData?.totalTaxPerPerson || 0))}
+                {formatPrice((bokunPricing?.enabled && bokunPricing.prices.length > 0 ? bokunDisplayMinPrice : (pkg?.price || 0)) + totalLocalCharges)}
                 <span className="text-xs font-normal text-muted-foreground ml-1">total pp</span>
               </p>
               {formatCityTaxNote(bokunPricing?.enabled && bokunPricing.prices.length > 0 ? bokunDisplayMinPrice : (pkg?.price || 0)) && (

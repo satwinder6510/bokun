@@ -4,7 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TourCard } from "@/components/TourCard";
-import { FlightPackageCard, CityTaxInfo } from "@/components/FlightPackageCard";
+import { FlightPackageCard } from "@/components/FlightPackageCard";
+import { calculateCityTax } from "@/lib/cityTaxCalc";
+import type { CityTaxInfo } from "@/lib/cityTaxCalc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -92,81 +94,6 @@ function BlogCard({ post }: { post: BlogPost }) {
 }
 
 
-// Helper to parse duration string like "9 Days / 7 Nights" into nights
-function parseDurationNights(duration: string | null): number {
-  if (!duration) return 0;
-  const nightsMatch = duration.match(/(\d+)\s*nights?/i);
-  if (nightsMatch) return parseInt(nightsMatch[1], 10);
-  const daysMatch = duration.match(/(\d+)\s*days?/i);
-  if (daysMatch) return Math.max(0, parseInt(daysMatch[1], 10) - 1);
-  return 0;
-}
-
-// Helper to get city tax rate for a star rating (default 4★)
-function getCityTaxRate(cityTax: CityTax, starRating: number = 4): number {
-  if (cityTax.pricingType === 'star_rating') {
-    switch (starRating) {
-      case 1: return cityTax.rate1Star ?? cityTax.taxPerNightPerPerson ?? 0;
-      case 2: return cityTax.rate2Star ?? cityTax.taxPerNightPerPerson ?? 0;
-      case 3: return cityTax.rate3Star ?? cityTax.taxPerNightPerPerson ?? 0;
-      case 4: return cityTax.rate4Star ?? cityTax.taxPerNightPerPerson ?? 0;
-      case 5: return cityTax.rate5Star ?? cityTax.taxPerNightPerPerson ?? 0;
-      default: return cityTax.taxPerNightPerPerson ?? 0;
-    }
-  }
-  return cityTax.taxPerNightPerPerson ?? 0;
-}
-
-// Country name to code mapping
-const countryToCode: Record<string, string> = {
-  'india': 'IN', 'indian': 'IN',
-  'italy': 'IT', 'italian': 'IT',
-  'france': 'FR', 'french': 'FR',
-  'spain': 'ES', 'spanish': 'ES',
-  'portugal': 'PT', 'portuguese': 'PT',
-  'greece': 'GR', 'greek': 'GR',
-  'germany': 'DE', 'german': 'DE',
-  'austria': 'AT', 'austrian': 'AT',
-  'switzerland': 'CH', 'swiss': 'CH',
-  'belgium': 'BE',
-  'czech': 'CZ', 'czechia': 'CZ',
-  'hungary': 'HU', 'hungarian': 'HU',
-  'bulgaria': 'BG', 'bulgarian': 'BG',
-  'slovakia': 'SK', 'slovak': 'SK',
-  'denmark': 'DK', 'danish': 'DK',
-  'estonia': 'EE', 'estonian': 'EE',
-  'croatia': 'HR', 'croatian': 'HR',
-  'montenegro': 'ME',
-  'romania': 'RO', 'romanian': 'RO',
-  'latvia': 'LV',
-  'iceland': 'IS', 'icelandic': 'IS',
-  'dubai': 'AE', 'uae': 'AE', 'emirates': 'AE',
-  'morocco': 'MA', 'moroccan': 'MA',
-  'maldives': 'MV',
-  'mauritius': 'MU',
-  'malta': 'MT', 'maltese': 'MT',
-  'cape verde': 'CV'
-};
-
-// Capital cities per country code
-const capitalCities: Record<string, string> = {
-  'IT': 'Rome', 'FR': 'Paris', 'ES': 'Madrid', 'PT': 'Lisbon',
-  'GR': 'Athens', 'DE': 'Berlin', 'AT': 'Vienna', 'CH': 'Zurich',
-  'BE': 'Brussels', 'CZ': 'Prague', 'HU': 'Budapest', 'HR': 'Zagreb',
-  'ME': 'Podgorica', 'RO': 'Bucharest', 'LV': 'Riga', 'IS': 'Reykjavik',
-  'AE': 'Dubai', 'MA': 'Marrakech', 'MV': 'Male', 'MU': 'Port Louis',
-  'MT': 'Valletta', 'CV': 'Praia', 'IN': 'Delhi',
-  'BG': 'Sofia', 'SK': 'Bratislava', 'DK': 'Copenhagen', 'EE': 'Tallinn'
-};
-
-// Get country code from country name
-function getCountryCode(countryName: string): string | null {
-  const lower = countryName.toLowerCase();
-  for (const [name, code] of Object.entries(countryToCode)) {
-    if (lower.includes(name)) return code;
-  }
-  return null;
-}
 
 export default function DestinationDetail() {
   const [, holidaysParams] = useRoute("/Holidays/:country");
@@ -192,54 +119,9 @@ export default function DestinationDetail() {
   });
   const eurToGbpRate = siteSettings?.eurToGbpRate ?? 0.84;
 
-  // Calculate city tax for a package based on its destination country and duration
   const calculateCityTaxForPackage = (pkg: FlightPackage): CityTaxInfo | undefined => {
     if (!cityTaxes || cityTaxes.length === 0) return undefined;
-    
-    const country = pkg.category;
-    if (!country) return undefined;
-    
-    const nights = parseDurationNights(pkg.duration);
-    if (nights <= 0) return undefined;
-    
-    // Get country code from country name
-    const countryCode = getCountryCode(country);
-    if (!countryCode) return undefined;
-    
-    // Get capital city name for this country
-    const capitalCityName = capitalCities[countryCode];
-    if (!capitalCityName) return undefined;
-    
-    // Find capital city tax
-    const capitalTax = cityTaxes.find(
-      t => t.cityName.toLowerCase() === capitalCityName.toLowerCase() && t.countryCode === countryCode
-    );
-    
-    if (!capitalTax) return undefined;
-    
-    // Use 4-star rate as default
-    let taxPerNight = getCityTaxRate(capitalTax, 4);
-    
-    // Convert EUR to GBP if needed
-    if (capitalTax.currency === 'EUR') {
-      taxPerNight = taxPerNight * eurToGbpRate;
-    }
-    
-    const totalTaxPerPerson = Math.round(taxPerNight * nights * 100) / 100;
-    
-    // Calculate EUR amount before conversion
-    const originalTaxPerNight = getCityTaxRate(capitalTax, 4);
-    const eurAmount = capitalTax.currency === 'EUR' ? originalTaxPerNight * nights : undefined;
-    
-    return {
-      totalTaxPerPerson,
-      cityName: capitalTax.cityName,
-      nights,
-      ratePerNight: taxPerNight,
-      currency: capitalTax.currency || 'EUR',
-      eurAmount,
-      eurToGbpRate: capitalTax.currency === 'EUR' ? eurToGbpRate : undefined,
-    };
+    return calculateCityTax(pkg.category, pkg.duration, cityTaxes, eurToGbpRate);
   };
 
   const displayName = data?.destination || destinationName;

@@ -4,57 +4,16 @@ import { useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { TourCard } from "@/components/TourCard";
-import { FlightPackageCard, CityTaxInfo } from "@/components/FlightPackageCard";
+import { FlightPackageCard } from "@/components/FlightPackageCard";
+import { calculateCityTax } from "@/lib/cityTaxCalc";
+import type { CityTaxInfo } from "@/lib/cityTaxCalc";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Clock, MapPin, Plane, Map } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD, generateBreadcrumbSchema } from "@/lib/meta-tags";
-import type { FlightPackage, BokunProduct } from "@shared/schema";
-
-interface CityTax {
-  id: number;
-  cityName: string;
-  countryCode: string;
-  pricingType: 'flat_rate' | 'star_rating';
-  taxPerNightPerPerson: number;
-  rate1Star?: number | null;
-  rate2Star?: number | null;
-  rate3Star?: number | null;
-  rate4Star?: number | null;
-  rate5Star?: number | null;
-  currency: string;
-}
-
-
-const countryToCode: Record<string, string> = {
-  'italy': 'IT', 'spain': 'ES', 'france': 'FR', 'germany': 'DE',
-  'portugal': 'PT', 'greece': 'GR', 'croatia': 'HR', 'austria': 'AT',
-  'netherlands': 'NL', 'belgium': 'BE', 'switzerland': 'CH',
-  'bulgaria': 'BG', 'slovakia': 'SK', 'hungary': 'HU', 'denmark': 'DK', 'estonia': 'EE',
-};
-
-const capitalCities: Record<string, string> = {
-  'IT': 'Rome', 'ES': 'Madrid', 'FR': 'Paris', 'DE': 'Berlin',
-  'PT': 'Lisbon', 'GR': 'Athens', 'HR': 'Zagreb', 'AT': 'Vienna',
-  'NL': 'Amsterdam', 'BE': 'Brussels', 'CH': 'Bern',
-  'BG': 'Sofia', 'SK': 'Bratislava', 'HU': 'Budapest', 'DK': 'Copenhagen', 'EE': 'Tallinn',
-};
-
-function parseDurationNights(duration: string | null | undefined): number {
-  if (!duration) return 0;
-  const match = duration.match(/(\d+)\s*night/i);
-  return match ? parseInt(match[1], 10) : 0;
-}
-
-function getCountryCode(countryName: string): string | null {
-  const lower = countryName.toLowerCase();
-  for (const [name, code] of Object.entries(countryToCode)) {
-    if (lower.includes(name)) return code;
-  }
-  return null;
-}
+import type { FlightPackage, BokunProduct, CityTax } from "@shared/schema";
 
 // Known collection tag slugs - if a slug is not in this list, it might be a destination
 const KNOWN_COLLECTION_SLUGS = new Set([
@@ -133,41 +92,7 @@ export default function CollectionDetail() {
 
   const calculateCityTaxForPackage = (pkg: FlightPackage): CityTaxInfo | undefined => {
     if (!cityTaxes || cityTaxes.length === 0) return undefined;
-    
-    const country = pkg.category;
-    if (!country) return undefined;
-    
-    const nights = parseDurationNights(pkg.duration);
-    if (nights <= 0) return undefined;
-    
-    const countryCode = getCountryCode(country);
-    if (!countryCode) return undefined;
-    
-    const capitalCityName = capitalCities[countryCode];
-    if (!capitalCityName) return undefined;
-    
-    const capitalTax = cityTaxes.find(
-      t => t.cityName.toLowerCase() === capitalCityName.toLowerCase() && t.countryCode === countryCode
-    );
-    
-    if (!capitalTax) return undefined;
-    
-    const ratePerNight = capitalTax.taxPerNightPerPerson || 0;
-    const totalTax = ratePerNight * nights;
-    
-    // Calculate EUR amount and convert to GBP
-    const eurAmount = capitalTax.currency === 'EUR' ? totalTax : undefined;
-    const totalTaxGBP = capitalTax.currency === 'EUR' ? Math.round(totalTax * eurToGbpRate * 100) / 100 : Math.round(totalTax * 100) / 100;
-    
-    return {
-      totalTaxPerPerson: totalTaxGBP,
-      cityName: capitalTax.cityName,
-      nights,
-      ratePerNight,
-      currency: capitalTax.currency || 'EUR',
-      eurAmount,
-      eurToGbpRate: capitalTax.currency === 'EUR' ? eurToGbpRate : undefined,
-    };
+    return calculateCityTax(pkg.category, pkg.duration, cityTaxes, eurToGbpRate);
   };
 
   // Redirect to destination page if this is not a known collection

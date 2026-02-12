@@ -3,6 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { setMetaTags, addJsonLD, generateOrganizationSchema } from "@/lib/meta-tags";
 import { useCurrency } from "@/contexts/CurrencyContext";
+import { calculateCityTax } from "@/lib/cityTaxCalc";
+import type { CityTaxInfo } from "@/lib/cityTaxCalc";
 import { useToast } from "@/hooks/use-toast";
 import { getProxiedImageUrl, getHeroImageUrl, getCardImageUrl } from "@/lib/imageProxy";
 import { Search, X, ChevronDown, Shield, Users, Award, Plane, Loader2, MapPin, Clock, Phone, Map as MapIcon, ArrowRight, Sparkles, SlidersHorizontal } from "lucide-react";
@@ -19,7 +21,7 @@ import { Footer } from "@/components/Footer";
 import { captureDestinationViewed, captureSearch, captureFilterApplied, captureNewsletterSignup, captureAISearch } from "@/lib/posthog";
 import logoImage from "@assets/flights-and-packages-logo_1763744942036.png";
 import travelTrustLogo from "@assets/TTA_1-1024x552_resized_1763746577857.png";
-import type { FlightPackage, Review } from "@shared/schema";
+import type { FlightPackage, Review, CityTax } from "@shared/schema";
 import { useDynamicPhoneNumber } from "@/components/DynamicPhoneNumber";
 
 // Fallback hero images (used when no products/packages have images)
@@ -55,58 +57,6 @@ const fallbackTestimonials = [
   }
 ];
 
-// City tax interfaces and helpers
-interface CityTax {
-  id: number;
-  cityName: string;
-  countryCode: string;
-  pricingType: 'flat_rate' | 'star_rating';
-  taxPerNightPerPerson: number;
-  rate1Star?: number | null;
-  rate2Star?: number | null;
-  rate3Star?: number | null;
-  rate4Star?: number | null;
-  rate5Star?: number | null;
-  currency: string;
-}
-
-interface CityTaxInfo {
-  totalTaxPerPerson: number;
-  cityName: string;
-  nights: number;
-  ratePerNight: number;
-  currency: string;
-  eurAmount?: number;
-  eurToGbpRate?: number;
-}
-
-const countryToCodeMap: Record<string, string> = {
-  'italy': 'IT', 'spain': 'ES', 'france': 'FR', 'germany': 'DE',
-  'portugal': 'PT', 'greece': 'GR', 'croatia': 'HR', 'austria': 'AT',
-  'netherlands': 'NL', 'belgium': 'BE', 'switzerland': 'CH',
-  'bulgaria': 'BG', 'slovakia': 'SK', 'hungary': 'HU', 'denmark': 'DK', 'estonia': 'EE',
-};
-
-const capitalCitiesMap: Record<string, string> = {
-  'IT': 'Rome', 'ES': 'Madrid', 'FR': 'Paris', 'DE': 'Berlin',
-  'PT': 'Lisbon', 'GR': 'Athens', 'HR': 'Zagreb', 'AT': 'Vienna',
-  'NL': 'Amsterdam', 'BE': 'Brussels', 'CH': 'Bern',
-  'BG': 'Sofia', 'SK': 'Bratislava', 'HU': 'Budapest', 'DK': 'Copenhagen', 'EE': 'Tallinn',
-};
-
-function parseDurationNightsHome(duration: string | null | undefined): number {
-  if (!duration) return 0;
-  const match = duration.match(/(\d+)\s*night/i);
-  return match ? parseInt(match[1], 10) : 0;
-}
-
-function getCountryCodeHome(countryName: string): string | null {
-  const lower = countryName.toLowerCase();
-  for (const [name, code] of Object.entries(countryToCodeMap)) {
-    if (lower.includes(name)) return code;
-  }
-  return null;
-}
 
 // AI Search interfaces and constants
 interface AISearchResult {
@@ -123,6 +73,10 @@ interface AISearchResult {
   slug?: string;
   score: number;
   tags?: string[];
+  additionalChargeName?: string;
+  additionalChargeCurrency?: string;
+  additionalChargeForeignAmount?: number;
+  additionalChargeExchangeRate?: number;
 }
 
 interface AISearchResponse {
@@ -333,49 +287,10 @@ export default function Homepage() {
   });
   const eurToGbpRate = siteSettings?.eurToGbpRate ?? 0.84;
 
-  // Calculate city tax for an AI search result
   const calculateCityTaxForResult = (result: AISearchResult): CityTaxInfo | undefined => {
     if (!cityTaxes || cityTaxes.length === 0) return undefined;
     if (result.type !== "package") return undefined;
-    
-    const country = result.category;
-    if (!country) return undefined;
-    
-    const nights = parseDurationNightsHome(result.duration);
-    if (nights <= 0) return undefined;
-    
-    const countryCode = getCountryCodeHome(country);
-    if (!countryCode) return undefined;
-    
-    const capitalCityName = capitalCitiesMap[countryCode];
-    if (!capitalCityName) return undefined;
-    
-    const capitalTax = cityTaxes.find(
-      t => t.cityName.toLowerCase() === capitalCityName.toLowerCase() && t.countryCode === countryCode
-    );
-    if (!capitalTax) return undefined;
-    
-    let ratePerNight = 0;
-    if (capitalTax.pricingType === 'flat_rate') {
-      ratePerNight = capitalTax.taxPerNightPerPerson || 0;
-    } else {
-      ratePerNight = capitalTax.rate4Star || capitalTax.rate3Star || capitalTax.taxPerNightPerPerson || 0;
-    }
-    
-    if (ratePerNight <= 0) return undefined;
-    
-    const totalTaxEUR = ratePerNight * nights;
-    const totalTaxGBP = Math.round(totalTaxEUR * eurToGbpRate);
-    
-    return {
-      totalTaxPerPerson: totalTaxGBP,
-      cityName: capitalCityName,
-      nights,
-      ratePerNight,
-      currency: 'GBP',
-      eurAmount: capitalTax.currency === 'EUR' ? totalTaxEUR : undefined,
-      eurToGbpRate: capitalTax.currency === 'EUR' ? eurToGbpRate : undefined,
-    };
+    return calculateCityTax(result.category, result.duration, cityTaxes, eurToGbpRate);
   };
 
   // Track AI searches in PostHog
@@ -849,7 +764,11 @@ export default function Homepage() {
                             {result.price && (() => {
                               const cityTaxInfo = calculateCityTaxForResult(result);
                               const cityTax = cityTaxInfo?.totalTaxPerPerson || 0;
-                              const totalPrice = result.price + cityTax;
+                              const addChargeForeign = parseFloat(String(result.additionalChargeForeignAmount || 0));
+                              const addChargeRate = parseFloat(String(result.additionalChargeExchangeRate || 0));
+                              const addChargeGbp = Math.round(addChargeForeign * addChargeRate * 100) / 100;
+                              const totalLocalCharges = cityTax + addChargeGbp;
+                              const totalPrice = result.price + totalLocalCharges;
                               return (
                                 <div className="mb-2">
                                   <div className="flex items-baseline gap-1">
@@ -859,12 +778,18 @@ export default function Homepage() {
                                     </span>
                                     <span className="text-[10px] text-white/60">total pp</span>
                                   </div>
-                                  {cityTax > 0 && (
+                                  {totalLocalCharges > 0 && (
                                     <p className="text-[10px] text-white/60 mt-0.5">
-                                      {formatAiPrice(result.price)} + {formatAiPrice(cityTax)} City taxes paid locally
-                                      {cityTaxInfo?.eurAmount && cityTaxInfo.eurAmount > 0 && cityTaxInfo.eurToGbpRate && (
-                                        <span> (€{cityTaxInfo.eurAmount.toFixed(2)} @ {cityTaxInfo.eurToGbpRate.toFixed(2)})</span>
-                                      )}
+                                      {formatAiPrice(result.price)} + {(() => {
+                                        const parts: string[] = [];
+                                        if (cityTax > 0) {
+                                          parts.push(`${formatAiPrice(cityTax)} City taxes`);
+                                        }
+                                        if (result.additionalChargeName && addChargeGbp > 0) {
+                                          parts.push(`${formatAiPrice(addChargeGbp)} ${result.additionalChargeName}`);
+                                        }
+                                        return parts.join(' + ');
+                                      })()} paid locally
                                     </p>
                                   )}
                                 </div>

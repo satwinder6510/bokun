@@ -3,16 +3,7 @@ import { MapPin, Clock, Plane } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getProxiedImageUrl } from "@/lib/imageProxy";
 import type { FlightPackage } from "@shared/schema";
-
-interface CityTaxInfo {
-  totalTaxPerPerson: number;
-  cityName: string;
-  nights: number;
-  ratePerNight: number;
-  currency: string;
-  eurAmount?: number;
-  eurToGbpRate?: number;
-}
+import type { CityTaxInfo } from "@/lib/cityTaxCalc";
 
 interface FlightPackageCardProps {
   pkg: FlightPackage;

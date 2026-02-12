@@ -109,6 +109,29 @@ The platform supports dynamic combined pricing for Bokun land tours and external
 
 The pricing calculation logic considers flight API data, internal flights, seasonal land/hotel costs, and a markup, with a 6am threshold for effective arrival date calculation.
 
+### Sunshine Hotel API Integration (`server/sunshineHotelApi.ts`)
+
+The platform integrates with the Sunshine Hotel API for hotel search and pricing:
+
+**Destination Mappings (Static Data):**
+- Country list: `SearchOffers.dll?agtid=122&page=country` - returns all available countries with IDs
+- Resort/hotel list: `SearchOffers.dll?agtid=122&page=resort&countryid=X` - returns full hierarchy of Region > Area > Resort > Hotel for a country
+- Ski destinations: `SearchOffers.dll?agtid=122&page=skidest` - returns ski-specific destinations with hotels, departure airports, star ratings, and board basis
+- Agent ID: 122
+
+**XML Structure Handling:**
+The API returns XML with varying structures per country:
+- Standard: `Region > Area > Resort > Hotel` (most countries)
+- Flat: `Region > Area` with no Resort wrapper (e.g., Austria) - Areas are treated as Resorts, and Hotels may be nested directly under Areas
+
+**Hotel Search in Admin (`/api/admin/hotels/search`):**
+Uses the destination mapping endpoint (`page=resort`) to get the static catalogue of hotels for a country, then filters by resort/area. This is NOT the availability search - it's the hotel directory.
+
+**Hotel Availability Search (`HTLSEARCH`):**
+A separate endpoint for searching actual hotel availability with dates, board basis, star ratings etc. Used when pricing specific hotels.
+
+**Route Ordering Note:** The `/api/admin/hotels/search` route MUST be defined before `/api/admin/hotels/:id` in Express routes, otherwise Express matches "search" as an `:id` parameter.
+
 ### Automatic Weekly Flight Price Refresh
 
 Packages using the Bokun Departures + Flights module can have their flight prices automatically refreshed every Sunday at 3:00 AM UK time. When flight prices are fetched for a package, the system saves the configuration (destination airport, UK departure airports, markup) and enables auto-refresh. The scheduler uses node-cron and the Sunshine European Flight API to keep prices up to date.
@@ -148,6 +171,9 @@ The `/api/ai-search/filters` endpoint returns `holidayTypesByDestination` mappin
 -   **Stripe:** Payment processing via Stripe Elements (TEST mode).
 -   **Privyr CRM:** Webhook integration for contact form submissions.
 -   **PostHog:** User activity tracking and analytics with EU data residency.
+-   **Sunshine European Flight API** (`server/flightApi.ts`): Primary flight pricing for European routes. Agent ID: 122. Round-trip via `/search/searchoffers.dll`, one-way via `/owflights/owflights.dll`. Does NOT cover all European routes (e.g., STN-SUF may not be available).
+-   **SERP API / Google Flights** (`server/serpFlightApi.ts`): Alternative flight pricing using SerpApi's Google Flights engine. Works worldwide including European routes not covered by Sunshine. Supports round-trip, open-jaw, and internal flight searches. Uses `SERPAPI_KEY` secret.
+-   **Sunshine Hotel API** (`server/sunshineHotelApi.ts`): Hotel destination mappings, search, and availability. Agent ID: 122. See "Sunshine Hotel API Integration" section above for details.
 
 ### Mobile Hero Video Feature
 

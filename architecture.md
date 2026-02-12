@@ -216,7 +216,14 @@
 - `POST /api/admin/packages/:id/sync-departures` - Sync Bokun departures
 - `GET /api/admin/packages/:id/departures` - Get departures
 - `PATCH /api/admin/departure-rates/:id/flight-pricing` - Update flight pricing for a rate
-- `POST /api/admin/packages/fetch-bokun-departure-flights` - Fetch flight prices for departures
+- `POST /api/admin/packages/fetch-bokun-departure-flights` - Fetch flight prices for departures (Sunshine API)
+- `POST /api/admin/packages/fetch-serp-flight-prices` - Fetch flight prices via SERP API (Google Flights)
+
+#### Sunshine Hotel API
+- `GET /api/admin/sunshine/countries` - List all Sunshine countries
+- `GET /api/admin/sunshine/resorts/:countryId` - Resorts for a country (static data with live API fallback)
+- `GET /api/admin/hotels/search` - Search hotels via Sunshine destination mapping (MUST be before /:id route)
+- `GET /api/admin/hotels/:id` - Get hotel by ID
 
 #### City Taxes
 - `GET /api/admin/city-taxes` - All city taxes
@@ -454,17 +461,26 @@ INR: ₹, JPY: ¥, AUD: A$, NZD: NZ$, ZAR: R, IDR: Rp
 
 ## 7. Flight API Integration
 
-### Sunshine European Flight API
+### Dual Flight API System
+
+The platform uses two flight pricing sources. Each package's Open-Jaw Seasonal pricing module can be configured to use either API:
+
+#### Sunshine European Flight API (Primary)
 - **Base URL (Round-trip):** `http://87.102.127.86:8119/search/searchoffers.dll`
 - **Base URL (One-way/Open-jaw):** `http://87.102.127.86:8119/owflights/owflights.dll`
 - **Agent ID:** 122 (`agtid=122`)
 - **File:** `server/flightApi.ts`
-- **Used for:** European and most destinations
+- **Used for:** European routes where Sunshine has inventory
+- **Limitation:** Does NOT cover all European routes (e.g., STN-SUF may not be available)
 
-### SERP API (Google Flights)
+#### SERP API / Google Flights (Alternative)
 - **File:** `server/serpFlightApi.ts`
-- **Used for:** Non-European destinations or when explicitly configured
-- **Requires:** SERP API key
+- **Used for:** Routes not covered by Sunshine, or any global route when explicitly configured
+- **Requires:** `SERPAPI_KEY` secret
+- **How it works:** Searches Google Flights via SerpApi. For a date range (e.g., April-October), it generates every departure date, batches them in groups of 10, and searches each concurrently
+- **Supports:** Round-trip, open-jaw, and internal flight searches
+- **Admin selection:** In the Open-Jaw Seasonal pricing module, admin chooses "European Flight API" or "SERP API (Google Flights)" per package
+- **API endpoint:** `POST /api/admin/packages/fetch-serp-flight-prices`
 
 ### Flight Types
 1. **Round-trip:** Single search, outbound + return
@@ -480,6 +496,38 @@ INR: ₹, JPY: ¥, AUD: A$, NZD: NZ$, ZAR: R, IDR: Rp
 - **File:** `server/scheduler.ts`
 - Refreshes flight prices for all packages with `bokunDepartures` pricing module
 - Uses saved configuration per package (destination airport, UK airports, markup)
+
+### Sunshine Hotel API Integration
+- **File:** `server/sunshineHotelApi.ts`
+- **Agent ID:** 122
+
+#### Destination Mappings (Static Data)
+- Country list: `SearchOffers.dll?agtid=122&page=country` - returns all available countries with IDs
+- Resort/hotel list: `SearchOffers.dll?agtid=122&page=resort&countryid=X` - returns full hierarchy
+- Ski destinations: `SearchOffers.dll?agtid=122&page=skidest` - ski-specific destinations
+
+#### XML Structure Handling
+The API returns XML with varying structures per country:
+- **Standard:** `Region > Area > Resort > Hotel` (most countries)
+- **Flat:** `Region > Area` with no Resort wrapper (e.g., Austria) - Areas are treated as Resorts, and Hotels may be nested directly under Areas
+- The parser (`getSunshineDestinations()`) handles both structures automatically
+
+#### Hotel Search in Admin
+- **Route:** `GET /api/admin/hotels/search` (must be defined BEFORE `/:id` route in Express)
+- Uses destination mapping endpoint (`page=resort`) to get the static catalogue of hotels for a country
+- Filters by resort/area client-side
+- This is the hotel directory, NOT availability search
+
+#### Resort Data Fallback
+- Static resort data is stored in `server/sunshineStaticData.ts`
+- If no static data exists for a country, the system fetches live data from the Sunshine API (`getSunshineDestinations()`)
+- Route: `GET /api/admin/sunshine/resorts/:countryId`
+
+#### Hotel Availability Search (HTLSEARCH)
+A separate endpoint for searching actual hotel availability with dates, board basis, star ratings etc. Used when pricing specific hotels.
+
+#### Critical Route Ordering
+The `/api/admin/hotels/search` route MUST be defined before `/api/admin/hotels/:id` in Express routes, otherwise Express matches "search" as an `:id` parameter. This was a critical bug fixed on 2026-02-12.
 
 ---
 
@@ -561,7 +609,8 @@ Enhanced SEO for UK market, configured in `server/seo/ukIntentDestination.ts`.
 | Bokun API | Tour data (search, details, availability, booking) | HMAC-SHA1 signature |
 | Stripe | Payment processing (TEST mode) | Stripe secret key |
 | Sunshine European Flight API | Flight prices (European routes) | Agent ID (122) |
-| SERP API | Google Flights data | API key |
+| Sunshine Hotel API | Hotel destination mappings, search, availability | Agent ID (122) |
+| SERP API / Google Flights | Flight prices (global, routes Sunshine doesn't cover) | `SERPAPI_KEY` secret |
 | Frankfurter API | Live currency exchange rates | None (free, no key) |
 | Privyr CRM | Contact form webhook | Webhook URL |
 | PostHog | User analytics | API key |
@@ -610,6 +659,19 @@ Enhanced SEO for UK market, configured in `server/seo/ukIntentDestination.ts`.
 ---
 
 ## 12. Change Log
+
+### 2026-02-12
+- **Fixed:** Hotel search route ordering - moved `/api/admin/hotels/search` before `/:id` to prevent Express matching "search" as an ID parameter
+- **Redesigned:** Hotel search now uses Sunshine destination mapping API (`page=resort`) instead of local DB search, returning the full static hotel catalogue for a country filtered by resort/area
+- **Enhanced:** Sunshine Hotel API XML parser to handle both standard nested structure (`Region > Area > Resort > Hotel`) and flat structure (`Region > Area` with hotels directly under Areas, e.g., Austria)
+- **Added:** Dynamic resort data fallback - if no static data exists for a country in `sunshineStaticData.ts`, the system fetches live data from Sunshine API
+- **Confirmed:** SERP API (Google Flights) working for routes not in Sunshine inventory (e.g., STN-SUF, 154 pricing entries generated successfully)
+- **Documented:** Dual flight API system (Sunshine + SERP API) in both replit.md and architecture.md
+
+### 2026-02-07
+- **Fixed:** Exchange rate saving to support currencies with many decimal places
+- **Fixed:** Package saving to correctly handle pricing module options
+- **Added:** Safety net for package pricing exchange rate updates
 
 ### 2026-02-06
 - **Fixed:** City tax foreign currency conversion bug - non-EUR currencies (HUF, CZK, etc.) were being added as raw amounts instead of converting to GBP

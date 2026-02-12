@@ -834,6 +834,12 @@ export default function Homepage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                 {featuredPackages.map((pkg) => {
                   const countrySlug = pkg.category?.toLowerCase().replace(/\s+/g, '-') || 'unknown';
+                  const pkgCityTaxInfo = (pkg as any).cityTaxEnabled !== false ? calculateCityTax(pkg.category, pkg.duration, cityTaxes || [], eurToGbpRate) : undefined;
+                  const pkgCityTax = pkgCityTaxInfo?.totalTaxPerPerson || 0;
+                  const pkgAddChargeAmount = parseFloat((pkg as any)?.additionalChargeForeignAmount) || 0;
+                  const pkgAddChargeRate = parseFloat((pkg as any)?.additionalChargeExchangeRate) || 0.84;
+                  const pkgAddChargeGbp = Math.round(pkgAddChargeAmount * pkgAddChargeRate * 100) / 100;
+                  const pkgLocalCharges = pkgCityTax + pkgAddChargeGbp;
                   return (
                   <a 
                     key={pkg.id} 
@@ -907,9 +913,9 @@ export default function Homepage() {
                               <span className="text-xs sm:text-sm text-white/80">from</span>
                               <div className="flex flex-col">
                                 <span className="text-2xl sm:text-3xl font-bold text-white">
-                                  £{pkg.price.toFixed(0)}
+                                  £{(pkg.price + pkgLocalCharges).toFixed(0)}
                                 </span>
-                                <span className="text-[10px] sm:text-xs text-white/60">pp twin share</span>
+                                <span className="text-[10px] sm:text-xs text-white/60">total pp twin share</span>
                               </div>
                             </div>
                           )}
@@ -918,18 +924,18 @@ export default function Homepage() {
                               <span className="text-xs sm:text-sm text-white/80">from</span>
                               <div className="flex flex-col">
                                 <span className="text-2xl sm:text-3xl font-bold text-white">
-                                  £{pkg.singlePrice.toFixed(0)}
+                                  £{(pkg.singlePrice + pkgLocalCharges).toFixed(0)}
                                 </span>
-                                <span className="text-[10px] sm:text-xs text-white/60">pp solo</span>
+                                <span className="text-[10px] sm:text-xs text-white/60">total pp solo</span>
                               </div>
                             </div>
                           )}
                           {pkg.pricingDisplay === "both" && pkg.singlePrice !== null && pkg.singlePrice !== undefined && (
                             <div className="flex flex-col">
                               <span className="text-lg sm:text-xl font-semibold text-white/90">
-                                £{pkg.singlePrice.toFixed(0)}
+                                £{(pkg.singlePrice + pkgLocalCharges).toFixed(0)}
                               </span>
-                              <span className="text-[10px] sm:text-xs text-white/60">pp solo</span>
+                              <span className="text-[10px] sm:text-xs text-white/60">total pp solo</span>
                             </div>
                           )}
                         </div>

@@ -120,6 +120,7 @@ export default function DestinationDetail() {
   const eurToGbpRate = siteSettings?.eurToGbpRate ?? 0.84;
 
   const calculateCityTaxForPackage = (pkg: FlightPackage): CityTaxInfo | undefined => {
+    if ((pkg as any).cityTaxEnabled === false) return undefined;
     if (!cityTaxes || cityTaxes.length === 0) return undefined;
     return calculateCityTax(pkg.category, pkg.duration, cityTaxes, eurToGbpRate);
   };

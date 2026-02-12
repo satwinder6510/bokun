@@ -3663,8 +3663,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Sanitize numeric fields - convert empty strings to null for PostgreSQL
+      const sanitizedCreateData = { ...parseResult.data };
+      const createNumericFields = ['additionalChargeForeignAmount', 'additionalChargeExchangeRate'] as const;
+      for (const field of createNumericFields) {
+        if (field in sanitizedCreateData && (sanitizedCreateData as any)[field] === '') {
+          (sanitizedCreateData as any)[field] = null;
+        }
+      }
+
       // Try to create the package, handling duplicate slug errors
-      let packageData = parseResult.data;
+      let packageData = sanitizedCreateData;
       let attempts = 0;
       const maxAttempts = 5;
       

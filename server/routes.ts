@@ -5680,6 +5680,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Package not found" });
       }
 
+      if ((pkg as any).cityTaxEnabled === false) {
+        return res.json({
+          cityNights: [],
+          totalTaxPerPerson: 0,
+          currency: 'GBP',
+          lastUpdated: null,
+          autoCalculated: false,
+          eurToGbpRate: 0.84,
+          disabled: true,
+        });
+      }
+
       // Get all city taxes
       const allTaxes = await storage.getAllCityTaxes();
       const latestUpdate = await storage.getLatestCityTaxUpdate();

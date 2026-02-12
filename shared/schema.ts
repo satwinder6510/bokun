@@ -422,6 +422,8 @@ export const flightPackages = pgTable("flight_packages", {
   // Custom "What's Not Included" items - if set, overrides the default hardcoded list
   customExclusions: jsonb("custom_exclusions").$type<string[]>().default([]),
   
+  cityTaxEnabled: boolean("city_tax_enabled").default(true).notNull(),
+  
   // City tax configuration - explicit city nights for tax calculation
   // Much simpler than parsing itinerary - admin specifies cities and nights directly
   cityTaxConfig: jsonb("city_tax_config").$type<{

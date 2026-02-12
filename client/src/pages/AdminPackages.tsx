@@ -151,6 +151,7 @@ type PackageFormData = {
   mobileHeroVideo: string;
   desktopHeroVideo: string;
   customExclusions: string[];
+  cityTaxEnabled: boolean;
   cityTaxConfig: { city: string; nights: number; starRating?: number }[];
   additionalChargeName: string;
   additionalChargeCurrency: string;
@@ -218,6 +219,7 @@ const emptyPackage: PackageFormData = {
   mobileHeroVideo: "",
   desktopHeroVideo: "",
   customExclusions: [],
+  cityTaxEnabled: true,
   cityTaxConfig: [],
   additionalChargeName: "",
   additionalChargeCurrency: "EUR",
@@ -828,6 +830,7 @@ export default function AdminPackages() {
       mobileHeroVideo: pkg.mobileHeroVideo || "",
       desktopHeroVideo: pkg.desktopHeroVideo || "",
       customExclusions: (pkg.customExclusions || []) as string[],
+      cityTaxEnabled: (pkg as any).cityTaxEnabled !== false,
       cityTaxConfig: ((pkg as any).cityTaxConfig || []) as { city: string; nights: number; starRating?: number }[],
       additionalChargeName: (pkg as any).additionalChargeName || "",
       additionalChargeCurrency: (pkg as any).additionalChargeCurrency || "EUR",
@@ -3444,7 +3447,19 @@ export default function AdminPackages() {
                     </div>
 
                     <Separator className="my-4" />
-                    <h4 className="font-medium text-sm text-muted-foreground mb-3">City Tax Configuration</h4>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-sm text-muted-foreground">City Tax Configuration</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">{formData.cityTaxEnabled ? 'Enabled' : 'Disabled'}</span>
+                        <Switch
+                          checked={formData.cityTaxEnabled}
+                          onCheckedChange={(checked) => setFormData({ ...formData, cityTaxEnabled: checked })}
+                          data-testid="switch-city-tax-enabled"
+                        />
+                      </div>
+                    </div>
+                    {formData.cityTaxEnabled ? (
+                    <>
                     <p className="text-xs text-muted-foreground mb-2">
                       Specify which cities guests will stay in and for how many nights. This calculates the local city tax shown as "Pay Locally".
                     </p>
@@ -3609,6 +3624,10 @@ export default function AdminPackages() {
                         </>
                       )}
                     </div>
+                    </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic">City tax is disabled for this package. Toggle on to configure.</p>
+                    )}
 
                     <Separator className="my-4" />
                     

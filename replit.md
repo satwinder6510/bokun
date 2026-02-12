@@ -38,6 +38,15 @@ Drizzle ORM with Neon Serverless PostgreSQL is used for all data persistence. Fl
 
 Flight packages support dual pricing for twin share and solo travelers, automatically detecting room types from Bokun tour rates. An admin setting controls the display of these prices.
 
+### Local Charges System
+
+A two-layer local charges system is implemented for flight packages:
+
+1.  **City Taxes:** Auto-calculated from the `city_taxes` database table based on destination country, duration, and star rating. Supports per-city configuration via `cityTaxConfig` on each package, or auto-detection using the capital/highest-rate city for the destination country. A `cityTaxEnabled` boolean toggle (default: true) on each package allows selectively disabling city tax.
+2.  **Additional Charges:** Package-specific charges (port fees, resort fees, etc.) stored directly on each package with `additionalChargeName`, `additionalChargeCurrency`, `additionalChargeForeignAmount`, and `additionalChargeExchangeRate` fields. Converted to GBP for display.
+
+Both charge types are combined into a `totalLocalCharges` value. Card displays (Homepage featured packages, DestinationDetail, CollectionDetail, AI search results) show the total price inclusive of all local charges. Detailed breakdowns are shown only on the PackageDetail page. The admin panel provides a toggle to enable/disable city tax per package and fields to configure additional charges in foreign currency.
+
 ### Build & Deployment
 
 Development uses `tsx` for the backend and Vite for the frontend. Production builds use Vite for the frontend and `esbuild` for the backend, served by a single Node.js process.

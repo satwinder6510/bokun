@@ -97,24 +97,6 @@ export function FlightPackageCard({ pkg, cityTaxInfo, showSinglePrice = false, p
                 </span>
                 <span className="text-[10px] text-white/60">total pp</span>
               </div>
-              {totalLocalCharges > 0 && (
-                <p className="text-[10px] text-white/60 mt-0.5">
-                  {formatGBP(basePrice)} + {(() => {
-                    const parts: string[] = [];
-                    if (cityTax > 0) {
-                      let cityPart = `${formatGBP(cityTax)} City taxes`;
-                      if (cityTaxInfo?.eurAmount && cityTaxInfo.eurAmount > 0 && cityTaxInfo.eurToGbpRate) {
-                        cityPart += ` (€${cityTaxInfo.eurAmount.toFixed(2)} @ ${cityTaxInfo.eurToGbpRate.toFixed(2)})`;
-                      }
-                      parts.push(cityPart);
-                    }
-                    if (additionalChargeName && additionalChargeGbpAmount > 0) {
-                      parts.push(`${formatGBP(additionalChargeGbpAmount)} ${additionalChargeName} (${additionalChargeCurrency} ${additionalChargeForeignAmount.toFixed(2)} @ ${additionalChargeExchangeRate.toFixed(2)})`);
-                    }
-                    return parts.join(' + ');
-                  })()} paid locally
-                </p>
-              )}
             </div>
           ) : (
             <div className="mb-2">

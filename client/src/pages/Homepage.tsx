@@ -778,20 +778,6 @@ export default function Homepage() {
                                     </span>
                                     <span className="text-[10px] text-white/60">total pp</span>
                                   </div>
-                                  {totalLocalCharges > 0 && (
-                                    <p className="text-[10px] text-white/60 mt-0.5">
-                                      {formatAiPrice(result.price)} + {(() => {
-                                        const parts: string[] = [];
-                                        if (cityTax > 0) {
-                                          parts.push(`${formatAiPrice(cityTax)} City taxes`);
-                                        }
-                                        if (result.additionalChargeName && addChargeGbp > 0) {
-                                          parts.push(`${formatAiPrice(addChargeGbp)} ${result.additionalChargeName}`);
-                                        }
-                                        return parts.join(' + ');
-                                      })()} paid locally
-                                    </p>
-                                  )}
                                 </div>
                               );
                             })()}
